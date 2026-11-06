@@ -17,6 +17,7 @@ comprobó. Lo que no se pudo comprobar sin red ni modelo va como supuesto no ver
   sobre el árbol y sobre los borradores que dan los cambios de contracts/remisiones.md, aplicados a copias en el
   directorio temporal: `normativa` 10 929 → **10 981**; `plazos-y-territorio` 10 930 → **10 982**; `jurisprudencia`
   10 842 → **10 842**; `normativa-remisiones-en-orden`, 11 084 (la cifra del ADR 0051). `consulta-juridica` no cambia.
+  Tras las correcciones de T003, T004 y T009 (D2 y D3), el árbol queda en 10 926, 10 893 y 10 842.
 - **V4 · Las suites congeladas que leen el texto de las skills.** `internal/app/testdata/script/h32-normativa.txtar`
   (congelada, en `TestEntregaDelHito`) exige: en el paso 2 de `normativa`, la frase «Habla de otras conversaciones, que
   quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni una
@@ -122,6 +123,11 @@ lo cubre la frase del paso 2 que fija `h32-normativa` («un bloque sin entrada `
 respuesta»), que no se mueve. No la necesita toda respuesta (ADR 0050 y 0051, consecuencias), y la clase del juez que
 mira lo que se cuenta del proceso no decide en `normativa` (V12).
 
+**Corrección de T003** (gates/supuestos.md; contracts/remisiones.md §1 y §3): con la línea de 70 caracteres de la
+vertical de ensayo de H32 (`TestVerticalDeEnsayo`), 10 981 da 11 051. Un segundo movimiento, «Si una lectura falla, di
+qué bloques faltan y por qué.», de la regla 2 al final de `references/lecturas_que_fallan.md`, que el paso 2 manda leer
+en ese caso, deja el cuerpo en **10 926** (10 996 con la vertical de ensayo).
+
 **Alternativas rechazadas.**
 - Mover una forma fija (las líneas de «Redacción en una fecha» o de «Redacción modificada»): `h32-normativa`, congelada,
   exige las cinco formas en un bloque `text` del `SKILL.md` (V4), y `redaccion_en_una_fecha.md` y
@@ -144,6 +150,12 @@ y se abre en 58 de 60 sesiones en modo herramienta (#214, citado por el hito). L
 
 **Alternativa rechazada.** Llevar cada orden a su paso (5, 4 y 8 a 10): son seis sitios, no caben sin mover texto del
 cuerpo, y FR-003 ya se cumple con la orden antes de la primera llamada.
+
+**Correcciones de T004 y T009** (gates/supuestos.md; contracts/remisiones.md §1 y §4): con la vertical de ensayo de H32,
+10 982 da 11 052, y la frase del paso 10 sobre la lectura que sale con 4 o 5 pasa al final de
+`references/calculo_de_plazos.md` (T004). T009 añade en el paso 10, detrás de la lectura, la orden de leer esa referencia
+«antes de seguir» si sale con 4 o 5 (P4), y para hacerle sitio la frase del paso 1 sobre el municipio que falta pasa al
+final de `references/municipios.md`. El cuerpo queda en **10 893** (10 963 con la vertical de ensayo).
 
 ### D4 · Las remisiones de `jurisprudencia` (FR-006)
 
@@ -275,7 +287,7 @@ paso 2) y la 08 o la 09 en lugar de la 04 (el mismo paso 3).
 ### D13 · La regla de lectura con `cd` (FR-041)
 
 **Decisión.** En las familias del producto, una orden de `Bash` abre `<f>` si, partida en órdenes simples como hoy
-(`ordenesSimples`, `internal/evals/laboratorio_tabla.go:1197`), tiene una cuya primera palabra que no es una asignación
+(`ordenesSimples`, `internal/evals/laboratorio_tabla.go:1370` tras el hito; l. 1197 antes), tiene una cuya primera palabra que no es una asignación
 es `cd` y cuya palabra siguiente, sin una barra final, es `<skill>/references` o termina en `/<skill>/references`, y
 detrás, en otra orden simple de la misma orden, una palabra que es exactamente `<f>` o `./<f>`. «Termina en» se lee por
 tramos de ruta, con la misma forma que la regla de `Read` de H40 (`<skill>/references/<f>` o terminada en
@@ -292,9 +304,11 @@ columnas son la unión, en orden de nombre. Una variante «tiene» una referenci
 producto, en la lista de alguno de sus sondeos; donde no la tiene, la celda de la fila y la del detalle van vacías. La
 lista la escribe el arnés siempre que instala `<skill>-producto` (contracts/arnes.md §3.4): sin ella, o con una que no
 es una lista de nombres, el `sondeo.json` se ha editado a mano (FR-040) y es lo que el guion no sabe leer, con la regla
-genérica de H39 —defecto `inesperado`, código 1 y sin tabla (ADR 0023)—, sin mensaje ni test propios. Rechazadas:
-columnas fijas de la declaración, que no darían la de una referencia nueva del producto (spec, «Edge Cases»); y un
-mensaje y un caso de test para la lista que falta, que solo se alcanza editando el sondeo a mano.
+genérica de H39 —defecto `inesperado`, código 1 y sin tabla (ADR 0023)—, sin test propio; el producto, al faltar la
+lista, nombra el fichero y la variante (`<sondeo>/sondeo.json no tiene la lista referencias_del_producto de la variante
+<skill>-producto`; `referenciasDeLasVariantes`, en `internal/evals/laboratorio_tabla.go`). Rechazadas: columnas fijas
+de la declaración, que no darían la de una referencia nueva del producto (spec, «Edge Cases»); y un caso de test para
+la lista que falta, que solo se alcanza editando el sondeo a mano.
 
 ### D15 · Aceptación e2e
 

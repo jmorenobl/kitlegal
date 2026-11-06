@@ -16,8 +16,9 @@ make skills-check
 
 Verde: ningún cuerpo de `skills/` pasa de 11 000 caracteres, ninguna deriva tras `make skills-sync`, y, con
 `TestRemisionesDelRepositorio`, cada enlace a una referencia va en una frase con «lee» antes y sin «si la tienes», «antes
-de escribir la respuesta» ni «antes de dar la consulta», en mayúscula o minúscula (contracts/remisiones.md §6). Hoy, sin el hito, también sale en
-verde (comprobado en esta sesión): ese test todavía no existe.
+de escribir la respuesta» ni «antes de dar la consulta», en mayúscula o minúscula (contracts/remisiones.md §6). Antes
+del hito también salía en verde, porque ese test no existía; con el SKILL.md de cada `<skill>-control`, su subtest
+«control» da los fallos de contracts/remisiones.md §6.4.
 
 ## 2. Lo que instala el binario
 
@@ -35,7 +36,7 @@ go test -count=1 -run '^(TestVariantesDeControl|TestSkillsDelProductoDesdeContro
 ```
 
 Verde: cada `<skill>-control` es la de `v0.9.0`, fichero a fichero; `skills/<skill>` es su control con las remisiones y
-el movimiento declarados y nada más, con el frontmatter idéntico; las variantes de H40 difieren de `normativa-control`
+los movimientos declarados y nada más, con el frontmatter idéntico; las variantes de H40 difieren de `normativa-control`
 solo en lo suyo; y ninguna variante se empotra, se instala ni la mide el job (contracts/variantes.md §2,
 contracts/remisiones.md §7).
 
@@ -78,8 +79,8 @@ make ci
 ## 8. La aceptación de la persona (fuera del run; FR-052)
 
 Lo hace una persona, antes de fusionar, con la credencial del sondeo y Claude Code en el `PATH`; abre 520 sesiones con
-modelo, que consumen su suscripción. Escribe las sesiones fuera del repositorio, en `../kitlegal-sondeos/h41/`, que no
-puede existir antes.
+modelo, que consumen su suscripción. Escribe las sesiones fuera del repositorio, bajo `../kitlegal-sondeos/h41/`; el
+`DIRECTORIO` de cada lanzamiento no puede existir antes.
 
 ```sh
 V=$(claude --version | awk '{print $1}')

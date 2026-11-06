@@ -138,8 +138,8 @@ casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `nor
 
 H41 lleva esa forma a las tres skills del producto con referencias, `normativa`, `plazos-y-territorio` y
 `jurisprudencia` (`specs/033-h41-las-skills-del/contracts/remisiones.md`): cada orden de leer va antes de la primera
-orden o llamada de la skill, o en el paso que usa la referencia y antes de su orden o llamada, y nunca antes de escribir
-o dar la respuesta. De ahí, tres reglas más:
+orden o llamada de la skill, o en el paso que usa la referencia —antes de su orden o llamada o, si la condición la trae
+lo que devuelve, detrás de ella—, y nunca antes de escribir o dar la respuesta. De ahí, tres reglas más:
 
 - **La orden cuya condición la da lo que devuelve una llamada va en el paso de esa llamada, detrás de ella**, y dice
   que se lee «antes de seguir»: `Si una orden no termina con 0, lee [lecturas_que_fallan](…) antes de seguir: qué

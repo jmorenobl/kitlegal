@@ -7,9 +7,10 @@
 ## Summary
 
 El hito reescribe cada remisión de `normativa`, `plazos-y-territorio` y `jurisprudencia` como una orden de leer —«lee»,
-el enlace, cuándo y lo que trae—, en su sitio (FR-001 a FR-006), y hace en `normativa` el sitio que las órdenes
-necesitan moviendo a `redaccion_modificada.md` la única viñeta que solo usa su caso (FR-009); los tres cuerpos quedan en
-10 981, 10 982 y 10 842 caracteres (FR-008). Amplía el arnés de H39 y H40 a tres familias del producto, cada una con su
+el enlace, cuándo y lo que trae—, en su sitio (FR-001 a FR-006), y hace el sitio que las órdenes necesitan llevando a
+la referencia que se manda leer en su caso lo que solo usa ese caso (FR-009): en `normativa`, a `redaccion_modificada.md`
+y a `lecturas_que_fallan.md`, y en `plazos-y-territorio`, a `calculo_de_plazos.md` y a `municipios.md` (correcciones de
+T003, T004 y T009 en gates/supuestos.md); los tres cuerpos quedan en 10 926, 10 893 y 10 842 caracteres (FR-008). Amplía el arnés de H39 y H40 a tres familias del producto, cada una con su
 `<skill>-control` congelada (la de `v0.9.0`) y su `<skill>-producto` instalada desde `skills/` en cada sondeo, con cuatro
 evals de la skill (FR-020 a FR-033); y la tabla, que cuenta las tres familias y la lectura con `cd` al directorio de las
 referencias (FR-040, FR-041). El run no abre sesiones con modelo: el sondeo de 520 sesiones y su lectura los hace la
@@ -50,7 +51,7 @@ llama por lo que declara) y `golang-cli` (ningún argumento ni bandera nuevos).
 fija las cinco formas fijas de `normativa` en bloques `text`, research V4) siguen en verde; el run no graba, no escribe
 en `evidencias/` y no abre sesiones con modelo (FR-031, FR-052).
 
-**Scale/Scope**: 3 skills, 13 remisiones reescritas (8, 3 y 2), 1 movimiento; 3 familias, 8 ficheros de control nuevos; 13 filas y
+**Scale/Scope**: 3 skills, 14 remisiones reescritas, movidas o nuevas (8, 4 y 2), 4 movimientos (2 y 2); 3 familias, 8 ficheros de control nuevos; 13 filas y
 520 sesiones en la aceptación; 3 tablas.
 
 ## Constitution Check
@@ -63,7 +64,7 @@ en `evidencias/` y no abre sesiones con modelo (FR-031, FR-052).
 | II · Nada sin cita ni fuente | El sobre de ningún applet cambia. Las reglas de cita, las formas fijas y la declaración de lo no cubierto siguen en los cuerpos (contracts/remisiones.md §2 a §5); lo movido es una regla entera que llega a la referencia que el caso manda leer |
 | III · Tests primero y offline | Primero los dos guiones de contracts/aceptacion.md, que hoy fallan por una aserción. Todos los tests nuevos, offline y sin modelo, contra fixtures que escriben las tareas; ninguna grabación. `internal/core` no cambia |
 | IV · Arquitectura hexagonal con reglas ejecutables | El código va en `internal/evals`, que no importa ningún paquete del binario, y el test de las remisiones, en `internal/skills`, sin código nuevo del paquete (research V11); `cmd/laboratorio` sigue siendo la raíz que nombra `os.Std*` y llama a `os.Exit`. Errores: la tabla, defecto `inesperado` con 1; el arnés, error de uso como en H39. `kitlegal` y sus códigos no cambian. Ningún `panic` |
-| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia nueva. Cada mecanismo se traza a un FR («Trazabilidad»); lo que llega de fuera manipulado (un `sondeo.json` sin lista, una transcripción rota) es defecto `inesperado` con la regla genérica de H39, sin mensaje ni test propios |
+| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia nueva. Cada mecanismo se traza a un FR («Trazabilidad»); lo que llega de fuera manipulado (un `sondeo.json` sin lista, una transcripción rota) es defecto `inesperado` con la regla genérica de H39 (código 1 y sin tabla), sin test propio; el de un `sondeo.json` sin lista nombra el fichero y la variante |
 | VI · Un binario, convenciones de agente | Un solo binario `kitlegal`, sin banderas, variables ni órdenes nuevas. `cmd/laboratorio` no se distribuye (`.goreleaser.yaml` construye solo `./cmd/kitlegal`) |
 | VII · Grafo y privacidad | No toca el grafo. Las sesiones usan su caché y su grafo en su directorio, como las del job; ningún dato de una persona |
 | VIII · Skills primero; el binario es la herramienta | Mejora tres skills del producto, medibles con sus evals (FR-051) y con el sondeo de la persona (FR-052), según la guía de autoría (ADR 0046, 0050 y 0051): lo que toda respuesta necesita sigue en el cuerpo, que cabe en 11 000; lo demás, en referencias que el cuerpo manda leer; sin `scripts/` |
@@ -104,7 +105,9 @@ specs/033-h41-las-skills-del/
 ```text
 skills/normativa/SKILL.md                                   # R1–R6 y la salida de lo movido (contracts/remisiones.md §2)
 skills/normativa/references/redaccion_modificada.md         # lo movido, al final (§3)
-skills/plazos-y-territorio/SKILL.md                         # P1–P3 (§4)
+skills/normativa/references/lecturas_que_fallan.md          # lo movido, al final (§3; corrección de T003)
+skills/plazos-y-territorio/SKILL.md                         # P1–P4 y la salida de lo movido (§4)
+skills/plazos-y-territorio/references/{calculo_de_plazos,municipios}.md   # lo movido, al final (§4; T004 y T009)
 skills/jurisprudencia/SKILL.md                              # J1, J2 (§5)
 laboratorio/plazos-y-territorio/plazos-y-territorio-control/skills/plazos-y-territorio/**   # NUEVO: 5 ficheros
 laboratorio/jurisprudencia/jurisprudencia-control/skills/jurisprudencia/**                  # NUEVO: 3 ficheros
@@ -134,7 +137,8 @@ las remisiones, con los del repositorio en `internal/skills`; ningún paquete nu
 ## Diseño
 
 - **Skills** (contracts/remisiones.md §2 a §5; research D1 a D4): los cambios, como `diff -u` del control; cada remisión
-  con su sitio, condición y lo que trae; un movimiento en `normativa`, ninguno en las otras dos.
+  con su sitio, condición y lo que trae; dos movimientos en `normativa`, dos en `plazos-y-territorio` y ninguno en
+  `jurisprudencia`.
 - **Regla de las remisiones** (§6; research D5, D6): por cada enlace a `references/<f>` fuera de un bloque de código,
   «lee» antes del enlace en su frase y ninguna de las tres expresiones; un test del repositorio, que también exige los
   fallos de cada `<skill>-control`.
@@ -167,7 +171,7 @@ La historia 3 abre sesiones con modelo y credencial: su aceptación es `TestArne
 | Mecanismo | FR/SC |
 |---|---|
 | Remisiones reescritas de las tres skills; sus sitios | FR-001 a FR-006 |
-| Movimiento «Nada de otra conversación» | FR-008, FR-009 |
+| Movimientos: «Nada de otra conversación» y la lectura que falla, en `normativa`; `⚠ PLAZO:` con 4 o 5 y el municipio que falta, en `plazos-y-territorio` | FR-008, FR-009 |
 | `TestRemisionesDelRepositorio` y su nombre en `make skills-check` | FR-001 a FR-003, SC-001 |
 | `TestSkillsDelProductoDesdeControl` y su declaración | FR-007, FR-009, FR-010, SC-003, SC-004 |
 | `laboratorio/<skill>/<skill>-control` (dos nuevas) y sus huellas | FR-020, SC-008 |

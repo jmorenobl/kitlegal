@@ -57,9 +57,9 @@ sustituyen a este fichero.
   (H41). Cada remisión del cuerpo de su `SKILL.md` es una orden de leer —«lee», el enlace, cuándo y lo que trae—
   puesta donde llega su condición, y no una referencia nombrada dentro de otra orden, tras una condición sobre el
   agente («si la tienes») o como sitio de dudas: en `normativa`, `con_herramientas.md` antes de la primera orden o
-  llamada, `normas.md` y `buscar_la_norma.md` en el paso 1, y en el paso 2, detrás de la lectura y con el caso que la
-  pide, `redaccion_en_una_fecha.md`, `redaccion_modificada.md`, `como_se_cita.md`, `varios_bloques.md` y
-  `lecturas_que_fallan.md`, esta «antes de seguir»; en `plazos-y-territorio`, las tres de «Cuándo leer cada una» y,
+  llamada, `normas.md` y `buscar_la_norma.md` en el paso 1, y en el paso 2, cada una con el caso que la pide,
+  `redaccion_en_una_fecha.md` y `varios_bloques.md` antes de la lectura, y `redaccion_modificada.md`, `como_se_cita.md`
+  y `lecturas_que_fallan.md` detrás de ella, esta «antes de seguir»; en `plazos-y-territorio`, las tres de «Cuándo leer cada una» y,
   en el paso 10, detrás de la lectura de cada precepto, `calculo_de_plazos.md` «antes de seguir» si sale con 4 o 5;
   y en `jurisprudencia`, `consulta_preparada.md` antes de pedir la consulta del paso 2 y `documento_aportado.md` al
   empezar el paso 3, antes del cotejo. Lo que solo necesita un caso va a la referencia que se manda leer en ese caso,

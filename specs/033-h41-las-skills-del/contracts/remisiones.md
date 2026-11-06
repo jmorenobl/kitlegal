@@ -15,7 +15,7 @@ FR-001 a FR-010; SC-001 a SC-004. Research D1 a D7, V2 a V6; data-model §5.
 | Skill | Cuerpo de control | Cuerpo tras el hito | Referencias | Movimientos |
 |---|---|---|---|---|
 | `normativa` | 10 929 | **10 926** | las ocho de hoy | dos (§3) |
-| `plazos-y-territorio` | 10 930 | **10 873** | las cuatro de hoy | uno (§4) |
+| `plazos-y-territorio` | 10 930 | **10 893** | las cuatro de hoy | dos (§4) |
 | `jurisprudencia` | 10 842 | **10 842** | las dos de hoy | ninguno |
 
 Medidas en esta sesión sobre copias con estos cambios (research V3). Ninguna referencia nueva.
@@ -117,7 +117,7 @@ en 10 893 (10 963 con la vertical de ensayo).
  ```
 ```
 
-Cada tramo es una **remisión** salvo el quinto (`@@ -70,8 +73,6 @@`), que es el **movimiento** de §3; R4 y R5 salen
+Cada tramo es una **remisión** salvo el quinto (`@@ -70,8 +73,6 @@`), que es el primer **movimiento** de §3 (el segundo, de la regla 2, va en §3); R4 y R5 salen
 de los tramos sexto y séptimo y entran en el cuarto:
 
 | # | Referencia | Sitio | Condición (FR-002) | Lo que trae | Qué hace con control |
@@ -136,7 +136,7 @@ cambia: «si la tienes» sigue en la frase que dice cómo pedir cada operación,
 siguen en sus bloques `text`, y los pasos 3 y 6 y la primera viñeta del paso 4, línea a línea, como exige
 `h32-normativa.txtar` (research V4).
 
-## 3. El movimiento de `normativa` (FR-009)
+## 3. Los movimientos de `normativa` (FR-009)
 
 | De | A | Texto | Por qué |
 |---|---|---|---|
@@ -182,8 +182,8 @@ El segundo movimiento (corrección de T003; §1):
 +Si una lectura falla, di qué bloques faltan y por qué.
 ```
 
-La referencia pasa de 2776 a 2834 bytes y de 52 a 54 líneas. Ningún otro byte de ninguna referencia de las tres skills
-cambia.
+La referencia pasa de 2776 a 2834 bytes y de 52 a 54 líneas. Ningún otro byte de ninguna referencia de `normativa`
+cambia; las dos de `plazos-y-territorio` que reciben un movimiento, en §4, y las de `jurisprudencia`, ninguna.
 
 ## 4. `plazos-y-territorio` (FR-005)
 
@@ -389,7 +389,7 @@ Que lo generado sea lo que da `make skills-sync` lo sigue comprobando `TestSkill
 
 ## 8. Uso, de fuera adentro
 
-- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 926, 10 873 y 10 842 caracteres (§1),
+- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 926, 10 893 y 10 842 caracteres (§1),
   nunca más de 11 000 (FR-008), tampoco con la línea de un paquete (corrección de T003). No crece con el uso: cientos de normas y miles de bloques consultados no lo tocan; el
   bloque de los paquetes crece con los paquetes declarados en `data/`, no con las consultas.
 - **Las referencias**, cada una una vez por pregunta, cuando llega su condición. `normativa`, en toda pregunta:
@@ -397,7 +397,7 @@ Que lo generado sea lo que da `make skills-sync` lo sigue comprobando `TestSkill
   y es lo que el hito quiere que se lea (research S1). Con su condición, de 909 (`varios_bloques.md`) a 2834
   (`lecturas_que_fallan.md`, con lo movido); `redaccion_modificada.md`, 2520 con lo movido, que deja de leerse en las preguntas sin
   entrada `version-obsoleta`. Una pregunta con fecha: cuerpo + 5952 + 2809 bytes. `plazos-y-territorio`: `administrativo.md`
-  (9930) en toda pregunta de plazos o recursos, como hoy, y con su condición `municipios.md` (3944), `calculo_de_plazos.md`
+  (9930) en toda pregunta de plazos o recursos, como hoy, y con su condición `municipios.md` (4034, con lo movido), `calculo_de_plazos.md`
   (2869, con lo movido) y `jerarquia_normativa.md` (1543). `jurisprudencia`: `consulta_preparada.md` (2038) con una sentencia que no
   está delante o una pregunta por materia, `documento_aportado.md` (2805) con un documento. `normas.md` crece con las
   normas declaradas en `data/normas.yaml`, no con las consultadas; las demás, solo cuando un hito las cambia.

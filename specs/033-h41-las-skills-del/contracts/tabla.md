@@ -16,8 +16,9 @@ familia del producto, un directorio de variante de otra familia —también de H
 `laboratorio: <ruta> no es ninguna variante de <skill>` en la salida de error, código 1 y sin tabla (el texto de H40 para
 `normativa`). Lo que el guion no sabe leer, como en H39: defecto `inesperado` (ADR 0023), código 1 y sin tabla. Entre
 ello, un `sondeo.json` que no trae la lista `referencias_del_producto` de un sondeo con un directorio `<skill>-producto`,
-que el arnés escribe siempre (contracts/arnes.md §3.4) y solo falta si se edita a mano (FR-040), sin mensaje ni test
-propios.
+que el arnés escribe siempre (contracts/arnes.md §3.4) y solo falta si se edita a mano (FR-040), sin test propio; el
+defecto lo nombra: `laboratorio: <sondeo>/sondeo.json no tiene la lista referencias_del_producto de la variante
+<skill>-producto`.
 
 ## 2. Qué cuenta, por sesión
 

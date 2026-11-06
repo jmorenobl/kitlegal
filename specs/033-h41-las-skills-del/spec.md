@@ -377,8 +377,9 @@ aceptación.
   tocan.
 - **Las referencias que se mandan leer** (FR-001 a FR-006, FR-009). El agente lee cada una una vez por pregunta, cuando
   llega su condición; en `normativa`, `con_herramientas.md` (2,4 KB hoy) y `normas.md` (3,4 KB) en toda pregunta, y las
-  demás (0,9 a 2,7 KB) solo con su condición: por pregunta, el cuerpo (11 000 caracteres como mucho) más unos 5,8 KB de
-  referencias que hoy, en modo herramienta, casi nunca se leen, y hasta otros 2,7 KB por cada condición que llega. Lo
+  demás (0,9 a 2,8 KB, con lo movido) solo con su condición: por pregunta, el cuerpo (11 000 caracteres como mucho) más
+  unos 5,8 KB de referencias que hoy, en modo herramienta, casi nunca se leen, y hasta otros 2,8 KB por cada condición
+  que llega. Lo
   que gana la skill es justo esto: que en modo herramienta se lean como en
   modo orden. `normas.md` crece con las normas declaradas en `data/normas.yaml` al añadir un paquete, no con las
   consultadas; las demás, solo cuando un hito las cambia. Lo movido (FR-009) se lee solo en el paso que lo usa, en vez
