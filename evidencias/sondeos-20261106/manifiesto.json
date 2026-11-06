@@ -1,0 +1,60 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "fa182ba5c7fde714fffe9e0ce1bdc43a5a5df34231a54e81e45026a3de05ffd7",
+      "bytes": 6206,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H41"
+    },
+    {
+      "fichero": "guiones/recuento.py",
+      "sha256": "84bf1b989d62dd5b39d173ea05fe242fa489e52610e8926ccf85a1483911f045",
+      "bytes": 4506,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "guion del recuento por eval desde el detalle de las tablas, fuera del producto"
+    },
+    {
+      "fichero": "recuento.md",
+      "sha256": "5ea17263a2ae473e6e370b2c1fa43d19e6520ece4074978868c630571acd2aaa",
+      "bytes": 13596,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "salida de guiones/recuento.py sobre las tres tablas"
+    },
+    {
+      "fichero": "salida.txt",
+      "sha256": "f865829c92bdd2173050a4de55bc8e324c4512cca1b471d182aceeaf01f430f5",
+      "bytes": 1675,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "salida de make evals-laboratorio, los cuatro lanzamientos"
+    },
+    {
+      "fichero": "tabla-jurisprudencia.md",
+      "sha256": "a7c08ac37660906e359e39cf59806507f2fe8361c1d9acd28c466807c6a6ebed",
+      "bytes": 15930,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de jurisprudencia"
+    },
+    {
+      "fichero": "tabla-normativa.md",
+      "sha256": "dd401c9ef92c3a1ae5f2e0769eb20e33007020b144025925835af96cd9c8a9d2",
+      "bytes": 29328,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de normativa (a y b)"
+    },
+    {
+      "fichero": "tabla-plazos-y-territorio.md",
+      "sha256": "84decbdc7a2aec7c3b4ae003b20bc8a1c1185c64879dedf774f30194ebd983f1",
+      "bytes": 20947,
+      "fecha": "2026-11-06",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de plazos-y-territorio"
+    }
+  ]
+}
