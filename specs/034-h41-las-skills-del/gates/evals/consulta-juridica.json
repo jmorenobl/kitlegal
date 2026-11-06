@@ -13,7 +13,7 @@
   "versiones_de_claude_code": [
     "2.1.284"
   ],
-  "commit": "69f5ecd183a44928c43052a8868b90b0464a2dc6",
+  "commit": "d5e66197ca753239a73f404ada743da5abd959e3",
   "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
   "ficheros_mal_formados": [],
   "veredicto": "aprobado",
@@ -159,17 +159,17 @@
         "aportes": [
           {
             "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
-            "medida": 22,
+            "medida": 21,
             "total": 3
           },
           {
             "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
-            "medida": 7,
+            "medida": 9,
             "total": 3
           },
           {
             "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
-            "medida": 15,
+            "medida": 18,
             "total": 3
           },
           {
@@ -319,7 +319,7 @@
           },
           {
             "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
-            "medida": 4,
+            "medida": 1,
             "total": 3
           },
           {
@@ -388,9 +388,9 @@
       "decide": false,
       "formas": [],
       "sesiones": 3,
-      "pasan": 0,
+      "pasan": 2,
       "sin_medir": 0,
-      "pasa": false,
+      "pasa": true,
       "sesiones_con_lectura_sin_servir": null
     },
     {
@@ -430,7 +430,7 @@
       "decide": true,
       "formas": [],
       "sesiones": 3,
-      "pasan": 2,
+      "pasan": 3,
       "sin_medir": 0,
       "pasa": true,
       "sesiones_con_lectura_sin_servir": null
@@ -454,7 +454,7 @@
     {
       "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
       "descripcion": "Lecturas de claude-sonnet-5-5 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
-      "medida": 22,
+      "medida": 21,
       "total": 6,
       "comparacion": "<=",
       "umbral": 0,
@@ -464,7 +464,7 @@
     {
       "nombre": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
       "descripcion": "Lecturas de claude-haiku-4-5-20251001 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
-      "medida": 11,
+      "medida": 10,
       "total": 6,
       "comparacion": "<=",
       "umbral": 0,
@@ -474,7 +474,7 @@
     {
       "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
       "descripcion": "Lecturas de claude-sonnet-5-5 en el modo herramienta que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
-      "medida": 15,
+      "medida": 18,
       "total": 6,
       "comparacion": "<=",
       "umbral": 0,
@@ -493,69 +493,63 @@
     }
   ],
   "juez": null,
-  "duracion_de_las_sesiones": 809,
+  "duracion_de_las_sesiones": 805,
   "reintentos_por_limite_de_ritmo": 0,
   "sesiones_sin_medir": [],
   "fuera_de_lo_grabado": [
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulos BOE-A-1980-22501 aseptimo aoctavo anoveno adiez aonce adoce --json",
+      "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aseptimo --json",
+      "orden": "boe buscar Ley de Contrato de Seguros --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo --json",
+      "orden": "boe buscar muerte asegurado póliza seguro --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aquinto --json",
+      "orden": "boe buscar contrato seguro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+      "codigo": 4
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar contrato seguro fallecimiento --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe buscar póliza seguro fallecimiento prórroga --json",
+      "orden": "boe buscar contrato seguro --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe buscar contrato de seguro --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe buscar ley seguro --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
-      "codigo": 5
+      "orden": "boe indice BOE-A-1980-23122 --json --offline",
+      "codigo": 4
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
@@ -578,91 +572,85 @@
     {
       "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
       "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aveintiuno --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulos BOE-A-1980-22501 atreintaytres atreintaycuatro atreintaycinco aveintidos acatorce aquince --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
       "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
       "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
       "orden": "boe articulo BOE-A-1980-22501 aquince --json",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
       "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
       "codigo": 5
     },
     {
@@ -672,33 +660,51 @@
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_buscar prorrogación póliza fallecimiento asegurado",
+      "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 adoce --json",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_buscar contrato seguro",
+      "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_buscar contrato seguro",
+      "orden": "boe_articulo BOE-A-1980-22501 aquinto",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_buscar ley 50 1980 seguro",
+      "orden": "boe_buscar contrato seguro fallecimiento",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_buscar ley contrato seguro",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaycuatro atreintaycinco atreintayseis atreintaytres",
+      "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
       "codigo": 5
     },
     {
@@ -716,25 +722,25 @@
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+      "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro aquince aveintiseis aveintisiete aochentayuno",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+      "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
       "codigo": 5
     },
     {
@@ -746,7 +752,7 @@
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
       "codigo": 5
     },
     {
@@ -756,69 +762,69 @@
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticinco atreintaycuatro atreintaycinco acuarto aquince aveintiseis",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
       "codigo": 5
     },
     {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
-      "codigo": 5
-    },
-    {
-      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
-      "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
+      "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveintiseis",
+      "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
       "codigo": 5
     },
     {
       "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
       "eval": "01-poliza-tras-el-fallecimiento.yaml",
-      "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
       "codigo": 5
     },
     {
-      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-01",
-      "eval": "02-una-sola-capacidad.yaml",
-      "orden": "boe buscar Estatuto de los Trabajadores --json",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 asexto",
       "codigo": 5
     },
     {
-      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-02",
-      "eval": "02-una-sola-capacidad.yaml",
-      "orden": "boe buscar Estatuto de los Trabajadores vacaciones --json",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aveinte",
       "codigo": 5
     },
     {
-      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-02",
-      "eval": "02-una-sola-capacidad.yaml",
-      "orden": "boe buscar Estatuto Trabajadores --json",
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 asexto",
       "codigo": 5
     },
     {
       "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-03",
       "eval": "02-una-sola-capacidad.yaml",
-      "orden": "boe articulo BOE-A-2015-11430 a30 --json",
+      "orden": "boe buscar Estatuto de los Trabajadores --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "orden": "boe_buscar Estatuto Trabajadores",
       "codigo": 5
     },
     {
       "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
       "eval": "02-una-sola-capacidad.yaml",
       "orden": "boe_buscar Estatuto de los Trabajadores",
-      "codigo": 5
-    },
-    {
-      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
-      "eval": "02-una-sola-capacidad.yaml",
-      "orden": "boe_indice BOE-A-1995-7623",
       "codigo": 5
     }
   ],
@@ -860,13 +866,7 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
-          "orden": "boe indice BOE-A-1980-22501 --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulos BOE-A-1980-22501 aseptimo aoctavo anoveno adiez aonce adoce --json",
+          "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -877,7 +877,7 @@
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aseptimo --json",
+          "orden": "boe buscar Ley de Contrato de Seguros --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -890,18 +890,18 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe articulos BOE-A-1980-22501 aseptimo aoctavo anoveno adiez aonce adoce --json",
+          "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aseptimo --json",
+          "orden": "boe buscar Ley de Contrato de Seguros --json",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ **SIN CONSULTA AL BOE: No se puede acceder a boe.es** — el sistema de kitlegal no puede resolver la conectividad al BOE para leer la Ley 50/1980 de Contrato de Seguro. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\n## Lo que no está cubierto\n\nAunque la consulta ha fallado técnicamente, puedo decirte qué NO está cubierto por la base de kitlegal:\n\n**Vías, órganos y escritos**: La base de kitlegal no cubre a quién reclamar específicamente, ante qué organismo presentar una reclamación, ni qué documentos o escritos usar ante la aseguradora. Estos son elementos que necesitarías conocer consultando directamente con un abogado o asesor legal especializado en seguros.\n\nLo que sí está regulado por ley (pero que no puedo citarte ahora por el problema de conectividad) son:\n- Las normas sobre cómo funcionan las prórrogas automáticas de pólizas\n- Qué sucede con el contrato de seguro tras el fallecimiento del asegurado\n- Los derechos y obligaciones de ambas partes\n\n**Recomendación práctica**: Intenta hacer la consulta de nuevo en unos momentos, o contacta con un **abogado especializado en derecho de seguros** o con la **Dirección General de Seguros y Fondos de Pensiones** (DGSFP) para que te orienten sobre si el cobro fue procedente y qué acciones puedes tomar (reclamación ante la aseguradora, denuncia ante la DGSFP, etc.).",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: No se puede acceder a la base de datos legislativa (el servidor BOE no responde a las consultas). Sin acceso a la norma consolidada no puedo leer qué dice la ley sobre la prórroga de pólizas cuando el asegurado fallece, ni citar los artículos que lo regulan.\n\nPara resolver tu pregunta en estos momentos, intenta:\n1. Esperar unos minutos e intentar de nuevo\n2. Si persiste: https://kitlegal.es/instalar/ para reinstalar kitlegal\n\nSobre lo que **no está cubierto** por la base: aunque pudiéramos leer la norma, la segunda parte de tu pregunta —**qué podemos hacer** (a quién reclamar, qué vía seguir, qué escrito presentar)— no está cubierta. Eso requeriría asesoría sobre los pasos concretos ante la aseguradora o los órganos que resuelven reclamaciones de seguros.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -949,13 +949,35 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
+          "orden": "boe buscar muerte asegurado póliza seguro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe buscar contrato seguro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
           "orden": "boe indice BOE-A-1980-22501 --json",
           "codigo": 0,
           "conexiones": [],
           "llamada": false
         },
         {
-          "orden": "boe articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo --json",
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -966,31 +988,34 @@
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aquinto --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+          "codigo": 4,
+          "conexiones": [],
           "llamada": false
         }
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo --json",
+          "orden": "boe buscar muerte asegurado póliza seguro --json",
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aquinto --json",
+          "orden": "boe buscar contrato seguro --json",
           "codigo": 5
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+          "codigo": 4
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "No puedo consultar la base de legislación consolidada del BOE en este momento por problemas de conectividad.\n\n---\n\nBasándome en lo que la skill de consulta jurídica ha analizado, tu pregunta tiene dos partes:\n\n1. **Qué dice la ley** sobre el efecto de la muerte del asegurado en la prórroga de la póliza — esto corresponde a la capacidad de **normativa**, que hubiera consultado la Ley 50/1980, de 8 de octubre, de Contrato de Seguro.\n\n2. **Qué podemos hacer** — esto incluye a quién reclamar, qué vía seguir, qué escrito presentar. Esto **no está cubierto** por la base de kitlegal: esos destinatarios, trámites y procedimientos específicos requieren asesoramiento profesional de un abogado o gestor.\n\n⚠ **SIN CONSULTA AL BOE**: problema de conectividad con la fuente. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\nPara resolver tu situación, te recomiendo que consultes con un abogado especializado en seguros que pueda revisar tu póliza específica, la comunicación de la aseguradora y orientarte sobre si procede una reclamación y cómo presentarla.",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: kitlegal no puede acceder a la API de legislación consolidada del BOE — los servidores del BOE están rechazando las peticiones por problemas de acceso al fichero robots.txt. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\n## Lo que no está cubierto\n\nComo no he podido consultar la Ley 50/1980 de Contrato de Seguro, no puedo decirte qué dice la ley sobre los efectos de la muerte de la asegurada en la póliza ni si es legal que la aseguradora la prorrogue y cobre la prima del nuevo período.\n\n**Respecto a \"¿qué podemos hacer?\"** — esto tampoco está cubierto por la base, aunque la ley lo estuviera: los documentos, los recursos, las reclamaciones y los destinatarios (a quién reclamar, ante qué órgano) no están en esta fuente. Tendrías que:\n\n1. Consultar directamente la ley en el [BOE](https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501) o en una herramienta de legislación\n2. Asesorarte con un abogado especializado en seguros que pueda evaluar:\n   - Si la póliza debería extinguirse por la muerte de la asegurada\n   - Si la prórroga y el cobro son conformes a la ley\n   - Qué vía de reclamación (administrativa, civil, ante el asegurador, ante organismos de supervisión) es la más adecuada en tu caso",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1038,7 +1063,7 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
-          "orden": "boe buscar póliza seguro fallecimiento prórroga --json",
+          "orden": "boe buscar contrato seguro fallecimiento --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1049,7 +1074,7 @@
           "llamada": false
         },
         {
-          "orden": "boe buscar contrato de seguro --json",
+          "orden": "boe buscar contrato seguro --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1060,35 +1085,30 @@
           "llamada": false
         },
         {
-          "orden": "boe buscar ley seguro --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "orden": "boe indice BOE-A-1980-23122 --json --offline",
+          "codigo": 4,
+          "conexiones": [],
           "llamada": false
         }
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe buscar póliza seguro fallecimiento prórroga --json",
+          "orden": "boe buscar contrato seguro fallecimiento --json",
           "codigo": 5
         },
         {
-          "orden": "boe buscar contrato de seguro --json",
+          "orden": "boe buscar contrato seguro --json",
           "codigo": 5
         },
         {
-          "orden": "boe buscar ley seguro --json",
-          "codigo": 5
+          "orden": "boe indice BOE-A-1980-23122 --json --offline",
+          "codigo": 4
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: El servicio de búsqueda de la legislación consolidada del BOE no está disponible en este momento (error de conectividad con los datos abiertos del BOE). \n\nSin poder acceder a la normativa consolidada, no puedo consultar ni citar las disposiciones sobre seguros, prórroga de pólizas y obligaciones de la aseguradora en caso de fallecimiento.\n\n**Lo que sí puedo decirte sobre el resto de tu pregunta:**\n\nLa parte de tu pregunta que pide \"qué podéis hacer\" —**a quién reclamar, qué vía seguir, qué documento presentar**— no está cubierta por la base de kitlegal incluso si la búsqueda funcionase. Esa información está fuera del alcance de esta herramienta.\n\n**Recomendación:**\n\nPara resolver tu problema te sugiero:\n1. **Consultar la normativa**: Si la herramienta se recupera, puedo ayudarte a leer la Ley 50/1980, de Contrato de Seguro (la regulación principal), que trata la extinción de pólizas y las obligaciones de ambas partes.\n2. **Buscar asesoramiento específico**: Un abogado especializado en seguros o un gestor administrativo puede orientarte sobre:\n   - Si tienes derecho a recuperar esa prima cobrada\n   - Ante quién reclamar (aseguradora, mediador, autoridad supervisora)\n   - Qué procedimiento seguir\n\n¿Quieres que reintente la búsqueda de la normativa en un momento?",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido obtener conexión con la fuente (boe.es) para consultar la normativa sobre seguros. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\nSin acceso a la consulta de la normativa, puedo decirte que **la base de kitlegal no cubre**:\n\n- **A quién reclamar** ante una aseguradora que cobra indebidamente por una póliza prorrogada tras fallecimiento\n- **Qué vía o procedimiento** seguir para recuperar lo cobrado\n- **Qué escrito** presentar\n\nEstos temas —los destinatarios, las vías administrativas o judiciales, los recursos y reclamaciones— están fuera del alcance de la consulta de normativa consolidada. Una vez que accedas a la norma aplicable (la Ley de Contrato de Seguro y leyes de consumidores), esos aspectos prácticos requerirían asesoramiento de un abogado o gestor administrativo que conozca los procedimientos específicos ante aseguradoras.\n\n¿Prefieres que lo intentemos de nuevo cuando se recupere la conexión con el BOE, o hay algo más en lo que pueda ayudarte?",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1142,14 +1162,9 @@
           "llamada": false
         },
         {
-          "orden": "boe articulos BOE-A-1980-22501 aveintidos aquince atreintaycuatro atreintaycinco atreintayseis atreintayocho atreintaynueve --json",
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
           "codigo": 1,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "conexiones": [],
           "llamada": false
         },
         {
@@ -1165,23 +1180,6 @@
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "graph check BOE-A-1980-22501 aquince --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
           "codigo": 5,
           "conexiones": [
@@ -1193,12 +1191,6 @@
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
           "codigo": 5,
           "conexiones": [
@@ -1207,46 +1199,6 @@
               "clase": "local"
             }
           ],
-          "llamada": false
-        },
-        {
-          "orden": "graph check BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "graph check BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "graph check BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 0,
-          "conexiones": [],
           "llamada": false
         },
         {
@@ -1261,13 +1213,7 @@
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 atreintayseis --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1278,26 +1224,30 @@
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 aquince --json",
-          "codigo": 0,
-          "conexiones": [],
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
           "llamada": false
         }
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 5
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
           "codigo": 5
         },
@@ -1310,19 +1260,29 @@
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
           "codigo": 5
         }
       ],
       "otras_fallidas": [
         {
-          "orden": "boe articulos BOE-A-1980-22501 aveintidos aquince atreintaycuatro atreintaycinco atreintayseis atreintayocho atreintaynueve --json",
-          "codigo": 1
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 1,
+          "motivo": "salida_no_escrita",
+          "bash": "cd /tmp; for b in aveintidos atreintaycuatro atreintaycinco atreintayseis atreintaysiete; do kitlegal boe articulo BOE-A-1980-22501 $b --json && kitlegal graph check BOE-A-1980-22501 $b --json; echo; done | python3 -c \"\nimport sys,json\nfor l in sys.stdin:\n    l=l.strip()\n    if not l: continue\n    d=json.loads(l)['data']\n    print({k:d[k] for k in d if k in('bloque','titulo','texto','fecha_vigencia','avisos','norma_modificadora','version-obsoleta','hallazgos')})\n\""
         }
       ],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Solo he podido leer un artículo de la Ley 50/1980, así que la respuesta es parcial. Lo demás, en particular si hay que devolver la prima, no lo puedo afirmar.\n\n**Qué dice el artículo leído**\n\nLa prórroga del contrato la regula el art. 22 de la Ley 50/1980, de Contrato de Seguro (rango: Ley) [BOE-A-1980-22501, bloque aveintidos]. Rige con la redacción de la Ley 20/2015 desde el 1 de enero de 2016.\n\n- **Prórroga.** La póliza fija la duración, con un máximo de diez años. Puede establecer que se prorrogue una o más veces por periodos de no más de un año cada vez (apartado 1).\n- **Oposición a la prórroga.** Cada parte puede oponerse mediante notificación escrita a la otra. El tomador debe avisar con al menos un mes de antelación al fin del periodo en curso. El asegurador debe avisar con al menos dos meses (apartado 2).\n- **Condiciones de la oposición.** Las condiciones y plazos de la oposición a la prórroga de cada parte, o su inoponibilidad, deben destacarse en la póliza (apartado 4).\n- **Seguro de vida.** Esos apartados no se aplican en cuanto sean incompatibles con la regulación del seguro sobre la vida (apartado 5).\n\nLa prórroga es, por tanto, una previsión del contrato que opera salvo que una parte se oponga con ese preaviso. Por sí sola no responde a lo que preguntas: no dice qué pasa con la póliza cuando fallece el tomador o el asegurado, ni si la aseguradora debe devolver la prima cobrada después.\n\n**Qué no he podido leer**\n\nLa fuente (BOE) limitó las consultas y no devolvió los artículos quince, treinta y cuatro, treinta y cinco y treinta y seis de la misma ley. No sé lo que dicen, así que no puedo darte la regla sobre el fallecimiento ni sobre la prima. Puedes consultarlos en el texto consolidado de la ley: https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501\n\n**Qué queda fuera de lo que puedo cubrir**\n\nNo puedo darte, porque la base de consulta no los cubre:\n- a quién reclamar ni qué vía seguir (la aseguradora, un servicio de atención al cliente u otro órgano);\n- los plazos para reclamar la devolución;\n- el escrito de reclamación.\n\nNo te doy ninguno de memoria, porque podrían ser de otra materia o haber cambiado.\n\n**Para avanzar mientras tanto**\n\nReúne la póliza y sus condiciones, el certificado de defunción, el recibo de la prima cobrada y cualquier comunicación de la aseguradora posterior al fallecimiento. Comprueba además de qué tipo de seguro se trata (vida, decesos, hogar, auto…), porque el art. 22.5 muestra que el régimen cambia en el seguro de vida. Con eso, un abogado o una asociación de consumidores podrá decirte la vía y el plazo exactos.\n\nEste texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "Solo he podido leer un artículo de la Ley de Contrato de Seguro, y ese artículo no resuelve si la prórroga y el cobro fueron válidos tras el fallecimiento. Lo que no he podido comprobar está al final.\n\n**Lo que dice la ley (lo único leído)**\n\nEl art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos] es una Ley, y su redacción vigente la dio la Ley 20/2015 desde el 1 de enero de 2016. No lleva avisos de vigencia. Dice lo siguiente:\n\n- **Duración y prórroga:** la póliza fija la duración, que no puede pasar de diez años. Puede pactarse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- **Oposición a la prórroga:** las partes pueden oponerse con una \"notificación escrita a la otra parte\". El plazo es de al menos un mes antes de que termine el período en curso si se opone el tomador, y de dos meses si se opone el asegurador (apartado 2).\n- **Condiciones de la póliza:** las condiciones y plazos de oposición, o su inoponibilidad, \"deberán destacarse en la póliza\" (apartado 4).\n- **Seguros de vida:** estas reglas no se aplican en cuanto sean incompatibles con la regulación del seguro sobre la vida (apartado 5).\n\nSi el seguro era de vida, este régimen de prórroga puede no aplicarse. Eso depende de otros artículos que no he leído.\n\n**Lo que no he podido comprobar**\n\n- No he podido leer los artículos treinta y cuatro a treinta y siete de esa Ley, porque la fuente limitó las consultas. Por eso no puedo decir qué ocurre con el contrato al fallecer el tomador o el asegurado, ni si los herederos quedan obligados a la prima.\n- Tampoco puedo decir si podéis reclamar la devolución de la prima. La parte práctica de la consulta queda fuera de lo que cubre la base: a quién reclamar, por qué vía, con qué escrito y en qué plazo. No os doy ningún plazo ni órgano de memoria, porque podría ser de otra materia o estar desfasado.\n\n**Qué conviene hacer ya**\n\n- Reunir la póliza y sus condiciones, el recibo de la nueva prima, el certificado de defunción y cualquier comunicación de la aseguradora. Hay que mirar si la póliza destaca las condiciones de oposición a la prórroga y si alguien notificó la baja por escrito.\n- Dejar constancia por escrito de la fecha en que se comunicó el fallecimiento a la aseguradora.\n- Consultar a un abogado o a un servicio de consumo y seguros con esa documentación, porque la solución depende del tipo de seguro (vida, hogar, decesos, automóvil…) y de lo que diga la póliza.\n\nSi me decís qué tipo de seguro era, puedo volver a intentar la lectura de los demás artículos. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1373,30 +1333,30 @@
           "llamada": false
         },
         {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
           "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
           "codigo": 0,
           "conexiones": [],
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 aveintidos --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1418,7 +1378,29 @@
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aveintiuno --json",
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1440,12 +1422,6 @@
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 acatorce --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 aquince --json",
           "codigo": 5,
           "conexiones": [
@@ -1457,9 +1433,14 @@
           "llamada": false
         },
         {
-          "orden": "graph check BOE-A-1980-22501 aquince --json",
-          "codigo": 0,
-          "conexiones": [],
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
           "llamada": false
         },
         {
@@ -1471,12 +1452,6 @@
               "clase": "local"
             }
           ],
-          "llamada": false
-        },
-        {
-          "orden": "graph check BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 0,
-          "conexiones": [],
           "llamada": false
         }
       ],
@@ -1486,15 +1461,19 @@
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 5
-        },
-        {
           "orden": "boe articulo BOE-A-1980-22501 aquince --json",
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 aveintiuno --json",
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
           "codigo": 5
         },
         {
@@ -1506,14 +1485,23 @@
           "codigo": 5
         },
         {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5
+        },
+        {
           "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
           "codigo": 5
         }
       ],
-      "otras_fallidas": [],
+      "otras_fallidas": [
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 1
+        }
+      ],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Con lo que he podido leer, la ley no da una respuesta completa. Solo he leído el artículo que regula la prórroga, y esa lectura no dice qué efecto tiene la muerte de su madre sobre la póliza ni sobre la prima cobrada.\n\n**Lo que dice la ley sobre la prórroga**\n\nEs el art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos]. Es una ley, sin aviso de vigencia. Su redacción actual la dio la Ley 20/2015 y rige desde el 1 de enero de 2016.\n\n- **Prórroga posible.** La póliza puede prever que se prorrogue una o más veces, por períodos de no más de un año cada vez (apartado 1).\n- **Oposición del tomador.** Las partes pueden oponerse a la prórroga por notificación escrita a la otra parte. El tomador debe hacerlo con al menos un mes de antelación al final del período en curso (apartado 2).\n- **Oposición del asegurador.** Debe hacerlo con al menos dos meses de antelación (apartado 2).\n- **Modificaciones del contrato.** El asegurador debe comunicarlas al tomador con al menos dos meses de antelación al final del período en curso (apartado 3).\n- **Constancia en la póliza.** Las condiciones y plazos de oposición de cada parte deben destacarse en la póliza (apartado 4).\n- **Seguros de vida.** Los apartados anteriores no se aplican en lo que sean incompatibles con la regulación del seguro de vida (apartado 5).\n\n**Qué no he podido comprobar**\n\nIntenté leer los artículos 14, 15, 21 y 34 de esa misma ley, pero la fuente limitó las consultas y no pude obtenerlos. Por eso no te digo qué dicen, y tampoco hay nada leído sobre:\n- si la póliza se extinguió o pasó a los herederos al fallecer su madre;\n- si la prima del nuevo período debe devolverse, total o parcialmente.\n\nTampoco cubro a quién reclamar, ante qué órgano, con qué plazo ni qué escrito presentar. No te los doy de memoria porque podrían no corresponder a tu caso.\n\n**Qué conviene hacer**\n\nSon pasos prácticos, sin base legal leída aquí.\n1. Reúne la póliza, el certificado de defunción, la fecha del fallecimiento, el recibo de la prima cobrada y las comunicaciones de la aseguradora.\n2. Averigua el tipo de seguro: vida, hogar, salud, decesos u otro. De eso depende qué reglas se aplican, y el apartado 5 ya lo distingue.\n3. Mira si el fallecimiento se comunicó a la aseguradora y cuándo, y qué le contestó.\n4. Con esos datos, consulta con un abogado o con una asociación de consumidores. Pregunta también qué vía de reclamación hay y qué plazos corren, porque conviene actuar pronto.\n\nSi me dices el tipo de seguro y las fechas (fallecimiento, comunicación a la aseguradora y cobro), puedo intentar leer de nuevo los artículos que faltan.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "Solo he podido leer uno de los preceptos de la Ley de Contrato de Seguro que importan para su caso. El resto no se ha podido consultar, y lo que depende de ellos queda sin responder.\n\n**Lo que dice la ley (lo leído)**\n\nEl art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos] es una ley. Su redacción vigente la dio la Ley 20/2015 y rige desde el 1 de enero de 2016. Dice lo siguiente:\n\n- La póliza fija la duración del contrato, que no puede pasar de diez años. Puede establecerse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- Las partes pueden oponerse a la prórroga con una notificación escrita a la otra parte. Si se opone el tomador, debe avisar con al menos un mes de antelación a la conclusión del período en curso. Si se opone el asegurador, con al menos dos meses (apartado 2).\n- Las condiciones y plazos de la oposición a la prórroga deben destacarse en la póliza (apartado 4).\n- Estas reglas no se aplican en lo que sea incompatible con la regulación del seguro de vida (apartado 5).\n\nDe ahí se deduce que la prórroga la prevé el propio contrato. Si la póliza era de prórroga anual y nadie se opuso en plazo, el seguro pudo renovarse sin que el asegurador tuviera que hacer nada especial.\n\n**Lo que no puedo decirle**\n\nLo que sigue no queda respondido con la ley leída, y no lo suplo de memoria:\n\n- Qué ocurre con el contrato cuando fallece el tomador o el asegurado. Eso depende del tipo de seguro (vida, hogar, coche, decesos u otro) y de lo que diga la póliza. No he podido leer los arts. 14, 15, 33, 34 y 35 de esa ley. La fuente (BOE) no respondió: la herramienta no pudo comprobar el permiso de acceso al sitio. Lo intenté de nuevo y falló igual.\n- Si tienen derecho a que les devuelvan la prima cobrada, y en qué plazo.\n- A quién reclamar y por qué vía: la aseguradora, su servicio de atención al cliente, el defensor del asegurado u otro órgano. La base no cubre destinatarios ni escritos, y tampoco el plazo de reclamación de esta materia. Tampoco le doy los plazos del procedimiento administrativo, que no son los de este asunto.\n- Si algo cambia por normativa autonómica. Esta fuente no recoge normas locales.\n\n**Qué puede hacer ya, sin depender de eso**\n\n1. Reúna la póliza y sus condiciones generales y particulares, el recibo de la prima nueva y el certificado de defunción. Fíjese en la fecha de vencimiento del período y en la cláusula de prórroga.\n2. Averigüe quién figura como tomador y quién como asegurado, y de qué tipo de seguro se trata.\n3. Escriba a la aseguradora por un medio que deje constancia (por ejemplo, burofax o correo certificado). Comuníquele el fallecimiento, pídale que anule la póliza y le devuelva la prima cobrada desde la fecha del fallecimiento, y conserve copia del escrito.\n4. Si no responde o se niega, consulte con un abogado o con una asociación de consumidores. Ellos le indicarán el órgano competente y el plazo exacto, que yo no he podido comprobar aquí.\n\nCuando la fuente vuelva a responder, puedo leer esos artículos y completar la respuesta. Si me dice el tipo de seguro, la respuesta saldrá más concreta.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1564,41 +1552,8 @@
           "llamada": false
         },
         {
-          "orden": "boe articulos BOE-A-1980-22501 atreintaytres atreintaycuatro atreintaycinco aveintidos acatorce aquince --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 5,
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro adoce acatorce aquince --json",
+          "codigo": 1,
           "conexiones": [
             {
               "destino": "127.0.0.1:9",
@@ -1614,35 +1569,24 @@
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
-          "llamada": false
-        },
-        {
           "orden": "graph check BOE-A-1980-22501 aveintidos --json",
           "codigo": 0,
           "conexiones": [],
           "llamada": false
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -1661,47 +1605,95 @@
               "clase": "local"
             }
           ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintitres --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 adoce --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 adoce --json",
+          "codigo": 0,
+          "conexiones": [],
           "llamada": false
         }
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe articulos BOE-A-1980-22501 atreintaytres atreintaycuatro atreintaycinco aveintidos acatorce aquince --json",
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
           "codigo": 5
         },
         {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
           "codigo": 5
         },
         {
           "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 adoce --json",
           "codigo": 5
         }
       ],
-      "otras_fallidas": [],
+      "otras_fallidas": [
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro adoce acatorce aquince --json",
+          "codigo": 1
+        }
+      ],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Siento lo de su madre. Solo he podido leer un artículo de la Ley de Contrato de Seguro, así que la respuesta es parcial.\n\n**Lo que dice la ley (lo único que he podido comprobar)**\n\nEl art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos] establece sobre la prórroga del contrato:\n- La póliza fija la duración, que no puede superar diez años. Puede pactarse que se prorrogue una o más veces, por periodos de un año como máximo cada vez (apartado 1).\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita a la otra. El plazo es de al menos un mes antes de que acabe el periodo en curso si se opone el tomador, y de dos meses si se opone el asegurador (apartado 2).\n- Esas condiciones y plazos de oposición deben destacarse en la póliza (apartado 4).\n- Nada de esto se aplica en lo que sea incompatible con el seguro de vida (apartado 5).\n\nLa redacción actual la dio la Ley 20/2015 [BOE-A-2015-7897] y rige desde el 1 de enero de 2016. El artículo no lleva avisos de vigencia. Es un texto consolidado e informativo, y no sustituye el asesoramiento de un profesional.\n\n**Lo que no he podido leer**\n\nLa fuente del BOE no respondió para los demás bloques que quería consultar. Son los artículos 14, 15, 33, 34 y 35 de esa misma ley. Por eso no puedo decirle qué efecto tiene la muerte de su madre en la póliza, ni si la prima cobrada después es exigible o se puede reclamar. Tampoco puedo decirle desde qué momento cesa la cobertura, ni qué pasa con los herederos como nuevos titulares. La respuesta depende del tipo de seguro (vida, hogar, coche, salud, decesos…), que no me ha indicado.\n\n**Lo que la base no cubre**\n\nNo puedo indicarle el plazo para reclamar, a quién dirigirse (la aseguradora, su servicio de atención al cliente, el defensor del cliente u otro órgano) ni cómo redactar el escrito. Prefiero no darle esos datos de memoria, porque puede actuar con ellos y podrían ser incorrectos.\n\n**Qué puede hacer mientras tanto**\n- Reúna la póliza, el certificado de defunción, el justificante del cobro de la prima y cualquier comunicación con la aseguradora.\n- Mire en la póliza las condiciones de prórroga y de oposición, que deben estar destacadas.\n- Plantee la reclamación por escrito a la aseguradora, dejando constancia de la fecha.\n- Consulte con un abogado o con una asociación de consumidores, que podrán confirmarle el plazo y la vía.\n\nSi me dice qué tipo de seguro es, puedo volver a intentar la lectura de esos artículos cuando la fuente responda.",
+      "respuesta": "Con lo que he podido leer no puedo darte una respuesta completa. El efecto del fallecimiento de tu madre sobre el contrato y la devolución de la prima no están confirmados.\n\n**Lo que sí está leído: la prórroga**\n\nLa Ley 50/1980, de Contrato de Seguro (rango de ley), regula la prórroga en su art. 22 [BOE-A-1980-22501, bloque aveintidos]. Su redacción la dio la Ley 20/2015 y rige desde el 1 de enero de 2016. El artículo dice lo siguiente:\n\n- **Duración:** la póliza fija la duración, con un máximo de diez años. Puede establecerse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- **Oposición a la prórroga:** las partes pueden oponerse mediante notificación escrita a la otra parte. Si se opone el tomador, debe hacerlo con al menos un mes de antelación a la conclusión del periodo en curso. Si se opone el asegurador, con al menos dos meses (apartado 2).\n- **Seguros de vida:** lo anterior no se aplica en cuanto sea incompatible con la regulación del seguro sobre la vida (apartado 5).\n\nPor tanto, la prórroga no es automática en todos los casos. Depende de que la póliza la prevea y de que nadie se haya opuesto a tiempo. Si la póliza es de vida, los apartados 1 a 4 ceden donde choquen con su regulación específica, que no he podido leer.\n\n**Lo que no he podido confirmar**\n\n- No sé si la póliza se extingue con la muerte de la tomadora. Tampoco sé si el contrato pasa a los herederos o si pueden pedir la devolución de la prima cobrada después. Todo eso depende del tipo de seguro (vida, hogar, coche, salud...) y de quién sea el tomador y el asegurado.\n- Intenté leer los bloques de los arts. 12, 23, 24 y 34 de la misma ley. La fuente rechazó las consultas cada vez y no pude obtener su texto. No digo nada de ellos.\n- Fuera de la cobertura de esta base están a quién reclamar, qué vía seguir, los plazos de reclamación en seguros y la redacción del escrito. No te los doy de memoria porque podrían ser de otra materia o haber cambiado.\n\n**Qué puedes hacer ahora**\n\n1. Reúne la póliza completa con sus condiciones particulares y generales, el certificado de defunción, el recibo de la prima cobrada y cualquier comunicación de la aseguradora.\n2. Averigua quién figura como tomador y quién como asegurado, y si hay beneficiarios. Es el dato que más cambia la respuesta.\n3. Comprueba si hubo oposición a la prórroga y cuándo. Los plazos de aviso del art. 22 cuentan hasta el final del periodo anterior.\n4. Antes de reclamar nada, consulta con un abogado o con un servicio de atención al consumidor. Conviene que lo vean con la póliza delante y que te digan a quién dirigirte y en qué plazo.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional. Si me dices qué tipo de seguro era, puedo volver a intentar leer los preceptos que faltan.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1757,13 +1749,19 @@
           "llamada": false
         },
         {
-          "orden": "boe_buscar prorrogación póliza fallecimiento asegurado",
+          "orden": "boe_indice BOE-A-1980-22501",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
         },
         {
-          "orden": "boe_buscar contrato seguro",
+          "orden": "boe_articulo BOE-A-1980-22501 aquinto",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -1771,18 +1769,18 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe_buscar prorrogación póliza fallecimiento asegurado",
+          "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
           "codigo": 5
         },
         {
-          "orden": "boe_buscar contrato seguro",
+          "orden": "boe_articulo BOE-A-1980-22501 aquinto",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: No se puede acceder a la fuente de legislación consolidada del BOE (error de conectividad con robots.txt). Las herramientas de kitlegal no están disponibles en este momento.\n\n**Lo que no está cubierto en tu pregunta:**\n\n- **\"Qué podemos hacer\"**: No tengo acceso a la normativa para citar qué dice la ley sobre cobros tras fallecimiento, ni a las vías (dónde reclamar, ante qué órgano) ni a los documentos que tendrías que presentar. \n\nPara que te ayude correctamente, necesito que se resuelva el problema de conectividad. Inténtalo de nuevo en unos momentos, o si el problema persiste, consulta la [guía de instalación de kitlegal](https://kitlegal.es/instalar/).\n\nLo que sí te puedo adelantar es que **deberías buscar asesoramiento profesional** (un abogado especializado en seguros o una asociación de consumidores) para:\n- Conocer qué normas amparan tu reclamación\n- A qué órgano dirigirte (puede ser la aseguradora directamente, el defensor del cliente de seguros, o los juzgados)\n- Qué pruebas reunir (el contrato de la póliza, la documentación del fallecimiento, los extractos de cuenta que demuestren el cobro)",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido obtener el acceso a robots.txt del sitio del BOE (límite de tasa o error de servicio). Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\n**Lo que no puedo cubrirte en este momento:**\n\nNo puedo consultar directamente el texto vigente de la Ley 50/1980 de Contrato de Seguro debido a un problema temporal de acceso a la fuente del BOE. Sin embargo, te digo dónde **sí** puedes encontrar la respuesta:\n\n## Qué necesitas saber sobre tu situación:\n\nLa Ley de Contrato de Seguro regula en **varios artículos** lo que sucede con la póliza cuando fallece el asegurado y cómo se tratan los cobros posteriores. Estos son los puntos clave que deberías consultar en el texto de la ley:\n\n1. **Duración del contrato y prorrogación** — cómo se extiende la cobertura y cuándo caduca\n2. **Efectos del fallecimiento** — qué sucede con el seguro cuando muere el asegurado\n3. **Obligaciones de la aseguradora** — qué debe hacer ante la muerte\n4. **Devolución de primas indebidas** — si la aseguradora cobró primas por un periodo en el que el seguro no debía estar vigente\n\n## Cómo proceder:\n\n**Lo que esta herramienta NO cubre** es:\n- A quién puedes reclamar exactamente (Dirección General de Seguros, Arbitraje, vías civiles)\n- Qué escrito debes presentar\n- Los plazos específicos para reclamar\n\nPara eso necesitarías:\n1. **Primero**: contactar a un **abogado especializado en seguros** o la **Dirección General de Seguros y Fondos de Pensiones** para confirmar si la prorrogación fue válida tras el fallecimiento\n2. **Luego**: presentar una **reclamación ante la aseguradora** o recurrir a los mecanismos de resolución de disputas (mediación, arbitraje)\n\nCuando el acceso al BOE se normalice, podré leerte los artículos exactos. ¿Quieres que lo intente de nuevo en unos momentos?",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1832,15 +1830,41 @@
         {
           "orden": "mcp serve",
           "codigo": -1,
-          "conexiones": [],
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
           "llamada": false
+        },
+        {
+          "orden": "boe_buscar contrato seguro fallecimiento",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_buscar ley contrato seguro",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
         }
       ],
-      "fuera_de_lo_grabado": [],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_buscar contrato seguro fallecimiento",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_buscar ley contrato seguro",
+          "codigo": 5
+        }
+      ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: `kitlegal` no está disponible en el PATH del sistema. Si ya tienes kitlegal instalado, cierra Claude Code completamente, ábrelo de nuevo e inicia una nueva conversación. Si no lo tienes instalado: https://kitlegal.es/instalar/\n\nSin la consulta directa al BOE, no puedo citar con precisión qué dice la ley vigente sobre la prórroga automática de tu póliza tras el fallecimiento de tu madre. \n\n**Lo que sí puedo decirte sin fuente:** la pregunta toca dos cuestiones reguladas en la Ley de Contrato de Seguro:\n\n1. **Extinción por fallecimiento**: qué sucede con la póliza cuando muere el tomador\n2. **Prórroga automática**: si la aseguradora puede prorrogarla sin avisar, y bajo qué condiciones\n\n**Qué necesitarías hacer ahora:**\n\n- Una vez que kitlegal esté disponible, podré leer los artículos exactos de la Ley 50/1980 sobre extinción de pólizas y prórroga.\n- Para reclamar a la aseguradora o recuperar lo cobrado, **la base no cubre**: a quién dirigirse, qué vía (reclamación a la aseguradora, arbitraje, denunciante ante la Dirección General de Seguros, demanda civil), qué formulario usar ni los plazos de cada vía. Esto requiere asesoramiento de un abogado o gestoría de seguros que conozca el caso completo.\n\n¿Puedes verificar que `kitlegal` está instalado e intentamos de nuevo?",
+      "respuesta": "⚠ **SIN CONSULTA AL BOE**: la fuente del BOE no es accesible en este momento (no se ha podido obtener el robots.txt del sitio). No puedo consultar la normativa sobre la continuación de pólizas tras fallecimiento ni las reglas sobre prórroga automática y cobro de primas.\n\n**Lo que sí puedo decirte sin consultar la norma:**\n\nTu pregunta tiene dos partes. La **normativa** (qué dice la ley sobre pólizas tras el fallecimiento) está cubierta por la base de kitlegal, pero en este momento no es accesible. La **segunda parte** —qué se puede reclamar, a quién, con qué plazo y por qué vía— **no está cubierta** por las capacidades de kitlegal: eso forma parte de procedimiento administrativo, vías de reclamación y órganos competentes que varían según el tipo de seguro (vida, hogar, etc.) y dónde lo contrataras.\n\n**Para seguir:**\n\nSi el acceso se restablece, podré leer qué dice la Ley 50/1980, de 8 de octubre, de Contrato de Seguro (la norma principal) sobre la extinción de pólizas tras el fallecimiento del asegurado y las reglas sobre prórroga automática.\n\nPara la parte de reclamación, necesitarías asesoramiento de un abogado o consultar los datos de contacto y los procedimientos de tu aseguradora, que varían según la póliza.\n\n¿Quieres que lo intente de nuevo o hay otra pregunta sobre este tema que pueda responder?",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1890,41 +1914,15 @@
         {
           "orden": "mcp serve",
           "codigo": -1,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "conexiones": [],
           "llamada": false
-        },
-        {
-          "orden": "boe_buscar contrato seguro",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_buscar ley 50 1980 seguro",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
         }
       ],
-      "fuera_de_lo_grabado": [
-        {
-          "orden": "boe_buscar contrato seguro",
-          "codigo": 5
-        },
-        {
-          "orden": "boe_buscar ley 50 1980 seguro",
-          "codigo": 5
-        }
-      ],
+      "fuera_de_lo_grabado": [],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ **SIN CONSULTA AL BOE**: No se puede acceder a la base de datos de legislación consolidada del BOE en este momento (problema de conectividad con https://www.boe.es). \n\nPara resolver tu consulta sobre qué dice la ley respecto a la prorrogación de una póliza de seguro tras el fallecimiento del asegurado y qué pueden hacer los herederos, necesito consultar la Ley 50/1980, de 8 de octubre, de Contrato de Seguro, que regula estos aspectos.\n\n**Lo que no puedo ofrecerte sin la consulta:**\n- El texto vigente de los artículos sobre extinción de la póliza por muerte del asegurado\n- Las disposiciones sobre derechos y obligaciones de la aseguradora tras el fallecimiento\n- Las bases legales para reclamar el cobro indebido\n\n**Alternativas:**\n1. Si tienes kitlegal instalado localmente, cierra Claude completamente y abre un chat nuevo.\n2. Si no lo tienes, instálalo desde https://kitlegal.es/instalar/\n3. Puedes consultar directamente la Ley 50/1980 en https://www.boe.es/ usando los términos \"contrato de seguro extinción muerte\"\n\nUna vez que pueda acceder a la base legal, podré darte las respuestas concretas sobre qué regulan los artículos y en qué base legal podrías fundamentar una reclamación ante la aseguradora.",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: kitlegal no está en el PATH del entorno. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\nSin poder leer las normas del BOE en esta sesión, no puedo decirte con cita qué dice exactamente la ley sobre tu situación.\n\n## Qué pregunta pide\n\nTu pregunta tiene dos partes:\n\n1. **Normativa**: qué dice la ley cuando una aseguradora continúa cobrando primas después del fallecimiento del asegurado — requiere leer la Ley de Contrato de Seguro y normas de seguros del BOE.\n\n2. **Qué hacer**: a quién reclamar, qué procedimiento seguir, qué escrito presentar — esto **no está cubierto** por la base de kitlegal (no consulta órganos ni vías de reclamación).\n\n## Próximos pasos\n\nPara obtener la respuesta con citas legales, necesitas:\n\n- **Para la parte normativa**: reabre Claude Code en un chat nuevo y repite la pregunta; en ese chat kitlegal debería estar disponible y podré leer los artículos exactos de la Ley 50/1980 sobre qué sucede con la póliza y el cobro de primas.\n\n- **Para la parte de acciones**: busca información sobre reclamación a seguros en tu región (hay organismos como el Defensor del Asegurado), o consulta con un abogado especializado en seguros que te indique el órgano competente y los documentos necesarios.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -1989,7 +1987,7 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaycuatro atreintaycinco atreintayseis atreintaytres",
+          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2013,13 +2011,25 @@
           "llamada": true
         },
         {
+          "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
           "orden": "graph_check BOE-A-1980-22501 aveintidos",
           "codigo": 0,
           "conexiones": [],
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2027,7 +2037,7 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaycuatro atreintaycinco atreintayseis atreintaytres",
+          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
           "codigo": 5
         },
         {
@@ -2039,14 +2049,22 @@
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Solo he podido leer una parte de la ley, así que no puedo darte todavía una respuesta completa sobre la devolución de la prima.\n\n**Qué he leído**\n\nLa norma aplicable es la Ley 50/1980, de Contrato de Seguro (rango: ley).\n\n- La póliza fija su duración, con un máximo de diez años. Puede prever que se prorrogue una o más veces, por periodos de un año como máximo cada vez [art. 22.1 de la Ley 50/1980, BOE-A-1980-22501, bloque aveintidos].\n- Las partes pueden oponerse a la prórroga con una notificación escrita a la otra parte. El tomador debe hacerlo con al menos un mes de antelación al fin del periodo en curso, y el asegurador con al menos dos meses [art. 22.2, BOE-A-1980-22501, bloque aveintidos].\n- Esas condiciones y plazos deben destacarse en la póliza [art. 22.4, BOE-A-1980-22501, bloque aveintidos].\n- Nada de esto se aplica a lo que sea incompatible con la regulación del seguro de vida [art. 22.5, BOE-A-1980-22501, bloque aveintidos].\n- Este artículo tiene la redacción dada por la Ley 20/2015, vigente desde el 1 de enero de 2016, y no lleva avisos de vigencia.\n\n**Qué no he podido leer**\n\nLa fuente limitó las consultas y no devolvió los artículos 14, 15 y 34 de la misma ley. Por eso no puedo decirte, con texto legal delante, lo siguiente:\n\n- qué efecto tiene el fallecimiento del tomador sobre el contrato;\n- si procede devolver la prima del periodo posterior al fallecimiento, y en qué condiciones;\n- qué plazos o requisitos rigen para reclamarla.\n\nTampoco está cubierto por esta consulta a quién reclamar ni qué escrito presentar, y no voy a darlos de memoria. Puedo reintentar la lectura de esos artículos si quieres.\n\n**Qué puedes hacer**\n\nCon lo leído, sin afirmar nada más:\n\n1. Mira en la póliza qué tipo de seguro es (vida, hogar, auto, etc.) y qué dice sobre la prórroga y su oposición. El régimen del seguro de vida puede ser distinto.\n2. Comprueba con el calendario de la póliza si el fallecimiento fue anterior a la prórroga y si el tomador era tu madre o una tercera persona.\n3. Reúne el certificado de defunción, la póliza y el justificante del cobro. Pide por escrito a la aseguradora, con prueba de la entrega, la devolución de la prima cobrada, y guarda la respuesta.\n4. Consulta con un abogado o con una asociación de consumidores antes de dar más pasos. Antes de actuar, confirma el plazo para reclamar y la vía, porque yo no los he verificado.\n\nEl texto consolidado del BOE es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "**Lo que he podido comprobar en la ley es limitado y no responde del todo a su caso.** Tampoco he podido leer los artículos que regulan directamente el fallecimiento del tomador y la devolución de la prima.\n\n**Qué dice la ley sobre la prórroga**\n\nLa norma aplicable es la Ley 50/1980, de Contrato de Seguro (rango: Ley).\n\n- La póliza fija la duración del contrato, hasta un máximo de diez años. Puede establecer que se prorrogue una o más veces, por períodos de hasta un año cada vez (art. 22.1 de la Ley 50/1980 de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos]).\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita a la otra. El tomador debe hacerlo al menos un mes antes de que acabe el período en curso, y el asegurador, al menos dos meses antes (art. 22.2 [BOE-A-1980-22501, bloque aveintidos]).\n- El asegurador debe comunicar al tomador cualquier modificación del contrato con al menos dos meses de antelación (art. 22.3 [BOE-A-1980-22501, bloque aveintidos]).\n- Esas reglas no se aplican en lo que sea incompatible con la regulación del seguro de vida (art. 22.5 [BOE-A-1980-22501, bloque aveintidos]).\n- El artículo no lleva avisos de vigencia. Su redacción vigente es la dada por la Ley 20/2015 [BOE-A-2015-7897], con efectos desde el 1 de enero de 2016.\n\n**Lo que esto implica para usted**\n\nEl artículo habla de oponerse a la prórroga por notificación escrita. Si la póliza se prorrogó y el aviso no se dio a tiempo, la prórroga operó con arreglo a ese artículo. Eso no responde a si el contrato seguía vivo tras la muerte de su madre, ni a si la aseguradora debe devolver la prima de un período posterior al fallecimiento. Lo primero depende del tipo de seguro (vida, hogar, decesos, automóvil…) y de quién era el tomador y el asegurado. Lo segundo depende de cómo trata la ley la muerte del tomador y la prima, y eso no he podido leerlo.\n\n**Lo que no he podido consultar**\n\nLos artículos catorce, quince y cuarenta y cuatro de la misma ley no se pudieron leer. La fuente del BOE limitó las consultas y no los devolvió. No voy a decir de memoria qué establecen, porque no tendrían cita.\n\n**Qué hacer**\n\nLa base de kitlegal no cubre plazos ni destinatarios de una reclamación de seguros, así que no los doy. Con lo que sí puedo sostener, le sirve esto:\n\n1. **Reúna la documentación.** Necesita la póliza, el certificado de defunción, el recibo de la prima cobrada con su fecha y las comunicaciones de la aseguradora.\n2. **Compruebe quién era tomador y asegurado.** La póliza lo dirá, y eso cambia el análisis.\n3. **Reclame por escrito a la aseguradora la devolución de la prima.** Comunique el fallecimiento y pida la anulación del contrato. Conserve la prueba de envío y de la fecha.\n4. **Consulte con un profesional si no se la devuelven.** Un abogado o una asociación de consumidores pueden indicarle la vía de reclamación y los plazos aplicables a su tipo de seguro.\n\nPuedo reintentar la lectura de esos artículos más tarde, cuando la fuente vuelva a responder. Si me dice el tipo de seguro, puedo buscar también los preceptos específicos.\n\nEste texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2108,25 +2126,7 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro aquince aveintiseis aveintisiete aochentayuno",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintidos",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2138,7 +2138,13 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
+          "orden": "boe_articulo BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2156,42 +2162,48 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 acuarto",
-          "codigo": 0,
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "codigo": 5,
           "conexiones": [],
           "llamada": true
         }
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro aquince aveintiseis aveintisiete aochentayuno",
+          "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
           "codigo": 5
         },
         {
           "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
-          "codigo": 5
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aquince",
-          "codigo": 5
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
-          "codigo": 5
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aquince",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Con lo que he podido leer, la ley no me da una respuesta cerrada. Solo he conseguido leer una parte de la Ley de Contrato de Seguro, así que le falta lo que más importa para su caso.\n\n**Lo que sí dice la ley**\n\nLa Ley 50/1980, de Contrato de Seguro (rango: ley) regula la prórroga de la póliza en su art. 22 [BOE-A-1980-22501, bloque aveintidos]:\n\n- El contrato puede prever que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (art. 22.1 [BOE-A-1980-22501, bloque aveintidos]).\n- Las partes pueden oponerse a la prórroga con una notificación escrita a la otra parte. El tomador debe hacerla con al menos un mes de antelación a la conclusión del período en curso. El asegurador, con al menos dos meses (art. 22.2 [BOE-A-1980-22501, bloque aveintidos]).\n- Las condiciones y plazos de esa oposición, o su inoponibilidad, \"deberán destacarse en la póliza\" (art. 22.4 [BOE-A-1980-22501, bloque aveintidos]).\n- Esas reglas no se aplican \"en cuanto sea incompatible con la regulación del seguro sobre la vida\" (art. 22.5 [BOE-A-1980-22501, bloque aveintidos]).\n\nEl art. 22 no dice nada sobre la muerte del tomador. No dice si la póliza se extingue, si pasa a los herederos o si hay que devolver la prima cobrada. Tampoco dice qué efecto tiene que la aseguradora prorrogara y cobrara después del fallecimiento.\n\n**Lo que no he podido comprobar**\n\nLa fuente del BOE limitó las consultas y no pude leer los arts. 15 y 23 de la misma ley. Por eso no puedo decirle qué pasa con la prima del nuevo periodo ni cómo afecta el fallecimiento a la póliza. Tampoco sé qué ocurre si la póliza era de un tipo distinto, por ejemplo de vida frente a hogar o auto.\n\nAdemás, la base de kitlegal no cubre el plazo para reclamar, a quién dirigirse (aseguradora, defensor del cliente u otro órgano), la vía a seguir ni el escrito. No le doy nada de eso de memoria.\n\n**Qué le conviene hacer ahora**\n\n- Mire en la póliza y en sus condiciones generales qué tipo de seguro es y qué dice sobre la prórroga y su oposición. El art. 22.4 exige que esos plazos se destaquen en la póliza [BOE-A-1980-22501, bloque aveintidos].\n- Guarde el certificado de defunción, el recibo del cobro y cualquier comunicación con la aseguradora.\n- Consulte con un abogado o con una asociación de consumidores. Pueden decirle si procede reclamar la devolución de la prima y por qué vía. Dígales la fecha del fallecimiento, la del cobro y el tipo de seguro.\n\nSi quiere, puedo volver a intentar la lectura de los artículos que faltan cuando la fuente vuelva a responder. Esta respuesta es informativa y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "**Lo que puedo afirmar con el texto leído es limitado.** La Ley 50/1980, de Contrato de Seguro, sí regula la prórroga, pero el texto que he podido leer no trata el fallecimiento. No puedo decirle todavía si la prórroga o el cobro de la prima fueron correctos ni si procede devolución.\n\n**Lo que dice la ley sobre la prórroga**\n\n- La duración del contrato se fija en la póliza, con un máximo de diez años. Puede pactarse que se prorrogue una o más veces, cada vez por un período no superior a un año. Art. 22.1 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos].\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita. Si se opone el tomador, debe hacerlo con al menos un mes de antelación al final del período en curso. Si se opone el asegurador, con al menos dos meses. Art. 22.2 [BOE-A-1980-22501, bloque aveintidos].\n- Esas condiciones y plazos deben destacarse en la póliza. Art. 22.4 [BOE-A-1980-22501, bloque aveintidos].\n- Estas reglas no se aplican cuando sean incompatibles con la regulación del seguro de vida. Art. 22.5 [BOE-A-1980-22501, bloque aveintidos].\n- Redacción vigente desde el 1 de enero de 2016, dada por la Ley 20/2015 [BOE-A-2015-7897]. El artículo no lleva avisos de vigencia. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.\n\n**Lo que no he podido leer**\n\nLa fuente limitó las consultas y no pude leer los artículos 14, 15 y 34 de la Ley. Por eso no digo qué fijan. Si son los que deciden la cuestión, un nuevo intento más adelante puede resolverlo.\n\n**Lo que la base no cubre**\n\nNo puedo indicarle ante quién reclamar, qué vía seguir ni qué escrito presentar, ni ningún plazo para hacerlo. Tampoco redacto reclamaciones. Para esas partes necesitará una fuente distinta o un profesional.\n\n**Qué puede ir preparando**\n\n1. Identifique qué tipo de póliza es: vida, decesos, hogar, auto u otra. La respuesta puede cambiar según el tipo, porque el art. 22.5 deja fuera el seguro de vida.\n2. Reúna la póliza con sus condiciones, el certificado de defunción, el recibo de la prima cobrada y las fechas de renovación.\n3. Anote si y cuándo se comunicó el fallecimiento a la aseguradora, y si ya había una renovación pendiente. Conserve las pruebas de esa comunicación.\n4. Compruebe qué dice la póliza sobre la oposición a la prórroga, porque debe estar destacada (art. 22.4).\n5. Con eso en mano, pida asesoramiento a un abogado o a una asociación de consumidores, y reclame por escrito a la aseguradora.\n\nSi me dice el tipo de póliza y las fechas (fallecimiento, aviso a la aseguradora y cobro), puedo volver a intentar la lectura de los artículos pendientes.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2253,7 +2265,13 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticinco atreintaycuatro atreintaycinco acuarto aquince aveintiseis",
+          "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2265,19 +2283,13 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintiseis",
+          "orden": "boe_articulo BOE-A-1980-22501 aveinte",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2289,7 +2301,13 @@
           "llamada": true
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2297,30 +2315,34 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe_articulos BOE-A-1980-22501 aveintidos aveintitres aveinticinco atreintaycuatro atreintaycinco acuarto aquince aveintiseis",
+          "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintitres",
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveintiseis",
+          "orden": "boe_articulo BOE-A-1980-22501 aveinte",
           "codigo": 5
         },
         {
-          "orden": "boe_articulo BOE-A-1980-22501 aveinticinco",
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Con lo que he podido leer no puedo darte una respuesta cerrada. Solo he podido leer un artículo de la Ley de Contrato de Seguro. El resto de lo que pides (si el seguro se extinguió con el fallecimiento y si te devuelven la prima) depende de preceptos que no he podido leer. Además, la reclamación en sí queda fuera de lo que cubre esta base.\n\n**Qué dice el artículo que sí he leído**\n\nLa Ley 50/1980, de Contrato de Seguro, es una ley [BOE-A-1980-22501]. En su art. 22 sobre la duración del contrato, el texto vigente dice (art. 22 de la Ley 50/1980 [BOE-A-1980-22501, bloque aveintidos]):\n\n- **Duración y prórroga.** La póliza fija la duración, que no puede superar diez años. Puede establecerse que se prorrogue una o más veces, por períodos de hasta un año cada vez (apartado 1).\n- **Oposición a la prórroga.** Las partes pueden oponerse a la prórroga con una notificación escrita a la otra parte. El tomador debe avisar al menos un mes antes de que termine el período en curso, y el asegurador, al menos dos meses antes (apartado 2).\n- **Excepción para el seguro de vida.** Esas reglas no se aplican en lo que sea incompatible con la regulación del seguro sobre la vida (apartado 5).\n\nEl artículo no dice qué ocurre con la prórroga cuando fallece el asegurado o el tomador. Tampoco dice si la aseguradora debe devolver la prima cobrada después del fallecimiento. Por eso no puedo afirmar si la prórroga fue válida ni si os deben el reembolso.\n\nLa redacción citada rige desde el 1 de enero de 2016 y la dio la Ley 20/2015 [BOE-A-2015-7897]. El artículo no lleva avisos de vigencia.\n\n**Lo que no he podido leer**\n\nIntenté leer los artículos 23, 25 y 26 de esa ley, pero la fuente limitó las consultas y no devolvió su texto. No digo nada de su contenido. Puedes consultarlos en la versión consolidada del BOE: https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501\n\n**Lo que esta base no cubre**\n\nEsta base no cubre a quién reclamar, por qué vía, en qué plazo ni qué escrito presentar. No te doy ninguno de memoria, porque podría ser de otra materia o estar desfasado.\n\n**Qué datos cambian la respuesta**\n\n- Qué tipo de póliza era. El apartado 5 del art. 22 reserva un régimen distinto para el seguro de vida, así que importa si era de vida, de hogar, de coche, de salud u otro.\n- Quién era el tomador y quién el asegurado.\n- Las condiciones de la póliza sobre prórroga y oposición, que deben destacarse en ella (art. 22.4).\n- La fecha del fallecimiento, la fecha de la prórroga y la fecha del cobro.\n\n**Pasos prudentes mientras tanto**\n\n- Guarda la póliza, el certificado de defunción y el justificante del cobro.\n- Si todavía no lo habéis hecho, comunicad por escrito el fallecimiento a la aseguradora.\n- Consulta con un abogado o con una asociación de consumidores para elegir la vía de reclamación y los plazos.\n\nEste texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "**No he podido contestar del todo a su pregunta: solo he podido leer un artículo de la Ley de Contrato de Seguro, y ese artículo no dice qué pasa con la póliza ni con la prima cuando fallece quien la contrató.**\n\nLamento su pérdida.\n\n**Lo que sí dice la ley sobre la prórroga**\n\nLa Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501], es una ley. Su art. 22 regula la duración del contrato y la prórroga.\n\n- La póliza fija la duración, que no puede pasar de diez años. Puede establecerse que se prorrogue una o más veces, por períodos de no más de un año cada vez (art. 22.1 de la Ley 50/1980 [BOE-A-1980-22501, bloque aveintidos]).\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita a la otra. El tomador debe hacerlo con al menos un mes de antelación a la conclusión del período en curso. El asegurador, con al menos dos meses (art. 22.2 [BOE-A-1980-22501, bloque aveintidos]).\n- Las condiciones y plazos de esa oposición, o que no pueda oponerse, deben destacarse en la póliza (art. 22.4 [BOE-A-1980-22501, bloque aveintidos]).\n- Estas reglas no se aplican en lo que sea incompatible con la regulación del seguro sobre la vida (art. 22.5 [BOE-A-1980-22501, bloque aveintidos]). Si la póliza de su madre era de vida, esto importa.\n\nLa redacción citada es la dada por la Ley 20/2015, en vigor desde el 1 de enero de 2016. El artículo no lleva avisos de vigencia.\n\n**Lo que no puedo decirle**\n\n- **Qué efecto tiene el fallecimiento.** Ese artículo habla del «tomador» y del «asegurador», pero no dice qué ocurre con el contrato o la prórroga cuando fallece el tomador o el asegurado. Si la prórroga y el cobro de la prima eran válidos, o si usted puede reclamar su devolución, depende de otros artículos que no he podido leer.\n- **Artículos no leídos.** Intenté leer los arts. 6, 15 y 20 de la misma ley, pero la fuente (BOE) limitó las consultas y no devolvió su texto. No afirmo nada sobre ellos.\n- **A quién reclamar, por qué vía y con qué plazo.** Esto no lo cubre la base que consulto. Tampoco redacto escritos. Para el plazo de su caso, no aplique los de otras materias, como el recurso administrativo, porque no son los suyos.\n\n**Qué puede hacer mientras tanto**\n\nLo siguiente son pasos prácticos, no consecuencias jurídicas que haya comprobado.\n\n- Reúna la póliza, el recibo cobrado y el certificado de defunción.\n- Compruebe en la póliza qué tipo de seguro es y qué dice sobre la prórroga y su oposición, que debe estar destacado.\n- Anote la fecha del cobro y la fecha del fallecimiento. Si ya envió alguna comunicación a la aseguradora, guárdela.\n- Consulte con un abogado o una asociación de consumidores antes de reclamar, para que confirmen los preceptos que no he podido leer y el plazo aplicable.\n\nEl texto consolidado del BOE es informativo y no sustituye el asesoramiento de un profesional. Si me lo pide, vuelvo a intentar leer los arts. 6, 15 y 20 cuando la fuente permita las consultas.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2339,15 +2361,15 @@
       "activa": true,
       "activada": true,
       "por_materia": false,
-      "comandos_ejecutados": [],
-      "comandos_ausentes": [
+      "comandos_ejecutados": [
         "bloque boe BOE-A-2015-11430 a38"
       ],
+      "comandos_ausentes": [],
       "comandos_prohibidos_ejecutados": [],
-      "citas_encontradas": [],
-      "citas_ausentes": [
+      "citas_encontradas": [
         "BOE-A-2015-11430 a38"
       ],
+      "citas_ausentes": [],
       "avisos_encontrados": [],
       "avisos_ausentes": [],
       "hallazgos_encontrados": [],
@@ -2365,37 +2387,36 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
-          "orden": "boe buscar Estatuto de los Trabajadores --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
           "llamada": false
         }
       ],
-      "fuera_de_lo_grabado": [
-        {
-          "orden": "boe buscar Estatuto de los Trabajadores --json",
-          "codigo": 5
-        }
-      ],
+      "fuera_de_lo_grabado": [],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: No se ha podido acceder a la API de legislación consolidada del BOE. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "respuesta": "El art. 38 del Estatuto de los Trabajadores establece que **el periodo de vacaciones anuales retribuidas no sustituible por compensación económica será de al menos treinta días naturales** [BOE-A-2015-11430, bloque a38].\n\nLa duración concreta se determina según lo pactado en el convenio colectivo o el contrato individual, pero no puede ser inferior a ese mínimo de treinta días.\n\nEl disfrute de las vacaciones se fija de común acuerdo entre el empresario y el trabajador, conforme a lo que establezcan los convenios colectivos sobre planificación anual. El trabajador debe conocer las fechas que le correspondan con al menos dos meses de anticipación.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
       "reintentos_por_limite_de_ritmo": 0,
       "sin_medir": "",
-      "motivos": [
-        "comando ausente: bloque boe BOE-A-2015-11430 a38",
-        "cita ausente: BOE-A-2015-11430 a38"
-      ],
-      "pasa": false
+      "motivos": [],
+      "pasa": true
     },
     {
       "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-02",
@@ -2407,15 +2428,15 @@
       "activa": true,
       "activada": true,
       "por_materia": false,
-      "comandos_ejecutados": [],
-      "comandos_ausentes": [
+      "comandos_ejecutados": [
         "bloque boe BOE-A-2015-11430 a38"
       ],
+      "comandos_ausentes": [],
       "comandos_prohibidos_ejecutados": [],
-      "citas_encontradas": [],
-      "citas_ausentes": [
+      "citas_encontradas": [
         "BOE-A-2015-11430 a38"
       ],
+      "citas_ausentes": [],
       "avisos_encontrados": [],
       "avisos_ausentes": [],
       "hallazgos_encontrados": [],
@@ -2433,52 +2454,36 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
-          "orden": "boe buscar Estatuto de los Trabajadores vacaciones --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
           "llamada": false
         },
         {
-          "orden": "boe buscar Estatuto Trabajadores --json",
-          "codigo": 5,
-          "conexiones": [
-            {
-              "destino": "127.0.0.1:9",
-              "clase": "local"
-            }
-          ],
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
           "llamada": false
         }
       ],
-      "fuera_de_lo_grabado": [
-        {
-          "orden": "boe buscar Estatuto de los Trabajadores vacaciones --json",
-          "codigo": 5
-        },
-        {
-          "orden": "boe buscar Estatuto Trabajadores --json",
-          "codigo": 5
-        }
-      ],
+      "fuera_de_lo_grabado": [],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido obtener el robots.txt del sitio boe.es, y sin él no hay permiso para pedirle nada. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "respuesta": "El Estatuto de los Trabajadores establece lo siguiente sobre los días de vacaciones al año:\n\nEl artículo 38 del Estatuto de los Trabajadores [Real Decreto Legislativo 2/2015, de 23 de octubre, BOE-A-2015-11430, bloque a38] regula las vacaciones anuales retribuidas en estos términos:\n\n**Duración mínima:** La duración del periodo de vacaciones anuales retribuidas no puede ser inferior a treinta días naturales, aunque puede ser mayor si así lo pactado en el convenio colectivo o en el contrato individual [art. 38.1].\n\n**Características:** Las vacaciones son retribuidas y no sustituibles por compensación económica [art. 38.1].\n\n**Determinación de fechas:** El período o períodos de disfrute se fijará de común acuerdo entre el empresario y el trabajador, en el marco de lo establecido en los convenios colectivos sobre planificación anual. El calendario se establecerá en cada empresa, y el trabajador debe conocer las fechas que le correspondan con al menos dos meses de anticipación. Si hay desacuerdo, la jurisdicción social determinará la fecha irrecurriblemente, mediante procedimiento sumario y preferente [art. 38.2 y 38.3].\n\n**Supuestos especiales:** Si las vacaciones coinciden con incapacidad temporal derivada del embarazo, parto o lactancia natural, o con períodos de suspensión del contrato previstos en la ley, el trabajador puede disfrutarlas en fecha distinta al finalizar la suspensión, aunque haya terminado el año natural. Si coinciden con incapacidad por otras contingencias que impidan disfrutarlas, pueden diferirse hasta 18 meses desde el final del año en que se originaron [art. 38.3].",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
       "reintentos_por_limite_de_ritmo": 0,
       "sin_medir": "",
-      "motivos": [
-        "comando ausente: bloque boe BOE-A-2015-11430 a38",
-        "cita ausente: BOE-A-2015-11430 a38"
-      ],
-      "pasa": false
+      "motivos": [],
+      "pasa": true
     },
     {
       "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-03",
@@ -2516,19 +2521,7 @@
       "citas_sin_consulta": [],
       "invocaciones": [
         {
-          "orden": "boe indice BOE-A-2015-11430 --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe indice BOE-A-2015-11430 --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe articulo BOE-A-2015-11430 a30 --json",
+          "orden": "boe buscar Estatuto de los Trabajadores --json",
           "codigo": 5,
           "conexiones": [
             {
@@ -2541,14 +2534,14 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe articulo BOE-A-2015-11430 a30 --json",
+          "orden": "boe buscar Estatuto de los Trabajadores --json",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: ha fallado la petición del bloque a30 de la norma BOE-A-2015-11430 — no se ha podido obtener el robots.txt del sitio https://www.boe.es. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: la fuente de datos legislativos no es accesible en este momento (fallo de conectividad con el servidor del BOE). Para obtener la información sobre vacaciones anuales en el Estatuto de los Trabajadores, intenta de nuevo en unos momentos o consulta directamente https://www.boe.es/.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2602,12 +2595,6 @@
           "llamada": false
         },
         {
-          "orden": "boe indice BOE-A-2015-11430 --json",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
           "orden": "boe articulo BOE-A-2015-11430 a38 --json",
           "codigo": 0,
           "conexiones": [],
@@ -2624,7 +2611,7 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **treinta días naturales** de vacaciones al año. Lo dice el art. 38.1 del texto refundido (Real Decreto Legislativo 2/2015) [BOE-A-2015-11430, bloque a38]:\n\n> «El periodo de vacaciones anuales retribuidas, no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales.»\n\n- **Mínimo, no tope.** El convenio colectivo o el contrato individual pueden pactar más días, pero no menos de treinta naturales.\n- **Retribuidas y sin compensación económica.** Las vacaciones no se pueden sustituir por dinero.\n- **Fechas.** Las fijan de común acuerdo empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual. Si no se ponen de acuerdo, las fija la jurisdicción social: su decisión es irrecurrible y el procedimiento es sumario y preferente.\n- **Calendario.** Se fija en cada empresa, y la persona trabajadora debe conocer sus fechas al menos dos meses antes de que empiece el disfrute.\n- **Coincidencia con una incapacidad temporal por embarazo, parto o lactancia natural, o con la suspensión del contrato que el texto menciona.** Se tiene derecho a disfrutar las vacaciones en otra fecha, al terminar el periodo de suspensión, aunque haya acabado el año natural.\n- **Coincidencia con una incapacidad temporal por otras causas.** Si impide disfrutarlas total o parcialmente en el año natural, se pueden disfrutar al terminar la incapacidad. Eso vale siempre que no hayan pasado más de dieciocho meses desde el final del año en que se originaron.\n\nEl artículo no lleva avisos de vigencia. Su redacción es la del propio Real Decreto Legislativo 2/2015, con fecha de vigencia 13/11/2015.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional. Si lo que le importa es una situación concreta, hay que mirar también el convenio colectivo aplicable, que puede mejorar este mínimo.",
+      "respuesta": "**El Estatuto de los Trabajadores fija un mínimo de treinta días naturales de vacaciones al año.** Lo dice el art. 38.1: las vacaciones anuales retribuidas, \"no sustituible[s] por compensación económica\", serán las pactadas en convenio colectivo o contrato individual. \"En ningún caso la duración será inferior a treinta días naturales\" [art. 38 del texto refundido de la Ley del Estatuto de los Trabajadores, BOE-A-2015-11430, bloque a38].\n\nLa norma es un Real Decreto Legislativo (RDL 2/2015, de 23 de octubre). El convenio o el contrato pueden mejorar esos treinta días, pero no rebajarlos.\n\nEl mismo artículo añade lo siguiente [art. 38 ET, BOE-A-2015-11430, bloque a38]:\n\n- **Fechas (apdo. 2):** el empresario y el trabajador las fijan de común acuerdo, conforme a lo que digan los convenios sobre planificación anual. Si no se ponen de acuerdo, la jurisdicción social fija la fecha, su decisión es irrecurrible y el procedimiento es sumario y preferente.\n- **Calendario (apdo. 3):** se fija en cada empresa. El trabajador debe conocer las fechas que le correspondan al menos dos meses antes del comienzo del disfrute.\n- **Coincidencia con baja o suspensión (apdo. 3):**\n  - Si las vacaciones coinciden con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se pueden disfrutar en fecha distinta. Eso vale al finalizar la suspensión, aunque haya terminado el año natural al que corresponden.\n  - Si coinciden con una incapacidad temporal por otras contingencias que impida disfrutarlas, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Es necesario que no hayan pasado más de dieciocho meses desde el final del año en que se originaron.\n\nEl artículo no lleva avisos de vigencia. Su redacción vigente es la de fecha de vigencia 13-11-2015, dada por el propio RDL 2/2015.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional. Tu convenio colectivo puede fijar más días o regular el calendario, y conviene que lo consultes.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2675,6 +2662,18 @@
           "llamada": false
         },
         {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
           "orden": "boe articulo BOE-A-2015-11430 a38 --json",
           "codigo": 0,
           "conexiones": [],
@@ -2685,26 +2684,13 @@
           "codigo": 0,
           "conexiones": [],
           "llamada": false
-        },
-        {
-          "orden": "boe_indice BOE-A-2015-11430",
-          "codigo": null,
-          "motivo": "sin_sobre",
-          "conexiones": [],
-          "llamada": true
         }
       ],
       "fuera_de_lo_grabado": [],
-      "otras_fallidas": [
-        {
-          "orden": "boe_indice BOE-A-2015-11430",
-          "codigo": null,
-          "motivo": "sin_sobre"
-        }
-      ],
+      "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "**Mínimo legal: 30 días naturales de vacaciones retribuidas al año.** El artículo 38.1 del texto refundido de la Ley del Estatuto de los Trabajadores dice que el periodo de vacaciones anuales retribuidas, \"no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales\" (art. 38.1 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]).\n\nLa norma es el Real Decreto Legislativo 2/2015, de 23 de octubre. El artículo no lleva avisos de vigencia. Su redacción tiene fecha de vigencia 13/11/2015.\n\nEsto es lo que el mismo artículo dice sobre cómo se disfrutan (art. 38 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]):\n\n- **Cuándo se disfrutan (apdo. 2):** el periodo o periodos se fijan de común acuerdo entre empresario y trabajador, según lo que digan los convenios colectivos sobre planificación anual. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente.\n- **Calendario (apdo. 3):** el calendario de vacaciones se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes del comienzo del disfrute.\n- **Coincidencia con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con la suspensión del contrato prevista en los apartados 4, 5 y 7 del artículo 48:** se tiene derecho a disfrutar las vacaciones en otra fecha, al finalizar el periodo de suspensión, aunque haya terminado el año natural a que correspondan.\n- **Coincidencia con una incapacidad temporal por otras contingencias:** si impide disfrutarlas, total o parcialmente, durante el año natural, el trabajador puede hacerlo cuando termine la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron.\n\nEl convenio colectivo o el contrato individual pueden mejorar los 30 días, pero no rebajarlos. Para saber los días de una persona concreta hay que mirar su convenio, que no consta en esta consulta. Tampoco he leído la normativa de los empleados públicos, que tiene su propio régimen.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "**El Estatuto de los Trabajadores fija un mínimo de treinta días naturales de vacaciones al año.** El convenio colectivo o el contrato individual pueden pactar más, pero nunca menos. Lo dice el art. 38 del texto refundido de la Ley del Estatuto de los Trabajadores, aprobado por Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38].\n\nSegún ese artículo:\n\n- **Duración.** Las vacaciones anuales son retribuidas y no se pueden sustituir por compensación económica. Su duración es la pactada en convenio colectivo o contrato individual, y «en ningún caso la duración será inferior a treinta días naturales» (art. 38.1).\n- **Fechas de disfrute.** Las fijan de común acuerdo empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual de las vacaciones. Si no hay acuerdo, fija la fecha la jurisdicción social. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2).\n- **Calendario.** Se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3).\n- **Coincidencia con incapacidad temporal derivada del embarazo, el parto o la lactancia natural.** Si las vacaciones del calendario coinciden con esa incapacidad o con el periodo de suspensión del contrato «previsto en los apartados 4, 5 y 7 del artículo 48», el trabajador las disfruta en otra fecha. Puede hacerlo al terminar la suspensión, aunque ya haya acabado el año natural al que corresponden (art. 38.3).\n- **Coincidencia con otra incapacidad temporal.** Si la incapacidad es por otras contingencias y le impide disfrutar las vacaciones, total o parcialmente, durante el año natural, puede disfrutarlas al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron (art. 38.3).\n\nEl artículo no lleva avisos de vigencia. Su redacción es la del propio Real Decreto Legislativo 2/2015, con fecha de vigencia 13 de noviembre de 2015.\n\nLos convenios colectivos y los contratos no están en la fuente que he consultado. Para saber cuántos días te corresponden a ti, hay que mirar tu convenio, porque puede mejorar el mínimo. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2783,7 +2769,7 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "Según el artículo 38 del Estatuto de los Trabajadores, las vacaciones anuales retribuidas no pueden durar menos de **30 días naturales**.\n\n**Duración y compensación.** El periodo de vacaciones anuales retribuidas es el pactado en convenio colectivo o contrato individual. En ningún caso puede ser inferior a treinta días naturales, y no se puede sustituir por compensación económica (art. 38.1).\n\n**Fechas de disfrute.** Empresario y trabajador las fijan de común acuerdo, conforme a lo que digan los convenios colectivos sobre planificación anual de las vacaciones. Si no se ponen de acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2).\n\n**Calendario.** El calendario de vacaciones se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3).\n\n**Coincidencia con otras situaciones** (art. 38.3):\n- **Embarazo, parto, lactancia natural o suspensión del contrato.** Si las vacaciones del calendario coinciden con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutarlas en otra fecha. Pueden disfrutarse al acabar la suspensión, aunque haya terminado el año natural al que corresponden.\n- **Otra incapacidad temporal.** Si coinciden con una incapacidad temporal por otras contingencias y el trabajador no puede disfrutarlas, total o parcialmente, en el año natural, puede hacerlo cuando acabe la incapacidad. Debe hacerlo en un máximo de dieciocho meses desde el final del año en que se originaron.\n\nLos 30 días naturales son un mínimo: el convenio colectivo o el contrato pueden mejorarlo. Para saber cuántos días tiene una persona concreta hay que mirar su convenio.\n\nFuente: art. 38 del Texto Refundido de la Ley del Estatuto de los Trabajadores, Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38]. El bloque no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 20151113. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **treinta días naturales de vacaciones anuales retribuidas**. Lo dice el art. 38 del texto refundido aprobado por el Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38]. Es una norma con rango de Real Decreto Legislativo, y la ley prevalece sobre cualquier reglamento que la desarrolle.\n\n**Lo que dice el art. 38**\n\n- **Duración.** El periodo es el pactado en convenio colectivo o contrato individual. En ningún caso puede ser inferior a treinta días naturales. Las vacaciones no se pueden sustituir por compensación económica (art. 38.1).\n- **Fechas.** Empresario y trabajador las fijan de común acuerdo, conforme a lo que digan los convenios colectivos sobre planificación anual. Si no se ponen de acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2).\n- **Calendario.** Se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3).\n- **Coincidencia con embarazo, parto o lactancia.** Esto vale cuando el calendario coincide con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato de trabajo previsto en los apartados 4, 5 y 7 del artículo 48. En ese caso se tiene derecho a disfrutar las vacaciones en fecha distinta, al finalizar el periodo de suspensión, aunque haya terminado el año natural a que correspondan (art. 38.3).\n- **Coincidencia con otra incapacidad temporal.** Si las vacaciones coinciden con una incapacidad temporal por otras contingencias que impida disfrutarlas, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Deben haber pasado como máximo dieciocho meses desde el final del año en que se originaron (art. 38.3).\n\n**Vigencia.** El artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13-11-2015.\n\n**Qué conviene mirar además.** El texto remite al convenio colectivo y al contrato individual, que pueden mejorar los treinta días. Para saber cuántos días te corresponden, mira tu convenio. Este texto es informativo y no sustituye el asesoramiento de un profesional.\n\nCita: art. 38 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38].",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2838,7 +2824,7 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ SIN CONSULTA AL BOE: `kitlegal` no está disponible en este entorno. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: `kitlegal` no está disponible en el sistema. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -2852,79 +2838,6 @@
     },
     {
       "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-02",
-      "eval": "02-una-sola-capacidad.yaml",
-      "modelo": "claude-haiku-4-5-20251001",
-      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
-      "modo": "herramienta",
-      "decide": false,
-      "activa": true,
-      "activada": true,
-      "por_materia": false,
-      "comandos_ejecutados": [
-        "bloque boe BOE-A-2015-11430 a38"
-      ],
-      "comandos_ausentes": [],
-      "comandos_prohibidos_ejecutados": [],
-      "citas_encontradas": [
-        "BOE-A-2015-11430 a38"
-      ],
-      "citas_ausentes": [],
-      "avisos_encontrados": [],
-      "avisos_ausentes": [],
-      "hallazgos_encontrados": [],
-      "hallazgos_ausentes": [],
-      "redacciones_modificadas_encontradas": [],
-      "redacciones_modificadas_ausentes": [],
-      "plazo_encontrado": false,
-      "avisos_del_plazo_ausentes": [],
-      "no_cubierto_declarado": false,
-      "plazo_sin_calcular_declarado": false,
-      "lineas_del_plazo": [],
-      "territorio_encontrado": [],
-      "territorio_ausente": [],
-      "linea_sin_consulta": false,
-      "citas_sin_consulta": [],
-      "invocaciones": [
-        {
-          "orden": "mcp serve",
-          "codigo": -1,
-          "conexiones": [],
-          "llamada": false
-        },
-        {
-          "orden": "boe_indice BOE-A-2015-11430",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_articulo BOE-A-2015-11430 a38",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "graph_check BOE-A-2015-11430 a38",
-          "codigo": 0,
-          "conexiones": [],
-          "llamada": true
-        }
-      ],
-      "fuera_de_lo_grabado": [],
-      "otras_fallidas": [],
-      "lecturas_sin_servir": [],
-      "llegadas_a_la_red": [],
-      "respuesta": "El Estatuto de los Trabajadores establece que **el periodo de vacaciones anuales retribuidas será de un mínimo de treinta días naturales**. Esta es la duración base, aunque puede ampliarse mediante lo que se pacte en un convenio colectivo o en un contrato individual.\n\nSegún el art. 38 del Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]:\n\n> «El periodo de vacaciones anuales retribuidas, no sustituible por compensación económica, será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales.»\n\nEstos treinta días naturales son el **mínimo legal** que no puede ser rebajado. Las características principales son:\n\n- **No sustituible por dinero**: no pueden ser convertidas en una compensación económica.\n- **Flexibles por pacto**: el tiempo exacto puede aumentarse si así lo establecen el convenio colectivo o el contrato.\n- **Disfrute de común acuerdo**: el trabajador y la empresa deben ponerse de acuerdo sobre cuándo se disfrutan.",
-      "codigo_de_la_sesion": 0,
-      "fin_de_la_sesion": "result success",
-      "sesion_terminada": true,
-      "reintentos_por_limite_de_ritmo": 0,
-      "sin_medir": "",
-      "motivos": [],
-      "pasa": true
-    },
-    {
-      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
       "eval": "02-una-sola-capacidad.yaml",
       "modelo": "claude-haiku-4-5-20251001",
       "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
@@ -2970,13 +2883,7 @@
           "llamada": false
         },
         {
-          "orden": "boe_buscar Estatuto de los Trabajadores",
-          "codigo": 5,
-          "conexiones": [],
-          "llamada": true
-        },
-        {
-          "orden": "boe_indice BOE-A-1995-7623",
+          "orden": "boe_buscar Estatuto Trabajadores",
           "codigo": 5,
           "conexiones": [],
           "llamada": true
@@ -2984,18 +2891,14 @@
       ],
       "fuera_de_lo_grabado": [
         {
-          "orden": "boe_buscar Estatuto de los Trabajadores",
-          "codigo": 5
-        },
-        {
-          "orden": "boe_indice BOE-A-1995-7623",
+          "orden": "boe_buscar Estatuto Trabajadores",
           "codigo": 5
         }
       ],
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "⚠ **SIN CONSULTA AL BOE**: No se ha podido acceder a la fuente del BOE (legislacion-consolidada) por un problema de verificación de robots.txt. No puedo consultar el Estatuto de los Trabajadores ni citar su contenido sobre vacaciones. Si ya tienes kitlegal instalado, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido acceder a la fuente del BOE para consultar la norma. Si tienes kitlegal instalado, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\nSin poder acceder a la fuente oficial consolidada, no puedo citarte lo que dice el Estatuto de los Trabajadores sobre vacaciones. Para una respuesta fiable y citada, necesito consultar el texto vigente en el BOE.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -3006,6 +2909,95 @@
         "cita ausente: BOE-A-2015-11430 a38"
       ],
       "pasa": false
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_buscar Estatuto de los Trabajadores",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_indice BOE-A-2015-11430",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_buscar Estatuto de los Trabajadores",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores regula los días de vacaciones en su artículo 38, que establece lo siguiente:\n\n**Mínimo de treinta días naturales**\n\nLa duración de las vacaciones anuales retribuidas será la pactada en convenio colectivo o contrato individual. En ningún caso será inferior a treinta días naturales, que es el mínimo legal garantizado [art. 38.1 del Real Decreto Legislativo 2/2015, de 23 de octubre, BOE-A-2015-11430, bloque a38].\n\n**Acuerdo sobre fechas de disfrute**\n\nEl periodo o periodos de disfrute de vacaciones se fijará de común acuerdo entre el empresario y el trabajador, conforme a lo establecido en los convenios colectivos. El trabajador conocerá las fechas que le correspondan con al menos dos meses de anticipación al comienzo del disfrute [art. 38.2 y 38.3, BOE-A-2015-11430, bloque a38].\n\n**Conflicto sobre fechas**\n\nSi hay desacuerdo entre las partes sobre la fecha de disfrute, la jurisdicción social fijará la fecha mediante procedimiento sumario y preferente, siendo su decisión irrecurrible [art. 38.2, BOE-A-2015-11430, bloque a38].\n\n**Casos especiales**\n\nSi las vacaciones coinciden con incapacidad temporal por embarazo, parto, lactancia o con permisos de suspensión del contrato, el trabajador tiene derecho a disfrutarlas en otra fecha, incluso después de finalizado el año natural. Si coinciden con incapacidad por otras contingencias que impidan disfrutarlas ese año, podrán disfrutarse una vez finalice la incapacidad, siempre que no hayan transcurrido más de dieciocho meses desde el final del año en que se originó la incapacidad [art. 38.3, BOE-A-2015-11430, bloque a38].",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
     },
     {
       "sesion": "02-una-sola-capacidad-herramienta-claude-sonnet-5-5-01",
@@ -3071,7 +3063,7 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "**Mínimo legal: 30 días naturales de vacaciones al año.** El artículo 38.1 del Estatuto de los Trabajadores dice que el periodo de vacaciones anuales retribuidas «será el pactado en convenio colectivo o contrato individual» y que «en ningún caso la duración será inferior a treinta días naturales». Además, no se puede sustituir por una compensación económica (art. 38.1 del texto refundido de la Ley del Estatuto de los Trabajadores, Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38]).\n\nOtras reglas del mismo artículo:\n\n- **Fechas de disfrute:** se fijan de común acuerdo entre empresario y trabajador, de conformidad con lo que digan los convenios colectivos sobre planificación anual. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2 [BOE-A-2015-11430, bloque a38]).\n- **Calendario:** se fija en cada empresa y el trabajador debe conocer sus fechas al menos dos meses antes del comienzo del disfrute (art. 38.3, párrafo primero [BOE-A-2015-11430, bloque a38]).\n- **Coincidencia con embarazo, parto o lactancia:** si el periodo coincide con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato de trabajo previsto en el artículo 48, se tiene derecho a disfrutar las vacaciones en otra fecha. Puede ser al terminar la suspensión, aunque haya acabado el año natural al que correspondan (art. 38.3, párrafo segundo [BOE-A-2015-11430, bloque a38]).\n- **Coincidencia con otra incapacidad temporal:** si el periodo coincide con una incapacidad temporal por otras causas que impida disfrutarlas, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Solo vale si no han pasado más de dieciocho meses desde el final del año en que se originaron (art. 38.3, párrafo tercero [BOE-A-2015-11430, bloque a38]).\n\nEl artículo no lleva avisos de vigencia. La redacción citada es la del propio texto refundido, con fecha de vigencia 13/11/2015.\n\nEn la práctica, lo que fije tu convenio colectivo o tu contrato puede mejorar esos 30 días, pero no reducirlos. Esta respuesta solo recoge el texto del Estatuto. El convenio aplicable no está cubierto aquí y habría que consultarlo aparte. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **treinta días naturales** de vacaciones al año. Lo recoge el art. 38.1 del texto refundido de la Ley del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]. El Real Decreto Legislativo 2/2015 aprueba ese texto refundido.\n\n- **Duración:** el periodo de vacaciones anuales retribuidas será el pactado en convenio colectivo o contrato individual. «En ningún caso la duración será inferior a treinta días naturales». [BOE-A-2015-11430, bloque a38]\n- **Sin compensación económica:** las vacaciones no se pueden sustituir por dinero. [BOE-A-2015-11430, bloque a38]\n- **Fechas:** se fijan de común acuerdo entre empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual. Si no hay acuerdo, las fija la jurisdicción social, y su decisión es irrecurrible. El procedimiento es sumario y preferente (art. 38.2). [BOE-A-2015-11430, bloque a38]\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con embarazo, parto o lactancia natural:** si las vacaciones del calendario coinciden con una incapacidad temporal derivada de esas situaciones, o con la suspensión del contrato prevista en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutarlas en otra fecha. Pueden disfrutarse al finalizar el periodo de suspensión, aunque haya terminado el año natural al que correspondan (art. 38.3, párrafo segundo). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con otra incapacidad temporal:** si la incapacidad es por otras contingencias e impide disfrutar las vacaciones, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Es necesario que no hayan pasado más de dieciocho meses desde el final del año en que se originaron (art. 38.3, párrafo tercero). [BOE-A-2015-11430, bloque a38]\n\nEl artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13/11/2015.\n\nLos treinta días naturales son un mínimo. Tu convenio colectivo o tu contrato pueden mejorarlos, así que conviene mirar cuál te aplica. Este texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
@@ -3088,7 +3080,7 @@
       "modo": "herramienta",
       "decide": true,
       "activa": true,
-      "activada": false,
+      "activada": true,
       "por_materia": false,
       "comandos_ejecutados": [
         "bloque boe BOE-A-2015-11430 a38"
@@ -3144,16 +3136,14 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "**Mínimo legal: 30 días naturales al año.** El artículo 38.1 del Estatuto de los Trabajadores dice que las vacaciones anuales retribuidas serán las pactadas en convenio colectivo o contrato individual, y que \"en ningún caso la duración será inferior a treinta días naturales\". Tampoco pueden sustituirse por compensación económica (art. 38.1 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]).\n\nOtras reglas del mismo artículo:\n\n- **Cuándo se disfrutan:** el periodo o periodos se fijan de común acuerdo entre empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual (art. 38.2 [BOE-A-2015-11430, bloque a38]). Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2 [BOE-A-2015-11430, bloque a38]).\n- **Calendario:** se fija en cada empresa y el trabajador debe conocer sus fechas al menos dos meses antes del comienzo del disfrute (art. 38.3 [BOE-A-2015-11430, bloque a38]).\n- **Coincidencia con embarazo, parto o lactancia:** si las vacaciones del calendario coinciden con una incapacidad temporal derivada de embarazo, parto o lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se pueden disfrutar en otra fecha al terminar la suspensión. Esto vale aunque haya acabado el año natural (art. 38.3 [BOE-A-2015-11430, bloque a38]).\n- **Coincidencia con otra incapacidad temporal:** si impide disfrutarlas total o parcialmente durante el año natural, se pueden disfrutar al terminar la incapacidad. Deben haber pasado no más de dieciocho meses desde el final del año en que se originaron (art. 38.3 [BOE-A-2015-11430, bloque a38]).\n\nLa norma es un Real Decreto Legislativo (texto refundido). El artículo no lleva avisos de vigencia y su redacción rige desde el 13/11/2015 (fecha de vigencia 20151113).\n\nTreinta días naturales es solo el mínimo. Tu convenio colectivo o tu contrato pueden fijar más, y es ahí donde hay que mirar. Este texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "**Mínimo legal: treinta días naturales al año.** El artículo 38 del Estatuto de los Trabajadores dice que el periodo de vacaciones anuales retribuidas \"será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales\". Además, las vacaciones no se pueden sustituir por compensación económica. Art. 38.1 del Estatuto de los Trabajadores, texto refundido aprobado por Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38].\n\nOtras reglas del mismo artículo:\n\n- **Fechas:** el periodo o periodos de disfrute se fijan de común acuerdo entre empresario y trabajador, conforme a lo que digan, en su caso, los convenios colectivos sobre planificación anual de las vacaciones. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente. Art. 38.2 [BOE-A-2015-11430, bloque a38].\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer las fechas que le correspondan al menos dos meses antes del comienzo del disfrute. Art. 38.3, párrafo primero [BOE-A-2015-11430, bloque a38].\n- **Coincidencia con embarazo, parto o lactancia natural:** si el periodo de vacaciones coincide con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutar las vacaciones en otra fecha. Pueden disfrutarse al finalizar la suspensión, aunque haya terminado el año natural al que correspondan. Art. 38.3, párrafo segundo [BOE-A-2015-11430, bloque a38].\n- **Coincidencia con otra incapacidad temporal:** si la incapacidad es por otras contingencias y impide disfrutar las vacaciones, total o parcialmente, durante el año natural, el trabajador puede disfrutarlas al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron. Art. 38.3, párrafo tercero [BOE-A-2015-11430, bloque a38].\n\nEl artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13/11/2015, y la dio el propio Real Decreto Legislativo 2/2015.\n\nEl convenio colectivo o el contrato pueden mejorar los treinta días, pero no rebajarlos. Para saber cuántos días tiene una persona concreta hay que mirar su convenio, que esta fuente no recoge. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
       "reintentos_por_limite_de_ritmo": 0,
       "sin_medir": "",
-      "motivos": [
-        "la activación no coincide: se esperaba que la skill consulta-juridica se activara y no se activó"
-      ],
-      "pasa": false
+      "motivos": [],
+      "pasa": true
     },
     {
       "sesion": "02-una-sola-capacidad-herramienta-claude-sonnet-5-5-03",
@@ -3219,7 +3209,7 @@
       "otras_fallidas": [],
       "lecturas_sin_servir": [],
       "llegadas_a_la_red": [],
-      "respuesta": "**Mínimo legal: 30 días naturales de vacaciones al año.** Según el art. 38.1 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38], las vacaciones anuales retribuidas no se pueden sustituir por compensación económica. Su duración será la pactada en convenio colectivo o en contrato individual, y «en ningún caso» será inferior a treinta días naturales.\n\nOtras reglas del mismo artículo [BOE-A-2015-11430, bloque a38]:\n\n- **Fechas de disfrute (art. 38.2):** las fijan de común acuerdo la empresa y la persona trabajadora, conforme a lo que digan los convenios colectivos sobre planificación anual. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente.\n- **Calendario (art. 38.3):** se fija en cada empresa. La persona trabajadora debe conocer sus fechas al menos dos meses antes de que empiece el disfrute.\n- **Coincidencia con una incapacidad temporal (art. 38.3):**\n  - Si la incapacidad deriva del embarazo, el parto o la lactancia natural, o coincide con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutar las vacaciones en otra fecha. Puede ser al terminar la suspensión, aunque haya acabado el año natural al que correspondan.\n  - Si la incapacidad es por otras contingencias y impide disfrutar las vacaciones, total o parcialmente, dentro del año natural, se pueden disfrutar al terminar la incapacidad. Es condición que no hayan pasado más de dieciocho meses desde el final del año en que se originaron.\n\nEl artículo no lleva avisos de vigencia. Su redacción es la del Real Decreto Legislativo 2/2015, con fecha de vigencia 13/11/2015. Como el mínimo es de 30 días naturales, el convenio colectivo o el contrato pueden mejorarlo, así que conviene mirar el convenio aplicable. Esta respuesta es informativa y no sustituye el asesoramiento de un profesional.",
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **30 días naturales** de vacaciones anuales retribuidas. Lo hace en el art. 38.1 del Real Decreto Legislativo 2/2015, texto refundido de la Ley del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38].\n\n- **Duración:** el periodo de vacaciones será el pactado en convenio colectivo o contrato individual. En ningún caso será inferior a treinta días naturales. Convenio o contrato pueden mejorar ese mínimo, pero no rebajarlo. [BOE-A-2015-11430, bloque a38]\n- **Compensación económica:** las vacaciones no se pueden sustituir por dinero. [BOE-A-2015-11430, bloque a38]\n- **Fechas:** se fijan de común acuerdo entre empresa y trabajador, conforme a lo que digan los convenios sobre planificación anual. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento, sumario y preferente (art. 38.2). [BOE-A-2015-11430, bloque a38]\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes del comienzo del disfrute (art. 38.3). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con incapacidad temporal:**\n  - Si es por embarazo, parto o lactancia natural, el trabajador tiene derecho a disfrutar las vacaciones en otra fecha, al terminar el periodo de suspensión. Esto vale aunque haya acabado el año natural. El texto aplica la misma regla a los periodos de suspensión del contrato que remite a otro artículo de la norma.\n  - Si es por otras contingencias y le impide disfrutarlas, total o parcialmente, durante el año natural, puede hacerlo al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron. [BOE-A-2015-11430, bloque a38]\n\nEl artículo no lleva avisos de vigencia. La redacción citada rige desde el 13/11/2015, y la norma que la dio es el propio Real Decreto Legislativo 2/2015. El convenio colectivo aplicable puede establecer más días, así que conviene consultarlo.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
       "codigo_de_la_sesion": 0,
       "fin_de_la_sesion": "result success",
       "sesion_terminada": true,
