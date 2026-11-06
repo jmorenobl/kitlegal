@@ -69,8 +69,10 @@ const varianteDeControlDeNormativa = "normativa-control"
 // skills/<skill> en v0.9.0, y la del producto, que se instala desde
 // skills/<skill>, las dos en los dos modos; la de normativa, además, las tres de
 // H40, solo en el modo herramienta, y la variante con regla testigo, la única en
-// que la tabla la escribe (contracts/tabla.md §3 de H40). Cada una, también, las
-// cuatro evals que planifica su sondeo (data-model §1).
+// que la tabla la escribe (contracts/tabla.md §3 de H40); la de
+// plazos-y-territorio, además, sus tres formas, en los dos modos
+// (contracts/variantes.md §2). Cada una, también, las cuatro evals que planifica
+// su sondeo (data-model §1).
 var familiasDelProducto = []familiaDelLaboratorio{
 	{
 		skill:   skillDeNormativa,
@@ -108,6 +110,9 @@ var familiasDelProducto = []familiaDelLaboratorio{
 		variantes: []varianteDelLaboratorio{
 			{Nombre: "plazos-y-territorio-control", Modos: []Modo{ModoOrden, ModoHerramienta}},
 			{Nombre: "plazos-y-territorio-producto", Modos: []Modo{ModoOrden, ModoHerramienta}},
+			{Nombre: "plazos-y-territorio-sin-condicion", Modos: []Modo{ModoOrden, ModoHerramienta}},
+			{Nombre: "plazos-y-territorio-condicion-por-orden", Modos: []Modo{ModoOrden, ModoHerramienta}},
+			{Nombre: "plazos-y-territorio-lista-con-verbo", Modos: []Modo{ModoOrden, ModoHerramienta}},
 		},
 		producto: "plazos-y-territorio-producto",
 		referencias: []string{

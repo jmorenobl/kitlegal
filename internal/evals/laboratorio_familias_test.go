@@ -14,6 +14,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // huellasDeLosControles son las huellas SHA-256 de los ficheros de la variante de
@@ -568,14 +570,22 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 func directorioDelControl(t *testing.T, skill string) string {
 	t.Helper()
 
+	familia := familiaDelProducto(t, skill)
+
+	return familia.directorioDeLaSkill(familia.nombres()[0])
+}
+
+// familiaDelProducto es la familia del producto de esa skill, la de
+// familiasDelProducto.
+func familiaDelProducto(t *testing.T, skill string) familiaDelLaboratorio {
+	t.Helper()
+
 	posicion := slices.IndexFunc(familiasDelProducto, func(familia familiaDelLaboratorio) bool {
 		return familia.skill == skill
 	})
 	require.GreaterOrEqual(t, posicion, 0, "%s es la skill de una familia del producto", skill)
 
-	familia := familiasDelProducto[posicion]
-
-	return familia.directorioDeLaSkill(familia.nombres()[0])
+	return familiasDelProducto[posicion]
 }
 
 // sinLoGenerado son los ficheros de una skill, por su ruta relativa a ella, sin
@@ -714,4 +724,251 @@ func compararLosFicheros(t *testing.T, esperados, obtenidos map[string][]byte, d
 // línea— cambiado por un espacio, y sin blancos al principio ni al final.
 func juntarLosBlancos(texto string) string {
 	return strings.Join(strings.Fields(texto), " ")
+}
+
+// referenciasDeLasOrdenesDePlazos son las referencias de plazos-y-territorio
+// cuyas órdenes de leer son lo único que cambian sus variantes en el cuerpo del
+// SKILL.md (FR-023; contracts/variantes.md §2).
+var referenciasDeLasOrdenesDePlazos = []string{"municipios.md", "calculo_de_plazos.md"}
+
+// Las líneas de la lista de «Referencias» de plazos-y-territorio-control con las
+// remisiones a municipios.md y a calculo_de_plazos.md, que las tres variantes
+// cambian (contracts/variantes.md §2).
+const (
+	municipiosEnLaListaDeControl = "- [municipios.md](references/municipios.md): al presentar un territorio, si " +
+		"falta el municipio o no sale con 0, y\n  para explicar su cobertura.\n"
+	calculoEnLaListaDeControl = "- [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que " +
+		"cuentan, un plazo sin calcular y una\n  lectura fallida o con `redaccion_posterior`.\n"
+)
+
+// sinLaListaDeControl quita de la lista de «Referencias» las dos remisiones que
+// las formas sin condición y con una condición por orden llevan al «Protocolo»
+// (contracts/variantes.md §2.1 y §2.2): §2 no añade ningún texto en su sitio.
+var sinLaListaDeControl = sustitucionDeLaVariante{
+	fichero: ficheroDeLaSkillDeLaVariante,
+	antes:   municipiosEnLaListaDeControl + calculoEnLaListaDeControl,
+}
+
+// declaracionesDePlazosYTerritorio son las de las variantes versionadas de la
+// familia de plazos-y-territorio que no son la de control, en su orden, cada una
+// con las sustituciones del SKILL.md de plazos-y-territorio-control que dan los
+// tramos de su diff -u en contracts/variantes.md §2 (data-model §6; research D11 y
+// D12): una por bloque de líneas cambiadas, con su «antes» desde el principio de
+// la frase o de la línea y, la que solo añade líneas, con la frase que las sigue;
+// cada hito es el texto de §2 de esas líneas.
+var declaracionesDePlazosYTerritorio = []declaracionDeLaVariante{
+	{
+		nombre: "plazos-y-territorio-sin-condicion",
+		sustituciones: []sustitucionDeLaVariante{
+			sinLaListaDeControl,
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "Territorio: del 1 al 4, y el 5 y el 6 si va más allá.",
+				despues: "Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer " +
+					"si falta el municipio o\nno sale con 0, qué trae `data`, la plantilla del territorio y qué dice " +
+					"su cobertura.\n\nTerritorio: del 1 al 4, y el 5 y el 6 si va más allá.",
+				hito: "Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si " +
+					"falta el municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su " +
+					"cobertura.  Territorio: del 1 al 4, y el 5 y el 6 si va más allá.",
+			},
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "Un acto presunto no tiene fecha: ningún plazo.\n",
+				despues: "Un acto presunto no tiene fecha: ningún plazo. Antes del 8, lee\n" +
+					"   [calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el plazo " +
+					"sin calcular y la\n   lectura en la fecha de inicio.\n",
+				hito: "Un acto presunto no tiene fecha: ningún plazo. Antes del 8, lee " +
+					"[calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el plazo sin " +
+					"calcular y la lectura en la fecha de inicio.",
+			},
+		},
+	},
+	{
+		nombre: "plazos-y-territorio-condicion-por-orden",
+		sustituciones: []sustitucionDeLaVariante{
+			sinLaListaDeControl,
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "Sin herramienta ni binario, la regla 7.\n",
+				despues: "Sin herramienta ni binario, la regla 7. Si falta el municipio o `territorio resolver` no sale " +
+					"con\n   `0`, lee [municipios.md](references/municipios.md): qué hacer en cada caso.\n",
+				hito: "Sin herramienta ni binario, la regla 7. Si falta el municipio o `territorio resolver` no sale con " +
+					"`0`, lee [municipios.md](references/municipios.md): qué hacer en cada caso.",
+			},
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "o en el contencioso-administrativo **el de la sede del juzgado**.\n",
+				despues: "o en el contencioso-administrativo **el de la sede del juzgado**. Si\n   alguno de los " +
+					"municipios cuenta, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): cuáles cuentan " +
+					"y qué\n   se pasa a `plazos`.\n",
+				hito: "o en el contencioso-administrativo **el de la sede del juzgado**. Si alguno de los municipios " +
+					"cuenta, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): cuáles cuentan y qué se pasa " +
+					"a `plazos`.",
+			},
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "plazo ni ninguna fecha de vencimiento, y sin el 10.\n",
+				despues: "plazo ni ninguna fecha de vencimiento, y sin el 10. Con ese 3, lee\n" +
+					"   [calculo_de_plazos.md](references/calculo_de_plazos.md): por qué no hay fecha y qué se dice.\n",
+				hito: "plazo ni ninguna fecha de vencimiento, y sin el 10. Con ese 3, lee " +
+					"[calculo_de_plazos.md](references/calculo_de_plazos.md): por qué no hay fecha y qué se dice.",
+			},
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   "afirmar qué dice.\n",
+				despues: "afirmar qué dice. Con 4 o 5, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): qué " +
+					"se dice del bloque\n    que falta. Con `redaccion_posterior`, lee " +
+					"[calculo_de_plazos.md](references/calculo_de_plazos.md): su línea de\n    redacción de hoy.\n",
+				hito: "afirmar qué dice. Con 4 o 5, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): qué se " +
+					"dice del bloque que falta. Con `redaccion_posterior`, lee " +
+					"[calculo_de_plazos.md](references/calculo_de_plazos.md): su línea de redacción de hoy.",
+			},
+		},
+	},
+	{
+		nombre: "plazos-y-territorio-lista-con-verbo",
+		sustituciones: []sustitucionDeLaVariante{
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   municipiosEnLaListaDeControl,
+				despues: "- Lee [municipios.md](references/municipios.md): al presentar un territorio, si falta el " +
+					"municipio o no sale con 0, y\n  para explicar su cobertura.\n",
+				hito: "Lee [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio " +
+					"o no sale con 0, y para explicar su cobertura.",
+			},
+			{
+				fichero: ficheroDeLaSkillDeLaVariante,
+				antes:   calculoEnLaListaDeControl,
+				despues: "- Lee [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que cuentan, " +
+					"un plazo sin calcular y\n  una lectura fallida o con `redaccion_posterior`.\n",
+				hito: "Lee [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que cuentan, un " +
+					"plazo sin calcular y una lectura fallida o con `redaccion_posterior`.",
+			},
+		},
+	},
+}
+
+// TestVariantesDePlazosYTerritorio es el control de las tres formas de
+// plazos-y-territorio del laboratorio (FR-021, FR-023, FR-024; SC-009;
+// contracts/variantes.md §2 y §4; data-model §6; research D11 y D12): hay una
+// declaración por cada variante versionada de la familia que no es la de control,
+// en su orden; y, en cada una, (1) el «después» de cada sustitución, normalizado,
+// es el texto de §2; (2) la variante es, ruta a ruta y byte a byte, la que da su
+// declaración sobre plazos-y-territorio-control; y (3) la declaración solo tiene
+// sustituciones, todas del SKILL.md, el frontmatter es el de control y, quitados
+// de los dos cuerpos los segmentos con una remisión a municipios.md o a
+// calculo_de_plazos.md, el de la variante tiene los segmentos del de control, en
+// su orden. El tope de 11 000 caracteres no se les aplica (FR-024).
+func TestVariantesDePlazosYTerritorio(t *testing.T) {
+	t.Parallel()
+
+	repositorio := os.DirFS(raizDelRepositorio)
+	familia := familiaDelProducto(t, skillDeLaFamiliaDePlazos)
+
+	t.Run("variantes declaradas", func(t *testing.T) {
+		t.Parallel()
+
+		declaradas := make([]string, 0, len(declaracionesDePlazosYTerritorio))
+		for _, declarada := range declaracionesDePlazosYTerritorio {
+			declaradas = append(declaradas, declarada.nombre)
+		}
+
+		assert.Equal(t, familia.versionada().nombres()[1:], declaradas,
+			"hay una declaración por cada variante versionada de la familia de %s que no es la de control, en su orden",
+			familia.skill)
+	})
+
+	for _, declarada := range declaracionesDePlazosYTerritorio {
+		t.Run(declarada.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			t.Run("declaración", func(t *testing.T) {
+				t.Parallel()
+
+				comprobarLaVarianteDeclarada(t, repositorio, familia, declarada)
+			})
+
+			t.Run("solo las órdenes", func(t *testing.T) {
+				t.Parallel()
+
+				comprobarQueSoloCambianLasOrdenes(t, repositorio, familia, declarada)
+			})
+		})
+	}
+}
+
+// comprobarQueSoloCambianLasOrdenes: la declaración solo tiene sustituciones,
+// todas del SKILL.md; el frontmatter de la variante es el de control; y, quitados
+// de los dos cuerpos los segmentos de skills.Frases con una remisión a una de las
+// referencias de las órdenes, el de la variante y el de control tienen los mismos
+// segmentos en el mismo orden (FR-023; research D12); falla con el primer
+// segmento que difiere, falta o sobra.
+func comprobarQueSoloCambianLasOrdenes(t *testing.T, repositorio fs.FS, familia familiaDelLaboratorio,
+	declarada declaracionDeLaVariante,
+) {
+	t.Helper()
+
+	assert.Nil(t, declarada.cuerpoCorto, "%s: la declaración no tiene regla del cuerpo corto", declarada.nombre)
+	assert.Nil(t, declarada.anadido, "%s: la declaración no tiene añadido", declarada.nombre)
+
+	for indice, sustitucion := range declarada.sustituciones {
+		assert.Equal(t, ficheroDeLaSkillDeLaVariante, sustitucion.fichero, "%s: la sustitución %d es del %s",
+			declarada.nombre, indice+1, ficheroDeLaSkillDeLaVariante)
+	}
+
+	control := path.Join(familia.directorioDeLaSkill(familia.nombres()[0]), ficheroDeLaSkillDeLaVariante)
+	variante := path.Join(familia.directorioDeLaSkill(declarada.nombre), ficheroDeLaSkillDeLaVariante)
+
+	frontmatterDeControl, cuerpoDeControl := partirLaSkillDeLaVariante(t, repositorio, control)
+	frontmatterDeLaVariante, cuerpoDeLaVariante := partirLaSkillDeLaVariante(t, repositorio, variante)
+
+	assert.Equal(t, frontmatterDeControl, frontmatterDeLaVariante, "el frontmatter de %s es el de %s", variante,
+		control)
+
+	deControl := sinLasOrdenes(skills.Frases(cuerpoDeControl), referenciasDeLasOrdenesDePlazos)
+	deLaVariante := sinLasOrdenes(skills.Frases(cuerpoDeLaVariante), referenciasDeLasOrdenesDePlazos)
+
+	for indice := range max(len(deControl), len(deLaVariante)) {
+		switch {
+		case indice >= len(deLaVariante):
+			assert.Fail(t, "falta", "%s: sin las órdenes de %v, falta el segmento %d de %s, %q", variante,
+				referenciasDeLasOrdenesDePlazos, indice+1, control, deControl[indice])
+		case indice >= len(deControl):
+			assert.Fail(t, "sobra", "%s: sin las órdenes de %v, sobra su segmento %d, %q, que %s no tiene", variante,
+				referenciasDeLasOrdenesDePlazos, indice+1, deLaVariante[indice], control)
+		case deLaVariante[indice] != deControl[indice]:
+			assert.Fail(t, "difiere", "%s: sin las órdenes de %v, su segmento %d, %q, no es el de %s, %q", variante,
+				referenciasDeLasOrdenesDePlazos, indice+1, deLaVariante[indice], control, deControl[indice])
+		default:
+			continue
+		}
+
+		return
+	}
+}
+
+// partirLaSkillDeLaVariante son el frontmatter y el cuerpo del SKILL.md de esa
+// ruta, desde la raíz del repositorio.
+func partirLaSkillDeLaVariante(t *testing.T, repositorio fs.FS, ruta string) (frontmatter, cuerpo string) {
+	t.Helper()
+
+	contenido, err := fs.ReadFile(repositorio, ruta)
+	require.NoError(t, err)
+
+	frontmatter, cuerpo, err = frontmatterYCuerpo(string(contenido))
+	require.NoError(t, err, ruta)
+
+	return frontmatter, cuerpo
+}
+
+// sinLasOrdenes son los segmentos sin los que tienen un enlace a una de esas
+// referencias: references/<f>) o references/<f>#….
+func sinLasOrdenes(segmentos, referencias []string) []string {
+	return slices.DeleteFunc(slices.Clone(segmentos), func(segmento string) bool {
+		return slices.ContainsFunc(referencias, func(referencia string) bool {
+			destino := inicioDeUnaRemision + referencia
+
+			return strings.Contains(segmento, destino+")") || strings.Contains(segmento, destino+"#")
+		})
+	})
 }

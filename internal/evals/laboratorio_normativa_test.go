@@ -43,15 +43,11 @@ func TestVariantesDeNormativa(t *testing.T) {
 		assert.Equal(t, familiaDeNormativa.nombres()[1:], declaradas,
 			"hay una declaración por cada variante de la familia de normativa que no es la de control, en su orden")
 
-		control, err := leerLosFicheros(repositorio,
-			familiaDeNormativa.directorioDeLaSkill(varianteDeControlDeNormativa))
-		require.NoError(t, err)
-
 		for _, declarada := range declaracionesDeNormativa {
 			t.Run(declarada.nombre, func(t *testing.T) {
 				t.Parallel()
 
-				comprobarLaVarianteDeclarada(t, repositorio, control, declarada)
+				comprobarLaVarianteDeclarada(t, repositorio, familiaDeNormativa, declarada)
 			})
 		}
 	})
@@ -324,15 +320,17 @@ var declaracionesDeNormativa = []declaracionDeLaVariante{
 
 // comprobarLaVarianteDeclarada: el «después» de cada sustitución de la
 // declaración, normalizado, es el texto del hito; la declaración se aplica sobre
-// normativa-control; y el directorio de la variante es, ruta a ruta y byte a
-// byte, la que se calcula así, sin nada más (FR-003 a FR-006 de H40); falla con la
-// sustitución cuyo «después» no es el hito, con lo que ya no se aplica sobre
-// control, o con la ruta del primer fichero, en orden, que difiere, falta o
-// sobra.
-func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, control map[string][]byte,
+// la variante de control de la familia, la primera; y el directorio de la
+// variante es, ruta a ruta y byte a byte, la que se calcula así, sin nada más
+// (FR-003 a FR-006 de H40; FR-021 y FR-023); falla con la sustitución cuyo
+// «después» no es el hito, con lo que ya no se aplica sobre control, o con la
+// ruta del primer fichero, en orden, que difiere, falta o sobra.
+func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, familia familiaDelLaboratorio,
 	declarada declaracionDeLaVariante,
 ) {
 	t.Helper()
+
+	control := familia.nombres()[0]
 
 	for indice, sustitucion := range declarada.sustituciones {
 		assert.Equal(t, sustitucion.hito, textoDelHito(sustitucion.despues),
@@ -340,23 +338,22 @@ func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, control map[s
 				"su sangría como un espacio, no es el texto del hito", declarada.nombre, indice+1, sustitucion.fichero)
 	}
 
-	esperada, err := calcularLaVariante(repositorio, control, declarada)
-	require.NoError(t, err, "%s: su declaración ya no se aplica sobre %s", declarada.nombre,
-		varianteDeControlDeNormativa)
+	esperada, err := calcularLaVariante(repositorio, familia, declarada)
+	require.NoError(t, err, "%s: su declaración ya no se aplica sobre %s", declarada.nombre, control)
 
 	esperados := make(map[string][]byte, len(esperada))
 	for relativa, contenido := range esperada {
-		esperados[path.Join(carpetaDeLasSkillsDeLaVariante, familiaDeNormativa.skill, relativa)] = contenido
+		esperados[path.Join(carpetaDeLasSkillsDeLaVariante, familia.skill, relativa)] = contenido
 	}
 
-	directorio := familiaDeNormativa.directorioDeLaVariante(declarada.nombre)
+	directorio := familia.directorioDeLaVariante(declarada.nombre)
 
 	obtenidos, err := leerLosFicheros(repositorio, directorio)
 	require.NoError(t, err)
 
 	relativa, motivo := primeraDiferencia(esperados, obtenidos)
 	assert.Empty(t, motivo, "%s %s: la variante es la que da su declaración sobre %s, ruta a ruta y byte a byte",
-		path.Join(directorio, relativa), motivo, varianteDeControlDeNormativa)
+		path.Join(directorio, relativa), motivo, control)
 }
 
 // comprobarLasRemisiones: el cuerpo del SKILL.md de la variante de ese nombre
@@ -396,14 +393,18 @@ func textoDelHito(despues string) string {
 }
 
 // calcularLaVariante son los ficheros de la variante que da la declaración sobre
-// los de control, por su ruta relativa a la skill (data-model §3 de H40): sus
-// sustituciones, fichero a fichero; la regla del cuerpo corto, en el SKILL.md; y el
-// añadido, al final de su fichero. Lo que no declara es el de control. Lo que ya
-// no se aplica sobre control es un error con su motivo.
-func calcularLaVariante(repositorio fs.FS, control map[string][]byte,
+// los de la variante de control de la familia, la primera, por su ruta relativa a
+// la skill (data-model §3 de H40; data-model §6): sus sustituciones, fichero a
+// fichero; la regla del cuerpo corto, en el SKILL.md; y el añadido, al final de
+// su fichero. Lo que no declara es el de control. Lo que ya no se aplica sobre
+// control es un error con su motivo.
+func calcularLaVariante(repositorio fs.FS, familia familiaDelLaboratorio,
 	declarada declaracionDeLaVariante,
 ) (map[string][]byte, error) {
-	variante := maps.Clone(control)
+	variante, err := leerLosFicheros(repositorio, familia.directorioDeLaSkill(familia.nombres()[0]))
+	if err != nil {
+		return nil, err
+	}
 
 	porFichero := map[string][]sustitucionDeLaVariante{}
 	for _, sustitucion := range declarada.sustituciones {
