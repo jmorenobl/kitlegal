@@ -16,6 +16,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// familiaDeNormativa es la familia de normativa con sus variantes versionadas,
+// las de H40, sin la del producto, con la que los tests de H40 miran las
+// variantes de normativa del repositorio, cada una con su directorio
+// (contracts/variantes.md de H40).
+var familiaDeNormativa = familiasDelProducto[0].versionada()
+
 // huellasDeLosControles son las huellas SHA-256 de los ficheros de la variante de
 // control de cada familia del producto, por su skill y por su ruta desde el
 // directorio de la variante, escritas al copiarlos de skills/ en v0.9.0 (research

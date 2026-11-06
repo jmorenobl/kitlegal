@@ -151,6 +151,11 @@ type familiaDeLaTabla struct {
 	// cuenta, en el orden de las aperturas de cada sesión contada.
 	referencias []string
 
+	// conCd dice si una orden de Bash abre una referencia, además, con la lectura
+	// con cd (contracts/tabla.md §2 de H41; research D13 de H41): solo en las
+	// familias del producto; la de H39 se cuenta con su contrato (FR-041 de H41).
+	conCd bool
+
 	// titulo, cabeceraDeLaTabla y cabeceraDelDetalle son las líneas con que
 	// empiezan la tabla y su detalle.
 	titulo, cabeceraDeLaTabla, cabeceraDelDetalle string
@@ -197,41 +202,83 @@ func tablaDeH39(declarada declaracionDelLaboratorio) familiaDeLaTabla {
 	}
 }
 
-// tablaDeNormativa es la familia de la tabla de las variantes de normativa
-// (contracts/tabla.md §3 y §4 de H40; research D10 de H40): sus variantes, su
-// skill, sin skill de entrada, sus ocho referencias, una columna por cada una en
-// su orden, y la regla testigo solo en la variante que la lleva.
-func tablaDeNormativa() familiaDeLaTabla {
-	familia := familiaDeNormativa
-	referencias := strings.Join(familia.referencias, " | ")
+// Los títulos de la regla testigo en la cabecera de la tabla y en la del detalle
+// de una familia del producto con variante con regla (contracts/tabla.md §3 de
+// H40 y de H41).
+const (
+	tituloDeLaReglaEnLaTabla   = "Cumplen la regla"
+	tituloDeLaReglaEnElDetalle = "Cumple"
+)
+
+// tablaDeLaFamilia es la familia de la tabla de las variantes de una familia del
+// producto (contracts/tabla.md §1 a §3 de H41; data-model §6 y §7 de H41;
+// research D13 y D14 de H41), con las referencias de cada variante que lee, por
+// su nombre: sus variantes, todas, también la del producto; su skill, sin skill
+// de entrada; las referencias de la tabla, la unión de las de esas variantes en
+// orden de nombre, con una columna por cada una; la lectura con cd; y, solo si
+// la familia tiene variante con regla testigo, su columna, que solo se llena en
+// esa variante.
+func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]string) familiaDeLaTabla {
+	var referencias []string
+	for _, deLaVariante := range porVariante {
+		referencias = append(referencias, deLaVariante...)
+	}
+
+	slices.Sort(referencias)
+	referencias = slices.Compact(referencias)
+
+	tabla := slices.Concat([]string{"Variante", "Modo", "Modelo", "Claude Code", "Sin terminar", "n", "Activan antes"},
+		referencias)
+	detalle := slices.Concat([]string{"Sesión", "Terminada", "Activa antes"}, referencias)
+
+	if familia.conLaRegla != "" {
+		tabla = append(tabla, tituloDeLaReglaEnLaTabla)
+		detalle = append(detalle, tituloDeLaReglaEnElDetalle)
+	}
 
 	return familiaDeLaTabla{
-		variantes:   familia.variantes,
-		ajena:       "no es ninguna variante de " + familia.skill,
-		skill:       familia.skill,
-		referencias: familia.referencias,
-		titulo:      "# Sondeo de las variantes de " + familia.skill,
-		cabeceraDeLaTabla: "| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | " +
-			referencias + " | Cumplen la regla |",
-		cabeceraDelDetalle: "| Sesión | Terminada | Activa antes | " + referencias + " | Cumple |",
-		celdas:             celdasDeNormativa{conLaRegla: familia.conLaRegla, referencias: len(familia.referencias)},
+		variantes:          familia.variantes,
+		ajena:              "no es ninguna variante de " + familia.skill,
+		skill:              familia.skill,
+		referencias:        referencias,
+		conCd:              true,
+		titulo:             "# Sondeo de las variantes de " + familia.skill,
+		cabeceraDeLaTabla:  cabeceraConTitulos(tabla),
+		cabeceraDelDetalle: cabeceraConTitulos(detalle),
+		celdas:             celdasDelProducto{conLaRegla: familia.conLaRegla, referencias: referencias, porVariante: porVariante},
 	}
 }
 
+// cabeceraConTitulos es la cabecera de una tabla de Markdown con esos títulos,
+// ninguno con una barra vertical.
+func cabeceraConTitulos(titulos []string) string {
+	return "| " + strings.Join(titulos, " | ") + " |"
+}
+
 // familiaDeLosSondeos es la familia de la tabla de esos sondeos (contracts/
-// tabla.md §1 de H40; research D9 de H40): la de la primera variante que lee, en
-// orden de nombre de los sondeos y, dentro de cada uno, de sus variantes. Si es
-// de normativa, la de normativa; si no, o sin ninguna variante, la de la
-// declaración del laboratorio del repositorio de esa raíz, que solo se lee
-// entonces, con su comportamiento de hoy (FR-023 de H40).
+// tabla.md §1 de H40 y de H41; research D9 de H40): la de la primera variante
+// que lee, en orden de nombre de los sondeos y, dentro de cada uno, de sus
+// variantes. Si es de una de las familias del producto, la suya, con las
+// referencias de las variantes que leen los sondeos; si no, o sin ninguna
+// variante, la de la declaración del laboratorio del repositorio de esa raíz, que
+// solo se lee entonces, con su comportamiento de hoy (FR-023 de H40).
 func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error) {
 	primera, err := primeraVariante(sondeos)
 	if err != nil {
 		return familiaDeLaTabla{}, err
 	}
 
-	if familiaDeNormativa.tiene(primera) {
-		return tablaDeNormativa(), nil
+	for _, familia := range familiasDelProducto {
+		if !familia.tiene(primera) {
+			continue
+		}
+
+		porVariante, err := referenciasDeLasVariantes(familia, sondeos)
+		if err != nil {
+			return familiaDeLaTabla{}, err
+		}
+
+		return tablaDeLaFamilia(familia, porVariante), nil
 	}
 
 	declarada, err := leerLaDeclaracionDelRepositorio(raiz)
@@ -240,6 +287,49 @@ func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error
 	}
 
 	return tablaDeH39(declarada), nil
+}
+
+// referenciasDeLasVariantes son las referencias de cada variante de la familia
+// del producto que leen los sondeos, por su nombre (data-model §7 de H41;
+// research D14 de H41): una variante versionada tiene las de la familia, y la del
+// producto, la unión, en orden de nombre, de la lista referencias_del_producto de
+// cada sondeo con su directorio. Esa lista la escribe el arnés siempre que
+// instala la variante del producto (contracts/arnes.md §3.4 de H41): un sondeo
+// con su directorio y sin ella tiene un sondeo.json editado a mano, que el guion
+// no sabe leer. Un directorio que no es de ninguna variante de la familia no se
+// mira aquí: es el defecto que da el recuento, en su orden.
+func referenciasDeLasVariantes(familia familiaDelLaboratorio, sondeos []string) (map[string][]string, error) {
+	porVariante := map[string][]string{}
+
+	for _, sondeo := range sondeos {
+		variantes, err := subdirectorios(sondeo)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, nombre := range variantes {
+			switch {
+			case nombre == familia.producto:
+				leido, err := leerElSondeo(sondeo)
+				if err != nil {
+					return nil, err
+				}
+
+				if len(leido.ReferenciasDelProducto) == 0 {
+					return nil, fmt.Errorf("%s no tiene la lista referencias_del_producto de la variante %s",
+						filepath.Join(sondeo, ficheroDelSondeo), nombre)
+				}
+
+				delProducto := slices.Concat(porVariante[nombre], leido.ReferenciasDelProducto)
+				slices.Sort(delProducto)
+				porVariante[nombre] = slices.Compact(delProducto)
+			case familia.tiene(nombre):
+				porVariante[nombre] = familia.referencias
+			}
+		}
+	}
+
+	return porVariante, nil
 }
 
 // primeraVariante es el nombre del primer directorio de variante de los
@@ -689,15 +779,16 @@ func (c *contadorDelLaboratorio) consultaKitlegal(palabras []palabraDeSh) bool {
 }
 
 // abreLaReferencia dice si el uso abre esa referencia de la skill de la familia
-// (FR-041 de H39; research D10 de H39; contracts/tabla.md §2 de H40): un Read
-// cuyo file_path es <skill>/references/<referencia> o termina en
+// (FR-041 de H39; research D10 de H39; contracts/tabla.md §2 de H40 y de H41): un
+// Read cuyo file_path es <skill>/references/<referencia> o termina en
 // /<skill>/references/<referencia>, entero o por tramos, o un Bash cuya orden
-// contiene references/<referencia>. Grep y Glob no la abren.
+// contiene references/<referencia> o, en una familia con la lectura con cd, la
+// lee con cd. Grep y Glob no la abren.
 func (c *contadorDelLaboratorio) abreLaReferencia(uso usoDelTranscript, referencia string) bool {
 	enLaSkill := path.Join(carpetaDeLasReferenciasDeLaSkill, referencia)
 
 	if orden, deBash := ordenDelUso(uso); deBash {
-		return strings.Contains(orden, enLaSkill)
+		return strings.Contains(orden, enLaSkill) || (c.familia.conCd && leeConCd(orden, c.familia.skill, referencia))
 	}
 
 	if uso.nombre != herramientaRead {
@@ -718,6 +809,52 @@ func (c *contadorDelLaboratorio) abreLaReferencia(uso usoDelTranscript, referenc
 
 	return entrada.FilePath == fichero || strings.HasSuffix(entrada.FilePath, "/"+fichero)
 }
+
+// leeConCd dice si la orden de un Bash lee la referencia de la skill con la
+// lectura con cd (FR-041 de H41; contracts/tabla.md §2 de H41; research D13 de
+// H41): partida en órdenes simples, una de ellas va con cd al directorio de las
+// referencias de la skill y, en una posterior de la misma orden, una palabra es
+// exactamente la referencia o ./<referencia>. Un cd posterior a otro sitio no se
+// modela (research D13 de H41).
+func leeConCd(orden, skill, referencia string) bool {
+	ordenes := ordenesSimples(orden)
+
+	for posicion, palabras := range ordenes {
+		if !vaALasReferencias(palabras, skill) {
+			continue
+		}
+
+		for _, posterior := range ordenes[posicion+1:] {
+			if slices.ContainsFunc(posterior, func(palabra palabraDeSh) bool {
+				return palabra.texto == referencia || palabra.texto == "./"+referencia
+			}) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// vaALasReferencias dice si las palabras de una orden simple van con cd al
+// directorio de las referencias de la skill: su primera palabra que no es una
+// asignación NOMBRE=valor es cd, y la siguiente, sin una barra final, es
+// <skill>/references o termina en /<skill>/references, por tramos de ruta como
+// la regla de Read (research D13 de H41).
+func vaALasReferencias(palabras []palabraDeSh, skill string) bool {
+	inicio := slices.IndexFunc(palabras, func(palabra palabraDeSh) bool { return !palabra.asignacion })
+	if inicio < 0 || inicio+1 >= len(palabras) || palabras[inicio].texto != ordenCd {
+		return false
+	}
+
+	destino := strings.TrimSuffix(palabras[inicio+1].texto, "/")
+	referencias := path.Join(skill, carpetaDeLasReferenciasDeLaSkill)
+
+	return destino == referencias || strings.HasSuffix(destino, "/"+referencias)
+}
+
+// ordenCd es la orden de sh que cambia de directorio.
+const ordenCd = "cd"
 
 // ordenDelUso es la input.command de un uso de Bash, y si lo es. Un input sin la
 // orden como texto —el de una llamada que el modelo dio sin su forma, y que Bash
@@ -976,62 +1113,93 @@ func (celdasDeH39) delDetalle(variante varianteDelLaboratorio, sesion sesionCont
 	}
 }
 
-// celdasDeNormativa son las celdas de la tabla de las variantes de normativa
-// (contracts/tabla.md §3 y §4 de H40; research D10 de H40): «Activan antes», una
-// por referencia y la regla testigo, solo en la variante que la lleva.
-type celdasDeNormativa struct {
+// celdasDelProducto son las celdas de la tabla de las variantes de una familia
+// del producto (contracts/tabla.md §3 de H40 y de H41; research D10 de H40 y D14
+// de H41): «Activan antes»; una por referencia de la tabla, vacía, no a cero, en
+// la variante que no la tiene; y, en una familia con variante con regla testigo,
+// la regla, solo en esa variante.
+type celdasDelProducto struct {
 	// conLaRegla es la variante en cuya fila y cuyo detalle se escribe la regla
-	// testigo; en las demás, la celda va vacía, no a cero.
+	// testigo; en las demás, la celda va vacía, no a cero. Vacía, la familia no
+	// tiene columna de la regla.
 	conLaRegla string
 
-	// referencias es cuántas referencias tiene la familia, las de las aperturas
-	// de cada sesión contada.
-	referencias int
+	// referencias son las de la tabla, las de las aperturas de cada sesión
+	// contada, en su orden.
+	referencias []string
+
+	// porVariante son las referencias que tiene cada variante, por su nombre.
+	porVariante map[string][]string
 }
 
-// deLaFila son las de los recuentos de una fila de normativa con alguna sesión
-// terminada: cuántas activan antes; por cada referencia, cuántas la abren y, si
-// alguna, « · turno <mediana> (<mínimo>–<máximo>)» de la primera apertura de
-// las que la abren; y cuántas cumplen la regla, en la variante que la lleva.
-func (c celdasDeNormativa) deLaFila(variante varianteDelLaboratorio, terminadas []sesionContada) []string {
+// deLaFila son las de los recuentos de una fila de una familia del producto con
+// alguna sesión terminada: cuántas activan antes; por cada referencia que tiene
+// la variante, cuántas la abren y, si alguna, « · turno <mediana>
+// (<mínimo>–<máximo>)» de la primera apertura de las que la abren; y cuántas
+// cumplen la regla, en la variante que la lleva.
+func (c celdasDelProducto) deLaFila(variante varianteDelLaboratorio, terminadas []sesionContada) []string {
 	n := len(terminadas)
-	celdas := make([]string, 0, c.referencias+2)
+	celdas := make([]string, 0, len(c.referencias)+2)
 	celdas = append(celdas, recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.activaAntes }), n))
 
-	for referencia := range c.referencias {
-		celda := recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.aperturas[referencia] > 0 }), n)
-		if turnos := turnosDeLaApertura(terminadas, referencia); turnos != "" {
-			celda += " · " + prefijoDelTurno + turnos
-		}
+	for posicion, referencia := range c.referencias {
+		celdas = append(celdas, c.siLaTiene(variante, referencia, func() string {
+			celda := recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.aperturas[posicion] > 0 }), n)
+			if turnos := turnosDeLaApertura(terminadas, posicion); turnos != "" {
+				celda += " · " + prefijoDelTurno + turnos
+			}
 
-		celdas = append(celdas, celda)
+			return celda
+		}))
+	}
+
+	return c.conLaCeldaDeLaRegla(celdas, variante, func() string {
+		return recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.cumple }), n)
+	})
+}
+
+// delDetalle son las de una sesión terminada de una familia del producto: si
+// activa antes; por cada referencia que tiene la variante, «no» o el turno de su
+// primera apertura; y si cumple la regla, en la variante que la lleva.
+func (c celdasDelProducto) delDetalle(variante varianteDelLaboratorio, sesion sesionContada) []string {
+	celdas := make([]string, 0, len(c.referencias)+2)
+	celdas = append(celdas, siONo(sesion.activaAntes))
+
+	for posicion, referencia := range c.referencias {
+		celdas = append(celdas, c.siLaTiene(variante, referencia, func() string {
+			return celdaDeLaApertura(sesion.aperturas[posicion])
+		}))
+	}
+
+	return c.conLaCeldaDeLaRegla(celdas, variante, func() string { return siONo(sesion.cumple) })
+}
+
+// siLaTiene es la celda que da celda si la variante tiene la referencia y, si
+// no, la vacía.
+func (c celdasDelProducto) siLaTiene(variante varianteDelLaboratorio, referencia string, celda func() string) string {
+	if !slices.Contains(c.porVariante[variante.Nombre], referencia) {
+		return ""
+	}
+
+	return celda()
+}
+
+// conLaCeldaDeLaRegla son las celdas seguidas, en una familia con variante con
+// regla testigo, de la de la regla: la que da celda en esa variante y la vacía
+// en las demás. En una familia sin ella, las celdas, sin más.
+func (c celdasDelProducto) conLaCeldaDeLaRegla(celdas []string, variante varianteDelLaboratorio,
+	celda func() string,
+) []string {
+	if c.conLaRegla == "" {
+		return celdas
 	}
 
 	regla := ""
 	if variante.Nombre == c.conLaRegla {
-		regla = recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.cumple }), n)
+		regla = celda()
 	}
 
 	return append(celdas, regla)
-}
-
-// delDetalle son las de una sesión terminada de normativa: si activa antes; por
-// cada referencia, «no» o el turno de su primera apertura; y si cumple la regla,
-// en la variante que la lleva.
-func (c celdasDeNormativa) delDetalle(variante varianteDelLaboratorio, sesion sesionContada) []string {
-	celdas := make([]string, 0, len(sesion.aperturas)+2)
-	celdas = append(celdas, siONo(sesion.activaAntes))
-
-	for _, turno := range sesion.aperturas {
-		celdas = append(celdas, celdaDeLaApertura(turno))
-	}
-
-	cumple := ""
-	if variante.Nombre == c.conLaRegla {
-		cumple = siONo(sesion.cumple)
-	}
-
-	return append(celdas, cumple)
 }
 
 // celdaDeLaApertura es la celda del detalle de una referencia: «no» si la

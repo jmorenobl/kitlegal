@@ -613,6 +613,132 @@ func consultaCon(detras ...string) []palabraDeSh {
 	return palabrasDe(slices.Concat(palabrasQueConsultan, detras)...)
 }
 
+// casoDeLecturaConCd son las órdenes de los Bash de una sesión, uno por turno y
+// en su orden, la referencia que se mira y el turno de su primera apertura, 0 si
+// no la abre.
+type casoDeLecturaConCd struct {
+	nombre     string
+	ordenes    []string
+	referencia string
+	turno      int
+}
+
+// TestLecturaConCd fija cuándo una orden de Bash abre una referencia con la
+// lectura con cd (FR-041; SC-005; contracts/tabla.md §2 y §5; research D13): en
+// la familia de normativa, las órdenes de la tabla de contracts/tabla.md §2, orden
+// a orden, y las de US4.2, con el turno de la apertura; y en la de H39, que se
+// cuenta con su contrato, el cd a sus referencias seguido del nombre solo no la
+// abre, y su ruta entera, sí.
+func TestLecturaConCd(t *testing.T) {
+	t.Parallel()
+
+	declarada, err := leerLaDeclaracionDelRepositorio(raizDelRepositorio)
+	require.NoError(t, err)
+
+	normativa := familiasDelProducto[0]
+	require.Equal(t, skillDeNormativa, normativa.skill)
+
+	familias := []struct {
+		nombre  string
+		familia familiaDeLaTabla
+		casos   []casoDeLecturaConCd
+	}{
+		{
+			nombre: normativa.skill,
+			familia: tablaDeLaFamilia(normativa,
+				map[string][]string{varianteDeControlDeNormativa: normativa.referencias}),
+			casos: casosDeLecturaConCdDeNormativa(),
+		},
+		{nombre: "h39", familia: tablaDeH39(declarada), casos: casosDeLecturaConCdDeH39(declarada)},
+	}
+
+	for _, deLaFamilia := range familias {
+		for _, caso := range deLaFamilia.casos {
+			t.Run(deLaFamilia.nombre+"/"+caso.nombre, func(t *testing.T) {
+				t.Parallel()
+
+				posicion := slices.Index(deLaFamilia.familia.referencias, caso.referencia)
+				require.GreaterOrEqualf(t, posicion, 0, "%s es una referencia de la familia", caso.referencia)
+
+				contador := contadorDelLaboratorio{familia: deLaFamilia.familia}
+				usos := make([]usoDelTranscript, 0, len(caso.ordenes))
+
+				for indice, orden := range caso.ordenes {
+					entrada, err := json.Marshal(map[string]string{"command": orden})
+					require.NoError(t, err)
+
+					usos = append(usos, usoDelTranscript{turno: indice + 1, nombre: herramientaBash, entrada: entrada})
+				}
+
+				var contada sesionContada
+
+				require.NoError(t, contador.anotarLosUsos(&contada, usos, ModoHerramienta))
+				assert.Equal(t, caso.turno, contada.aperturas[posicion],
+					"el turno de la primera apertura de %s con %q", caso.referencia, caso.ordenes)
+			})
+		}
+	}
+}
+
+// casosDeLecturaConCdDeNormativa son las órdenes de la tabla de contracts/
+// tabla.md §2, en su orden, y las de US4.2 que no están en ella, con normas.md.
+func casosDeLecturaConCdDeNormativa() []casoDeLecturaConCd {
+	const (
+		normas      = "normas.md"
+		referencias = "/s/claude/skills/normativa/references"
+	)
+
+	casos := []casoDeLecturaConCd{
+		{nombre: "cd-y-cat", ordenes: []string{"cd " + referencias + " && cat normas.md"}, turno: 1},
+		{nombre: "barra-final-y-dobles", ordenes: []string{"cd " + referencias + `/ && cat "normas.md"`}, turno: 1},
+		{
+			nombre:  "variable-entre-dobles-y-simples",
+			ordenes: []string{`cd "$HOME/x/normativa/references"; cat 'normas.md'`}, turno: 1,
+		},
+		{nombre: "head-y-punto", ordenes: []string{"cd " + referencias + " && head -n 40 ./normas.md"}, turno: 1},
+		{nombre: "cd-en-otro-bash", ordenes: []string{"cd " + referencias, "cat normas.md"}},
+		{
+			nombre:  "skill-de-otra-familia",
+			ordenes: []string{"cd /s/claude/skills/jurisprudencia/references && cat normas.md"},
+		},
+		{nombre: "directorio-de-la-skill", ordenes: []string{"cd /s/claude/skills/normativa && cat normas.md"}},
+		{nombre: "nombre-antes-del-cd", ordenes: []string{"cat normas.md && cd " + referencias}},
+		{nombre: "otra-carpeta", ordenes: []string{"cd " + referencias + " && cat otra/normas.md"}},
+		{nombre: "ruta-absoluta", ordenes: []string{"cd " + referencias + " && cat /x/normas.md"}},
+		{nombre: "prefijo", ordenes: []string{"cd " + referencias + " && cat mis-normas.md"}},
+		{nombre: "sufijo", ordenes: []string{"cd " + referencias + " && cat normas.md.bak"}},
+		{nombre: "ruta-entera-de-h40", ordenes: []string{"cat " + referencias + "/normas.md"}, turno: 1},
+		{
+			nombre:  "en-el-turno-del-cd-y-el-nombre",
+			ordenes: []string{"cd " + referencias, "cd " + referencias + " && cat normas.md"}, turno: 2,
+		},
+	}
+
+	for posicion := range casos {
+		casos[posicion].referencia = normas
+	}
+
+	return casos
+}
+
+// casosDeLecturaConCdDeH39 son, con la referencia de la declaración del
+// laboratorio de H39, el cd a las referencias de su skill seguido del nombre
+// solo, que no la abre, y su ruta entera, que sí (FR-041; clarificación Q1).
+func casosDeLecturaConCdDeH39(declarada declaracionDelLaboratorio) []casoDeLecturaConCd {
+	referencias := path.Join("/s/claude/skills", declarada.Skill, carpetaDeLasReferenciasDeLaSkill)
+
+	return []casoDeLecturaConCd{
+		{
+			nombre: "cd-y-cat", referencia: declarada.Referencia,
+			ordenes: []string{"cd " + referencias + " && cat " + declarada.Referencia},
+		},
+		{
+			nombre: "ruta-entera", referencia: declarada.Referencia,
+			ordenes: []string{"cat " + path.Join(referencias, declarada.Referencia)}, turno: 1,
+		},
+	}
+}
+
 // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
 // salida y su salida de error.
 type tablaContada struct {
