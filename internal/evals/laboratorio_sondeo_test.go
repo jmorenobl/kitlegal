@@ -374,13 +374,16 @@ func todosLosArgumentosMal(t *testing.T, a *ArgumentosDelLaboratorio) {
 // casoValidoDelArnes es un caso de TestArnesDelLaboratorio en el que el arnés
 // abre sesiones: sus argumentos, la variante y el modo de cada reparto, en el
 // orden en que se abren, las sesiones que se abren de cada eval y el número de
-// las que quedan sin abrir tras el límite de uso; y los transcripts que escribe
-// el sustituto, por sesión <variante>/<modo>/<sesión>.
+// las que quedan sin abrir tras el límite de uso; los transcripts que escribe
+// el sustituto, por sesión <variante>/<modo>/<sesión>; y la skill de la
+// variante <skill>-producto que pide, cuyas referencias de skills/<skill> lista
+// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4).
 type casoValidoDelArnes struct {
 	nombre      string
 	argumentos  func(a *ArgumentosDelLaboratorio)
 	repartos    []repartoEsperado
 	transcripts func(t *testing.T) map[string]string
+	producto    string
 }
 
 // repartoEsperado es lo que se espera de un reparto: su variante y su modo, las
@@ -595,13 +598,17 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals []strin
 	assert.True(t, *arnes.construido, "se construyen kitlegal y laboratorio")
 	assert.Equal(t, 1, arnes.claude.versiones(t), "la versión se pregunta una vez")
 
+	referencias := referenciasDelProductoDelTest(t, caso.producto)
+
 	contenido, err := leerFichero(filepath.Join(directorio, ficheroDelSondeo))
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}`, string(contenido))
+	assert.Equal(t, sondeoEscritoDelTest(t, referencias), string(contenido), "sondeo.json, byte a byte")
 
 	leido, err := leerElSondeo(directorio)
 	require.NoError(t, err, "el guion que cuenta el sondeo lee su sondeo.json")
-	assert.Equal(t, sondeoLeido{Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio}, leido)
+	assert.Equal(t, sondeoLeido{
+		Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio, ReferenciasDelProducto: referencias,
+	}, leido)
 
 	fisico, err := filepath.EvalSymlinks(directorio)
 	require.NoError(t, err)
@@ -621,6 +628,55 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals []strin
 	slices.Sort(esperadas)
 	assert.Equal(t, esperadas, arnes.claude.sesiones(t), "se abren las sesiones de cada eval en cada variante y modo "+
 		"pedidos, y ninguna más")
+}
+
+// sondeoSinElProductoDelTest es el sondeo.json de un sondeo que no pide ninguna
+// variante <skill>-producto, el de H39 y H40, sin su salto de línea final
+// (contracts/arnes.md §3.2 de H39; data-model §4).
+const sondeoSinElProductoDelTest = `{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}`
+
+// referenciasDelProductoDelTest son los nombres de los ficheros de
+// skills/<skill>/references del árbol, en orden de nombre, los que lista el
+// sondeo.json de un sondeo que pide <skill>-producto (FR-032; data-model §4); sin
+// skill, ninguno.
+func referenciasDelProductoDelTest(t *testing.T, skill string) []string {
+	t.Helper()
+
+	if skill == "" {
+		return nil
+	}
+
+	entradas, err := os.ReadDir(filepath.Join(raizDelRepositorio, "skills", skill, "references"))
+	require.NoError(t, err)
+
+	var referencias []string
+
+	for _, entrada := range entradas {
+		if entrada.Type().IsRegular() {
+			referencias = append(referencias, entrada.Name())
+		}
+	}
+
+	require.NotEmpty(t, referencias, "skills/%s tiene referencias", skill)
+	slices.Sort(referencias)
+
+	return referencias
+}
+
+// sondeoEscritoDelTest es el sondeo.json que deja el arnés, con su salto de
+// línea final: el de H39 y H40 sin referencias del producto, y con ellas, el
+// mismo con referencias_del_producto detrás (data-model §4).
+func sondeoEscritoDelTest(t *testing.T, referencias []string) string {
+	t.Helper()
+
+	if len(referencias) == 0 {
+		return sondeoSinElProductoDelTest + "\n"
+	}
+
+	lista, err := json.Marshal(referencias)
+	require.NoError(t, err)
+
+	return strings.TrimSuffix(sondeoSinElProductoDelTest, "}") + `,"referencias_del_producto":` + string(lista) + "}\n"
 }
 
 // sesionesDelReparto son los nombres de las sesiones que abre un reparto: las
@@ -871,50 +927,16 @@ func TestArnesDeNormativa(t *testing.T) {
 }
 
 // exigirLaSesionDeNormativa exige que la sesión de ese directorio vea solo la
-// skill normativa, enlazada a la copia de su variante y con el SKILL.md de
-// laboratorio/normativa/<variante>/ byte a byte; y que no tenga servidor.json en
-// el modo orden y, en el modo herramienta, uno que arranca kitlegal mcp serve
-// del bin/ del temporal, sin laboratorio servidor (contracts/arnes.md §3 y §5 de
-// H40; FR-008).
+// skill normativa, enlazada a la copia de su variante y con los ficheros de
+// laboratorio/normativa/<variante>/skills/normativa/ byte a byte; y que no tenga
+// servidor.json en el modo orden y, en el modo herramienta, uno que arranca
+// kitlegal mcp serve del bin/ del temporal, sin laboratorio servidor
+// (contracts/arnes.md §3 y §5 de H40; FR-008): lo de exigirLaSesionDeLaFamilia
+// con la familia de normativa, cuyas variantes de H40 son todas versionadas.
 func exigirLaSesionDeNormativa(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
 	t.Helper()
 
-	skills := filepath.Join(sesion, directorioDeClaude, directorioDeSkills)
-
-	enlazadas, err := os.ReadDir(skills)
-	require.NoError(t, err)
-
-	nombres := make([]string, 0, len(enlazadas))
-	for _, enlazada := range enlazadas {
-		nombres = append(nombres, enlazada.Name())
-	}
-
-	require.Equal(t, []string{"normativa"}, nombres, "la sesión %s ve solo normativa", sesion)
-
-	destino, err := os.Readlink(filepath.Join(skills, "normativa"))
-	require.NoError(t, err)
-	assert.Equal(t, filepath.Join(arnes.sondeo.Temporal, carpetaDeLasSkillsDelSondeo, reparto.variante, "normativa"),
-		destino, "la sesión %s enlaza la copia de su variante", sesion)
-
-	original, err := leerFichero(filepath.Join(raizDelRepositorio, "laboratorio", "normativa", reparto.variante,
-		"skills", "normativa", "SKILL.md"))
-	require.NoError(t, err)
-
-	copiado, err := leerFichero(filepath.Join(destino, "SKILL.md"))
-	require.NoError(t, err)
-	assert.Equal(t, string(original), string(copiado), "el SKILL.md de la sesión %s es el de %s", sesion,
-		reparto.variante)
-
-	servidor := filepath.Join(sesion, ficheroDelServidor)
-	if reparto.modo == ModoOrden {
-		assert.NoFileExists(t, servidor, "una sesión del modo orden no tiene servidor")
-
-		return
-	}
-
-	kitlegal := filepath.Join(arnes.sondeo.Temporal, carpetaDeBinarios, programaDeLasConsultas)
-	assert.Equal(t, []string{kitlegal, "mcp", "serve"}, ordenDelServidorEscrito(t, servidor),
-		"el servidor de %s es el de hoy", sesion)
+	exigirLaSesionDeLaFamilia(skillDeNormativaDelTest)(t, arnes, reparto, sesion)
 }
 
 // exigirElSondeoSinUnaEvalDeNormativa ejecuta el arnés con normativa-control en
@@ -954,6 +976,321 @@ func exigirElSondeoSinUnaEvalDeNormativa(t *testing.T, falta string) {
 	require.NoError(t, err)
 	assert.Empty(t, entradas, "no se escribe nada en el temporal")
 	assert.NoDirExists(t, filepath.Dir(arnes.sondeo.Argumentos.Directorio), "no se crea DIRECTORIO ni su padre")
+}
+
+// Las skills de las tres familias del producto y las evals del sondeo de las de
+// plazos-y-territorio y jurisprudencia, de evals/<skill>, en su orden
+// (data-model §1; research D15); las de normativa son evalsDeNormativaDelTest.
+// El test las nombra, y no las lee de familiasDelProducto, para que una eval
+// quitada del plan se vea.
+const (
+	skillDeNormativaDelTest      = "normativa"
+	skillDePlazosDelTest         = "plazos-y-territorio"
+	skillDeJurisprudenciaDelTest = "jurisprudencia"
+)
+
+var (
+	evalsDePlazosDelTest = []string{
+		"02-territorio-municipio-no-cubierto.yaml", "05-plazo-reposicion-leganes.yaml",
+		"10-plazo-reposicion-anterior-a-la-lpac.yaml", "11-plazo-reposicion-sin-leer-el-precepto.yaml",
+	}
+	evalsDeJurisprudenciaDelTest = []string{
+		"01-existe-con-numero-y-fecha.yaml", "03-por-materia.yaml", "04-documento-pegado.yaml",
+		"06-documento-que-no-es-el-pedido.yaml",
+	}
+)
+
+// sufijoDelProductoDelTest es el del nombre de la variante de una familia que
+// se instala desde skills/<skill>, <skill>-producto (data-model §3).
+const sufijoDelProductoDelTest = "-producto"
+
+// evalsDeCadaFamiliaDelTest es cuántas evals planifica el sondeo de cada familia
+// del producto, entre las que se reparten por igual las SESIONES de cada variante
+// y modo (FR-030; data-model §1).
+const evalsDeCadaFamiliaDelTest = 4
+
+// casosDeUsoDeLasFamilias son los casos de TestArnesDeLasFamilias que son un
+// error de uso (contracts/arnes.md §2 y §5; FR-030; SC-008): cada uno, con su
+// mensaje y nada hecho.
+func casosDeUsoDeLasFamilias() []casoDeUsoDelArnes {
+	return []casoDeUsoDelArnes{
+		{
+			nombre:     "con-una-variante-que-no-existe",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Variantes = "plazos-y-territorio-otra" },
+			error:      mensajeFijo("VARIANTES: «plazos-y-territorio-otra» no es ninguna variante del laboratorio"),
+		},
+		{
+			nombre: "con-una-de-solo-herramienta-en-modo-orden",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos = "normativa-remisiones-en-orden", "orden"
+			},
+			error: mensajeFijo("VARIANTES y MODOS: normativa-remisiones-en-orden no se mide en modo orden"),
+		},
+		{
+			nombre: "con-dos-familias-del-producto",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes = "normativa-producto,jurisprudencia-control"
+			},
+			error: mensajeFijo("VARIANTES: se mezclan variantes de normativa y variantes de jurisprudencia"),
+		},
+		{
+			// La de H39 va primero, en el orden de las familias, aunque se pida
+			// detrás.
+			nombre: "con-una-del-producto-y-la-de-h39",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes = "plazos-y-territorio-control,control"
+			},
+			error: mensajeFijo("VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de " +
+				"plazos-y-territorio"),
+		},
+		{
+			nombre: "con-las-cuatro-familias",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes = "jurisprudencia-producto,plazos-y-territorio-sin-condicion,normativa-control,control"
+			},
+			error: mensajeFijo("VARIANTES: se mezclan variantes del laboratorio de H39, variantes de normativa, " +
+				"variantes de plazos-y-territorio y variantes de jurisprudencia"),
+		},
+		{
+			nombre: "con-sesiones-que-no-son-multiplo-de-4",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = "jurisprudencia-control", "orden,herramienta", "6"
+			},
+			error: mensajeFijo("SESIONES: «6» no es un múltiplo de 4 mayor que 0"),
+		},
+		{
+			nombre: "con-sesiones-0",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = "plazos-y-territorio-producto", "orden,herramienta", "0"
+			},
+			error: mensajeFijo("SESIONES: «0» no es un múltiplo de 4 mayor que 0"),
+		},
+		{
+			// El ejemplo de contracts/arnes.md §2: todos los errores juntos, uno por
+			// línea.
+			nombre: "el-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = "normativa-producto,jurisprudencia-control,plazos-y-territorio-otra",
+					"orden", "6"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"VARIANTES: «plazos-y-territorio-otra» no es ninguna variante del laboratorio",
+				"VARIANTES: se mezclan variantes de normativa y variantes de jurisprudencia",
+				"SESIONES: «6» no es un múltiplo de 4 mayor que 0",
+			}, "\n")),
+		},
+	}
+}
+
+// casoDeLasFamilias es un caso de TestArnesDeLasFamilias en el que el arnés abre
+// sesiones: el caso, la skill de su familia, las evals de su sondeo, en su
+// orden, y cuántas sesiones abre en total.
+type casoDeLasFamilias struct {
+	caso     casoValidoDelArnes
+	skill    string
+	evals    []string
+	sesiones int
+}
+
+// casosValidosDeLasFamilias son los casos de TestArnesDeLasFamilias en los que
+// el arnés abre sesiones (contracts/arnes.md §1 y §5; FR-033; SC-007): las cuatro
+// invocaciones de la aceptación con SESIONES=4, que abren 16, 4, 40 y 16, y la
+// segunda de normativa con SESIONES=8, dos de cada eval.
+func casosValidosDeLasFamilias() []casoDeLasFamilias {
+	return []casoDeLasFamilias{
+		{
+			caso: invocacionDeLasFamilias("la-primera-de-normativa", "normativa-control,normativa-producto",
+				"orden,herramienta", 1, skillDeNormativaDelTest),
+			skill: skillDeNormativaDelTest, evals: evalsDeNormativaDelTest, sesiones: 16,
+		},
+		{
+			caso: invocacionDeLasFamilias("la-segunda-de-normativa", "normativa-remisiones-en-orden", "herramienta", 1,
+				""),
+			skill: skillDeNormativaDelTest, evals: evalsDeNormativaDelTest, sesiones: 4,
+		},
+		{
+			caso: invocacionDeLasFamilias("la-de-plazos-y-territorio", "plazos-y-territorio-control,"+
+				"plazos-y-territorio-producto,plazos-y-territorio-sin-condicion,plazos-y-territorio-condicion-por-orden,"+
+				"plazos-y-territorio-lista-con-verbo", "orden,herramienta", 1, skillDePlazosDelTest),
+			skill: skillDePlazosDelTest, evals: evalsDePlazosDelTest, sesiones: 40,
+		},
+		{
+			caso: invocacionDeLasFamilias("la-de-jurisprudencia", "jurisprudencia-control,jurisprudencia-producto",
+				"orden,herramienta", 1, skillDeJurisprudenciaDelTest),
+			skill: skillDeJurisprudenciaDelTest, evals: evalsDeJurisprudenciaDelTest, sesiones: 16,
+		},
+		{
+			caso: invocacionDeLasFamilias("la-segunda-de-normativa-con-8", "normativa-remisiones-en-orden",
+				"herramienta", 2, ""),
+			skill: skillDeNormativaDelTest, evals: evalsDeNormativaDelTest, sesiones: 8,
+		},
+	}
+}
+
+// invocacionDeLasFamilias es el caso válido de una invocación con esas
+// VARIANTES, en el orden de su declaración, y esos MODOS, con porEval sesiones
+// de cada una de las cuatro evals de la familia: un reparto por variante y modo
+// pedidos, orden antes que herramienta, que abre todas las de su plan; producto
+// es la skill de la variante <skill>-producto que pide, o vacía.
+func invocacionDeLasFamilias(nombre, variantes, modos string, porEval int, producto string) casoValidoDelArnes {
+	pedidos := strings.Split(modos, ",")
+	abiertas := porEval * evalsDeCadaFamiliaDelTest
+
+	var repartos []repartoEsperado
+
+	for variante := range strings.SplitSeq(variantes, ",") {
+		for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+			if !slices.Contains(pedidos, string(modo)) {
+				continue
+			}
+
+			repartos = append(repartos, repartoEsperado{
+				variante: variante, modo: modo, porEval: porEval, abiertas: abiertas,
+				linea: fmt.Sprintf("- %s, %s: %d abiertas.", variante, modo, abiertas),
+			})
+		}
+	}
+
+	return casoValidoDelArnes{
+		nombre: nombre,
+		argumentos: func(a *ArgumentosDelLaboratorio) {
+			a.Variantes, a.Modos, a.Sesiones = variantes, modos, fmt.Sprint(abiertas)
+		},
+		repartos: repartos,
+		producto: producto,
+	}
+}
+
+// TestArnesDeLasFamilias fija el arnés del sondeo del laboratorio con las tres
+// familias del producto, sin modelo (contracts/arnes.md §2 a §5; data-model §1,
+// §3 y §4; research D14, D15 y V9; FR-022, FR-030, FR-032, FR-033; SC-007,
+// SC-008), con la construcción sustituida y el sustituto de claude de
+// TestArnesDelLaboratorio, que anota sus invocaciones.
+//
+// Con una variante que no existe, una que solo se mide en modo herramienta
+// pedida en modo orden, variantes de dos familias del producto, o de una y la de
+// H39, o de las cuatro, SESIONES=6 o SESIONES=0, devuelve un error de uso con su
+// mensaje, no construye nada, no abre ninguna sesión y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes).
+//
+// Con las cuatro invocaciones de la aceptación, con SESIONES=4, y con la
+// segunda de normativa con SESIONES=8, abre SESIONES/4 sesiones de cada una de
+// las cuatro evals de la familia en cada variante y modo pedidos, y ninguna más;
+// cada una ve solo la skill de la familia, la de su variante
+// (exigirLaSesionDeLaFamilia); y sondeo.json lista las referencias de
+// skills/<skill> si se pidió <skill>-producto, y es el de H39 si no
+// (exigirElSondeoDelArnes).
+func TestArnesDeLasFamilias(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDeLasFamilias() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	for _, deLaFamilia := range casosValidosDeLasFamilias() {
+		t.Run(deLaFamilia.caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			abiertas := 0
+			for _, reparto := range deLaFamilia.caso.repartos {
+				abiertas += reparto.abiertas
+			}
+
+			require.Equal(t, deLaFamilia.sesiones, abiertas, "las sesiones que abre la invocación")
+
+			exigirElSondeoDelArnes(t, deLaFamilia.caso, deLaFamilia.evals, exigirLaSesionDeLaFamilia(deLaFamilia.skill))
+		})
+	}
+}
+
+// exigirLaSesionDeLaFamilia exige que una sesión de la familia de esa skill vea
+// solo la skill, enlazada a la copia de su variante en el temporal, con los
+// ficheros, ruta a ruta y byte a byte, de cada origen de su variante
+// (origenesDeLaVariante); y que no tenga servidor.json en el modo orden y, en el
+// modo herramienta, uno que arranca kitlegal mcp serve del bin/ del temporal
+// (contracts/arnes.md §3 y §5; FR-022, FR-030).
+func exigirLaSesionDeLaFamilia(skill string) exigirLaSesionDelReparto {
+	return func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+		t.Helper()
+
+		skills := filepath.Join(sesion, directorioDeClaude, directorioDeSkills)
+
+		enlazadas, err := os.ReadDir(skills)
+		require.NoError(t, err)
+
+		nombres := make([]string, 0, len(enlazadas))
+		for _, enlazada := range enlazadas {
+			nombres = append(nombres, enlazada.Name())
+		}
+
+		require.Equal(t, []string{skill}, nombres, "la sesión %s ve solo %s", sesion, skill)
+
+		destino, err := os.Readlink(filepath.Join(skills, skill))
+		require.NoError(t, err)
+		assert.Equal(t, filepath.Join(arnes.sondeo.Temporal, carpetaDeLasSkillsDelSondeo, reparto.variante, skill),
+			destino, "la sesión %s enlaza la copia de su variante", sesion)
+
+		instalada := ficherosDeLaSkillDelTest(t, skills, skill)
+
+		for _, origen := range origenesDeLaVariante(skill, reparto.variante) {
+			assert.Equal(t, ficherosDeLaSkillDelTest(t, origen, skill), instalada,
+				"la skill de la sesión %s es, ruta a ruta y byte a byte, la de %s", sesion, origen)
+		}
+
+		servidor := filepath.Join(sesion, ficheroDelServidor)
+		if reparto.modo == ModoOrden {
+			assert.NoFileExists(t, servidor, "una sesión del modo orden no tiene servidor")
+
+			return
+		}
+
+		kitlegal := filepath.Join(arnes.sondeo.Temporal, carpetaDeBinarios, programaDeLasConsultas)
+		assert.Equal(t, []string{kitlegal, "mcp", "serve"}, ordenDelServidorEscrito(t, servidor),
+			"el servidor de %s es el de hoy", sesion)
+	}
+}
+
+// origenesDeLaVariante son los directorios de skills cuya skill de la familia
+// tiene que ser, ruta a ruta y byte a byte, la de las sesiones de la variante
+// (contracts/arnes.md §5): laboratorio/<skill>/<variante>/skills en una variante
+// versionada; skills/ del árbol en <skill>-producto, y en
+// plazos-y-territorio-producto, también laboratorio/plazos-y-territorio/
+// plazos-y-territorio-control/skills (FR-022).
+func origenesDeLaVariante(skill, variante string) []string {
+	if variante != skill+sufijoDelProductoDelTest {
+		return []string{filepath.Join(raizDelRepositorio, "laboratorio", skill, variante, "skills")}
+	}
+
+	origenes := []string{filepath.Join(raizDelRepositorio, "skills")}
+	if skill == skillDePlazosDelTest {
+		origenes = append(origenes, filepath.Join(raizDelRepositorio, "laboratorio", skill,
+			"plazos-y-territorio-control", "skills"))
+	}
+
+	return origenes
+}
+
+// ficherosDeLaSkillDelTest son los ficheros de la skill de ese directorio de
+// skills, por su ruta relativa a la de la skill, con su contenido como texto,
+// para que la diferencia se lea (leerLosFicheros). Exige alguno, para no
+// comparar en vacío.
+func ficherosDeLaSkillDelTest(t *testing.T, skills, skill string) map[string]string {
+	t.Helper()
+
+	ficheros, err := leerLosFicheros(os.DirFS(skills), skill)
+	require.NoError(t, err)
+	require.NotEmpty(t, ficheros, "la skill %s de %s tiene ficheros", skill, skills)
+
+	comoTexto := make(map[string]string, len(ficheros))
+	for ruta, contenido := range ficheros {
+		comoTexto[ruta] = string(contenido)
+	}
+
+	return comoTexto
 }
 
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y

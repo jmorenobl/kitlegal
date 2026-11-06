@@ -50,3 +50,5 @@ No se ha podido comprobar si la redacción ha cambiado desde una consulta anteri
 
 La frase es solo de ese caso: con `0`, la respuesta no la lleva, ni afirmada, ni negada, ni con otras palabras. Si lo
 que falla es la lectura, la orden termina ahí, sin `kitlegal graph check`, y vale la regla 2.
+
+Si una lectura falla, di qué bloques faltan y por qué.
