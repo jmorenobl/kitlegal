@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log l.106 «ci: todos los controles en verde» y l.108 «kitlegal-verificacion exit=0»; lint 0 issues (l.9), govulncheck sin vulnerabilidades (l.79), gitleaks sin fugas (l.92), go mod verify y tidy -diff limpios (l.93-105). Árbol limpio salvo gates/modelos.jsonl, gates/revision-cambios.md y gates/revision-ciclo.json, que escribe la propia revisión. Reproducido en una copia bajo $TMPDIR (rsync sin .git): TestRemisionesDelRepositorio, TestVariantesDeControl, TestSkillsDelProductoDesdeControl, TestLecturaConCd, TestTablaDeLasFamilias, TestArnesDeLasFamilias, TestLaboratorioFueraDelProducto y TestVariantesDeNormativa en verde, y TestEntregaDelHito/h32-*, h39-describe, h40-laboratorio-tabla, h41-remisiones y h41-laboratorio-tabla en verde; en la copia solo falla h32-nombres-retirados porque usa git grep y la copia no tiene .git (ambiental; en gates/ci.log l.17 internal/app sale ok)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta: `git diff 4f69d94d HEAD -- specs/033-h41-las-skills-del/aceptacion/` vacío (los dos guiones no cambian desde el commit de gates/aceptacion-congelada.json) y `git diff --no-index --exit-code` entre aceptacion/*.txtar e internal/app/testdata/script/h41-*.txtar sin diferencias; activada en d3dbf374 (test(H41): activa la suite) y en verde (ci.log l.17; reproducida en la copia). Todo el código nuevo tiene test offline que detecta su regresión, visto con 13 mutantes en copias fuera del repositorio: «lee»→«leer» en skills/plazos-y-territorio/SKILL.md l.30 → TestRemisionesDelRepositorio (remisiones_test.go:106) y TestSkillsDelProductoDesdeControl (laboratorio_familias_test.go:634) y h41-remisiones.txtar l.30 en rojo; «si la tienes» añadido a la frase de J1 → remisiones_test.go:106 en rojo con «consulta_preparada.md: la frase de un enlace suyo lleva «si la tienes»»; un byte en jurisprudencia-control/…/SKILL.md → TestVariantesDeControl/jurisprudencia/huellas_del_control «difiere» (laboratorio_familias_test.go:243); abreLaReferencia sin leeConCd (laboratorio_tabla.go:791) → TestLecturaConCd ×5, TestTablaDeLasFamilias ×3 y h41-laboratorio-tabla.txtar l.28 en rojo; conCd forzado en H39 → TestLecturaConCd/h39/cd-y-cat en rojo; vaALasReferencias aceptando cualquier cd (laboratorio_tabla.go:852) → directorio-de-la-skill y skill-de-otra-familia en rojo; referencias_del_producto siempre escrita (laboratorio_sondeo.go:809) → TestArnesDeLasFamilias ×4 en rojo; mezcla aceptada (laboratorio_sondeo.go:404) → 4 casos de uso en rojo; siLaTiene siempre lleno (laboratorio_tabla.go:1187) → TestTablaDeLasFamilias/normativa en rojo; copia de producto desde control (laboratorio_sondeo.go:715) → 3 casos «es la de skills/<skill>, y SKILL.md difiere»; eval 03 quitada del plan de jurisprudencia (laboratorio_familias.go:142) → jurisprudencia-control-y-producto en rojo; directorio laboratorio/normativa/normativa-producto/ → TestVariantesDeControl/normativa/directorios_de_la_familia y TestLaboratorioFueraDelProducto/rutas_que_miden en rojo; «faltan»→«faltann» en references/lecturas_que_fallan.md l.54 → calculado_desde_control «difiere»; name del frontmatter cambiado → frontmatter y calculado_desde_control en rojo; cuerpo de normativa a 11 011 → TestSkillsDelRepositorio «cuerpo de 11011 caracteres (máximo 11000)»."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep del diff Go (main...HEAD, *.go) sin net/http, os.Exit, fmt.Print*, os.Stdin/Stdout/Stderr ni panic( en líneas añadidas. El código de producción nuevo va en internal/evals (laboratorio_familias.go, laboratorio_sondeo.go, laboratorio_tabla.go) con solo biblioteca estándar; internal/skills solo gana remisiones_test.go, que usa enlaceDeMarkdown, lineasFueraDeBloques y cuerpoDeLaSkill ya existentes; cmd/laboratorio/main.go y scripts/evals-laboratorio.sh cambian solo comentarios (diff l.1-15 y cabecera). go.mod y go.sum sin cambios."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni sobre cambia: `git diff main...HEAD --stat -- schemas/ internal/mcp/ data/` vacío; el único programa tocado es cmd/laboratorio, que no es applet ni se distribuye (main.go l.4-6). TestEsquemasPublicados en verde en gates/ci.log l.80-81 y el guion h41-remisiones.txtar l.14 ejercita `kitlegal skills install --dir destino --json` sobre el binario real."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "La tabla: un directorio de variante de otra familia da «laboratorio: <ruta> no es ninguna variante de <skill>», código 1 y sin tabla (laboratorio_tabla_test.go:652-663; h41-laboratorio-tabla.txtar l.49-51); un sondeo.json de <skill>-producto sin la lista da código 1 y sin tabla (laboratorio_tabla.go:319-321), reproducido en la copia con `go run ./cmd/laboratorio tabla` sobre familias/normativa/sondeo sin la clave: «no tiene la lista referencias_del_producto de la variante normativa-producto», exit status 1. El arnés: siete peticiones inválidas devuelven error de uso con su mensaje, uno por línea y con el nombre del argumento de make, sin construir ni abrir sesiones ni crear DIRECTORIO (laboratorio_sondeo_test.go:227-289, exigirElErrorDeUsoDelArnes). Sin panic en el diff; los códigos de kitlegal no cambian."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased: dos entradas en Añadido (arnés con las tres familias; tabla con la lectura con cd) y una en Cambiado (las remisiones de las tres skills, con los cuatro movimientos), y la entrada de H40 corregida porque normativa-control ya no es skills/normativa (supuestos l.15). docs/SKILLS.md §1 «Cómo se remite» con las tres reglas nuevas y la lista de lo movido. CONTRIBUTING.md «El sondeo del laboratorio» con las familias, los controles y las órdenes del sondeo. Sin ADR (no cambia ninguna decisión: implementa el ADR 0051) ni docs/SOURCES.md (ninguna fuente). Afirmaciones comprobadas contra el producto: cuerpos de 10 926, 10 893 y 10 842 caracteres (plan.md l.13; medidos con wc -m sobre el cuerpo); los controles son skills/ de main y de v0.9.0 (`git diff main:skills/<skill> HEAD:laboratorio/<skill>/<skill>-control/skills/<skill>` vacío ×3 y `git diff v0.9.0 main -- skills/` vacío); el mensaje de la mezcla, la regla con cd y las huellas, por los tests y mutantes del criterio b."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva (criterio c). Los fixtures de internal/evals/testdata/laboratorio/familias/ son sesiones sintéticas escritas a mano: session_id de ceros, rutas bajo /s/claude/skills/, sin rutas de usuario ni correos (grep -rlE 'Users/|jorge|@gmail|/home/' vacío), sin NIF ni persona; gitleaks en verde (ci.log l.90-92). El run no graba nada: `git diff main...HEAD --stat -- evidencias/ testdata/` vacío, y en internal/evals/testdata/ solo hay añadidos bajo laboratorio/familias/ (77 ficheros, 304 inserciones, 0 borrados). jurisprudencia sigue sin consultar el CENDOJ: sus remisiones cambian de sitio, no lo que piden (diff de skills/jurisprudencia/SKILL.md)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep del diff Go sin nolint, t.Skip, TODO, FIXME ni `_ =`. .golangci.yml solo añade «producto» a misspell.ignore-rules, falso positivo del español documentado en el propio fichero y en supuestos l.9. Ningún fixture ni golden retocado: las tablas esperadas (familias/*/tabla.md) y los guiones congelados se escribieron antes del código (T001, commit 4f69d94d) y no cambian; ningún fichero de testdata/ existente cambia. Las suites de H39, H40 y h32-normativa siguen en verde sin tocar un fichero suyo (ls internal/app/testdata/script: h39-describe, h40-laboratorio-tabla sin cambios en el diff)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff toca exactamente lo que el plan declara: tres SKILL.md y cuatro referencias a mano (los `diff -u` de contracts/remisiones.md §2 a §5, fijados byte a byte por reorganizacionesDelProducto en laboratorio_familias_test.go:347-534), dos <skill>-control nuevas, internal/evals, un test de internal/skills, Makefile (solo la expresión de skills-check y dos líneas ##), comentarios y documentación. Fuera de alcance intacto: `git diff --stat` vacío en skills/consulta-juridica/, evals/, data/, internal/mcp/, laboratorio/normativa/, laboratorio/variantes.yaml, laboratorio/variantes/, laboratorio/evals/, .github/, go.mod. Ningún argumento, bandera ni orden nueva. Los 18 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: una tabla por familia (l.1), SESIONES=0 rechazado (l.2), nada de kitlegal mcp serve ni de las evals existentes (l.3-4), sin caso propio para lo manipulado (l.6), los movimientos por la vertical de ensayo con sus rechazos (l.10, 12, 16), el sondeo fuera del run (l.13)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "De fuera adentro: lo que lee el agente por pregunta es el cuerpo de la skill, 10 926 / 10 893 / 10 842 caracteres (≤ 11 000, medido), más las referencias que manda leer: en normativa, con_herramientas.md (2 442 B) y normas.md (3 510 B) en toda pregunta y las demás (909 a 2 834 B) solo con su condición; en plazos-y-territorio, administrativo.md (9 930 B, generada, ya existía) y municipios.md / calculo_de_plazos.md / jerarquia_normativa.md (4 034 / 2 869 / 1 543 B) con su condición; en jurisprudencia, 2 038 y 2 805 B. Ninguna de esas salidas crece con las normas o los bloques consultados ni con los meses de uso: son ficheros versionados que solo cambia un hito (normas.md, con las normas declaradas en data/normas.yaml). sondeo.json lleva solo la lista de nombres de references/ (8, 4 o 2 cadenas; laboratorio_sondeo.go:731-748). La tabla del sondeo la lee la persona una vez, su tamaño lo fijan variantes, modos y sesiones pedidas (una fila por variante y modo, una línea de detalle por sesión), no el uso del producto. Ninguna señal que caduque: el contenido no depende de la consulta."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo nuevo se traza a un FR que lo exige: campo producto y familiasDelProducto (laboratorio_familias.go:14-147) → FR-022, FR-030; copiaDeLaVariante y referenciasDelProducto (laboratorio_sondeo.go:704-748) → FR-022, FR-033; errorDeLaMezcla (l.298-321) → FR-030 («dice qué no vale», contracts/arnes.md §2); ReferenciasDelProducto con omitempty (laboratorio_tabla.go:65-68) → FR-033 sin cambiar lo que leen H39 y H40; conCd, leeConCd, vaALasReferencias (l.154-157, 813-857) → FR-041 solo en familias del producto; tablaDeLaFamilia, referenciasDeLasVariantes, celdasDelProducto con siLaTiene y conLaCeldaDeLaRegla (l.205-334, 1116-1203) → FR-040 (unión de referencias, celda vacía, «Cumplen la regla» solo en normativa); la rama del sondeo.json sin lista (l.319-321) → FR-040 («defecto inesperado, código 1 y sin tabla») y clarificación Q2 del spec; huellasDeLosControles → FR-020; TestRemisionesDelRepositorio → FR-001 a FR-003. Ningún reintento, opción ni bandera nueva; ningún caso límite sin FR (el spec rechaza modelar un cd posterior, research D13). Lo único que no es estrictamente del producto, versionada() (laboratorio_familias.go:152-160), lo usan solo los tests de FR-020 y FR-021: va a observaciones, no a motivo."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md tiene su control en make ci y se ha visto en rojo al pasar el umbral, con mutantes en copias fuera del repositorio: SC-001 (TestRemisionesDelRepositorio: «leer» y «si la tienes»); SC-002 (TestSkillsDelRepositorio: cuerpo de normativa a 11 011 → «cuerpo de 11011 caracteres (máximo 11000)»); SC-003 (TestSkillsDelProductoDesdeControl/frontmatter: name cambiado); SC-004 (calculado_desde_control: byte fuera de lo declarado; movimiento alterado en lecturas_que_fallan.md); SC-005 (TestLecturaConCd, TestTablaDeLasFamilias y h41-laboratorio-tabla.txtar: sin leeConCd, cd en H39, cd a cualquier directorio, celda nunca vacía); SC-006 (TestArnesDeLasFamilias: producto copiada del control; TestVariantesDeControl y TestLaboratorioFueraDelProducto: directorio normativa-producto); SC-007 (TestArnesDeLasFamilias: mezcla aceptada; eval quitada del plan → 3 abiertas en vez de 4); SC-008 (TestVariantesDeControl/huellas_del_control: un byte en el control). Las suites congeladas de H39 y H40 en verde (ci.log l.17; copia). SC-009 (evals en verde en el cierre) lo decide el job con los umbrales decide: true de .github/workflows/evals.yml y de las carpetas de evals, configuración que el hito no toca: a observaciones. SC-010 lo mide una persona (FR-052): no entra."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[k] versionada() (internal/evals/laboratorio_familias.go:152-160) es un método del código de producción que solo usan los tests (laboratorio_familias_test.go:23 y 205; laboratorio_test.go no): tras T005 y T006 el arnés y la tabla aceptan <skill>-producto y ya no lo llaman; podría vivir en el fichero de test. Trazado a FR-020 y FR-021: no es motivo.",
+    "[b] La rama de laboratorio_tabla.go:319-321 (sondeo.json de <skill>-producto sin referencias_del_producto → código 1 y sin tabla, FR-040) no tiene test propio por decisión del plan (gates/supuestos.md l.6 y l.17); comprobada a mano en esta sesión con `go run ./cmd/laboratorio tabla` sobre una copia del sondeo fijo de normativa sin la clave. Solo se alcanza editando el fichero a mano: por debajo del umbral de materialidad.",
+    "[f] tasks.md l.220: T009 está marcada [X] y lleva el texto «(partial)» que dejó el paso converge (commit b42f7280); la tarea está entera en el diff (P4 en skills/plazos-y-territorio/SKILL.md l.66-67, el movimiento a municipios.md l.65, contracts/remisiones.md §4 l.217-273, CHANGELOG y docs/SKILLS.md). Es un resto cosmético que puede leerse como tarea a medias.",
+    "[f] tasks.md l.34 («ni ninguna referencia salvo skills/normativa/references/redaccion_modificada.md») quedó desactualizada: también cambian lecturas_que_fallan.md, calculo_de_plazos.md y municipios.md, por las correcciones de T003, T004 y T009 que sí registran gates/supuestos.md l.10, 12 y 16 y las propias líneas de T003/T004/T009.",
+    "[i] FR-003 pide la orden «en el paso que usa la referencia y antes de la orden o llamada de ese paso»; cuatro órdenes van en su paso pero detrás de la llamada cuyo resultado trae la condición (normativa paso 2: redaccion_modificada.md, como_se_cita.md, lecturas_que_fallan.md; plazos-y-territorio paso 10: calculo_de_plazos.md). Es la lectura de supuestos l.18 y de docs/SKILLS.md §1, coherente con FR-004 (que fija esas condiciones) y con normativa-remisiones-en-orden, el punto de partida del hito, que ya ponía lecturas_que_fallan.md detrás (laboratorio/normativa/normativa-remisiones-en-orden/skills/normativa/SKILL.md l.50-51).",
+    "[i] El movimiento de T009 saca del cuerpo de plazos-y-territorio la frase «Si no lo dice, pregúntalo y espera…» del paso 1 (skills/plazos-y-territorio/SKILL.md l.41 ahora solo dice «El municipio, de la conversación.») y la deja al final de references/municipios.md l.65, que ya lo decía en «El municipio que falta» (l.7-10) y que P2 manda leer «si falta el municipio» antes de la primera llamada. Ninguna eval cubre el municipio ausente (supuestos l.16): que el agente siga preguntando lo medirá el sondeo de la persona (FR-052, eval 02 y municipios.md) y no un control del repositorio.",
+    "[l] SC-009 depende de los umbrales con decide: true de .github/workflows/evals.yml y de las carpetas de evals, que el hito no toca; el cierre los mide después de esta revisión.",
+    "[k] leeConCd (laboratorio_tabla.go:819-837) no modela un cd posterior a otro directorio dentro de la misma orden de Bash (`cd …/references && cd /x && cat normas.md` contaría); el spec FR-041 no lo pide y research D13 lo rechaza expresamente porque ninguna sesión de H40 lo hace."
+  ]
+}

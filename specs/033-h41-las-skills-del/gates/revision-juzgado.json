@@ -1,0 +1,30 @@
+{
+  "rondas": [
+    {
+      "ronda": 1,
+      "ciclo": 1,
+      "sha": "58a4c2eaed761936037f0f1e660e47a11ff52c61",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado",
+      "leido": "2026-11-06T06:27:29Z",
+      "modelos": {
+        "a": {
+          "sesion": "0f2651ee-1f0a-4399-a9b8-f9b57613c286",
+          "pedido": "claude-opus-5-5",
+          "real": {
+            "claude-opus-5-5": 206
+          },
+          "sin_modelo_real": null
+        },
+        "b": {
+          "sesion": "c5bae72e-912f-467c-b265-472d6309d7a5",
+          "pedido": "claude-fable-5-1",
+          "real": {
+            "claude-fable-5-1": 131
+          },
+          "sin_modelo_real": null
+        }
+      }
+    }
+  ]
+}
