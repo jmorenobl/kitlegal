@@ -1,15 +1,18 @@
 // Command laboratorio es el programa del repositorio con el que se mide la
 // skill de laboratorio de H39 (contracts/arnes.md §5 de H39; research.md D7 de
-// H39) y las variantes de normativa de H40 (contracts/tabla.md de H40). No es un
+// H39), las variantes de normativa de H40 (contracts/tabla.md de H40) y las de
+// las tres familias de las skills del producto de H41, normativa,
+// plazos-y-territorio y jurisprudencia (contracts/tabla.md de H41). No es un
 // applet de kitlegal, no se instala con él y ningún archivo de la release lo
 // lleva: lo construye el arnés del sondeo del laboratorio.
 //
 // Su orden servidor es el filtro que, en las sesiones de las variantes
 // instrucciones y parametro de H39, se pone delante de `kitlegal mcp serve`;
-// ninguna variante de normativa lo usa. Su orden tabla es el guion que cuenta
-// un sondeo de cualquiera de las dos familias, la del laboratorio de H39 o la
-// de normativa, que es la de la primera variante que lee (contracts/tabla.md de
-// H39 y de H40; research.md D9 de H39), sin red, modelo ni credencial:
+// ninguna variante de las familias del producto lo usa. Su orden tabla es el
+// guion que cuenta un sondeo de cualquiera de las cuatro familias, la del
+// laboratorio de H39, normativa, plazos-y-territorio o jurisprudencia, que es
+// la de la primera variante que lee (contracts/tabla.md de H39, de H40 y de H41;
+// research.md D9 de H39), sin red, modelo ni credencial:
 //
 //	laboratorio servidor -kitlegal <ruta> [-instrucciones <texto>] [-herramienta <h> -parametro <p> -descripcion <texto>]
 //	laboratorio tabla <ruta>
