@@ -217,7 +217,7 @@ Los de la #245 (su contrato, §5), sin cambios:
 
 | # | Referencia | Sitio | Condición | Lo que trae |
 |---|---|---|---|---|
-| J1 | `consulta_preparada.md` | paso 2, en la frase que nombra `cita_preparar`, antes de la tabla de lo que se pide | una sentencia que no está delante (el paso); antes de pedir la operación | la orden de cada forma, las casillas y el equivalente |
+| J1 | `consulta_preparada.md` | paso 2, en el párrafo que nombra `cita_preparar`, en la frase que sigue a la que lo nombra, antes de la tabla de lo que se pide | una sentencia que no está delante (el paso); antes de pedir la operación | la orden de cada forma, las casillas y el equivalente |
 | J2 | `documento_aportado.md` | paso 3, su primer párrafo, antes de la viñeta que pide el cotejo | cada documento; antes del cotejo | qué se pasa del documento y qué se dice en cada caso |
 | J3 | `consulta_preparada.md` | paso 6, sin cambios | una pregunta por materia; antes de `cita_preparar` | «La búsqueda por materia» |
 

@@ -100,8 +100,8 @@ queda en 10 926 (10 996 con la vertical de ensayo; V3). No hace falta otro.
 
 ### D3 · Las remisiones de `jurisprudencia` (FR-005): las de la #245, sin cambios
 
-**Decisión.** La de `consulta_preparada.md` pasa del final del paso 2 a la frase que nombra `cita_preparar`, antes de la
-tabla de lo que se pide; la de `documento_aportado.md`, del final al principio del paso 3, antes de la viñeta que pide
+**Decisión.** La de `consulta_preparada.md` pasa del final del paso 2 al párrafo que nombra `cita_preparar`, en la frase
+que sigue a la que lo nombra, antes de la tabla de lo que se pide; la de `documento_aportado.md`, del final al principio del paso 3, antes de la viñeta que pide
 el cotejo; la del paso 6 no cambia (contracts/remisiones.md §4). Cuerpo, 10 842. Ninguna junta casos con «y».
 
 ### D4 · `skills/plazos-y-territorio` no cambia, y su control lo compara todo (FR-010)
@@ -270,7 +270,7 @@ no se siga. Lo lee la persona al escribir el ADR (FR-053); la tabla no lo calcul
 **Decisión.** La de la #245 (research D13): en las familias del producto, una orden simple cuya primera palabra que no
 es una asignación es `cd` y cuya siguiente, sin una barra final, es `<skill>/references` o termina en
 `/<skill>/references`, y detrás, en otra orden simple de la misma orden, una palabra que es exactamente `<f>` o `./<f>`.
-La partición en órdenes simples y palabras es la de hoy (`ordenesSimples`, `internal/evals/laboratorio_tabla.go:1197`).
+La partición en órdenes simples y palabras es la de hoy (`ordenesSimples`, `internal/evals/laboratorio_tabla.go:1369`).
 La familia de H39 no la usa. **Rechazada:** comparar el final del texto sin tramos de ruta (otra regla que la de `Read`).
 
 ### D17 · Las referencias de la tabla (FR-040)

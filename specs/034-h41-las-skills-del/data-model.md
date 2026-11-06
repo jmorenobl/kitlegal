@@ -46,7 +46,7 @@ No tiene directorio en el repositorio. En cada sondeo que la pide, el arnés cop
 ## 4. `sondeo.json` (FR-032)
 
 El de H39 (`{"modelo","claude_code"}`), con una clave más, solo si el sondeo pide `<skill>-producto`. Un solo tipo lo
-escribe y lo lee: `sondeoLeido` (`internal/evals/laboratorio_tabla.go:61`), con el que el arnés lo codifica hoy, gana el
+escribe y lo lee: `sondeoLeido` (`internal/evals/laboratorio_tabla.go:66`), con el que el arnés lo codifica hoy, gana el
 campo `ReferenciasDelProducto []string` con `json:"referencias_del_producto,omitempty"`, tras `Modelo` y `ClaudeCode`:
 
 | Clave | Tipo | Cuándo |
@@ -80,7 +80,7 @@ Por skill, en `internal/evals/laboratorio_familias_test.go`, con los bytes de co
 
 ## 6. Declaración de las variantes de `plazos-y-territorio` (`TestVariantesDePlazosYTerritorio`; FR-023)
 
-El tipo `declaracionDeLaVariante` de H40 (`internal/evals/laboratorio_normativa_test.go:256`), solo con
+El tipo `declaracionDeLaVariante` de H40 (`internal/evals/laboratorio_normativa_test.go:221`), solo con
 `sustituciones` `{fichero, antes, despues, hito}`: `fichero` es siempre `SKILL.md`; `antes`, bytes que están una vez en
 el de `plazos-y-territorio-control`; `despues`, los de contracts/variantes.md §2; `hito`, el `despues` normalizado
 (`textoDelHito`). Una lista `declaracionesDePlazosYTerritorio`, en el orden de las variantes de la familia tras la de

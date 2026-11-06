@@ -1763,7 +1763,8 @@ aplicada sobre control, o el test falla con su motivo; que control no cambia lo 
 mira también los nombres de esta familia. El tope de 11 000 caracteres de cuerpo no se aplica a las variantes.
 
 La orden, los siete argumentos y la cadena son los de arriba; cambia solo lo que vale en `VARIANTES`. Una invocación es
-de **una sola familia**: los nombres son de `variantes.yaml` o de las variantes de `normativa`, y mezclarlos es un
+de **una sola familia**: los nombres son de `variantes.yaml` o de las variantes de `normativa` (desde H41, también de
+las otras dos familias del producto, abajo), y mezclarlos es un
 error de uso más, `VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de normativa`, detrás de los de los
 nombres. Cada par variante × modo se comprueba con su familia (`VARIANTES y MODOS: <v> no se mide en modo <m>`), y
 `SESIONES` sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
@@ -1793,7 +1794,7 @@ primeras de H39, de «Variante» a `n`; «Activan antes», las sesiones que acti
 herramienta de kitlegal; una por cada una de las ocho referencias, en orden de nombre de fichero, con su recuento y, si
 alguna sesión la abre,
 `· turno <mediana> (<mínimo>–<máximo>)` del turno de la primera apertura; y «Cumplen la regla», solo en
-`normativa-testigo-en-referencia` y vacía en las otras tres—. En una tabla de `normativa`, un directorio de variante que
+`normativa-testigo-en-referencia` y vacía en las demás—. En una tabla de `normativa`, un directorio de variante que
 no es de esta familia es un defecto: `laboratorio: <ruta> no es ninguna variante de normativa` en la salida de error,
 código `1` y sin tabla. Qué cuenta cada columna lo fija `specs/032-h40-por-qu-e/contracts/tabla.md`, y
 `TestTablaDeNormativa` lo comprueba en `make ci` con sesiones fijas.
