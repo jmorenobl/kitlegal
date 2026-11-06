@@ -1,0 +1,21 @@
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/normativa/a, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- normativa-control, orden: 40 abiertas.
+- normativa-control, herramienta: 40 abiertas.
+- normativa-producto, orden: 40 abiertas.
+- normativa-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/normativa/a
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/normativa/b, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- normativa-remisiones-en-orden, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/normativa/b
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/plazos-y-territorio, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- plazos-y-territorio-control, orden: 40 abiertas.
+- plazos-y-territorio-control, herramienta: 40 abiertas.
+- plazos-y-territorio-producto, orden: 40 abiertas.
+- plazos-y-territorio-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/plazos-y-territorio
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/jurisprudencia, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- jurisprudencia-control, orden: 40 abiertas.
+- jurisprudencia-control, herramienta: 40 abiertas.
+- jurisprudencia-producto, orden: 40 abiertas.
+- jurisprudencia-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal/../kitlegal-sondeos/h41/jurisprudencia
