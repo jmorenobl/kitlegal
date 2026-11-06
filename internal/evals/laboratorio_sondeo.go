@@ -117,9 +117,9 @@ type parDelLaboratorio struct {
 // interpretados.
 type laboratorioComprobado struct {
 	// declarada es la declaración del laboratorio de H39; familia, la de las
-	// variantes pedidas, de H39 o de normativa (FR-010 de H40); y pares, los
-	// pedidos, en el orden de la declaración de su familia y, dentro de cada
-	// variante, orden antes que herramienta.
+	// variantes pedidas, la de H39 o una del producto (FR-010 de H40; FR-030);
+	// y pares, los pedidos, en el orden de la declaración de su familia y,
+	// dentro de cada variante, orden antes que herramienta.
 	declarada declaracionDelLaboratorio
 	familia   familiaDelLaboratorio
 	pares     []parDelLaboratorio
@@ -142,17 +142,20 @@ type resumenDelPar struct {
 }
 
 // sondearElLaboratorio abre las sesiones de un sondeo del laboratorio y devuelve
-// su salida (contracts/arnes.md §2, §3 y §4 de H39 y de H40; data-model §6 de
-// H39 y §1 de H40; research D8 de H39 y D7 y D8 de H40; FR-030, FR-031, FR-033
-// de H39; FR-008 y FR-010 de H40):
+// su salida (contracts/arnes.md §2, §3 y §4 de H39, de H40 y de H41; data-model
+// §6 de H39, §1 de H40 y §1, §3 y §4 de H41; research D8 de H39, D7 y D8 de H40
+// y D14 de H41; FR-030, FR-031, FR-033 de H39; FR-008 y FR-010 de H40; FR-022,
+// FR-030 y FR-032 de H41):
 //
 //  1. comprueba, antes de construir nada, los argumentos, la credencial y la
 //     versión de Claude Code (comprobarElLaboratorio), y lee las evals del
 //     directorio de evals de la familia pedida y, de ellas, las que planifica
 //     su sondeo (evalsDelPlan);
 //  2. prepara en el temporal kitlegal, laboratorio, home/ y la copia de las
-//     skills de cada variante pedida, desde el directorio de su familia;
-//  3. crea DIRECTORIO y su sondeo.json, con el modelo y la versión;
+//     skills de cada variante pedida, desde el directorio de su familia o,
+//     la del producto, desde skills/<skill> del árbol;
+//  3. crea DIRECTORIO y su sondeo.json, con el modelo, la versión y, si se
+//     pidió la variante del producto, las referencias de su copia;
 //  4. por cada par, en su orden, abre con el repartidor, en
 //     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
 //     sondeo de la familia, en su orden y de nombre <eval>-<nn>, con el modelo
@@ -208,11 +211,13 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		servidores = append(servidores, servidor)
 	}
 
-	if err := s.preparar(temporal, comprobado.familia, comprobado.pares); err != nil {
+	referencias, err := s.preparar(temporal, comprobado.familia, comprobado.pares)
+	if err != nil {
 		return "", err
 	}
 
-	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode); err != nil {
+	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode,
+		referencias); err != nil {
 		return "", err
 	}
 
@@ -285,26 +290,25 @@ func comprobarElLaboratorio(s SondeoDelLaboratorio) (laboratorioComprobado, erro
 	return comprobado, nil
 }
 
-// errSeMezclanLasFamilias es el error de unas VARIANTES que valen y no son todas
-// de una misma familia: la de H39 y la de normativa (FR-010 de H40;
-// contracts/arnes.md §2 de H40).
-var errSeMezclanLasFamilias = errors.New(argumentoVariantes +
-	": se mezclan variantes del laboratorio de H39 y variantes de normativa")
+// variantesDeLaFamiliaDeH39 es cómo nombra el error de una mezcla las variantes
+// de la familia de H39, la única que no es del producto (contracts/arnes.md §2
+// de H40 y de H41; research D14).
+const variantesDeLaFamiliaDeH39 = "variantes del laboratorio de H39"
 
-// comprobar comprueba los argumentos del sondeo del laboratorio con las dos
-// familias, la de la declaración de H39 y la de normativa, en ese orden
-// (contracts/arnes.md §2 de H39 y de H40; research D8 de H40): VARIANTES,
-// nombres de una variante de alguna de las dos, separados por comas y sin
-// repetir; los que valen, todos de una sola familia; MODOS, orden, herramienta
-// o los dos, separados por comas y sin repetir; cada par de una variante y un
-// modo que valen, un modo de los de la variante, primero los de la familia de
-// H39; SESIONES, un entero mayor que 0 y múltiplo de 4; MODELO, un
-// identificador completo; CLAUDE_CODE, no vacía; CONCURRENCIA, un entero mayor o
-// igual que 1; y DIRECTORIO, no vacío y que no existe. Los errores de todos van
-// juntos, uno por línea y en ese orden, para que quien lanza la orden los
-// corrija de una vez.
+// comprobar comprueba los argumentos del sondeo del laboratorio con las cuatro
+// familias, la de la declaración de H39 y las tres del producto
+// (familiasDelProducto), en ese orden (contracts/arnes.md §2 de H39, de H40 y de
+// H41; research D8 de H40 y D14): VARIANTES, nombres de una variante de alguna
+// de las cuatro, separados por comas y sin repetir; los que valen, todos de una
+// sola familia; MODOS, orden, herramienta o los dos, separados por comas y sin
+// repetir; cada par de una variante y un modo que valen, un modo de los de la
+// variante, en el orden de las familias; SESIONES, un entero mayor que 0 y
+// múltiplo de 4; MODELO, un identificador completo; CLAUDE_CODE, no vacía;
+// CONCURRENCIA, un entero mayor o igual que 1; y DIRECTORIO, no vacío y que no
+// existe. Los errores de todos van juntos, uno por línea y en ese orden, para
+// que quien lanza la orden los corrija de una vez.
 func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio) (laboratorioComprobado, error) {
-	familias := []familiaDelLaboratorio{declarada.familia(), familiaDeNormativa}
+	familias := slices.Concat([]familiaDelLaboratorio{declarada.familia()}, familiasDelProducto)
 
 	variantes, errDeLasVariantes := listaDelArgumento(argumentoVariantes, a.Variantes,
 		func(nombre string) bool {
@@ -352,8 +356,8 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 }
 
 // familiaDeLasVariantes es la familia de las variantes pedidas que valen, y
-// errSeMezclanLasFamilias si son de más de una. Sin ninguna, es la familia
-// vacía, sin error: el de VARIANTES ya lo da su lista.
+// errorDeLaMezcla si son de más de una. Sin ninguna, es la familia vacía, sin
+// error: el de VARIANTES ya lo da su lista.
 func familiaDeLasVariantes(familias []familiaDelLaboratorio, variantes []string) (familiaDelLaboratorio, error) {
 	var pedidas []familiaDelLaboratorio
 
@@ -369,8 +373,48 @@ func familiaDeLasVariantes(familias []familiaDelLaboratorio, variantes []string)
 	case 1:
 		return pedidas[0], nil
 	default:
-		return familiaDelLaboratorio{}, errSeMezclanLasFamilias
+		return familiaDelLaboratorio{}, errorDeLaMezcla(pedidas)
 	}
+}
+
+// errorDeLaMezcla es el error de unas VARIANTES que valen y son de más de una
+// familia, las pedidas, en el orden de las familias (FR-030; contracts/arnes.md
+// §2; research D14): «se mezclan» y las variantes de cada una, las de una
+// familia del producto con su skill y las de la de H39 con
+// variantesDeLaFamiliaDeH39, unidas con comas y la última con «y». Con la de H39
+// y la de normativa es el de H40, byte a byte.
+func errorDeLaMezcla(pedidas []familiaDelLaboratorio) error {
+	nombradas := make([]string, 0, len(pedidas))
+
+	for _, familia := range pedidas {
+		nombradas = append(nombradas, familia.variantesEnLaMezcla())
+	}
+
+	return fmt.Errorf("%s: se mezclan %s", argumentoVariantes, unidasConY(nombradas))
+}
+
+// variantesEnLaMezcla es cómo nombra el error de una mezcla las variantes de la
+// familia: «variantes de <skill>» las de una familia del producto, la que tiene
+// variante del producto, y variantesDeLaFamiliaDeH39 las de la de H39, la única
+// que no la tiene.
+func (f familiaDelLaboratorio) variantesEnLaMezcla() string {
+	if f.producto == "" {
+		return variantesDeLaFamiliaDeH39
+	}
+
+	return "variantes de " + f.skill
+}
+
+// unidasConY une las partes con comas y la última con «y»: «a», «a y b», «a, b
+// y c».
+func unidasConY(partes []string) string {
+	if len(partes) < 2 {
+		return strings.Join(partes, "")
+	}
+
+	ultima := len(partes) - 1
+
+	return strings.Join(partes[:ultima], ", ") + " y " + partes[ultima]
 }
 
 // listaDelArgumento son los elementos de la lista del argumento, separados por
@@ -632,43 +676,104 @@ func textoDeLaVariante(directorio, fichero string) (string, error) {
 }
 
 // preparar deja en el temporal, que recibe con su ruta absoluta, lo que
-// necesitan las sesiones de los pares (contracts/arnes.md §3.1 de H39 y §3.1 de
-// H40): kitlegal y laboratorio, con ConstruirLosProgramas; home/, vacío, el HOME
-// de las sesiones; y en skills/<variante>/, una copia de las skills de cada
-// variante de los pares, las de su directorio en la familia dada, el directorio
-// de skills de sus repartos. El error nombra lo que no se pudo hacer.
+// necesitan las sesiones de los pares (contracts/arnes.md §3.1 de H39 y de H40
+// y §3 de H41): kitlegal y laboratorio, con ConstruirLosProgramas; home/, vacío,
+// el HOME de las sesiones; y en skills/<variante>/, la copia de las skills de
+// cada variante de los pares de la familia dada, el directorio de skills de sus
+// repartos (copiarLasSkillsDeLaVariante). Devuelve las referencias de la copia
+// de la variante del producto, si alguno de los pares es suyo, y si no, ninguna.
+// El error nombra lo que no se pudo hacer.
 func (s SondeoDelLaboratorio) preparar(temporal string, familia familiaDelLaboratorio,
 	pares []parDelLaboratorio,
-) error {
+) ([]string, error) {
 	if err := s.ConstruirLosProgramas(s.Raiz, temporal, s.Entorno); err != nil {
-		return err
+		return nil, err
 	}
 
 	personal := filepath.Join(temporal, carpetaPersonal)
 	if err := os.Mkdir(personal, permisosDeLaSesion); err != nil {
-		return fmt.Errorf("el HOME del sondeo del laboratorio %s no se puede crear: %w", personal, err)
+		return nil, fmt.Errorf("el HOME del sondeo del laboratorio %s no se puede crear: %w", personal, err)
 	}
 
-	var copiadas []string
+	var (
+		copiadas    []string
+		referencias []string
+	)
 
 	for _, par := range pares {
 		if slices.Contains(copiadas, par.variante.Nombre) {
 			continue
 		}
 
-		origen := filepath.Join(s.Raiz, filepath.FromSlash(familia.directorioDeLaVariante(par.variante.Nombre)),
-			carpetaDeLasSkillsDeLaVariante)
-		destino := filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, par.variante.Nombre)
-
-		if err := os.CopyFS(destino, os.DirFS(origen)); err != nil {
-			return fmt.Errorf("las skills de la variante %s no se pueden copiar en %s: %w", par.variante.Nombre, destino,
-				err)
+		deLaCopia, err := s.copiarLasSkillsDeLaVariante(temporal, familia, par.variante.Nombre)
+		if err != nil {
+			return nil, err
 		}
 
 		copiadas = append(copiadas, par.variante.Nombre)
+		referencias = append(referencias, deLaCopia...)
+	}
+
+	return referencias, nil
+}
+
+// copiarLasSkillsDeLaVariante deja en skills/<variante>/ del temporal la copia
+// de las skills de la variante de ese nombre de la familia (contracts/arnes.md
+// §3.1; data-model §3): la de su directorio en la familia, si es versionada; y
+// si es la del producto, la de skills/<skill> del árbol, en
+// skills/<variante>/<skill>/ (FR-022). De la del producto devuelve los nombres
+// de los ficheros de references/ de la copia, en orden de nombre (FR-032); de
+// una versionada, ninguno.
+func (s SondeoDelLaboratorio) copiarLasSkillsDeLaVariante(temporal string, familia familiaDelLaboratorio,
+	nombre string,
+) ([]string, error) {
+	destino := filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, nombre)
+
+	if nombre != familia.producto {
+		origen := filepath.Join(s.Raiz, filepath.FromSlash(familia.directorioDeLaVariante(nombre)),
+			carpetaDeLasSkillsDeLaVariante)
+
+		return nil, copiarLasSkills(nombre, origen, destino)
+	}
+
+	copia := filepath.Join(destino, familia.skill)
+	if err := copiarLasSkills(nombre, filepath.Join(s.Raiz, directorioDeLasSkills, familia.skill), copia); err != nil {
+		return nil, err
+	}
+
+	return referenciasDeLaCopia(copia)
+}
+
+// copiarLasSkills copia con os.CopyFS el directorio de origen en el de destino,
+// que no existe, para la variante de ese nombre (research V9).
+func copiarLasSkills(variante, origen, destino string) error {
+	if err := os.CopyFS(destino, os.DirFS(origen)); err != nil {
+		return fmt.Errorf("las skills de la variante %s no se pueden copiar en %s: %w", variante, destino, err)
 	}
 
 	return nil
+}
+
+// referenciasDeLaCopia son los nombres de los ficheros de references/ de la
+// copia de una skill, en orden de nombre, el de os.ReadDir (research V9). Unas
+// referencias que no se pueden leer son un error.
+func referenciasDeLaCopia(copia string) ([]string, error) {
+	directorio := filepath.Join(copia, directorioDeLasReferencias)
+
+	entradas, err := os.ReadDir(directorio)
+	if err != nil {
+		return nil, fmt.Errorf("las referencias de la copia %s no se pueden leer: %w", directorio, err)
+	}
+
+	referencias := make([]string, 0, len(entradas))
+
+	for _, entrada := range entradas {
+		if entrada.Type().IsRegular() {
+			referencias = append(referencias, entrada.Name())
+		}
+	}
+
+	return referencias, nil
 }
 
 // construirLosProgramasDelLaboratorio deja en el temporal del arnés, que recibe
@@ -711,10 +816,12 @@ func ordenDeConstruirElLaboratorio(raiz string) *exec.Cmd {
 
 // crearElSondeoDelLaboratorio crea DIRECTORIO, con las carpetas que le falten
 // delante, y su sondeo.json, con el modelo y la versión de Claude Code de todas
-// sus sesiones (contracts/arnes.md §3.2 de H39; data-model §6 de H39). DIRECTORIO
-// se crea él solo, así que uno que ya existe es un error: ningún sondeo escribe
-// donde escribe otro.
-func crearElSondeoDelLaboratorio(directorio, modelo, version string) error {
+// sus sesiones y, si las hay, las referencias de la copia de la variante del
+// producto (contracts/arnes.md §3.2 de H39 y §3.4 de H41; data-model §6 de H39 y
+// §4 de H41; FR-032): sin ellas, el de H39 byte a byte. DIRECTORIO se crea él
+// solo, así que uno que ya existe es un error: ningún sondeo escribe donde
+// escribe otro.
+func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias []string) error {
 	limpio := filepath.Clean(directorio)
 
 	if err := os.MkdirAll(filepath.Dir(limpio), permisosDeLaSesion); err != nil {
@@ -726,8 +833,11 @@ func crearElSondeoDelLaboratorio(directorio, modelo, version string) error {
 	}
 
 	// sondeoLeido es lo que lee de sondeo.json el guion que cuenta el sondeo, y
-	// sus claves van en el orden de contracts/arnes.md §3.2 de H39.
-	contenido, err := json.Marshal(sondeoLeido{Modelo: modelo, ClaudeCode: version})
+	// sus claves van en el orden de contracts/arnes.md §3.2 de H39, con
+	// referencias_del_producto detrás, solo si hay referencias (data-model §4).
+	contenido, err := json.Marshal(sondeoLeido{
+		Modelo: modelo, ClaudeCode: version, ReferenciasDelProducto: referencias,
+	})
 	if err != nil {
 		return fmt.Errorf("%s no se puede codificar: %w", ficheroDelSondeo, err)
 	}

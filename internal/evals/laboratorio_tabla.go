@@ -56,11 +56,17 @@ const (
 	motivoSinRespuesta = "sin respuesta"
 )
 
-// sondeoLeido es el sondeo.json de un sondeo: el modelo y la versión de Claude
-// Code de todas sus sesiones (data-model §6 de H39).
+// sondeoLeido es el sondeo.json de un sondeo, el único tipo con el que lo
+// escribe el arnés y lo lee la tabla (data-model §6 de H39 y §4): el modelo y la
+// versión de Claude Code de todas sus sesiones y, solo si el sondeo pidió una
+// variante <skill>-producto, la clave referencias_del_producto, los nombres de
+// los ficheros de references/ de la copia de skills/<skill> que instaló, en
+// orden de nombre (FR-032). Sin ella, la clave no se escribe y el fichero es el
+// de H39 byte a byte; quien no la lee, la ignora (research V9).
 type sondeoLeido struct {
-	Modelo     string `json:"modelo"`
-	ClaudeCode string `json:"claude_code"`
+	Modelo                 string   `json:"modelo"`
+	ClaudeCode             string   `json:"claude_code"`
+	ReferenciasDelProducto []string `json:"referencias_del_producto,omitempty"`
 }
 
 // sesionContada es lo que el guion saca de una sesión (data-model §6 de H39;
