@@ -1,0 +1,244 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-06 00:05:06
++++ ahora/checklists/requirements.md	2026-11-06 00:06:40
+@@ -6,10 +6,11 @@
+ 
+ ## Content Quality
+ 
+-- [x] No implementation details (languages, frameworks, APIs) — el spec dice qué debe tener cada remisión, qué cuenta
+-  la tabla y qué comprueba `make ci`, no cómo se declaran las variantes, cómo se instala `<skill>-producto` ni cómo se
+-  parte una frase; los nombres `make evals-laboratorio` y `make laboratorio-tabla` y las rutas de `laboratorio/` los da
+-  el hito.
++- [x] No implementation details (languages, frameworks, APIs) — el spec dice qué debe tener cada remisión (qué es una
++  frase, FR-001, como comportamiento), qué cuenta la tabla y qué comprueba `make ci`, no cómo se declaran las variantes,
++  cómo se instala `<skill>-producto` ni cómo se organiza el código de la regla de lectura: FR-041 remite a la partición
++  de `specs/031-h39-c-omo-se/contracts/tabla.md` §2, sin elegir función ni lector. Los nombres `make evals-laboratorio`
++  y `make laboratorio-tabla` y las rutas de `laboratorio/` los da el hito.
+ - [x] Focused on user value and business needs — que en modo herramienta `normativa` abra las referencias que necesita
+   como en modo orden, sin que ninguna skill abra menos que hoy (Contexto; FR-052).
+ - [x] Written for non-technical stakeholders — cada historia explica su porqué; «remisión», «familia», `control` y
+@@ -22,16 +23,22 @@
+   familias de las skills del producto y la tabla de H39 se queda como está (conservadora, a «Fuera de alcance»).
+ - [x] Requirements are testable and unambiguous — cada FR nombra su comprobación: FR-001 a FR-003, FR-007 a FR-010,
+   FR-020 a FR-023, FR-030, FR-040 a FR-042 en `make ci`; FR-004 a FR-006, con la lista de remisiones del plan que
+-  comprueba el test de FR-001; FR-051, el job de evals del cierre; FR-052, la persona.
++  comprueba el test de FR-001; FR-051, el job de evals del cierre; FR-052, la persona. Sin lecturas abiertas en el
++  arnés y la tabla: `SESIONES` es un múltiplo de 4 mayor que 0 (FR-030); la aceptación de `normativa` son dos
++  peticiones, 160 y 40 sesiones (US3-1, conforme a FR-030); una tabla cuenta una sola familia y un directorio de otra es
++  un defecto con código 1 (FR-040), así que la aceptación da una tabla por familia (US5-1, SC-010).
+ - [x] Success criteria are measurable — SC-001 a SC-009 con recuento, porcentaje o bytes y su control; SC-010, capa 3.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden frases, caracteres, bytes, ficheros,
+   sesiones abiertas y cifras de la tabla, no cómo se calculan.
+ - [x] All acceptance scenarios are defined — escenarios Dado/Cuando/Entonces en las cinco historias.
+ - [x] Edge cases are identified — cuerpo que pasa de 11 000, cambio en una `<skill>-control`, `skills/` que cambia tras
+   el lanzamiento, referencia nueva, referencia a cuya condición no llega ninguna eval, sesión sin terminar, transcripción
+-  ilegible (regla genérica).
++  ilegible (regla genérica), `DIRECTORIO` con sondeos de más de una familia (FR-040), y en los errores de argumentos de
++  US3-4, `SESIONES` que no es un múltiplo de 4 mayor que 0.
+ - [x] Scope is clearly bounded — «Fuera de alcance» con los topes, las descripciones, el generador, `consulta-juridica`,
+-  evals nuevas, el juez, el artefacto del job, otras variantes, modos, modelos y hosts, y el sondeo dentro del run.
++  las instrucciones y descripciones de herramientas de `kitlegal mcp serve`, cambiar las evals que ya existen, evals
++  nuevas, el juez, el artefacto del job, otras variantes, modos, modelos y hosts, la huella o copia de
++  `<skill>-producto`, la regla con `cd` en la tabla de H39 y el sondeo dentro del run.
+ - [x] Dependencies and assumptions identified — dependencia de H40 (variantes, arnés, tabla; FR-021, FR-030, FR-040) y
+   supuestos sobre las cifras de partida, `v0.9.0`, la regla ampliada y las lecturas grabadas (Assumptions).
+ 
+@@ -42,7 +49,8 @@
+ - [x] User scenarios cover primary flows — remisiones, sitio en el cuerpo, arnés, tabla con la regla ampliada y la
+   aceptación de la persona.
+ - [x] Feature meets measurable outcomes defined in Success Criteria — cada SC remite a su FR y a su control.
+-- [x] No implementation details leak into specification — ver el primer ítem.
++- [x] No implementation details leak into specification — ver el primer ítem: FR-041 ya no fija la estructura del
++  código de la regla de lectura.
+ 
+ ## Criterios del hito y del juez
+ 
+@@ -54,7 +62,7 @@
+   (SC-010) solo los mide la persona y el spec lo dice.
+ - [x] Uso de fuera adentro — sección «Uso, de fuera adentro»: quién lee el cuerpo, las referencias y la tabla, cuántas
+   veces por pregunta, su tamaño (cuerpo de 11 000 como mucho, unos 5,8 KB de referencias por pregunta en `normativa`,
+-  trece filas y 520 sesiones) y que no crecen con lo consultado.
++  una tabla por familia, trece filas entre las tres y 520 sesiones) y que no crecen con lo consultado.
+ - [x] Ninguna decisión cerrada de CLAUDE.md se reabre — el tope de 11 000 del ADR 0046 sigue (FR-008, Fuera de alcance);
+   las descripciones no cambian (FR-010); las variantes no se distribuyen (FR-023); el juez no mide el sondeo y la
+   persona lo lanza con su credencial (FR-031; ADR 0032).
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-06 00:05:06
++++ ahora/spec.md	2026-11-06 00:06:23
+@@ -44,7 +44,7 @@
+ 
+ ### Session 2026-11-05
+ 
+-- Q: ¿La regla ampliada de FR-041 (contar como apertura la orden de Bash que hace `cd` a `<skill>/references` y nombra `<f>` por su nombre solo) se aplica también a la tabla de la familia del laboratorio de H39 (`articulos-del-boe`), o solo a las tablas de las familias de las skills del producto? → A: B. Solo a las familias de las skills del producto (`normativa`, `plazos-y-territorio`, `jurisprudencia`); la de H39 se sigue contando con su contrato §2, byte a byte; una sola función de lectura y la familia declara si cuenta la lectura con `cd` (auto: conservadora; criterio d; fuente: hito H41 Entrega; ADR 0051, Consecuencias; `specs/032-h40-por-qu-e/contracts/tabla.md` §1; constitución, «Criterio de decisión autónoma», puntos 2 y 4)
++- Q: ¿La regla ampliada de FR-041 (contar como apertura la orden de Bash que hace `cd` a `<skill>/references` y nombra `<f>` por su nombre solo) se aplica también a la tabla de la familia del laboratorio de H39 (`articulos-del-boe`), o solo a las tablas de las familias de las skills del producto? → A: B. Solo a las familias de las skills del producto (`normativa`, `plazos-y-territorio`, `jurisprudencia`); la de H39 se sigue contando con su contrato §2, byte a byte (auto: conservadora; criterio d; fuente: hito H41 Entrega; ADR 0051, Consecuencias; `specs/032-h40-por-qu-e/contracts/tabla.md` §1; constitución, «Criterio de decisión autónoma», puntos 2 y 4)
+ - Q: ¿De dónde toma `make laboratorio-tabla` la lista de referencias de `<skill>-producto` «tal como se instalaron» en el sondeo, si `skills/<skill>` puede haber cambiado entre el sondeo y el recuento? → A: A, con la lista de nombres y no con la copia. El arnés deja en el directorio del sondeo los nombres de los ficheros de `references/` instalados, en orden de nombre; la tabla toma de ahí las columnas; sin lista legible, defecto `inesperado`, código 1 (auto: criterio c; fuente: FR-040, FR-022 y Edge Cases del spec; hito H41, Entrega; `specs/032-h40-por-qu-e/contracts/arnes.md` §3; constitución, «Criterio de decisión autónoma», punto 1)
+ - Q: En la regla de FR-041, ¿qué cuenta como nombrar `<f>` «por su nombre solo» tras el `cd`? → A: B. Una palabra de una orden simple posterior de la misma orden que sea exactamente `<f>` o `./<f>` (partido como en sh, con comillas); no cuentan otro directorio delante ni subcadenas (`mis-normas.md`, `normas.md.bak`) (auto: criterio c; fuente: hito H41, Entrega; FR-041 y Assumptions; ADR 0051, Lo medido y Consecuencias; `evidencias/sondeos-20261104/guiones/recuento.py` l. 61; `specs/031-h39-c-omo-se/contracts/tabla.md` §2; constitución, «Criterio de decisión autónoma», punto 1)
+ 
+@@ -114,17 +114,18 @@
+ 
+ **Acceptance Scenarios**:
+ 
+-1. **Dado** una petición de `normativa-control` y `normativa-producto` en los dos modos y de
+-   `normativa-remisiones-en-orden` en modo herramienta, con 40 sesiones por variante y modo, **Cuando** la persona lanza
+-   el arnés, **Entonces** abre diez sesiones de cada una de las evals 04, 05, 15 y 22 de `normativa` por variante y modo,
+-   200 en total, cada una con solo la skill de su variante instalada (FR-030, FR-032).
++1. **Dado** dos peticiones, como en H40, con 40 sesiones por variante y modo: `normativa-control` y
++   `normativa-producto` en los dos modos, y `normativa-remisiones-en-orden` en modo herramienta, **Cuando** la persona
++   lanza el arnés con cada una, **Entonces** abre diez sesiones de cada una de las evals 04, 05, 15 y 22 de `normativa`
++   por variante y modo, 160 con la primera y 40 con la segunda, 200 en total, cada una con solo la skill de su variante
++   instalada (FR-030, FR-032).
+ 2. **Dado** una petición de `plazos-y-territorio-control` y `plazos-y-territorio-producto` en los dos modos, con 40
+    sesiones por variante y modo, **Cuando** la persona lanza el arnés, **Entonces** abre diez sesiones de cada una de las
+    cuatro evals de la familia por variante y modo, 160 en total; y lo mismo con `jurisprudencia` (FR-030, FR-032).
+ 3. **Dado** una sesión de `<skill>-producto`, **Cuando** el sustituto de `claude` lista su skill instalada, **Entonces**
+    sus ficheros son idénticos byte a byte a los de `skills/<skill>` del árbol en ese momento (FR-022, SC-006).
+ 4. **Dado** una variante que no existe, una variante en un modo que no le corresponde, un número de sesiones que no es
+-   múltiplo de 4 o una petición que mezcla variantes de dos familias, **Cuando** la persona lanza el arnés, **Entonces**
++   un múltiplo de 4 mayor que 0 o una petición que mezcla variantes de dos familias, **Cuando** la persona lanza el arnés, **Entonces**
+    sale con un código distinto de 0, dice qué no vale y no abre ninguna sesión (FR-030, SC-007).
+ 
+ ---
+@@ -160,25 +161,27 @@
+ 
+ ### User Story 5 - La persona mide y decide antes de fusionar (Priority: P2)
+ 
+-Con la propuesta de cambio abierta, la persona lanza el sondeo de las trece filas con `claude-sonnet-5-5`, deja su tabla
+-en `evidencias/` y la añade, con su lectura, a la propuesta; solo la fusiona si cumple la aceptación.
++Con la propuesta de cambio abierta, la persona lanza el sondeo de las trece filas con `claude-sonnet-5-5`, deja sus
++tablas, una por familia, en `evidencias/` y las añade, con su lectura, a la propuesta; solo la fusiona si cumplen la
++aceptación.
+ 
+ **Why this priority**: es la aceptación del hito, pero la hace una persona fuera del run (ADR 0032).
+ 
+ **Independent Test**: el informe final del run dice que la propuesta queda pendiente del sondeo; antes de fusionar,
+-`evidencias/` tiene la tabla y la propuesta su lectura.
++`evidencias/` tiene las tablas y la propuesta su lectura.
+ 
+ **Acceptance Scenarios**:
+ 
+ 1. **Dado** la rama con el arnés y las tres skills reorganizadas, **Cuando** la persona lanza el sondeo con
+-   `claude-sonnet-5-5` y 40 sesiones por variante y modo en las trece filas de FR-032, **Entonces** la tabla queda en
+-   `evidencias/` con el modelo y la versión de Claude Code anotados (FR-052).
+-2. **Dado** la tabla, **Cuando** en modo herramienta el intervalo de `normativa-producto` en `con_herramientas.md` y en
++   `claude-sonnet-5-5` y 40 sesiones por variante y modo en las trece filas de FR-032, **Entonces** las tablas de las
++   tres familias, con trece filas entre las tres, quedan en `evidencias/` con el modelo y la versión de Claude Code
++   anotados (FR-040, FR-052).
++2. **Dado** las tablas, **Cuando** en modo herramienta el intervalo de `normativa-producto` en `con_herramientas.md` y en
+    `normas.md` no se toca con el de `normativa-control` y sí con el de `normativa-remisiones-en-orden`, y en ninguna
+    familia ni modo `producto` queda por debajo de `control` en las sesiones que activan la skill antes de la primera
+    herramienta ni en ninguna referencia a cuya condición llegan las evals, **Entonces** la reorganización vale y la
+    propuesta puede fusionarse (FR-052, SC-010).
+-3. **Dado** una tabla que no cumple alguna de esas condiciones, **Cuando** la persona la lee, **Entonces** la propuesta
++3. **Dado** unas tablas que no cumplen alguna de esas condiciones, **Cuando** la persona las lee, **Entonces** la propuesta
+    no se fusiona y lo medido va a un ADR que dice qué medir después (FR-052, SC-010).
+ 
+ ---
+@@ -197,6 +200,9 @@
+   `lecturas_que_fallan.md`, `redaccion_modificada.md` y `varios_bloques.md`, según el ADR 0051): sale «0 de n» con su
+   intervalo, como en H40, y no entra en la comparación de la aceptación (FR-040, FR-052).
+ - **Sesión sin terminar o fila sin ninguna sesión terminada**: como en H40 (FR-040).
++- **`DIRECTORIO` con sondeos de más de una familia** (p. ej., el padre de los lanzamientos de la aceptación): la tabla
++  es de la familia de la primera variante que lee; un directorio de variante de otra familia, también de H39, es un
++  defecto que nombra su ruta, con código 1 y sin tabla (FR-040). Cada familia se cuenta con su directorio.
+ - **Transcripción que el guion no sabe leer** (manipulada a mano, truncada por algo que no es el arnés): defecto
+   `inesperado`, código 1 (ADR 0023), sin más casos.
+ 
+@@ -290,9 +296,10 @@
+   `jurisprudencia` son cuatro evals de la skill que ya tienen sus lecturas grabadas y que entre las cuatro llegan a la
+   condición del mayor número de remisiones; el research del hito da la elección, su porqué y, por familia, las
+   referencias a cuya condición llega cada eval. Pedir una variante que no existe, una variante en un modo que no le
+-  corresponde, un número de sesiones que no es múltiplo de 4 o variantes de dos familias es un error de argumentos: sale
+-  con un código distinto de 0, dice qué no vale, uno por línea y con el nombre del argumento de `make`, y no abre
+-  ninguna sesión. La comprobación del modelo y de la versión de Claude Code, como en H40.
++  corresponde, un número de sesiones que no es un múltiplo de 4 mayor que 0 o variantes de dos familias es un error de
++  argumentos: sale con un código distinto de 0, dice qué no vale, uno por línea y con el nombre del argumento de `make`,
++  y no abre ninguna sesión. Los demás argumentos (`MODOS`, `MODELO`, `CLAUDE_CODE`, `CONCURRENCIA`, `DIRECTORIO`) y la
++  versión de Claude Code se comprueban como en H40 (`specs/032-h40-por-qu-e/contracts/arnes.md` §2).
+ - **FR-031**: El arnés lo lanza una persona, con la credencial del sondeo (ADR 0032); ni `make ci`, ni un gancho, ni el
+   job de evals, ni un paso del workflow lo ejecutan. El run no graba nada: no añade ni cambia ninguna grabación de
+   `testdata/` y no escribe en `evidencias/`.
+@@ -315,15 +322,17 @@
+   la fila de una variante que no tiene una referencia, su celda va vacía. Las de `<skill>-producto` salen de la lista
+   que el arnés deja en el directorio del sondeo (FR-033); las de las variantes versionadas, de su declaración. Un sondeo
+   de `<skill>-producto` sin esa lista, o con una que el guion no sabe leer, es un directorio manipulado: defecto
+-  `inesperado`, código 1 y sin tabla (ADR 0023). La columna «Cumplen la regla» solo va en la
++  `inesperado`, código 1 y sin tabla (ADR 0023). Una tabla cuenta una sola familia, la de la primera variante que lee
++  en orden de nombre, como en H40 (`specs/032-h40-por-qu-e/contracts/tabla.md` §1): un directorio de variante de otra
++  familia, también de H39, es un defecto que nombra su ruta, con código 1 y sin tabla. La columna «Cumplen la regla» solo va en la
+   tabla de `normativa`, como en H40. `make ci` comprueba el guion con transcripciones fijas de cada familia y falla si un
+   recuento, un turno o un extremo de un intervalo difiere.
+ - **FR-041**: Una orden de `Bash` también abre la referencia `<f>` de la skill de la familia si hace `cd` a un directorio
+   cuya ruta termina en `<skill>/references` (con o sin barra final) y después, en la misma orden, nombra `<f>` por su
+   nombre solo, sin directorio delante. «Nombra `<f>` por su nombre solo» es: una orden simple posterior de la misma
+   `input.command` tiene una palabra que es exactamente `<f>` o `./<f>`. Las palabras se parten como en sh (comillas
+-  simples y dobles, barra invertida) y las órdenes simples por `|`, `||`, `&&`, `;`, `&` y saltos de línea, con el mismo
+-  lector que el guion ya usa para la primera herramienta en modo orden (`specs/031-h39-c-omo-se/contracts/tabla.md` §2).
++  simples y dobles, barra invertida) y las órdenes simples por `|`, `||`, `&&`, `;`, `&` y saltos de línea, partidas
++  como en `specs/031-h39-c-omo-se/contracts/tabla.md` §2.
+   Cuentan `cat normas.md`, `cat "normas.md"`, `cat 'normas.md'` y `head -n 40 ./normas.md`; no cuentan
+   `cat otra/normas.md`, `cat /x/normas.md`, `cat mis-normas.md` ni `cat normas.md.bak`. No la abre si el `cd` va a otro
+   directorio (el de la skill, el de las referencias de otra skill), si `<f>` va antes del `cd` o si el `cd` y el nombre
+@@ -331,8 +340,7 @@
+   `references/<f>` se aplica aparte. La regla ampliada rige solo en las familias de las skills del producto
+   (`normativa`, `plazos-y-territorio` y `jurisprudencia`); la tabla de la familia del laboratorio de H39
+   (`articulos-del-boe`) se cuenta exactamente con su contrato (`specs/031-h39-c-omo-se/contracts/tabla.md` §2), como
+-  hoy. La regla de lectura es una sola función y es la familia la que declara si cuenta la lectura con `cd`: no hay
+-  dos copias. `make ci` lo comprueba con sesiones fijas con las formas que cuentan y con las que no, y falla si un
++  hoy. `make ci` lo comprueba con sesiones fijas con las formas que cuentan y con las que no, y falla si un
+   recuento difiere.
+ - **FR-042**: Las suites de aceptación congeladas de H39 (`specs/031-h39-c-omo-se/aceptacion/`) y de H40
+   (`specs/032-h40-por-qu-e/aceptacion/`) siguen en verde en `make ci` sin cambiar ningún fichero suyo.
+@@ -343,12 +351,12 @@
+   reorganización dé y la guía no recoja; si no da nada, el plan lo dice y por qué.
+ - **FR-051**: Las evals de las skills del producto salen en verde en la medición del cierre, en los dos modos.
+ - **FR-052**: Antes de fusionar, la persona lanza el sondeo de FR-032 con `claude-sonnet-5-5` y 40 sesiones por variante
+-  y modo y deja su tabla en `evidencias/`. La reorganización vale si cumple todo esto: en modo herramienta,
++  y modo y deja en `evidencias/` sus tablas, una por familia (FR-040). La reorganización vale si cumple todo esto: en modo herramienta,
+   `normativa-producto` abre `con_herramientas.md` y `normas.md` con un intervalo que no se toca con el de
+   `normativa-control` y sí con el de `normativa-remisiones-en-orden`; y en cada familia y modo, `producto` no queda por
+   debajo de `control` —con un intervalo que no se toca con el de `control`— en las sesiones que activan la skill antes de
+   la primera herramienta, ni en ninguna referencia a cuya condición llegan las evals (las que da el research, FR-030). El
+-  run no lanza el sondeo; la tabla y su lectura se añaden a la propuesta de cambio antes de fusionarla, y la propuesta no
++  run no lanza el sondeo; las tablas y su lectura se añaden a la propuesta de cambio antes de fusionarla, y la propuesta no
+   se fusiona sin ellas. Si el sondeo no cumple, la propuesta no se fusiona, y lo que se mida va a un ADR que dice qué
+   medir después. El informe final del run lo dice.
+ 
+@@ -375,10 +383,10 @@
+   modo orden. `normas.md` crece con las normas declaradas en `data/normas.yaml` al añadir un paquete, no con las
+   consultadas; las demás, solo cuando un hito las cambia. Lo movido (FR-009) se lee solo en el paso que lo usa, en vez
+   de en toda pregunta con el cuerpo. No llevan señales que caduquen: su contenido no depende de la consulta.
+-- **La tabla del sondeo** (FR-040, FR-041). La lee la persona una vez, para decidir la fusión: trece filas, cada una con
+-  la activación y una celda por referencia (ocho o más en `normativa`, cuatro en `plazos-y-territorio`, dos en
++- **Las tablas del sondeo** (FR-040, FR-041). Las lee la persona una vez, para decidir la fusión: las de las tres
++  familias, con trece filas entre las tres, cada una con la activación y una celda por referencia (ocho o más en `normativa`, cuatro en `plazos-y-territorio`, dos en
+   `jurisprudencia`), más el detalle de 520 sesiones. Su tamaño lo fijan las variantes, los modos y las sesiones pedidas,
+-  no el uso del producto; deja de leerse cuando la persona decide, y un sondeo nuevo da otra tabla.
++  no el uso del producto; dejan de leerse cuando la persona decide, y un sondeo nuevo da otras tablas.
+ 
+ ## Success Criteria *(mandatory)*
+ 
+@@ -407,9 +415,10 @@
+   FR-021, FR-023 y FR-042 en `make ci`.
+ - **SC-009**: Las evals de las skills del producto en verde en la medición del cierre, en los dos modos. Control: el job
+   de evals del cierre sale en rojo si una no pasa su umbral en un modo, y el informe final da sus cifras (FR-051).
+-- **SC-010**: Antes de fusionar, la tabla de las trece filas de 40 sesiones está en `evidencias/` y cumple las
++- **SC-010**: Antes de fusionar, las tablas de las tres familias, con trece filas de 40 sesiones entre las tres, están
++  en `evidencias/` y cumplen las
+   condiciones de FR-052. Lo mide la persona (capa 3): el sondeo abre sesiones con modelo, que ni `make ci` ni el run
+-  abren (ADR 0032), y ningún control automático lo hace cumplir; la propuesta no se fusiona sin la tabla y su lectura.
++  abren (ADR 0032), y ningún control automático lo hace cumplir; la propuesta no se fusiona sin las tablas y su lectura.
+ 
+ ## Criterios del hito (literales)
+ 
+@@ -462,6 +471,11 @@
+ - Cambiar el generador de la tabla de comandos o de las referencias generadas desde `data/`, incluida la orden generada
+   de `administrativo.md` en `plazos-y-territorio`.
+ - `consulta-juridica`, que no tiene referencias.
++- Cambiar las instrucciones del servidor `kitlegal mcp serve` o las descripciones de sus herramientas, que en modo
++  herramienta comparten `control` y `producto` porque el arnés arranca el `kitlegal` del árbol
++  (`specs/032-h40-por-qu-e/contracts/arnes.md` §3).
++- Cambiar las evals que ya existen (sus preguntas o expectativas), también las cuatro de cada familia que elige el
++  sondeo (FR-030).
+ - Evals nuevas, también las que llegarían a la condición de `buscar_la_norma.md`, `lecturas_que_fallan.md`,
+   `redaccion_modificada.md` y `varios_bloques.md`, y otras evals de `normativa` en el sondeo que las 04, 05, 15 y 22.
+ - Medir con el juez en el sondeo, que cuenta lecturas y activación, sin modelo.

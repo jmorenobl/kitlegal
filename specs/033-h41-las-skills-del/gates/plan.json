@@ -1,0 +1,105 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt vacío (0 bytes): filas I a X y reglas 1 a 7. Lo que dicen es cierto para el plan: internal/core, internal/graph y el SDK de MCP no cambian; nada nuevo importa net/http ni SQLite; os.Exit solo en cmd/laboratorio; internal/evals escribe en el io.Writer que le pasa cmd/laboratorio (TablaDelLaboratorio(raiz, args, salida, errores io.Writer), laboratorio_tabla.go:274). La fila V, retocada por la corrección, es cierta: una transcripción rota es hoy un defecto con código 1 (laboratorio_tabla.go:529-531, «la sesión … no se puede leer»), y un sondeo.json ilegible también (leerElSondeo, l. 399-414). Las dos frases inexactas que siguen (fila IV y fila X) no cambian el diseño: van a observaciones."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: biblioteca estándar, internal/skills e internal/evals; en los tests, stretchr/testify y rogpeppe/go-internal v1.16.0, de la lista fijada. La corrección no añade ninguna."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "El código va en internal/evals (laboratorio_familias.go, laboratorio_sondeo.go, laboratorio_tabla.go) y el test nuevo en internal/skills (remisiones_test.go). Ningún import nuevo de net/http ni de SQLite, ninguna llamada a os.Exit ni escritura en stdout fuera de cmd/laboratorio, y ningún paquete del binario importa internal/evals. La corrección no toca la estructura."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Los códigos de kitlegal no cambian. Para la tabla, un directorio de otra familia es un defecto con código 1, su mensaje y sin tabla; lo que el guion no sabe leer cae en la regla genérica de H39: `inesperado`, código 1 y sin tabla (contracts/tabla.md §1, corregido). Comprobado: hoy todo error de contarElSondeo y de leerElSondeo llega al código 1. Los errores de uso del arnés se dan como en H39 y H40 (contracts/arnes.md §2)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Los guiones congelados son aceptacion/laboratorio-tabla.txtar y aceptacion/remisiones.txtar, activados como h41-*.txtar en TestEntregaDelHito, y cada uno falla primero por una aserción (contracts/aceptacion.md §1 y §2). Unitarios: TestRemisionesDelRepositorio, con sus subtests «control» y «frases»; TestVariantesDeControl; TestSkillsDelProductoDesdeControl; TestArnesDeLasFamilias; TestTablaDeLasFamilias y TestLecturaConCd. Fixtures en internal/evals/testdata/laboratorio/familias/<skill>/. El nombre del test nuevo se añade a la expresión de skills-check (Makefile:127, comprobado)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada mecanismo de «Trazabilidad» se traza a un FR entre FR-001 y FR-052. La corrección quita la fila «sin lista, defecto» y no añade ningún mecanismo. No se tocan las descripciones, el generador, las evals, las instrucciones de mcp serve ni consulta-juridica."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No se prevé ningún //nolint, t.Skip ni TODO. Los dos subtests que salen de TestVariantesDeNormativa pasan a TestVariantesDeControl (FR-020). Ningún valor esperado de los tests de H39 y H40 cambia. Quitar el caso «sin lista» no silencia ningún error: ese estado sigue siendo un defecto con código 1 por la regla genérica."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1 a D16 dan cada decisión con la alternativa rechazada y su porqué. La corrección añade dos rechazadas documentadas: en D6, buscar las expresiones tal como se escriben, en minúscula, que daría por buena «Antes de dar la consulta, lee […]» en skills/; en D14, un mensaje y un caso de test para la lista que falta, un estado al que solo se llega a mano."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión. skills/jurisprudencia/SKILL.md:78 empieza con «Antes de dar la consulta, lee [references/consulta_preparada.md]», la cita nueva de D6. La búsqueda sin distinguir mayúsculas en los tres SKILL.md (iguales a v0.9.0; diff -r con normativa-control, vacío) solo encuentra, además de la l. 78, normativa:20, plazos-y-territorio:130 y jurisprudencia:32 («Si la tienes, úsala siempre.»), y ninguna de esas frases lleva un enlace a references/: la lista exacta de fallos de §6.4 sigue siendo cierta con la regla corregida. Ninguna línea + de contracts/remisiones.md trae una de las tres expresiones. Cuerpos de control (wc -m tras el frontmatter): 10 929, 10 930 y 10 842, los de §1. Makefile:87 y 91 dan -coverprofile=coverage.out y coverage-integration.out; Makefile:117 dice que vuln requiere red; .gitignore:5-6 tiene /*.out y /coverage.*. Los nombres con decide:true de specs/032-h40-por-qu-e/gates/evals/{normativa,jurisprudencia,plazos-y-territorio}.json (jq) son los de las filas de SC-009, y consulta-juridica no tiene ninguno."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Corregido: el párrafo inicial declara que el escenario 7 (make ci) deja coverage.out y coverage-integration.out en la raíz, ignorados por git, y que vuln usa red. Lo demás de make ci no escribe en el árbol (fmt --diff, go mod tidy -diff, goreleaser check, gitleaks dir sin informe). El escenario 5 escribe solo en $TMPDIR: TablaDelLaboratorio escribe en el io.Writer que recibe y no crea ficheros (laboratorio_tabla.go, sin os.WriteFile ni os.Create)."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "No graba nada: no hay manifiesto, TestGrabar* ni escritura en data/ o evidencias/. Las sesiones fijas son sintéticas y las escriben tareas [datos] sin red; las del sondeo se sirven de las grabaciones que ya usa el job (V7)."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "El sondeo de 520 sesiones lo lanza la persona fuera del run (FR-031, FR-052; quickstart §8). Ninguna tarea publica, mide en la plataforma ni pide una persona. El cierre es del workflow."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Las salidas y sus ejemplos están en contracts/remisiones.md §6 y §8, contracts/arnes.md §4, contracts/tabla.md §3 y §4, y data-model §4. Rehecho con wc -c: en normativa, por pregunta, el cuerpo (≤ 11 000 caracteres), más con_herramientas.md (2442 B) y normas.md (3510 B) = 5952 B; más 2809 B con una fecha; más 2359 B (2520 con lo movido) por cada entrada version-obsoleta. En plazos-y-territorio, administrativo.md (9930 B), como hoy, y, con su condición, 3944, 2760 o 1543 B. En jurisprudencia, 2038 o 2805 B. Nada crece con lo consultado (normas.md crece con las normas declaradas), las invocaciones por pregunta no cambian y no hay señales. La salida de TestRemisiones se lee en make ci y deja de darse cuando se corrige; sondeo.json ocupa de 55 a 256 B."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Corregido: el mensaje propio y el caso de TestTablaDeLasFamilias para un <skill>-producto sin lista se retiran de contracts/tabla.md §1 y §5, de research D14 y de la Trazabilidad de plan.md. Queda la regla genérica que pide FR-040. La búsqueda de «sin lista» o «no tiene la lista» en los artefactos solo da la fila V y D14, que remiten a esa regla, y el sondeo mezcla/h41 de la aceptación, que no tiene <skill>-producto. Los demás mecanismos se trazan a un FR."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Corregido el de SC-001: contracts/remisiones.md §6.3, D5 y D6 buscan las tres expresiones sin distinguir mayúsculas de minúsculas, y la fila de SC-001 lo dice y exige ver fallar «Antes de dar la consulta» en jurisprudencia-control. Recorrido rehecho: con la frase de la l. 78 en skills/, TestRemisionesDelRepositorio sale en rojo en make ci (test y skills-check). Hay filas de SC-001 a SC-009 con ci:<ruta>:<Test> o evals:<skill>:<nombre>, y los nombres coinciden con los decide:true de los informes de H40 (comprobado con jq). FR-032 y SC-010 los mide la persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "plan.md:65, fila IV: «internal/evals, que no importa ningún paquete del binario» sigue siendo falso, porque internal/evals importa internal/app, cli, skills y otros. Lo que se cumple es que ningún paquete del binario importa internal/evals. No cambia el diseño (ya estaba en la ronda 1).",
+    "D7, contracts/remisiones.md §7.1 y la fila X dicen que queda fuera «lo que genera make skills-sync», pero solo quitan las referencias con cabecera «generado desde» y las dos regiones del SKILL.md. skills/plazos-y-territorio/references/administrativo.md está escrita a mano y lleva tres regiones generadas (cobertura_por_materia, recursos_y_plazos y leyes_vertebrales, l. 21-91, desde data/cobertura.yaml, data/plazos.yaml y data/normas.yaml) que se comparan byte a byte. Un cambio futuro de esos datos pondría en rojo TestSkillsDelProductoDesdeControl, y la declaración no podría recogerlo. Es un emisor futuro, como el de la referencia escrita a mano de un paquete nuevo de la ronda 1: reducir también las regiones «<!-- inicio de X: generada desde … -->…<!-- fin de X -->» de las referencias haría cierta la fila X.",
+    "contracts/remisiones.md:240 (§6.1) sigue atribuyendo a lineasFueraDeBloques que las líneas de un bloque cuenten como líneas en blanco, pero esa función las quita. El subtest «frases» lo detectaría.",
+    "contracts/remisiones.md §2 y §3 siguen contando mal los tramos del diff (el movimiento es el cuarto, no el «quinto»). Los bytes no son ambiguos.",
+    "Cierre y pendientes sigue contando con una línea [alcance] en gates/supuestos.md para que el informe diga que la fusión espera al sondeo (FR-052). gates/supuestos.md solo tiene líneas de los correctores; esa línea la tiene que escribir una tarea o un paso.",
+    "quickstart.md cita Makefile:117 para vuln, que es la línea de su ayuda: el objetivo está en la 118. No cambia lo que se ejecuta.",
+    "FR-051 y consulta-juridica: su veredicto lo deciden sus series (ADR 0016), sin umbral con decide:true. Es configuración que el hito no toca y su skill no cambia."
+  ]
+}
