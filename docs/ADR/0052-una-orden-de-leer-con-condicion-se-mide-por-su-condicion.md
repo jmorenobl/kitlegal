@@ -120,7 +120,10 @@ herramienta, salvo una de `plazos-y-territorio-control` en modo orden.
    - **la lista de control con el verbo delante del enlace**: «- Lee [municipios.md](…): al presentar un territorio…».
 
    Cada variante se compara con `control` en el mismo sondeo, con la misma regla de la aceptación de H41: ninguna
-   referencia a cuya condición llegan las evals por debajo de `control` con intervalos que no se tocan.
+   referencia a cuya condición llegan las evals por debajo de `control` con intervalos que no se tocan. En el
+   relanzamiento, `skills/plazos-y-territorio` no cambia, y `plazos-y-territorio-producto` queda igual que
+   `plazos-y-territorio-control`: las variantes viven solo en el laboratorio, y la forma que gane la aplica al producto
+   un hito aparte (H41.1).
 4. **Una regla que el cuerpo da como orden no sale del cuerpo para hacer sitio sin una eval que llegue a su caso.**
    «Si no lo dice, **pregúntalo** y espera» vuelve al paso 1, o la entrada corregida trae la eval que deja el
    municipio sin decir. Lo que no necesita toda respuesta pasa a una referencia (ADR 0050 y 0051, consecuencias) solo
