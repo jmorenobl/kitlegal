@@ -737,6 +737,79 @@ func casosDeLecturaConCdDeH39(declarada declaracionDelLaboratorio) []casoDeLectu
 	}
 }
 
+// Las sesiones fijas de las tres familias del producto, cada una en
+// familias/<skill>/sondeo/ con la tabla que el guion da de ellas en
+// familias/<skill>/tabla.md, escrita a mano a partir de contracts/tabla.md §2 y
+// §3 y de esas sesiones, con los extremos de Wilson de H40 (FR-032, FR-040,
+// FR-041; SC-006, SC-007; contracts/tabla.md §5): los dos modos; en
+// plazos-y-territorio, las cinco variantes; la variante del producto, con la
+// lista referencias_del_producto de su sondeo.json, y en normativa una
+// referencia de la lista que la familia no declara, nueva.md, vacía en las
+// variantes versionadas; lecturas con cd que cuentan —con comillas dobles y
+// simples, con ./, con head, con barra final, con una variable, dos
+// referencias en una orden y una tubería detrás— y que no —el cd en otro Bash,
+// el nombre antes del cd, un nombre con prefijo o con sufijo, el cd al
+// directorio de la skill y el de las referencias de otra skill—; una referencia
+// abierta dos veces, por tramos, y Grep y Glob, que no abren nada; Skill
+// después de la primera herramienta y en su mismo turno; filas de dos sesiones,
+// de dos sondeos y de dos versiones de Claude Code; una sesión sin terminar por
+// el tope en cada familia; y la regla testigo, solo en la de normativa.
+//
+// Y familias/mezcla/sondeo/h41/, sin tabla.md: un sondeo cuya primera variante,
+// en orden de nombre, es de jurisprudencia, con un directorio de una variante de
+// normativa (plan.md «Gates»).
+const (
+	familiasFijas        = "testdata/laboratorio/familias"
+	sondeosDeLaFamilia   = "sondeo"
+	tablaDeLaFamiliaFija = "tabla.md"
+	familiaFijaDeMezcla  = "mezcla"
+	sondeoFijoDeLaMezcla = "h41"
+)
+
+// familiasConTablaFija son las tres familias del producto cuyas sesiones fijas
+// tienen su tabla, nombradas aquí y no sacadas de leer familias/.
+var familiasConTablaFija = []string{skillDeNormativa, skillDeLaFamiliaDePlazos, skillDeLaFamiliaDeJurisprudencia}
+
+// TestTablaDeLasFamilias fija la tabla de un sondeo de cada familia del producto
+// (FR-032, FR-040, FR-041; SC-006, SC-007; contracts/tabla.md §1 a §3 y §5): sobre
+// las sesiones fijas de cada una, su salida es, byte a byte, su tabla.md, sin
+// nada en la salida de error; y en un sondeo de jurisprudencia, el directorio de
+// una variante de normativa es un defecto: lo dice con la ruta en la salida de
+// error y da 1 sin tabla, porque una tabla es de una sola familia.
+func TestTablaDeLasFamilias(t *testing.T) {
+	t.Parallel()
+
+	for _, familia := range familiasConTablaFija {
+		t.Run(familia, func(t *testing.T) {
+			t.Parallel()
+
+			// filepath.Clean es lo que el control de rutas reconoce como saneado
+			// (gosec G304): la familia es una de las de familiasConTablaFija.
+			esperada, err := os.ReadFile(filepath.Clean(filepath.Join(familiasFijas, familia, tablaDeLaFamiliaFija)))
+			require.NoError(t, err)
+
+			tabla := contarElSondeo(t, filepath.Join(familiasFijas, familia, sondeosDeLaFamilia))
+
+			require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+			assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de %s, byte a byte", familia)
+			assert.Empty(t, tabla.errores)
+		})
+	}
+
+	t.Run("variante-de-otra-familia", func(t *testing.T) {
+		t.Parallel()
+
+		sondeos := filepath.Join(familiasFijas, familiaFijaDeMezcla, sondeosDeLaFamilia)
+
+		tabla := contarElSondeo(t, sondeos)
+
+		assert.Equal(t, 1, tabla.codigo)
+		assert.Empty(t, tabla.salida, "sin tabla")
+		assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(sondeos, sondeoFijoDeLaMezcla, varianteDeControlDeNormativa)+
+			" no es ninguna variante de "+skillDeLaFamiliaDeJurisprudencia+"\n", tabla.errores)
+	})
+}
+
 // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
 // salida y su salida de error.
 type tablaContada struct {
