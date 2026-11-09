@@ -81,12 +81,15 @@ El desglose por eval (`recuento.md`):
 - **`municipios.md`.**
   - `sin-condicion` la abre en 10 de 10 en cada eval y modo, salvo una sesión de la eval 10 en modo orden que no activa
     la skill.
-  - En la eval 02, la del municipio no cubierto, que es la que llega a «no sale con 0», `control` la abre en 2 de 10 en
-    modo orden y en 10 de 10 en modo herramienta. `condicion-por-orden` da lo mismo, 2 y 8, con la orden detrás de
-    `territorio resolver`; `lista-con-verbo` sube a 7 en modo orden.
-  - En las evals 05, 10 y 11, en las que el municipio sale con 0, las formas con condición la abren en 0 a 5 de 10.
+  - En la eval 02, la del municipio no cubierto, a la que en control llega «al presentar un territorio» (research D15),
+    `control` la abre en 2 de 10 en modo orden y en 10 de 10 en modo herramienta, y `lista-con-verbo`, en 7 y 10.
+  - En `condicion-por-orden` ninguna eval llega a la condición de su orden: en las cuatro, el municipio se dice y
+    `territorio resolver` sale con 0 (research D15, V6). Sus 8 de 40 por modo son lecturas que ninguna orden pide, y no
+    una orden que no se sigue. Lo que esa forma da en el caso de su condición queda sin medir.
+  - En las evals 05, 10 y 11, `control`, `producto`, `condicion-por-orden` y `lista-con-verbo` la abren en 0 a 5 de 10.
 - **`calculo_de_plazos.md`.** En las evals 05, 10 y 11, `sin-condicion` la abre en 10 de 10 en modo herramienta y en 10,
-  9 y 10 en modo orden, frente a entre 8 y 10 de `control`. En la eval 05, la que cayó de 10 a 3 en la #245, todas las
+  9 y 10 en modo orden, frente a entre 8 y 10 de `control`. `condicion-por-orden`, cuya orden «si alguno de los
+  municipios cuenta» llega a las tres, la abre en 10, 10 y 10 en modo orden y en 8, 10 y 10 en modo herramienta. En la eval 05, la que cayó de 10 a 3 en la #245, todas las
   formas la abren en 8 a 10 de 10. En la eval 02 no la abre ninguna variante: ninguna eval de la familia pide ahí un
   plazo.
 - **`jerarquia_normativa.md`**, cuya línea no cambia en ninguna variante, la abren en 10 de 40 `sin-condicion` en modo
