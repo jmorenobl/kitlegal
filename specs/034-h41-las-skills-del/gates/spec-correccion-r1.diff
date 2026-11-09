@@ -1,0 +1,55 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-06 14:53:35
++++ ahora/checklists/requirements.md	2026-11-06 14:54:22
+@@ -24,6 +24,8 @@
+   «Fuera de alcance» (el desglose por eval desde el detalle; ningún otro movimiento que los dos de FR-006).
+ - [x] Requirements are testable and unambiguous — cada FR nombra la comprobación de `make ci` que sale en rojo (FR-001,
+   FR-006 a FR-010, FR-020 a FR-025, FR-030, FR-032, FR-040 a FR-042) o la medida de la persona (FR-052, FR-053).
++  FR-033 y US4-1 piden las filas del sondeo en cuatro invocaciones (dos de `normativa`, porque `MODOS` vale para todas
++  las variantes de una invocación según FR-030), sin contradecir a FR-030; SC-008 las cuenta igual.
+ - [x] Success criteria are measurable — SC-001 a SC-010 con recuentos o bytes y su control; SC-011 y SC-012 con la
+   regla de los intervalos que lee la persona.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden frases, bytes, sesiones y recuentos,
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-06 14:53:35
++++ ahora/spec.md	2026-11-06 14:54:12
+@@ -133,10 +133,11 @@
+ 
+ **Acceptance Scenarios**:
+ 
+-1. **Dado** una petición de `normativa-control` y `normativa-producto` en los dos modos y de
++1. **Dado** dos peticiones de `normativa`, una de `normativa-control` y `normativa-producto` en los dos modos y otra de
+    `normativa-remisiones-en-orden` en modo herramienta, con 40 sesiones por variante y modo, **Cuando** la persona lanza
+-   el arnés, **Entonces** abre diez sesiones de cada una de las evals 04, 05, 15 y 22 de `normativa` por variante y modo,
+-   200 en total, cada una con solo la skill de su variante instalada (FR-030, FR-033).
++   el arnés con cada una, **Entonces** abre diez sesiones de cada una de las evals 04, 05, 15 y 22 de `normativa` por
++   variante y modo, 160 en la primera y 40 en la segunda, 200 en total, cada una con solo la skill de su variante
++   instalada (FR-030, FR-033).
+ 2. **Dado** una petición de `plazos-y-territorio-control`, `plazos-y-territorio-producto` y las tres variantes, en los
+    dos modos, con 40 sesiones por variante y modo, **Cuando** la persona lanza el arnés, **Entonces** abre diez sesiones
+    de cada una de las evals 02, 05, 10 y 11 de `plazos-y-territorio` por variante y modo, 400 en total; y con
+@@ -376,9 +377,12 @@
+   la lista o si la tabla no toma de ella las columnas de `<skill>-producto`.
+ - **FR-033**: Las filas del sondeo de la aceptación son diecinueve, de 40 sesiones cada una, 760 en total:
+   `<skill>-control` y `<skill>-producto` de cada familia en los dos modos (doce), las tres variantes de
+-  `plazos-y-territorio` en los dos modos (seis) y `normativa-remisiones-en-orden` en modo herramienta (una). El arnés
+-  las acepta en tres invocaciones, una por familia: cinco filas y 200 sesiones de `normativa`, diez y 400 de
+-  `plazos-y-territorio`, cuatro y 160 de `jurisprudencia`.
++  `plazos-y-territorio` en los dos modos (seis) y `normativa-remisiones-en-orden` en modo herramienta (una). Como
++  `MODOS` vale para todas las variantes de una invocación (FR-030), el arnés las acepta en cuatro invocaciones, como en
++  H40 y en la #245: dos de `normativa`, una de `normativa-control,normativa-producto` con `MODOS=orden,herramienta`
++  (cuatro filas, 160 sesiones) y otra de `normativa-remisiones-en-orden` con `MODOS=herramienta` (una fila, 40); una de
++  `plazos-y-territorio` (diez filas, 400) y una de `jurisprudencia` (cuatro, 160). La tabla de `normativa` cuenta el
++  directorio que junta las dos de esa familia (FR-040).
+ 
+ **La tabla**
+ 
+@@ -496,7 +500,7 @@
+ - **SC-007**: 0 bytes de diferencia entre la skill de una sesión de `<skill>-producto` y `skills/<skill>`, y 0
+   directorios de variante `<skill>-producto` en el repositorio. Control: el test de FR-022 en `make ci`.
+ - **SC-008**: Con una petición inválida (FR-030), 0 sesiones abiertas; con una válida, n/4 por eval en cada variante y
+-  modo pedidos de cada familia, también en las diecinueve filas de FR-033. Control: un test de `make ci` con un
++  modo pedidos de cada familia, también en las cuatro invocaciones de FR-033. Control: un test de `make ci` con un
+   sustituto de `claude` que cuenta sus invocaciones, sin modelo, sale en rojo si una inválida abre alguna o una válida
+   no abre n/4 por eval.
+ - **SC-009**: 0 bytes de diferencia en cada `<skill>-control` respecto de `skills/<skill>` de `v0.9.0`; 0 bytes fuera de

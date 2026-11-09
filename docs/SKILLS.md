@@ -136,6 +136,38 @@ casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `nor
   referencia trae (10 de 40) bastan. Una orden de leer una referencia de guía antes de escribir la respuesta se sigue
   en 20 de 40: lo que toda respuesta necesita sigue en el cuerpo.
 
+H41 lleva esa forma a `normativa` y `jurisprudencia` (`specs/034-h41-las-skills-del/contracts/remisiones.md`): cada
+orden de leer va antes de la primera orden o llamada de la skill, o en el paso que usa la referencia, antes de su orden
+o llamada, y nunca antes de escribir o dar la respuesta (ADR 0051, punto 3). `plazos-y-territorio` sigue como estaba
+hasta H41.1, que le aplica la forma de sus órdenes que mida el laboratorio (ADR 0052, punto 3). De ahí, tres reglas más:
+
+- **La orden cuya condición la trae lo que devuelve una llamada va en el paso de esa llamada, detrás de ella.** Antes
+  de la llamada el caso aún no ha llegado. Así, en el paso 2 de `normativa`, la de `redaccion_modificada.md` va detrás
+  de la comprobación que devuelve cada entrada `version-obsoleta`, y la de `lecturas_que_fallan.md`, detrás de la
+  lectura, con «antes de seguir»: ``Si una orden no termina con `0`, lee
+  [lecturas_que_fallan](references/lecturas_que_fallan.md) antes de seguir: qué hacer.``
+- **El sitio para las órdenes se hace llevando a la referencia que se manda leer en ese caso lo que solo ese caso
+  necesita**, y no quitándoles a las órdenes cuándo leer o lo que trae la referencia. Lo movido va entero, palabra por
+  palabra, al final de su referencia, y sale del cuerpo. Así pasaron, en `normativa`, «Nada de otra conversación» a
+  `redaccion_modificada.md`, que se manda leer por cada entrada `version-obsoleta`, lo único que trae de otra
+  conversación a una respuesta, y «Si una lectura falla, di qué bloques faltan y por qué», a `lecturas_que_fallan.md`,
+  que se manda leer si una orden no termina con `0`. El límite es el del ADR 0052, punto 4: una regla que el cuerpo da
+  como orden no sale del cuerpo para hacer sitio sin una eval que llegue a su caso, y lo que no necesita toda
+  respuesta pasa a una referencia solo si alguna eval llega al caso que la manda leer. Lo que toda respuesta necesita
+  sigue en el cuerpo.
+- **`make ci` y `make skills-check` comprueban la frase de cada remisión** (`TestRemisionesDelRepositorio`,
+  `internal/skills/remisiones_test.go`). En el cuerpo del `SKILL.md` de cada skill de `skills/` con `references/`
+  —salvo `plazos-y-territorio`, que el test declara fuera hasta H41.1—, la frase de un enlace a una referencia va desde
+  el final de la anterior —un punto seguido de un espacio o de un salto de línea, una línea en blanco, o la marca de
+  una viñeta o de un paso— hasta el final de la suya; cada línea de un bloque de código, cada encabezado y cada
+  comentario HTML van aparte (`skills.Frases`, `internal/skills/frases.go`). Cada una lleva `lee` o `Lee` antes del
+  enlace y ninguna de «si la tienes», «antes de escribir la respuesta» y «antes de dar la consulta», sin distinguir
+  mayúsculas; cada referencia tiene algún enlace en el cuerpo; y las frases con un enlace a una referencia son, en
+  orden, las de la lista del plan del hito que las escribió (`remisionesDelPlan`). El defecto nombra la skill, la
+  referencia y la regla: `normativa: references/con_herramientas.md: la frase de un enlace suyo lleva «si la tienes»`;
+  y, si una frase no es la de la lista, `<skill>: la remisión <n> no es la del plan`, con las dos listas. Cambiar una
+  remisión es cambiar también esa lista.
+
 El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
 especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con
 instrucciones que choquen, ni tan anchas que no se activen con precisión («Design coherent units»; «conflicting

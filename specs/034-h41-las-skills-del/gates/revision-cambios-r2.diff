@@ -1,0 +1,61 @@
+diff --git a/specs/034-h41-las-skills-del/research.md b/specs/034-h41-las-skills-del/research.md
+index 391a9e8c..2b706b54 100644
+--- a/specs/034-h41-las-skills-del/research.md
++++ b/specs/034-h41-las-skills-del/research.md
+@@ -312,6 +312,56 @@ dos referencias; los guiones de la #245, que se reescriben (contracts/aceptacion
+ referencias_del_producto de la variante …»): solo una edición a mano llega a ese estado, porque el arnés siempre
+ escribe la lista (FR-032), y no cambia nada que vea una persona o una skill (D17).
+ 
++### D21 · reparar_cierre: la sesión sin activar de la eval 04 no tiene arreglo dentro de lo que el hito puede tocar
++
++- **Evidencia**: la medición de cierre de la cabeza `69f5ecd1` (ejecución 42288846648, trabajo `evals (normativa)`
++  128137471691; `gates/cierre.json`, `gates/evals/normativa.json`) sale en rojo por un solo umbral que decide:
++  `sin_activar:claude-sonnet-5-5:herramienta`, 1 de 60 (≤ 0). La sesión es
++  `04-lgt-prescripcion-herramienta-claude-sonnet-5-5-01`: pidió `boe_articulo BOE-A-2003-23186 a66` sin ningún
++  `tool_use` de la herramienta `Skill` con `normativa`, respondió con la cita en la forma del ejemplo de las
++  instrucciones del servidor («[BOE-A-2003-23186, bloque a66]»), trasladó el aviso del sobre y no afirmó nada fuera del
++  texto leído; las otras dos repeticiones de la eval en ese modo activaron la skill y siguieron el protocolo
++  (`boe_indice`, `boe_articulo`, `graph_check`). Las 59 sesiones restantes del modo herramienta y las 60 del modo orden
++  con `claude-sonnet-5-5` activaron la skill, y los demás umbrales que deciden cumplen (`afirma_lo_no_leido` 0 de 120,
++  `redaccion_sin_fechar` 0 de 6 en cada modo, la medida del juez, las duraciones). El frontmatter de `normativa` —la
++  descripción, lo único de la skill que el agente ve antes de activarla— es byte a byte el de `normativa-control`, la
++  de `v0.9.0` (FR-009; `TestSkillsDelProductoDesdeControl`): nada de lo que cambia este hito interviene en la
++  activación, porque las remisiones del cuerpo se leen después de activar. Misma eval, mismo modo y misma forma en la
++  primera medición de H32 (`specs/030-h32-arquitectura-de-skills/gates/supuestos.md`; research D23 de H32: sesión
++  `-02`, 1 de 60), y 0 de 60 en H39 y H40 (`specs/031-h39-c-omo-se/` y `specs/032-h40-por-qu-e/`,
++  `gates/evals/normativa.json`): dos sesiones sin activar de las doce de la eval 04 en modo herramienta de los cuatro
++  cierres desde H32, los cuatro con Claude Code 2.1.284 (`versiones_de_claude_code` de los cuatro informes;
++  `VERSION_DE_CLAUDE_CODE` de `.github/workflows/evals.yml`). En los sondeos de la persona con Claude Code 2.1.317
++  (`evidencias/sondeos-20261104/tabla.md` y `evidencias/sondeos-20261106/tabla-normativa.md`), las 70 sesiones de la
++  eval 04 en modo herramienta (40 y 30, de todas las variantes, `normativa-control` y `normativa-producto` entre
++  ellas) activaron la skill antes de la primera herramienta. El informe del job no registra qué skills activó la
++  sesión, así que no se sabe si activó `consulta-juridica`.
++- **Decisión**: no se cambia ninguna skill ni el binario; lo mide el job en la medición siguiente, y en esta sesión no
++  se mide nada. Es la lectura conservadora del «Criterio de decisión autónoma» (punto 4): cada sitio desde el que se
++  puede actuar sobre la activación está cerrado por la entrada del hito o por una decisión anterior. La descripción de
++  `normativa` está fuera del hito por su fichero («Fuera: cambiar la descripción de una skill: la activación ya se mide
++  en 40 de 40 en los dos modos»), y FR-009 y SC-003 la fijan byte a byte a la de control para que el sondeo de FR-052
++  mida solo las remisiones; `consulta-juridica` está fuera por el mismo fichero, y su paso 2 ya pide activar la skill
++  de la capacidad antes de pedir nada a kitlegal desde la reparación de H32 (research D23 de H32), con esta sesión sin
++  activar después de ella; las instrucciones del servidor MCP y la descripción de las herramientas y de sus parámetros
++  son texto fuera de la skill, que el ADR 0050 (puntos 2 y 3) descarta para asegurar la activación, y la `Descripcion`
++  del verbo `articulo` llega además a `schemas/bloque.json` y a la tabla de comandos de la skill; la eval, el umbral y
++  la medida no se tocan (ADR 0029 y 0038); y la versión de Claude Code del job se fija con el modelo en una propuesta
++  propia (ADR 0031), no en una reparación.
++- **Por qué**: la causa no está en nada que este hito cambie, y lo que la mediría, el sondeo, ya la ha medido con la
++  misma descripción: 40 de 40 en cada variante y modo. Una frase más en la descripción, sin medir, contra la entrada
++  del hito y confundiendo el sondeo de aceptación (`normativa-producto` dejaría de diferir de `normativa-control` solo
++  en las remisiones), no es la mejor solución sino un atajo. Lo que deja esta medición para la persona: la diferencia
++  entre las dos versiones de Claude Code es una observación, no una causa probada (2 de 12 frente a 0 de 70, con
++  condiciones que difieren en más que la versión); y el informe del job sigue sin registrar las skills activadas, el
++  punto ciego que ya anotó H32; guardar las sesiones del job como artefacto está en
++  `docs/roadmap/backlog/medida-de-las-skills.md`.
++- **Rechazadas**: cambiar la descripción de `normativa` y, para conservar FR-009, la de su control y la de las
++  variantes de H40, que FR-020 y FR-021 fijan a `v0.9.0`; cambiar `consulta-juridica`; añadir a `Instrucciones` del
++  servidor o a la descripción de `boe_articulo` que exigen la skill activa (ADR 0050); registrar `skills_activadas` en
++  el informe del job, instrumentación que el hito no pide (criterio, punto 2); tocar la eval 04, el umbral o
++  `evals.yml`.
++
+ ## Fuentes externas
+ 
+ Ninguna. El hito no graba nada ni toca ninguna fuente (FR-031): no hay manifiesto `grabaciones.json`, test

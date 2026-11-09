@@ -42,3 +42,6 @@ compara, aunque creas saberlo, que sería texto legal sin fuente.
 ## Si se pregunta qué cambió
 
 La respuesta dice que cita la redacción vigente y que la de antes no la ha leído.
+
+- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la
+  línea `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.

@@ -1,0 +1,74 @@
+diff antes/contracts/tabla.md ahora/contracts/tabla.md
+--- antes/contracts/tabla.md	2026-11-06 15:47:20
++++ ahora/contracts/tabla.md	2026-11-06 15:49:24
+@@ -14,9 +14,9 @@
+ una de las tres del producto si es suya; si no, la de H39, con su comportamiento de hoy. En la tabla de una familia del
+ producto, un directorio de variante de otra familia —también de H39— es un defecto:
+ `laboratorio: <ruta> no es ninguna variante de <skill>` en la salida de error, código 1 y sin tabla (el texto de H40 para
+-`normativa`). Lo que el guion no sabe leer —una transcripción rota, un `sondeo.json` editado a mano, también sin la lista
+-`referencias_del_producto` de un sondeo con `<skill>-producto`—, como en H39: defecto `inesperado` (ADR 0023), código 1 y
+-sin tabla, sin mensaje ni test propios (research D17).
++`normativa`). Lo que el guion no sabe leer sigue la regla genérica del spec (casos límite): defecto `inesperado`
++(ADR 0023), código 1, sin más casos; el plan no diseña, comprueba ni prueba nada para un sondeo manipulado a mano
++(research D17, D20).
+ 
+ ## 2. Qué cuenta, por sesión
+ 
+@@ -110,8 +110,7 @@
+   SC-006): sobre las sesiones fijas de `internal/evals/testdata/laboratorio/familias/<skill>/sondeo/` de cada familia
+   —los dos modos; en `plazos-y-territorio`, las cinco variantes; lecturas con `cd` que cuentan y que no; una referencia
+   de la lista del producto que la familia no declara; una sesión sin terminar— la salida es, byte a byte, su
+-  `tabla.md`. Y el defecto de §1 que se alcanza sin editar el sondeo a mano: un directorio de variante de otra familia
+-  en un sondeo del producto, con código 1, sin tabla y su mensaje, sobre
++  `tabla.md`. Y el defecto de §1: un directorio de variante de otra familia en un sondeo del producto, con código 1, sin tabla y su mensaje, sobre
+   `internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/` (sin `tabla.md`).
+ - **`TestLecturaConCd`** (`internal/evals/laboratorio_tabla_test.go`; FR-041; SC-006): la tabla de §2, orden a orden,
+   con la familia de `normativa`, y la de H39 con la lectura con `cd`, que no la abre.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-06 15:47:20
++++ ahora/plan.md	2026-11-06 15:49:05
+@@ -66,7 +66,7 @@
+ | II · Nada sin cita ni fuente | El sobre de ningún applet cambia. Las reglas de cita, las formas fijas y la declaración de lo no cubierto siguen en los cuerpos (contracts/remisiones.md §2 a §4); lo movido es una regla entera que llega, palabra por palabra, a la referencia que su caso manda leer. `plazos-y-territorio` no cambia |
+ | III · Tests primero y offline | Primero los dos guiones de contracts/aceptacion.md, que hoy fallan por una aserción. Todos los tests nuevos, offline y sin modelo, contra fixtures que escriben las tareas `[datos]`; ninguna grabación. `internal/core` no cambia, y la cobertura global no baja: el código nuevo de `internal/evals` e `internal/skills` lleva sus tests |
+ | IV · Arquitectura hexagonal con reglas ejecutables | El código va en `internal/evals` y en `internal/skills`, que no van en el binario (research V10); `cmd/laboratorio` sigue siendo la raíz que nombra `os.Std*` y llama a `os.Exit`. Errores: la tabla, defecto `inesperado` con 1 y el de otra familia con 1, como H40; el arnés, error de uso como en H39; `kitlegal` y sus códigos no cambian. Ningún `panic` |
+-| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia nueva. Cada mecanismo se traza a un FR («Trazabilidad»); lo que llega de fuera manipulado (un `sondeo.json` sin lista, una transcripción rota) es defecto `inesperado`, código 1 y sin tabla, sin test propio (research D17). Las desviaciones, en Complexity Tracking |
++| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia nueva. Cada mecanismo se traza a un FR («Trazabilidad»); lo que el guion no sabe leer es la regla genérica del spec (casos límite: defecto `inesperado`, código 1, sin más casos), sin comprobación, mensaje ni test propios para un estado manipulado (research D17, D20). Las desviaciones, en Complexity Tracking |
+ | VI · Un binario, convenciones de agente | Un solo binario `kitlegal`, sin banderas, variables ni órdenes nuevas. `cmd/laboratorio` no se distribuye (`.goreleaser.yaml:30` construye solo `./cmd/kitlegal`) |
+ | VII · Grafo y privacidad | No toca el grafo. Las sesiones usan su caché y su grafo en su directorio, como las del job; ningún dato de una persona |
+ | VIII · Skills primero; el binario es la herramienta | Mejora dos skills del producto, medibles con sus evals (FR-051) y con el sondeo de la persona (FR-052), según la guía de autoría (ADR 0046, 0050, 0051 y 0052): lo que toda respuesta necesita sigue en el cuerpo, que cabe en 11 000; lo demás, en referencias que el cuerpo manda leer; sin `scripts/`. Prepara con la medida de las variantes el cambio de la tercera (H41.1) |
+@@ -184,6 +184,7 @@
+ | `TestRemisionesDelRepositorio` | regla sobre las tres skills | regla sobre `normativa` y `jurisprudencia`, con la lista del plan; `plazos-y-territorio` fuera hasta H41.1 | FR-001, FR-010 (research D7) |
+ | Frase | lector propio del test | `skills.Frases`, compartida con el control de las variantes | FR-001, FR-023 (research D5) |
+ | Producto desde control | tres skills sin lo generado | `normativa` y `jurisprudencia` sin lo generado; `plazos-y-territorio` entera | FR-007, FR-010 (research D4, D8) |
++| Tabla: `sondeo.json` de un sondeo con `<skill>-producto` sin `referencias_del_producto` | comprobación y mensaje propios | no vuelven; la regla genérica del spec | solo una edición a mano llega a ese estado: el arnés siempre escribe la lista (FR-032; research D17, D20) |
+ | Arnés | 13 filas, 520 sesiones | 19 filas, 760 sesiones; el test prueba las cuatro invocaciones | FR-030, FR-033 (research D14) |
+ | Guiones | `remisiones.txtar` y `laboratorio-tabla.txtar` | `skills-instaladas.txtar` (con la historia 3) y `laboratorio-tabla.txtar` con las cinco variantes | research D18 |
+ | `docs/SKILLS.md` | lo de la reorganización | lo mismo, con el límite del ADR 0052, punto 4; sin su punto 2 | FR-050 (research D19) |
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-06 15:47:20
++++ ahora/research.md	2026-11-06 15:49:01
+@@ -277,8 +277,9 @@
+ 
+ **Decisión.** La de la #245 (research D14): la unión, en orden de nombre, de las de la familia por cada directorio de
+ variante versionada y de la lista de `sondeo.json` por cada directorio `<skill>-producto`; celda vacía donde la variante
+-no tiene la referencia. Un `sondeo.json` sin la lista, que el arnés siempre escribe, es lo que el guion no sabe leer:
+-defecto `inesperado`, código 1 y sin tabla, sin mensaje ni test propios.
++no tiene la referencia. La lista la escribe el arnés siempre que el sondeo pide `<skill>-producto` (FR-032): la tabla
++no la comprueba, y lo que no sabe leer es la regla genérica del spec (casos límite: defecto `inesperado`, código 1, sin
++más casos).
+ 
+ ### D18 · Aceptación e2e
+ 
+@@ -305,7 +306,11 @@
+ —`laboratorio_familias.go`, el arnés, la tabla, la lectura con `cd`, `remisiones_test.go`, `.golangci.yml`—, con los
+ cambios de este plan: el de D1, `plazos-y-territorio` fuera de las remisiones (D4), la lista (D7), `skills.Frases`
+ (D5), las tres variantes (D11, D12) y sus fixtures. Lo que no vuelve: los cambios de `skills/plazos-y-territorio` y sus
+-dos referencias, y los guiones de la #245, que se reescriben (contracts/aceptacion.md).
++dos referencias; los guiones de la #245, que se reescriben (contracts/aceptacion.md); y, en
++`referenciasDeLasVariantes` de `laboratorio_tabla.go`, la comprobación de un `sondeo.json` sin
++`referencias_del_producto` en un sondeo con `<skill>-producto` y su mensaje («… no tiene la lista
++referencias_del_producto de la variante …»): solo una edición a mano llega a ese estado, porque el arnés siempre
++escribe la lista (FR-032), y no cambia nada que vea una persona o una skill (D17).
+ 
+ ## Fuentes externas
+ 

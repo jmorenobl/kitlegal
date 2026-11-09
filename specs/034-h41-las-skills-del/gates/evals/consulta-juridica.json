@@ -1,0 +1,3222 @@
+{
+  "skill": "consulta-juridica",
+  "modelo_que_decide": "claude-sonnet-5-5",
+  "modelos_informativos": [
+    "claude-haiku-4-5-20251001"
+  ],
+  "repeticiones": 3,
+  "umbral": 2,
+  "modelos_de_sesion": [
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-5-5"
+  ],
+  "versiones_de_claude_code": [
+    "2.1.284"
+  ],
+  "commit": "d5e66197ca753239a73f404ada743da5abd959e3",
+  "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
+  "ficheros_mal_formados": [],
+  "veredicto": "aprobado",
+  "motivos": [],
+  "origen": {
+    "modo": "reutilizacion",
+    "evals_medidas": 2,
+    "evals_reutilizadas": 0,
+    "sesiones_abiertas": 24,
+    "evals": [
+      {
+        "eval": "01-poliza-tras-el-fallecimiento.yaml",
+        "huella": "744e59f1ecd3587e4ed146c98fe76a8f1339738ae9cd05ebb759d9c37adcaf38",
+        "medida": true,
+        "motivo": "comun",
+        "rutas": [
+          "Makefile",
+          "cmd/laboratorio/main.go",
+          "internal/app/testdata/script/h41-laboratorio-tabla.txtar",
+          "internal/app/testdata/script/h41-skills-instaladas.txtar",
+          "internal/evals/laboratorio_familias.go",
+          "internal/evals/laboratorio_familias_test.go",
+          "internal/evals/laboratorio_normativa.go",
+          "internal/evals/laboratorio_normativa_test.go",
+          "internal/evals/laboratorio_sondeo.go",
+          "internal/evals/laboratorio_sondeo_test.go",
+          "internal/evals/laboratorio_tabla.go",
+          "internal/evals/laboratorio_tabla_test.go",
+          "internal/evals/laboratorio_test.go",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/tabla.md",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/tabla.md",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/tabla.md",
+          "internal/skills/frases.go",
+          "internal/skills/frases_test.go",
+          "internal/skills/remisiones_test.go",
+          "skills/jurisprudencia/SKILL.md",
+          "skills/normativa/SKILL.md",
+          "skills/normativa/references/lecturas_que_fallan.md",
+          "skills/normativa/references/redaccion_modificada.md"
+        ],
+        "aportes": [
+          {
+            "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
+            "medida": 21,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
+            "medida": 9,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
+            "medida": 18,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:herramienta",
+            "medida": 4,
+            "total": 3
+          }
+        ]
+      },
+      {
+        "eval": "02-una-sola-capacidad.yaml",
+        "huella": "c63fc33defc6d94230c34cda9f720a3dc2e087d3664c72f6f4507040f27d7f3a",
+        "medida": true,
+        "motivo": "comun",
+        "rutas": [
+          "Makefile",
+          "cmd/laboratorio/main.go",
+          "internal/app/testdata/script/h41-laboratorio-tabla.txtar",
+          "internal/app/testdata/script/h41-skills-instaladas.txtar",
+          "internal/evals/laboratorio_familias.go",
+          "internal/evals/laboratorio_familias_test.go",
+          "internal/evals/laboratorio_normativa.go",
+          "internal/evals/laboratorio_normativa_test.go",
+          "internal/evals/laboratorio_sondeo.go",
+          "internal/evals/laboratorio_sondeo_test.go",
+          "internal/evals/laboratorio_tabla.go",
+          "internal/evals/laboratorio_tabla_test.go",
+          "internal/evals/laboratorio_test.go",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/herramienta/03-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/herramienta/06-documento-que-no-es-el-pedido-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/jurisprudencia-producto/herramienta/04-documento-pegado-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/sondeo/h41-b/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/jurisprudencia/tabla.md",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-control/orden/22-lcsp-contrato-menor-en-2019-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/herramienta/22-lcsp-contrato-menor-en-2019-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-producto/orden/15-irpf-rendimientos-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-control/orden/05-trlrhl-impuestos-municipales-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/normativa/sondeo/h41-b/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/normativa/tabla.md",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-condicion-por-orden/orden/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/herramienta/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/herramienta/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-producto/orden/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/herramienta/02-territorio-municipio-no-cubierto-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/codigo-de-la-sesion",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.err",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.jsonl",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/sondeo/h41-a/sondeo.json",
+          "internal/evals/testdata/laboratorio/familias/plazos-y-territorio/tabla.md",
+          "internal/skills/frases.go",
+          "internal/skills/frases_test.go",
+          "internal/skills/remisiones_test.go",
+          "skills/jurisprudencia/SKILL.md",
+          "skills/normativa/SKILL.md",
+          "skills/normativa/references/lecturas_que_fallan.md",
+          "skills/normativa/references/redaccion_modificada.md"
+        ],
+        "aportes": [
+          {
+            "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
+            "medida": 0,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
+            "medida": 1,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
+            "medida": 0,
+            "total": 3
+          },
+          {
+            "umbral": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:herramienta",
+            "medida": 2,
+            "total": 3
+          }
+        ]
+      }
+    ]
+  },
+  "tasas": [
+    {
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 0,
+      "sin_medir": 0,
+      "pasa": false,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 2,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 0,
+      "sin_medir": 0,
+      "pasa": false,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 1,
+      "sin_medir": 0,
+      "pasa": false,
+      "sesiones_con_lectura_sin_servir": null
+    }
+  ],
+  "umbrales": [
+    {
+      "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
+      "descripcion": "Lecturas de claude-sonnet-5-5 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 21,
+      "total": 6,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": false,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
+      "descripcion": "Lecturas de claude-haiku-4-5-20251001 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 10,
+      "total": 6,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": false,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
+      "descripcion": "Lecturas de claude-sonnet-5-5 en el modo herramienta que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 18,
+      "total": 6,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": false,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:herramienta",
+      "descripcion": "Lecturas de claude-haiku-4-5-20251001 en el modo herramienta que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 6,
+      "total": 6,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": false,
+      "decide": false
+    }
+  ],
+  "juez": null,
+  "duracion_de_las_sesiones": 805,
+  "reintentos_por_limite_de_ritmo": 0,
+  "sesiones_sin_medir": [],
+  "fuera_de_lo_grabado": [
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar Ley de Contrato de Seguros --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar muerte asegurado póliza seguro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar contrato seguro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+      "codigo": 4
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar contrato seguro fallecimiento --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe buscar contrato seguro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe indice BOE-A-1980-23122 --json --offline",
+      "codigo": 4
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintayseis --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe articulo BOE-A-1980-22501 adoce --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquinto",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_buscar contrato seguro fallecimiento",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_buscar ley contrato seguro",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 asexto",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aveinte",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 aquince",
+      "codigo": 5
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "orden": "boe_articulo BOE-A-1980-22501 asexto",
+      "codigo": 5
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "orden": "boe buscar Estatuto de los Trabajadores --json",
+      "codigo": 5
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "orden": "boe_buscar Estatuto Trabajadores",
+      "codigo": 5
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "orden": "boe_buscar Estatuto de los Trabajadores",
+      "codigo": 5
+    }
+  ],
+  "red": [],
+  "evals": [
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe buscar Ley de Contrato de Seguros --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe buscar prórroga póliza asegurado fallecimiento --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe buscar Ley de Contrato de Seguros --json",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: No se puede acceder a la base de datos legislativa (el servidor BOE no responde a las consultas). Sin acceso a la norma consolidada no puedo leer qué dice la ley sobre la prórroga de pólizas cuando el asegurado fallece, ni citar los artículos que lo regulan.\n\nPara resolver tu pregunta en estos momentos, intenta:\n1. Esperar unos minutos e intentar de nuevo\n2. Si persiste: https://kitlegal.es/instalar/ para reinstalar kitlegal\n\nSobre lo que **no está cubierto** por la base: aunque pudiéramos leer la norma, la segunda parte de tu pregunta —**qué podemos hacer** (a quién reclamar, qué vía seguir, qué escrito presentar)— no está cubierta. Eso requeriría asesoría sobre los pasos concretos ante la aseguradora o los órganos que resuelven reclamaciones de seguros.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe buscar muerte asegurado póliza seguro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe buscar contrato seguro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-1980-22501 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+          "codigo": 4,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe buscar muerte asegurado póliza seguro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe buscar contrato seguro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 adoce atrece acatorce --offline --json",
+          "codigo": 4
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: kitlegal no puede acceder a la API de legislación consolidada del BOE — los servidores del BOE están rechazando las peticiones por problemas de acceso al fichero robots.txt. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\n## Lo que no está cubierto\n\nComo no he podido consultar la Ley 50/1980 de Contrato de Seguro, no puedo decirte qué dice la ley sobre los efectos de la muerte de la asegurada en la póliza ni si es legal que la aseguradora la prorrogue y cobre la prima del nuevo período.\n\n**Respecto a \"¿qué podemos hacer?\"** — esto tampoco está cubierto por la base, aunque la ley lo estuviera: los documentos, los recursos, las reclamaciones y los destinatarios (a quién reclamar, ante qué órgano) no están en esta fuente. Tendrías que:\n\n1. Consultar directamente la ley en el [BOE](https://www.boe.es/buscar/act.php?id=BOE-A-1980-22501) o en una herramienta de legislación\n2. Asesorarte con un abogado especializado en seguros que pueda evaluar:\n   - Si la póliza debería extinguirse por la muerte de la asegurada\n   - Si la prórroga y el cobro son conformes a la ley\n   - Qué vía de reclamación (administrativa, civil, ante el asegurador, ante organismos de supervisión) es la más adecuada en tu caso",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe buscar contrato seguro fallecimiento --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe buscar contrato seguro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-1980-23122 --json --offline",
+          "codigo": 4,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe buscar contrato seguro fallecimiento --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe buscar contrato seguro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe indice BOE-A-1980-23122 --json --offline",
+          "codigo": 4
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido obtener conexión con la fuente (boe.es) para consultar la normativa sobre seguros. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\nSin acceso a la consulta de la normativa, puedo decirte que **la base de kitlegal no cubre**:\n\n- **A quién reclamar** ante una aseguradora que cobra indebidamente por una póliza prorrogada tras fallecimiento\n- **Qué vía o procedimiento** seguir para recuperar lo cobrado\n- **Qué escrito** presentar\n\nEstos temas —los destinatarios, las vías administrativas o judiciales, los recursos y reclamaciones— están fuera del alcance de la consulta de normativa consolidada. Una vez que accedas a la norma aplicable (la Ley de Contrato de Seguro y leyes de consumidores), esos aspectos prácticos requerirían asesoramiento de un abogado o gestor administrativo que conozca los procedimientos específicos ante aseguradoras.\n\n¿Prefieres que lo intentemos de nuevo cuando se recupere la conexión con el BOE, o hay algo más en lo que pueda ayudarte?",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-1980-22501 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 1,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintidos --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintayseis --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintayseis --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaysiete --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 1,
+          "motivo": "salida_no_escrita",
+          "bash": "cd /tmp; for b in aveintidos atreintaycuatro atreintaycinco atreintayseis atreintaysiete; do kitlegal boe articulo BOE-A-1980-22501 $b --json && kitlegal graph check BOE-A-1980-22501 $b --json; echo; done | python3 -c \"\nimport sys,json\nfor l in sys.stdin:\n    l=l.strip()\n    if not l: continue\n    d=json.loads(l)['data']\n    print({k:d[k] for k in d if k in('bloque','titulo','texto','fecha_vigencia','avisos','norma_modificadora','version-obsoleta','hallazgos')})\n\""
+        }
+      ],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Solo he podido leer un artículo de la Ley de Contrato de Seguro, y ese artículo no resuelve si la prórroga y el cobro fueron válidos tras el fallecimiento. Lo que no he podido comprobar está al final.\n\n**Lo que dice la ley (lo único leído)**\n\nEl art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos] es una Ley, y su redacción vigente la dio la Ley 20/2015 desde el 1 de enero de 2016. No lleva avisos de vigencia. Dice lo siguiente:\n\n- **Duración y prórroga:** la póliza fija la duración, que no puede pasar de diez años. Puede pactarse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- **Oposición a la prórroga:** las partes pueden oponerse con una \"notificación escrita a la otra parte\". El plazo es de al menos un mes antes de que termine el período en curso si se opone el tomador, y de dos meses si se opone el asegurador (apartado 2).\n- **Condiciones de la póliza:** las condiciones y plazos de oposición, o su inoponibilidad, \"deberán destacarse en la póliza\" (apartado 4).\n- **Seguros de vida:** estas reglas no se aplican en cuanto sean incompatibles con la regulación del seguro sobre la vida (apartado 5).\n\nSi el seguro era de vida, este régimen de prórroga puede no aplicarse. Eso depende de otros artículos que no he leído.\n\n**Lo que no he podido comprobar**\n\n- No he podido leer los artículos treinta y cuatro a treinta y siete de esa Ley, porque la fuente limitó las consultas. Por eso no puedo decir qué ocurre con el contrato al fallecer el tomador o el asegurado, ni si los herederos quedan obligados a la prima.\n- Tampoco puedo decir si podéis reclamar la devolución de la prima. La parte práctica de la consulta queda fuera de lo que cubre la base: a quién reclamar, por qué vía, con qué escrito y en qué plazo. No os doy ningún plazo ni órgano de memoria, porque podría ser de otra materia o estar desfasado.\n\n**Qué conviene hacer ya**\n\n- Reunir la póliza y sus condiciones, el recibo de la nueva prima, el certificado de defunción y cualquier comunicación de la aseguradora. Hay que mirar si la póliza destaca las condiciones de oposición a la prórroga y si alguien notificó la baja por escrito.\n- Dejar constancia por escrito de la fecha en que se comunicó el fallecimiento a la aseguradora.\n- Consultar a un abogado o a un servicio de consumo y seguros con esa documentación, porque la solución depende del tipo de seguro (vida, hogar, decesos, automóvil…) y de lo que diga la póliza.\n\nSi me decís qué tipo de seguro era, puedo volver a intentar la lectura de los demás artículos. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-1980-22501 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycinco --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 acatorce --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aquince --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaytres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos acatorce aquince atreintaytres atreintaycuatro atreintaycinco asexto --json",
+          "codigo": 1
+        }
+      ],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Solo he podido leer uno de los preceptos de la Ley de Contrato de Seguro que importan para su caso. El resto no se ha podido consultar, y lo que depende de ellos queda sin responder.\n\n**Lo que dice la ley (lo leído)**\n\nEl art. 22 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos] es una ley. Su redacción vigente la dio la Ley 20/2015 y rige desde el 1 de enero de 2016. Dice lo siguiente:\n\n- La póliza fija la duración del contrato, que no puede pasar de diez años. Puede establecerse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- Las partes pueden oponerse a la prórroga con una notificación escrita a la otra parte. Si se opone el tomador, debe avisar con al menos un mes de antelación a la conclusión del período en curso. Si se opone el asegurador, con al menos dos meses (apartado 2).\n- Las condiciones y plazos de la oposición a la prórroga deben destacarse en la póliza (apartado 4).\n- Estas reglas no se aplican en lo que sea incompatible con la regulación del seguro de vida (apartado 5).\n\nDe ahí se deduce que la prórroga la prevé el propio contrato. Si la póliza era de prórroga anual y nadie se opuso en plazo, el seguro pudo renovarse sin que el asegurador tuviera que hacer nada especial.\n\n**Lo que no puedo decirle**\n\nLo que sigue no queda respondido con la ley leída, y no lo suplo de memoria:\n\n- Qué ocurre con el contrato cuando fallece el tomador o el asegurado. Eso depende del tipo de seguro (vida, hogar, coche, decesos u otro) y de lo que diga la póliza. No he podido leer los arts. 14, 15, 33, 34 y 35 de esa ley. La fuente (BOE) no respondió: la herramienta no pudo comprobar el permiso de acceso al sitio. Lo intenté de nuevo y falló igual.\n- Si tienen derecho a que les devuelvan la prima cobrada, y en qué plazo.\n- A quién reclamar y por qué vía: la aseguradora, su servicio de atención al cliente, el defensor del asegurado u otro órgano. La base no cubre destinatarios ni escritos, y tampoco el plazo de reclamación de esta materia. Tampoco le doy los plazos del procedimiento administrativo, que no son los de este asunto.\n- Si algo cambia por normativa autonómica. Esta fuente no recoge normas locales.\n\n**Qué puede hacer ya, sin depender de eso**\n\n1. Reúna la póliza y sus condiciones generales y particulares, el recibo de la prima nueva y el certificado de defunción. Fíjese en la fecha de vencimiento del período y en la cláusula de prórroga.\n2. Averigüe quién figura como tomador y quién como asegurado, y de qué tipo de seguro se trata.\n3. Escriba a la aseguradora por un medio que deje constancia (por ejemplo, burofax o correo certificado). Comuníquele el fallecimiento, pídale que anule la póliza y le devuelva la prima cobrada desde la fecha del fallecimiento, y conserve copia del escrito.\n4. Si no responde o se niega, consulte con un abogado o con una asociación de consumidores. Ellos le indicarán el órgano competente y el plazo exacto, que yo no he podido comprobar aquí.\n\nCuando la fuente vuelva a responder, puedo leer esos artículos y completar la respuesta. Si me dice el tipo de seguro, la respuesta saldrá más concreta.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-1980-22501 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro adoce acatorce aquince --json",
+          "codigo": 1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintidos --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintidos --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveintitres --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 adoce --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-1980-22501 adoce --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 atreintaycuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveintitres --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 aveinticuatro --json",
+          "codigo": 5
+        },
+        {
+          "orden": "boe articulo BOE-A-1980-22501 adoce --json",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [
+        {
+          "orden": "boe articulos BOE-A-1980-22501 aveintidos aveintitres aveinticuatro atreintaycuatro adoce acatorce aquince --json",
+          "codigo": 1
+        }
+      ],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "Con lo que he podido leer no puedo darte una respuesta completa. El efecto del fallecimiento de tu madre sobre el contrato y la devolución de la prima no están confirmados.\n\n**Lo que sí está leído: la prórroga**\n\nLa Ley 50/1980, de Contrato de Seguro (rango de ley), regula la prórroga en su art. 22 [BOE-A-1980-22501, bloque aveintidos]. Su redacción la dio la Ley 20/2015 y rige desde el 1 de enero de 2016. El artículo dice lo siguiente:\n\n- **Duración:** la póliza fija la duración, con un máximo de diez años. Puede establecerse que se prorrogue \"una o más veces por un período no superior a un año cada vez\" (apartado 1).\n- **Oposición a la prórroga:** las partes pueden oponerse mediante notificación escrita a la otra parte. Si se opone el tomador, debe hacerlo con al menos un mes de antelación a la conclusión del periodo en curso. Si se opone el asegurador, con al menos dos meses (apartado 2).\n- **Seguros de vida:** lo anterior no se aplica en cuanto sea incompatible con la regulación del seguro sobre la vida (apartado 5).\n\nPor tanto, la prórroga no es automática en todos los casos. Depende de que la póliza la prevea y de que nadie se haya opuesto a tiempo. Si la póliza es de vida, los apartados 1 a 4 ceden donde choquen con su regulación específica, que no he podido leer.\n\n**Lo que no he podido confirmar**\n\n- No sé si la póliza se extingue con la muerte de la tomadora. Tampoco sé si el contrato pasa a los herederos o si pueden pedir la devolución de la prima cobrada después. Todo eso depende del tipo de seguro (vida, hogar, coche, salud...) y de quién sea el tomador y el asegurado.\n- Intenté leer los bloques de los arts. 12, 23, 24 y 34 de la misma ley. La fuente rechazó las consultas cada vez y no pude obtener su texto. No digo nada de ellos.\n- Fuera de la cobertura de esta base están a quién reclamar, qué vía seguir, los plazos de reclamación en seguros y la redacción del escrito. No te los doy de memoria porque podrían ser de otra materia o haber cambiado.\n\n**Qué puedes hacer ahora**\n\n1. Reúne la póliza completa con sus condiciones particulares y generales, el certificado de defunción, el recibo de la prima cobrada y cualquier comunicación de la aseguradora.\n2. Averigua quién figura como tomador y quién como asegurado, y si hay beneficiarios. Es el dato que más cambia la respuesta.\n3. Comprueba si hubo oposición a la prórroga y cuándo. Los plazos de aviso del art. 22 cuentan hasta el final del periodo anterior.\n4. Antes de reclamar nada, consulta con un abogado o con un servicio de atención al consumidor. Conviene que lo vean con la póliza delante y que te digan a quién dirigirte y en qué plazo.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional. Si me dices qué tipo de seguro era, puedo volver a intentar leer los preceptos que faltan.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-1980-22501",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquinto",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aquinto asexto aseptimo aoctavo anoveno",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquinto",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido obtener el acceso a robots.txt del sitio del BOE (límite de tasa o error de servicio). Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\n---\n\n**Lo que no puedo cubrirte en este momento:**\n\nNo puedo consultar directamente el texto vigente de la Ley 50/1980 de Contrato de Seguro debido a un problema temporal de acceso a la fuente del BOE. Sin embargo, te digo dónde **sí** puedes encontrar la respuesta:\n\n## Qué necesitas saber sobre tu situación:\n\nLa Ley de Contrato de Seguro regula en **varios artículos** lo que sucede con la póliza cuando fallece el asegurado y cómo se tratan los cobros posteriores. Estos son los puntos clave que deberías consultar en el texto de la ley:\n\n1. **Duración del contrato y prorrogación** — cómo se extiende la cobertura y cuándo caduca\n2. **Efectos del fallecimiento** — qué sucede con el seguro cuando muere el asegurado\n3. **Obligaciones de la aseguradora** — qué debe hacer ante la muerte\n4. **Devolución de primas indebidas** — si la aseguradora cobró primas por un periodo en el que el seguro no debía estar vigente\n\n## Cómo proceder:\n\n**Lo que esta herramienta NO cubre** es:\n- A quién puedes reclamar exactamente (Dirección General de Seguros, Arbitraje, vías civiles)\n- Qué escrito debes presentar\n- Los plazos específicos para reclamar\n\nPara eso necesitarías:\n1. **Primero**: contactar a un **abogado especializado en seguros** o la **Dirección General de Seguros y Fondos de Pensiones** para confirmar si la prorrogación fue válida tras el fallecimiento\n2. **Luego**: presentar una **reclamación ante la aseguradora** o recurrir a los mecanismos de resolución de disputas (mediación, arbitraje)\n\nCuando el acceso al BOE se normalice, podré leerte los artículos exactos. ¿Quieres que lo intente de nuevo en unos momentos?",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_buscar contrato seguro fallecimiento",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_buscar ley contrato seguro",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_buscar contrato seguro fallecimiento",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_buscar ley contrato seguro",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ **SIN CONSULTA AL BOE**: la fuente del BOE no es accesible en este momento (no se ha podido obtener el robots.txt del sitio). No puedo consultar la normativa sobre la continuación de pólizas tras fallecimiento ni las reglas sobre prórroga automática y cobro de primas.\n\n**Lo que sí puedo decirte sin consultar la norma:**\n\nTu pregunta tiene dos partes. La **normativa** (qué dice la ley sobre pólizas tras el fallecimiento) está cubierta por la base de kitlegal, pero en este momento no es accesible. La **segunda parte** —qué se puede reclamar, a quién, con qué plazo y por qué vía— **no está cubierta** por las capacidades de kitlegal: eso forma parte de procedimiento administrativo, vías de reclamación y órganos competentes que varían según el tipo de seguro (vida, hogar, etc.) y dónde lo contrataras.\n\n**Para seguir:**\n\nSi el acceso se restablece, podré leer qué dice la Ley 50/1980, de 8 de octubre, de Contrato de Seguro (la norma principal) sobre la extinción de pólizas tras el fallecimiento del asegurado y las reglas sobre prórroga automática.\n\nPara la parte de reclamación, necesitarías asesoramiento de un abogado o consultar los datos de contacto y los procedimientos de tu aseguradora, que varían según la póliza.\n\n¿Quieres que lo intente de nuevo o hay otra pregunta sobre este tema que pueda responder?",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-haiku-4-5-20251001-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: kitlegal no está en el PATH del entorno. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\nSin poder leer las normas del BOE en esta sesión, no puedo decirte con cita qué dice exactamente la ley sobre tu situación.\n\n## Qué pregunta pide\n\nTu pregunta tiene dos partes:\n\n1. **Normativa**: qué dice la ley cuando una aseguradora continúa cobrando primas después del fallecimiento del asegurado — requiere leer la Ley de Contrato de Seguro y normas de seguros del BOE.\n\n2. **Qué hacer**: a quién reclamar, qué procedimiento seguir, qué escrito presentar — esto **no está cubierto** por la base de kitlegal (no consulta órganos ni vías de reclamación).\n\n## Próximos pasos\n\nPara obtener la respuesta con citas legales, necesitas:\n\n- **Para la parte normativa**: reabre Claude Code en un chat nuevo y repite la pregunta; en ese chat kitlegal debería estar disponible y podré leer los artículos exactos de la Ley 50/1980 sobre qué sucede con la póliza y el cobro de primas.\n\n- **Para la parte de acciones**: busca información sobre reclamación a seguros en tu región (hay organismos como el Defensor del Asegurado), o consulta con un abogado especializado en seguros que te indique el órgano competente y los documentos necesarios.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-1980-22501 aveintidos",
+        "cita ausente: BOE-A-1980-22501 aveintidos"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-1980-22501",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aveintidos acatorce aquince acuarentaycuatro acuarentaycinco acuarentayseis atreintaycuatro aveintitres",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acuarentaycuatro",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Lo que he podido comprobar en la ley es limitado y no responde del todo a su caso.** Tampoco he podido leer los artículos que regulan directamente el fallecimiento del tomador y la devolución de la prima.\n\n**Qué dice la ley sobre la prórroga**\n\nLa norma aplicable es la Ley 50/1980, de Contrato de Seguro (rango: Ley).\n\n- La póliza fija la duración del contrato, hasta un máximo de diez años. Puede establecer que se prorrogue una o más veces, por períodos de hasta un año cada vez (art. 22.1 de la Ley 50/1980 de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos]).\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita a la otra. El tomador debe hacerlo al menos un mes antes de que acabe el período en curso, y el asegurador, al menos dos meses antes (art. 22.2 [BOE-A-1980-22501, bloque aveintidos]).\n- El asegurador debe comunicar al tomador cualquier modificación del contrato con al menos dos meses de antelación (art. 22.3 [BOE-A-1980-22501, bloque aveintidos]).\n- Esas reglas no se aplican en lo que sea incompatible con la regulación del seguro de vida (art. 22.5 [BOE-A-1980-22501, bloque aveintidos]).\n- El artículo no lleva avisos de vigencia. Su redacción vigente es la dada por la Ley 20/2015 [BOE-A-2015-7897], con efectos desde el 1 de enero de 2016.\n\n**Lo que esto implica para usted**\n\nEl artículo habla de oponerse a la prórroga por notificación escrita. Si la póliza se prorrogó y el aviso no se dio a tiempo, la prórroga operó con arreglo a ese artículo. Eso no responde a si el contrato seguía vivo tras la muerte de su madre, ni a si la aseguradora debe devolver la prima de un período posterior al fallecimiento. Lo primero depende del tipo de seguro (vida, hogar, decesos, automóvil…) y de quién era el tomador y el asegurado. Lo segundo depende de cómo trata la ley la muerte del tomador y la prima, y eso no he podido leerlo.\n\n**Lo que no he podido consultar**\n\nLos artículos catorce, quince y cuarenta y cuatro de la misma ley no se pudieron leer. La fuente del BOE limitó las consultas y no los devolvió. No voy a decir de memoria qué establecen, porque no tendrían cita.\n\n**Qué hacer**\n\nLa base de kitlegal no cubre plazos ni destinatarios de una reclamación de seguros, así que no los doy. Con lo que sí puedo sostener, le sirve esto:\n\n1. **Reúna la documentación.** Necesita la póliza, el certificado de defunción, el recibo de la prima cobrada con su fecha y las comunicaciones de la aseguradora.\n2. **Compruebe quién era tomador y asegurado.** La póliza lo dirá, y eso cambia el análisis.\n3. **Reclame por escrito a la aseguradora la devolución de la prima.** Comunique el fallecimiento y pida la anulación del contrato. Conserve la prueba de envío y de la fecha.\n4. **Consulte con un profesional si no se la devuelven.** Un abogado o una asociación de consumidores pueden indicarle la vía de reclamación y los plazos aplicables a su tipo de seguro.\n\nPuedo reintentar la lectura de esos artículos más tarde, cuando la fuente vuelva a responder. Si me dice el tipo de seguro, puedo buscar también los preceptos específicos.\n\nEste texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-1980-22501",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 acatorce aquince aveintidos atreintaytres atreintaycuatro atreintaycinco atreintayseis aveinticinco",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 acatorce",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 atreintaycuatro",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Lo que puedo afirmar con el texto leído es limitado.** La Ley 50/1980, de Contrato de Seguro, sí regula la prórroga, pero el texto que he podido leer no trata el fallecimiento. No puedo decirle todavía si la prórroga o el cobro de la prima fueron correctos ni si procede devolución.\n\n**Lo que dice la ley sobre la prórroga**\n\n- La duración del contrato se fija en la póliza, con un máximo de diez años. Puede pactarse que se prorrogue una o más veces, cada vez por un período no superior a un año. Art. 22.1 de la Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501, bloque aveintidos].\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita. Si se opone el tomador, debe hacerlo con al menos un mes de antelación al final del período en curso. Si se opone el asegurador, con al menos dos meses. Art. 22.2 [BOE-A-1980-22501, bloque aveintidos].\n- Esas condiciones y plazos deben destacarse en la póliza. Art. 22.4 [BOE-A-1980-22501, bloque aveintidos].\n- Estas reglas no se aplican cuando sean incompatibles con la regulación del seguro de vida. Art. 22.5 [BOE-A-1980-22501, bloque aveintidos].\n- Redacción vigente desde el 1 de enero de 2016, dada por la Ley 20/2015 [BOE-A-2015-7897]. El artículo no lleva avisos de vigencia. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.\n\n**Lo que no he podido leer**\n\nLa fuente limitó las consultas y no pude leer los artículos 14, 15 y 34 de la Ley. Por eso no digo qué fijan. Si son los que deciden la cuestión, un nuevo intento más adelante puede resolverlo.\n\n**Lo que la base no cubre**\n\nNo puedo indicarle ante quién reclamar, qué vía seguir ni qué escrito presentar, ni ningún plazo para hacerlo. Tampoco redacto reclamaciones. Para esas partes necesitará una fuente distinta o un profesional.\n\n**Qué puede ir preparando**\n\n1. Identifique qué tipo de póliza es: vida, decesos, hogar, auto u otra. La respuesta puede cambiar según el tipo, porque el art. 22.5 deja fuera el seguro de vida.\n2. Reúna la póliza con sus condiciones, el certificado de defunción, el recibo de la prima cobrada y las fechas de renovación.\n3. Anote si y cuándo se comunicó el fallecimiento a la aseguradora, y si ya había una renovación pendiente. Conserve las pruebas de esa comunicación.\n4. Compruebe qué dice la póliza sobre la oposición a la prórroga, porque debe estar destacada (art. 22.4).\n5. Con eso en mano, pida asesoramiento a un abogado o a una asociación de consumidores, y reclame por escrito a la aseguradora.\n\nSi me dice el tipo de póliza y las fechas (fallecimiento, aviso a la aseguradora y cobro), puedo volver a intentar la lectura de los artículos pendientes.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-poliza-tras-el-fallecimiento-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-poliza-tras-el-fallecimiento.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-1980-22501 aveintidos"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-1980-22501 aveintidos"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-1980-22501",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aveinte",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-1980-22501 aveintidos",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_articulos BOE-A-1980-22501 aquince aveintidos aveintitres aveinticuatro aveinticinco asexto aveinte",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aveinte",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 aquince",
+          "codigo": 5
+        },
+        {
+          "orden": "boe_articulo BOE-A-1980-22501 asexto",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**No he podido contestar del todo a su pregunta: solo he podido leer un artículo de la Ley de Contrato de Seguro, y ese artículo no dice qué pasa con la póliza ni con la prima cuando fallece quien la contrató.**\n\nLamento su pérdida.\n\n**Lo que sí dice la ley sobre la prórroga**\n\nLa Ley 50/1980, de Contrato de Seguro [BOE-A-1980-22501], es una ley. Su art. 22 regula la duración del contrato y la prórroga.\n\n- La póliza fija la duración, que no puede pasar de diez años. Puede establecerse que se prorrogue una o más veces, por períodos de no más de un año cada vez (art. 22.1 de la Ley 50/1980 [BOE-A-1980-22501, bloque aveintidos]).\n- Cualquiera de las partes puede oponerse a la prórroga con una notificación escrita a la otra. El tomador debe hacerlo con al menos un mes de antelación a la conclusión del período en curso. El asegurador, con al menos dos meses (art. 22.2 [BOE-A-1980-22501, bloque aveintidos]).\n- Las condiciones y plazos de esa oposición, o que no pueda oponerse, deben destacarse en la póliza (art. 22.4 [BOE-A-1980-22501, bloque aveintidos]).\n- Estas reglas no se aplican en lo que sea incompatible con la regulación del seguro sobre la vida (art. 22.5 [BOE-A-1980-22501, bloque aveintidos]). Si la póliza de su madre era de vida, esto importa.\n\nLa redacción citada es la dada por la Ley 20/2015, en vigor desde el 1 de enero de 2016. El artículo no lleva avisos de vigencia.\n\n**Lo que no puedo decirle**\n\n- **Qué efecto tiene el fallecimiento.** Ese artículo habla del «tomador» y del «asegurador», pero no dice qué ocurre con el contrato o la prórroga cuando fallece el tomador o el asegurado. Si la prórroga y el cobro de la prima eran válidos, o si usted puede reclamar su devolución, depende de otros artículos que no he podido leer.\n- **Artículos no leídos.** Intenté leer los arts. 6, 15 y 20 de la misma ley, pero la fuente (BOE) limitó las consultas y no devolvió su texto. No afirmo nada sobre ellos.\n- **A quién reclamar, por qué vía y con qué plazo.** Esto no lo cubre la base que consulto. Tampoco redacto escritos. Para el plazo de su caso, no aplique los de otras materias, como el recurso administrativo, porque no son los suyos.\n\n**Qué puede hacer mientras tanto**\n\nLo siguiente son pasos prácticos, no consecuencias jurídicas que haya comprobado.\n\n- Reúna la póliza, el recibo cobrado y el certificado de defunción.\n- Compruebe en la póliza qué tipo de seguro es y qué dice sobre la prórroga y su oposición, que debe estar destacado.\n- Anote la fecha del cobro y la fecha del fallecimiento. Si ya envió alguna comunicación a la aseguradora, guárdela.\n- Consulte con un abogado o una asociación de consumidores antes de reclamar, para que confirmen los preceptos que no he podido leer y el plazo aplicable.\n\nEl texto consolidado del BOE es informativo y no sustituye el asesoramiento de un profesional. Si me lo pide, vuelvo a intentar leer los arts. 6, 15 y 20 cuando la fuente permita las consultas.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-01",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El art. 38 del Estatuto de los Trabajadores establece que **el periodo de vacaciones anuales retribuidas no sustituible por compensación económica será de al menos treinta días naturales** [BOE-A-2015-11430, bloque a38].\n\nLa duración concreta se determina según lo pactado en el convenio colectivo o el contrato individual, pero no puede ser inferior a ese mínimo de treinta días.\n\nEl disfrute de las vacaciones se fija de común acuerdo entre el empresario y el trabajador, conforme a lo que establezcan los convenios colectivos sobre planificación anual. El trabajador debe conocer las fechas que le correspondan con al menos dos meses de anticipación.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores establece lo siguiente sobre los días de vacaciones al año:\n\nEl artículo 38 del Estatuto de los Trabajadores [Real Decreto Legislativo 2/2015, de 23 de octubre, BOE-A-2015-11430, bloque a38] regula las vacaciones anuales retribuidas en estos términos:\n\n**Duración mínima:** La duración del periodo de vacaciones anuales retribuidas no puede ser inferior a treinta días naturales, aunque puede ser mayor si así lo pactado en el convenio colectivo o en el contrato individual [art. 38.1].\n\n**Características:** Las vacaciones son retribuidas y no sustituibles por compensación económica [art. 38.1].\n\n**Determinación de fechas:** El período o períodos de disfrute se fijará de común acuerdo entre el empresario y el trabajador, en el marco de lo establecido en los convenios colectivos sobre planificación anual. El calendario se establecerá en cada empresa, y el trabajador debe conocer las fechas que le correspondan con al menos dos meses de anticipación. Si hay desacuerdo, la jurisdicción social determinará la fecha irrecurriblemente, mediante procedimiento sumario y preferente [art. 38.2 y 38.3].\n\n**Supuestos especiales:** Si las vacaciones coinciden con incapacidad temporal derivada del embarazo, parto o lactancia natural, o con períodos de suspensión del contrato previstos en la ley, el trabajador puede disfrutarlas en fecha distinta al finalizar la suspensión, aunque haya terminado el año natural. Si coinciden con incapacidad por otras contingencias que impidan disfrutarlas, pueden diferirse hasta 18 meses desde el final del año en que se originaron [art. 38.3].",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-haiku-4-5-20251001-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe buscar Estatuto de los Trabajadores --json",
+          "codigo": 5,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe buscar Estatuto de los Trabajadores --json",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: la fuente de datos legislativos no es accesible en este momento (fallo de conectividad con el servidor del BOE). Para obtener la información sobre vacaciones anuales en el Estatuto de los Trabajadores, intenta de nuevo en unos momentos o consulta directamente https://www.boe.es/.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-2015-11430 a38",
+        "cita ausente: BOE-A-2015-11430 a38"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-sonnet-5-5-01",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**El Estatuto de los Trabajadores fija un mínimo de treinta días naturales de vacaciones al año.** Lo dice el art. 38.1: las vacaciones anuales retribuidas, \"no sustituible[s] por compensación económica\", serán las pactadas en convenio colectivo o contrato individual. \"En ningún caso la duración será inferior a treinta días naturales\" [art. 38 del texto refundido de la Ley del Estatuto de los Trabajadores, BOE-A-2015-11430, bloque a38].\n\nLa norma es un Real Decreto Legislativo (RDL 2/2015, de 23 de octubre). El convenio o el contrato pueden mejorar esos treinta días, pero no rebajarlos.\n\nEl mismo artículo añade lo siguiente [art. 38 ET, BOE-A-2015-11430, bloque a38]:\n\n- **Fechas (apdo. 2):** el empresario y el trabajador las fijan de común acuerdo, conforme a lo que digan los convenios sobre planificación anual. Si no se ponen de acuerdo, la jurisdicción social fija la fecha, su decisión es irrecurrible y el procedimiento es sumario y preferente.\n- **Calendario (apdo. 3):** se fija en cada empresa. El trabajador debe conocer las fechas que le correspondan al menos dos meses antes del comienzo del disfrute.\n- **Coincidencia con baja o suspensión (apdo. 3):**\n  - Si las vacaciones coinciden con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se pueden disfrutar en fecha distinta. Eso vale al finalizar la suspensión, aunque haya terminado el año natural al que corresponden.\n  - Si coinciden con una incapacidad temporal por otras contingencias que impida disfrutarlas, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Es necesario que no hayan pasado más de dieciocho meses desde el final del año en que se originaron.\n\nEl artículo no lleva avisos de vigencia. Su redacción vigente es la de fecha de vigencia 13-11-2015, dada por el propio RDL 2/2015.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional. Tu convenio colectivo puede fijar más días o regular el calendario, y conviene que lo consultes.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-sonnet-5-5-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**El Estatuto de los Trabajadores fija un mínimo de treinta días naturales de vacaciones al año.** El convenio colectivo o el contrato individual pueden pactar más, pero nunca menos. Lo dice el art. 38 del texto refundido de la Ley del Estatuto de los Trabajadores, aprobado por Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38].\n\nSegún ese artículo:\n\n- **Duración.** Las vacaciones anuales son retribuidas y no se pueden sustituir por compensación económica. Su duración es la pactada en convenio colectivo o contrato individual, y «en ningún caso la duración será inferior a treinta días naturales» (art. 38.1).\n- **Fechas de disfrute.** Las fijan de común acuerdo empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual de las vacaciones. Si no hay acuerdo, fija la fecha la jurisdicción social. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2).\n- **Calendario.** Se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3).\n- **Coincidencia con incapacidad temporal derivada del embarazo, el parto o la lactancia natural.** Si las vacaciones del calendario coinciden con esa incapacidad o con el periodo de suspensión del contrato «previsto en los apartados 4, 5 y 7 del artículo 48», el trabajador las disfruta en otra fecha. Puede hacerlo al terminar la suspensión, aunque ya haya acabado el año natural al que corresponden (art. 38.3).\n- **Coincidencia con otra incapacidad temporal.** Si la incapacidad es por otras contingencias y le impide disfrutar las vacaciones, total o parcialmente, durante el año natural, puede disfrutarlas al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron (art. 38.3).\n\nEl artículo no lleva avisos de vigencia. Su redacción es la del propio Real Decreto Legislativo 2/2015, con fecha de vigencia 13 de noviembre de 2015.\n\nLos convenios colectivos y los contratos no están en la fuente que he consultado. Para saber cuántos días te corresponden a ti, hay que mirar tu convenio, porque puede mejorar el mínimo. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-claude-sonnet-5-5-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe indice BOE-A-2015-11430 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe articulo BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "graph check BOE-A-2015-11430 a38 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **treinta días naturales de vacaciones anuales retribuidas**. Lo dice el art. 38 del texto refundido aprobado por el Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38]. Es una norma con rango de Real Decreto Legislativo, y la ley prevalece sobre cualquier reglamento que la desarrolle.\n\n**Lo que dice el art. 38**\n\n- **Duración.** El periodo es el pactado en convenio colectivo o contrato individual. En ningún caso puede ser inferior a treinta días naturales. Las vacaciones no se pueden sustituir por compensación económica (art. 38.1).\n- **Fechas.** Empresario y trabajador las fijan de común acuerdo, conforme a lo que digan los convenios colectivos sobre planificación anual. Si no se ponen de acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente (art. 38.2).\n- **Calendario.** Se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3).\n- **Coincidencia con embarazo, parto o lactancia.** Esto vale cuando el calendario coincide con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato de trabajo previsto en los apartados 4, 5 y 7 del artículo 48. En ese caso se tiene derecho a disfrutar las vacaciones en fecha distinta, al finalizar el periodo de suspensión, aunque haya terminado el año natural a que correspondan (art. 38.3).\n- **Coincidencia con otra incapacidad temporal.** Si las vacaciones coinciden con una incapacidad temporal por otras contingencias que impida disfrutarlas, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Deben haber pasado como máximo dieciocho meses desde el final del año en que se originaron (art. 38.3).\n\n**Vigencia.** El artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13-11-2015.\n\n**Qué conviene mirar además.** El texto remite al convenio colectivo y al contrato individual, que pueden mejorar los treinta días. Para saber cuántos días te corresponden, mira tu convenio. Este texto es informativo y no sustituye el asesoramiento de un profesional.\n\nCita: art. 38 del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38].",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-01",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: `kitlegal` no está disponible en el sistema. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-2015-11430 a38",
+        "cita ausente: BOE-A-2015-11430 a38"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [],
+      "comandos_ausentes": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [],
+      "citas_ausentes": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_buscar Estatuto Trabajadores",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_buscar Estatuto Trabajadores",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "⚠ SIN CONSULTA AL BOE: no se ha podido acceder a la fuente del BOE para consultar la norma. Si tienes kitlegal instalado, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/\n\nSin poder acceder a la fuente oficial consolidada, no puedo citarte lo que dice el Estatuto de los Trabajadores sobre vacaciones. Para una respuesta fiable y citada, necesito consultar el texto vigente en el BOE.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [
+        "comando ausente: bloque boe BOE-A-2015-11430 a38",
+        "cita ausente: BOE-A-2015-11430 a38"
+      ],
+      "pasa": false
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-haiku-4-5-20251001-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [
+            {
+              "destino": "127.0.0.1:9",
+              "clase": "local"
+            }
+          ],
+          "llamada": false
+        },
+        {
+          "orden": "boe_buscar Estatuto de los Trabajadores",
+          "codigo": 5,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_indice BOE-A-2015-11430",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [
+        {
+          "orden": "boe_buscar Estatuto de los Trabajadores",
+          "codigo": 5
+        }
+      ],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores regula los días de vacaciones en su artículo 38, que establece lo siguiente:\n\n**Mínimo de treinta días naturales**\n\nLa duración de las vacaciones anuales retribuidas será la pactada en convenio colectivo o contrato individual. En ningún caso será inferior a treinta días naturales, que es el mínimo legal garantizado [art. 38.1 del Real Decreto Legislativo 2/2015, de 23 de octubre, BOE-A-2015-11430, bloque a38].\n\n**Acuerdo sobre fechas de disfrute**\n\nEl periodo o periodos de disfrute de vacaciones se fijará de común acuerdo entre el empresario y el trabajador, conforme a lo establecido en los convenios colectivos. El trabajador conocerá las fechas que le correspondan con al menos dos meses de anticipación al comienzo del disfrute [art. 38.2 y 38.3, BOE-A-2015-11430, bloque a38].\n\n**Conflicto sobre fechas**\n\nSi hay desacuerdo entre las partes sobre la fecha de disfrute, la jurisdicción social fijará la fecha mediante procedimiento sumario y preferente, siendo su decisión irrecurrible [art. 38.2, BOE-A-2015-11430, bloque a38].\n\n**Casos especiales**\n\nSi las vacaciones coinciden con incapacidad temporal por embarazo, parto, lactancia o con permisos de suspensión del contrato, el trabajador tiene derecho a disfrutarlas en otra fecha, incluso después de finalizado el año natural. Si coinciden con incapacidad por otras contingencias que impidan disfrutarlas ese año, podrán disfrutarse una vez finalice la incapacidad, siempre que no hayan transcurrido más de dieciocho meses desde el final del año en que se originó la incapacidad [art. 38.3, BOE-A-2015-11430, bloque a38].",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-sonnet-5-5-01",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-2015-11430",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **treinta días naturales** de vacaciones al año. Lo recoge el art. 38.1 del texto refundido de la Ley del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38]. El Real Decreto Legislativo 2/2015 aprueba ese texto refundido.\n\n- **Duración:** el periodo de vacaciones anuales retribuidas será el pactado en convenio colectivo o contrato individual. «En ningún caso la duración será inferior a treinta días naturales». [BOE-A-2015-11430, bloque a38]\n- **Sin compensación económica:** las vacaciones no se pueden sustituir por dinero. [BOE-A-2015-11430, bloque a38]\n- **Fechas:** se fijan de común acuerdo entre empresario y trabajador, conforme a lo que digan los convenios sobre planificación anual. Si no hay acuerdo, las fija la jurisdicción social, y su decisión es irrecurrible. El procedimiento es sumario y preferente (art. 38.2). [BOE-A-2015-11430, bloque a38]\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes de que empiece el disfrute (art. 38.3). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con embarazo, parto o lactancia natural:** si las vacaciones del calendario coinciden con una incapacidad temporal derivada de esas situaciones, o con la suspensión del contrato prevista en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutarlas en otra fecha. Pueden disfrutarse al finalizar el periodo de suspensión, aunque haya terminado el año natural al que correspondan (art. 38.3, párrafo segundo). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con otra incapacidad temporal:** si la incapacidad es por otras contingencias e impide disfrutar las vacaciones, total o parcialmente, durante el año natural, se pueden disfrutar al terminar la incapacidad. Es necesario que no hayan pasado más de dieciocho meses desde el final del año en que se originaron (art. 38.3, párrafo tercero). [BOE-A-2015-11430, bloque a38]\n\nEl artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13/11/2015.\n\nLos treinta días naturales son un mínimo. Tu convenio colectivo o tu contrato pueden mejorarlos, así que conviene mirar cuál te aplica. Este texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-sonnet-5-5-02",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-2015-11430",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "**Mínimo legal: treinta días naturales al año.** El artículo 38 del Estatuto de los Trabajadores dice que el periodo de vacaciones anuales retribuidas \"será el pactado en convenio colectivo o contrato individual. En ningún caso la duración será inferior a treinta días naturales\". Además, las vacaciones no se pueden sustituir por compensación económica. Art. 38.1 del Estatuto de los Trabajadores, texto refundido aprobado por Real Decreto Legislativo 2/2015 [BOE-A-2015-11430, bloque a38].\n\nOtras reglas del mismo artículo:\n\n- **Fechas:** el periodo o periodos de disfrute se fijan de común acuerdo entre empresario y trabajador, conforme a lo que digan, en su caso, los convenios colectivos sobre planificación anual de las vacaciones. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento es sumario y preferente. Art. 38.2 [BOE-A-2015-11430, bloque a38].\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer las fechas que le correspondan al menos dos meses antes del comienzo del disfrute. Art. 38.3, párrafo primero [BOE-A-2015-11430, bloque a38].\n- **Coincidencia con embarazo, parto o lactancia natural:** si el periodo de vacaciones coincide con una incapacidad temporal derivada del embarazo, el parto o la lactancia natural, o con el periodo de suspensión del contrato previsto en los apartados 4, 5 y 7 del artículo 48, se tiene derecho a disfrutar las vacaciones en otra fecha. Pueden disfrutarse al finalizar la suspensión, aunque haya terminado el año natural al que correspondan. Art. 38.3, párrafo segundo [BOE-A-2015-11430, bloque a38].\n- **Coincidencia con otra incapacidad temporal:** si la incapacidad es por otras contingencias y impide disfrutar las vacaciones, total o parcialmente, durante el año natural, el trabajador puede disfrutarlas al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron. Art. 38.3, párrafo tercero [BOE-A-2015-11430, bloque a38].\n\nEl artículo no lleva avisos de vigencia. La redacción citada tiene fecha de vigencia 13/11/2015, y la dio el propio Real Decreto Legislativo 2/2015.\n\nEl convenio colectivo o el contrato pueden mejorar los treinta días, pero no rebajarlos. Para saber cuántos días tiene una persona concreta hay que mirar su convenio, que esta fuente no recoge. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "02-una-sola-capacidad-herramienta-claude-sonnet-5-5-03",
+      "eval": "02-una-sola-capacidad.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-11430 a38"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-11430 a38"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": -1,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_indice BOE-A-2015-11430",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        },
+        {
+          "orden": "graph_check BOE-A-2015-11430 a38",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El Estatuto de los Trabajadores fija un mínimo de **30 días naturales** de vacaciones anuales retribuidas. Lo hace en el art. 38.1 del Real Decreto Legislativo 2/2015, texto refundido de la Ley del Estatuto de los Trabajadores [BOE-A-2015-11430, bloque a38].\n\n- **Duración:** el periodo de vacaciones será el pactado en convenio colectivo o contrato individual. En ningún caso será inferior a treinta días naturales. Convenio o contrato pueden mejorar ese mínimo, pero no rebajarlo. [BOE-A-2015-11430, bloque a38]\n- **Compensación económica:** las vacaciones no se pueden sustituir por dinero. [BOE-A-2015-11430, bloque a38]\n- **Fechas:** se fijan de común acuerdo entre empresa y trabajador, conforme a lo que digan los convenios sobre planificación anual. Si no hay acuerdo, la jurisdicción social fija la fecha. Su decisión es irrecurrible y el procedimiento, sumario y preferente (art. 38.2). [BOE-A-2015-11430, bloque a38]\n- **Calendario:** se fija en cada empresa. El trabajador debe conocer sus fechas al menos dos meses antes del comienzo del disfrute (art. 38.3). [BOE-A-2015-11430, bloque a38]\n- **Coincidencia con incapacidad temporal:**\n  - Si es por embarazo, parto o lactancia natural, el trabajador tiene derecho a disfrutar las vacaciones en otra fecha, al terminar el periodo de suspensión. Esto vale aunque haya acabado el año natural. El texto aplica la misma regla a los periodos de suspensión del contrato que remite a otro artículo de la norma.\n  - Si es por otras contingencias y le impide disfrutarlas, total o parcialmente, durante el año natural, puede hacerlo al terminar la incapacidad. Debe hacerlo antes de que pasen dieciocho meses desde el final del año en que se originaron. [BOE-A-2015-11430, bloque a38]\n\nEl artículo no lleva avisos de vigencia. La redacción citada rige desde el 13/11/2015, y la norma que la dio es el propio Real Decreto Legislativo 2/2015. El convenio colectivo aplicable puede establecer más días, así que conviene consultarlo.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    }
+  ]
+}
