@@ -16,45 +16,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestVariantesDeNormativa es el control de las variantes de normativa del
-// laboratorio (FR-002 a FR-006, SC-001 y SC-002 de H40; contracts/variantes.md
-// §1 a §5 y §7; data-model §1 a §3; research D1 a D6): la carpeta de la familia
-// tiene sus cuatro directorios y nada más; normativa-control es
-// skills/normativa, ruta a ruta y byte a byte, sin nada más en su directorio;
-// cada una de las otras tres es, byte a byte, la que se calcula desde
-// normativa-control con su declaración, y el cuerpo de su SKILL.md remite una
-// vez a cada referencia y a nada más; las referencias de la familia son los
-// ficheros de references/ de normativa-control, en orden de nombre; y ningún
-// nombre de la familia es el de una variante de H39.
+// TestVariantesDeNormativa es el control de las variantes declaradas de
+// normativa del laboratorio (FR-003 a FR-006, SC-001 y SC-002 de H40; FR-021;
+// contracts/variantes.md §3 a §5 y §7 de H40; data-model §1 a §3 de H40; research
+// D5 y D6 de H40): hay una declaración por cada variante versionada de la familia
+// que no es la de control, en su orden; cada una de esas tres es, byte a byte, la
+// que se calcula desde normativa-control con su declaración, y el cuerpo de su
+// SKILL.md remite una vez a cada referencia y a nada más; las referencias de la
+// familia son los ficheros de references/ de normativa-control, en orden de
+// nombre; y ningún nombre de la familia es el de una variante de H39. Los
+// directorios de la familia y normativa-control, que ya no se compara con
+// skills/normativa, los comprueba TestVariantesDeControl (FR-020).
 func TestVariantesDeNormativa(t *testing.T) {
 	t.Parallel()
 
 	repositorio := os.DirFS(raizDelRepositorio)
 
-	t.Run("directorios de la familia", func(t *testing.T) {
-		t.Parallel()
-
-		comprobarLosDirectoriosDeLaFamilia(t, repositorio)
-	})
-
-	t.Run("control es skills/normativa", func(t *testing.T) {
-		t.Parallel()
-
-		comprobarLaVarianteDeControl(t, repositorio)
-	})
-
 	t.Run("variantes declaradas", func(t *testing.T) {
 		t.Parallel()
 
-		control, err := leerLosFicheros(repositorio,
-			familiaDeNormativa.directorioDeLaSkill(varianteDeControlDeNormativa))
-		require.NoError(t, err)
+		declaradas := make([]string, 0, len(declaracionesDeNormativa))
+		for _, declarada := range declaracionesDeNormativa {
+			declaradas = append(declaradas, declarada.nombre)
+		}
+
+		assert.Equal(t, familiaDeNormativa.nombres()[1:], declaradas,
+			"hay una declaración por cada variante de la familia de normativa que no es la de control, en su orden")
 
 		for _, declarada := range declaracionesDeNormativa {
 			t.Run(declarada.nombre, func(t *testing.T) {
 				t.Parallel()
 
-				comprobarLaVarianteDeclarada(t, repositorio, control, declarada)
+				comprobarLaVarianteDeclarada(t, repositorio, familiaDeNormativa, declarada)
 			})
 		}
 	})
@@ -101,34 +94,6 @@ func TestVariantesDeNormativa(t *testing.T) {
 				path.Join(carpetaDelLaboratorio, ficheroDeLasVariantes))
 		}
 	})
-}
-
-// comprobarLaVarianteDeControl: el directorio de normativa-control tiene la
-// skill de la familia con los ficheros de skills/normativa, las mismas rutas
-// relativas y los mismos bytes, y nada más (FR-002); falla con la ruta del
-// primer fichero, en orden, que difiere, falta o sobra.
-func comprobarLaVarianteDeControl(t *testing.T, repositorio fs.FS) {
-	t.Helper()
-
-	deKitlegal := path.Join(directorioDeLasSkills, familiaDeNormativa.skill)
-
-	deLaSkill, err := leerLosFicheros(repositorio, deKitlegal)
-	require.NoError(t, err)
-	require.NotEmpty(t, deLaSkill, "%s tiene algún fichero", deKitlegal)
-
-	esperados := make(map[string][]byte, len(deLaSkill))
-	for relativa, contenido := range deLaSkill {
-		esperados[path.Join(carpetaDeLasSkillsDeLaVariante, familiaDeNormativa.skill, relativa)] = contenido
-	}
-
-	control := familiaDeNormativa.directorioDeLaVariante(varianteDeControlDeNormativa)
-
-	obtenidos, err := leerLosFicheros(repositorio, control)
-	require.NoError(t, err)
-
-	relativa, motivo := primeraDiferencia(esperados, obtenidos)
-	assert.Empty(t, motivo, "%s %s: la variante de control es %s, ruta a ruta y byte a byte",
-		path.Join(control, relativa), motivo, deKitlegal)
 }
 
 // leerLosFicheros lee los ficheros del árbol bajo ese directorio, por su ruta
@@ -353,47 +318,19 @@ var declaracionesDeNormativa = []declaracionDeLaVariante{
 	},
 }
 
-// comprobarLosDirectoriosDeLaFamilia: la carpeta de la familia de normativa
-// tiene un directorio por variante de la familia y nada más (contracts/variantes.md
-// §1 de H40), y hay una declaración por cada variante que no es la de control, en
-// su orden.
-func comprobarLosDirectoriosDeLaFamilia(t *testing.T, repositorio fs.FS) {
-	t.Helper()
-
-	entradas, err := fs.ReadDir(repositorio, familiaDeNormativa.carpeta)
-	require.NoError(t, err)
-
-	nombres := make([]string, 0, len(entradas))
-	for _, entrada := range entradas {
-		assert.True(t, entrada.IsDir(), "%s no es el directorio de una variante",
-			path.Join(familiaDeNormativa.carpeta, entrada.Name()))
-
-		nombres = append(nombres, entrada.Name())
-	}
-
-	assert.ElementsMatch(t, familiaDeNormativa.nombres(), nombres,
-		"%s tiene un directorio por variante de la familia de normativa y nada más", familiaDeNormativa.carpeta)
-
-	declaradas := make([]string, 0, len(declaracionesDeNormativa))
-	for _, declarada := range declaracionesDeNormativa {
-		declaradas = append(declaradas, declarada.nombre)
-	}
-
-	assert.Equal(t, familiaDeNormativa.nombres()[1:], declaradas,
-		"hay una declaración por cada variante de la familia de normativa que no es la de control, en su orden")
-}
-
 // comprobarLaVarianteDeclarada: el «después» de cada sustitución de la
 // declaración, normalizado, es el texto del hito; la declaración se aplica sobre
-// normativa-control; y el directorio de la variante es, ruta a ruta y byte a
-// byte, la que se calcula así, sin nada más (FR-003 a FR-006 de H40); falla con la
-// sustitución cuyo «después» no es el hito, con lo que ya no se aplica sobre
-// control, o con la ruta del primer fichero, en orden, que difiere, falta o
-// sobra.
-func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, control map[string][]byte,
+// la variante de control de la familia, la primera; y el directorio de la
+// variante es, ruta a ruta y byte a byte, la que se calcula así, sin nada más
+// (FR-003 a FR-006 de H40; FR-021 y FR-023); falla con la sustitución cuyo
+// «después» no es el hito, con lo que ya no se aplica sobre control, o con la
+// ruta del primer fichero, en orden, que difiere, falta o sobra.
+func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, familia familiaDelLaboratorio,
 	declarada declaracionDeLaVariante,
 ) {
 	t.Helper()
+
+	control := familia.nombres()[0]
 
 	for indice, sustitucion := range declarada.sustituciones {
 		assert.Equal(t, sustitucion.hito, textoDelHito(sustitucion.despues),
@@ -401,23 +338,22 @@ func comprobarLaVarianteDeclarada(t *testing.T, repositorio fs.FS, control map[s
 				"su sangría como un espacio, no es el texto del hito", declarada.nombre, indice+1, sustitucion.fichero)
 	}
 
-	esperada, err := calcularLaVariante(repositorio, control, declarada)
-	require.NoError(t, err, "%s: su declaración ya no se aplica sobre %s", declarada.nombre,
-		varianteDeControlDeNormativa)
+	esperada, err := calcularLaVariante(repositorio, familia, declarada)
+	require.NoError(t, err, "%s: su declaración ya no se aplica sobre %s", declarada.nombre, control)
 
 	esperados := make(map[string][]byte, len(esperada))
 	for relativa, contenido := range esperada {
-		esperados[path.Join(carpetaDeLasSkillsDeLaVariante, familiaDeNormativa.skill, relativa)] = contenido
+		esperados[path.Join(carpetaDeLasSkillsDeLaVariante, familia.skill, relativa)] = contenido
 	}
 
-	directorio := familiaDeNormativa.directorioDeLaVariante(declarada.nombre)
+	directorio := familia.directorioDeLaVariante(declarada.nombre)
 
 	obtenidos, err := leerLosFicheros(repositorio, directorio)
 	require.NoError(t, err)
 
 	relativa, motivo := primeraDiferencia(esperados, obtenidos)
 	assert.Empty(t, motivo, "%s %s: la variante es la que da su declaración sobre %s, ruta a ruta y byte a byte",
-		path.Join(directorio, relativa), motivo, varianteDeControlDeNormativa)
+		path.Join(directorio, relativa), motivo, control)
 }
 
 // comprobarLasRemisiones: el cuerpo del SKILL.md de la variante de ese nombre
@@ -457,14 +393,18 @@ func textoDelHito(despues string) string {
 }
 
 // calcularLaVariante son los ficheros de la variante que da la declaración sobre
-// los de control, por su ruta relativa a la skill (data-model §3 de H40): sus
-// sustituciones, fichero a fichero; la regla del cuerpo corto, en el SKILL.md; y el
-// añadido, al final de su fichero. Lo que no declara es el de control. Lo que ya
-// no se aplica sobre control es un error con su motivo.
-func calcularLaVariante(repositorio fs.FS, control map[string][]byte,
+// los de la variante de control de la familia, la primera, por su ruta relativa a
+// la skill (data-model §3 de H40; data-model §6): sus sustituciones, fichero a
+// fichero; la regla del cuerpo corto, en el SKILL.md; y el añadido, al final de
+// su fichero. Lo que no declara es el de control. Lo que ya no se aplica sobre
+// control es un error con su motivo.
+func calcularLaVariante(repositorio fs.FS, familia familiaDelLaboratorio,
 	declarada declaracionDeLaVariante,
 ) (map[string][]byte, error) {
-	variante := maps.Clone(control)
+	variante, err := leerLosFicheros(repositorio, familia.directorioDeLaSkill(familia.nombres()[0]))
+	if err != nil {
+		return nil, err
+	}
 
 	porFichero := map[string][]sustitucionDeLaVariante{}
 	for _, sustitucion := range declarada.sustituciones {

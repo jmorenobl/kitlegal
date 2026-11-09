@@ -885,14 +885,17 @@ func comprobarLasLecturasDeLaHerramienta(t *testing.T, evals []Eval) {
 // TestLaboratorioFueraDelProducto comprueba que el laboratorio no es parte de
 // lo que kitlegal empotra, instala ni mide (FR-010 y SC-005 de H39;
 // contracts/laboratorio.md §1 y §7 de H39; research V9 y V10 de H39; FR-001 y
-// SC-003 de H40; contracts/variantes.md §7 de H40; research D12 de H40): ni lo
-// que el binario empotra ni lo que deja skills install --dir en un directorio
-// vacío tiene por tramo de una ruta un nombre del laboratorio —el de una skill de
-// las variantes de H39 o el de una variante de normativa— ni los bytes de un
-// fichero de laboratorio/ que no sea copia de uno de skills/; la definición del
-// job de evals no ejecuta ninguna skill con uno de esos nombres ni hay evals de
-// kitlegal con él; y ninguna ruta de laboratorio/ mide, así que una propuesta que
-// solo cambia el laboratorio no elige ninguna skill de kitlegal.
+// SC-003 de H40; contracts/variantes.md §7 de H40; research D12 de H40; FR-025 y
+// SC-009; contracts/variantes.md §4): ni lo que el binario empotra ni lo que deja
+// skills install --dir en un directorio vacío tiene por tramo de una ruta un
+// nombre del laboratorio —el de una skill de las variantes de H39 o el de un
+// directorio de variante de la carpeta de una familia del producto— ni los bytes
+// de un fichero de laboratorio/ que no sea copia de uno de skills/; la definición
+// del job de evals no ejecuta ninguna skill con uno de esos nombres ni hay evals
+// de kitlegal con él; y ninguna ruta de laboratorio/ tiene por tramo el nombre de
+// la variante del producto de una familia, que no se versiona, ni mide, así que
+// una propuesta que solo cambia el laboratorio no elige ninguna skill de
+// kitlegal.
 func TestLaboratorioFueraDelProducto(t *testing.T) {
 	t.Parallel()
 
@@ -954,10 +957,12 @@ type contenidoDelLaboratorio struct {
 
 // leerElContenidoDelLaboratorio lee de laboratorio/ sus nombres —los de las
 // skills de todas las variantes de H39, los de variantes/*/skills/*, también los
-// de una variante que la declaración no tuviera, y los de los directorios de las
-// variantes de normativa— y todos sus ficheros (research D12 de H40). Exige las
-// dos skills de la declaración de H39, la variante de control de normativa y
-// algún fichero, para que ninguna comprobación pase en vacío.
+// de una variante que la declaración no tuviera, y los de los directorios de la
+// carpeta de cada familia del producto, también los de una variante que la
+// familia no tuviera— y todos sus ficheros (research D12 de H40; contracts/
+// variantes.md §4). Exige las dos skills de la declaración de H39, la variante de
+// control de cada familia del producto y algún fichero, para que ninguna
+// comprobación pase en vacío.
 func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 	t.Helper()
 
@@ -975,20 +980,24 @@ func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 	require.Subset(t, skillsDeH39, []string{skillDelLaboratorio, entradaDelLaboratorio},
 		"las variantes de %s tienen las dos skills de la declaración", carpetaDelLaboratorio)
 
-	deNormativa, err := fs.ReadDir(repositorio, familiaDeNormativa.carpeta)
-	require.NoError(t, err)
+	nombres := skillsDeH39
 
-	variantesDeNormativa := make([]string, 0, len(deNormativa))
-	for _, entrada := range deNormativa {
-		if entrada.IsDir() {
-			variantesDeNormativa = append(variantesDeNormativa, entrada.Name())
+	for _, familia := range familiasDelProducto {
+		deLaFamilia, err := fs.ReadDir(repositorio, familia.carpeta)
+		require.NoError(t, err)
+
+		variantes := make([]string, 0, len(deLaFamilia))
+		for _, entrada := range deLaFamilia {
+			if entrada.IsDir() {
+				variantes = append(variantes, entrada.Name())
+			}
 		}
+
+		require.Contains(t, variantes, familia.nombres()[0], "%s tiene la variante de control", familia.carpeta)
+
+		nombres = slices.Concat(nombres, variantes)
 	}
 
-	require.Contains(t, variantesDeNormativa, varianteDeControlDeNormativa,
-		"%s tiene la variante de control", familiaDeNormativa.carpeta)
-
-	nombres := slices.Concat(skillsDeH39, variantesDeNormativa)
 	slices.Sort(nombres)
 
 	laboratorio := contenidoDelLaboratorio{nombres: slices.Compact(nombres), porContenido: map[string]string{}}
@@ -1154,14 +1163,26 @@ func skillsQueEjecutaElJob(job DefinicionDelJob) []string {
 	return ejecutadas
 }
 
-// comprobarLasRutasDelLaboratorio: ninguna ruta de laboratorio/ mide
+// comprobarLasRutasDelLaboratorio: ninguna ruta de laboratorio/ tiene por tramo
+// el nombre de la variante del producto de una familia, que es skills/<skill> y
+// no se versiona (FR-022, FR-025; contracts/variantes.md §4), ni mide
 // (rutaQueMide; research V9 de H39). Sin paquetes, porque los de los conjuntos
 // solo quitan de lo que mide los tests y los fixtures de su carpeta: la ruta que
 // no mide sin ninguno no mide con ninguno.
 func comprobarLasRutasDelLaboratorio(t *testing.T, laboratorio contenidoDelLaboratorio) {
 	t.Helper()
 
+	sinVersionar := make([]string, 0, len(familiasDelProducto))
+	for _, familia := range familiasDelProducto {
+		sinVersionar = append(sinVersionar, familia.producto)
+	}
+
 	for _, ruta := range laboratorio.rutas {
+		for _, tramo := range strings.Split(ruta, "/") {
+			assert.NotContains(t, sinVersionar, tramo,
+				"%s tiene por tramo la variante del producto %s, que no se versiona", ruta, tramo)
+		}
+
 		assert.False(t, rutaQueMide(ruta, nil), "%s mide: un cambio suyo elegiría skills de kitlegal", ruta)
 	}
 }

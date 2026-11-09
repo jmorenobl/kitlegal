@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-100000000006","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_fn6_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_fn6_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-100000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_fn6_1","content":"resultado de toolu_fn6_1"}]},"session_id":"00000000-0000-4000-8041-100000000006"}
+{"type":"assistant","message":{"id":"msg_fn6_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_fn6_2","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/normativa/references/con_herramientas.md"}}]},"session_id":"00000000-0000-4000-8041-100000000006"}
