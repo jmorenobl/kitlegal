@@ -1,0 +1,284 @@
+# laboratorio-tabla.txtar
+# La tabla de los sondeos de las tres familias del producto con `laboratorio
+# tabla`, el programa que lanza la persona, sin red, modelo ni credencial
+# (contracts/tabla.md §1 a §3; contracts/aceptacion.md §1). Sobre sesiones fijas
+# de normativa, de plazos-y-territorio y de jurisprudencia, la tabla de cada
+# familia y su detalle, byte a byte: la lectura con `cd` que cuenta —con
+# comillas dobles y simples, con ./, con head, con barra final, dos referencias
+# en una orden— y la que no —el cd en otra orden, el nombre antes del cd, un
+# nombre con sufijo—; la fila de cada una de las cinco variantes de
+# plazos-y-territorio; la columna de una referencia de la lista del producto que
+# la familia no declara (nueva.md), a cero en la variante del producto y vacía
+# en las que no la tienen; y «Cumplen la regla» solo en la de normativa. Y en un
+# sondeo con una variante de jurisprudencia y otra de normativa, la familia es la
+# de la primera variante en orden de nombre, y el directorio de la otra, un
+# defecto: sin tabla y con su mensaje.
+#
+# Cubre: US5 · FR-032, FR-040, FR-041 · SC-006
+#
+# Los sondeos con la variante del producto llevan en su sondeo.json la lista
+# referencias_del_producto que escribe el arnés (FR-032); el de mezcla, sin
+# variante del producto, no la lleva. El programa no va en el PATH: el arnés da
+# su ruta absoluta en KITLEGAL_LABORATORIO_BIN (H40).
+#
+# En cada familia, la primera invocación, a través del intérprete de órdenes, no
+# hace fallar el guion por su código: mientras la tabla no conozca la familia o
+# la variante del producto, el guion falla en la comparación de lo que escribe
+# con la tabla esperada. La segunda exige el código 0, la misma tabla y la salida
+# de error vacía.
+
+# --- normativa: la lectura con cd y la columna de nueva.md ---
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla normativa > normativa.out || true'
+cmp normativa.out normativa-tabla.md
+exec $KITLEGAL_LABORATORIO_BIN tabla normativa
+cmp stdout normativa-tabla.md
+! stderr .
+
+# --- plazos-y-territorio: una fila por cada una de sus cinco variantes ---
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla plazos-y-territorio > plazos.out || true'
+cmp plazos.out plazos-y-territorio-tabla.md
+exec $KITLEGAL_LABORATORIO_BIN tabla plazos-y-territorio
+cmp stdout plazos-y-territorio-tabla.md
+! stderr .
+
+# --- jurisprudencia: sin «Cumplen la regla» ---
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla jurisprudencia > jurisprudencia.out || true'
+cmp jurisprudencia.out jurisprudencia-tabla.md
+exec $KITLEGAL_LABORATORIO_BIN tabla jurisprudencia
+cmp stdout jurisprudencia-tabla.md
+! stderr .
+
+# --- Un directorio de otra familia en un sondeo del producto: sin tabla ---
+! exec $KITLEGAL_LABORATORIO_BIN tabla mezcla
+! stdout .
+stderr '^laboratorio: \S*mezcla/h41/normativa-control no es ninguna variante de jurisprudencia$'
+
+-- normativa/h41/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","nueva.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"]}
+-- normativa/h41/normativa-control/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- normativa/h41/normativa-control/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- normativa/h41/normativa-control/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000001","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n1_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n1_1","content":"resultado de toolu_n1_1"}]},"session_id":"00000000-0000-4000-8041-000000000001"}
+{"type":"assistant","message":{"id":"msg_n1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8041-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n1_2","content":"resultado de toolu_n1_2"}]},"session_id":"00000000-0000-4000-8041-000000000001"}
+{"type":"assistant","message":{"id":"msg_n1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8041-000000000001"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8041-000000000001"}
+-- normativa/h41/normativa-producto/orden/22-lcsp-contrato-menor-en-2019-01/codigo-de-la-sesion --
+0
+-- normativa/h41/normativa-producto/orden/22-lcsp-contrato-menor-en-2019-01/sesion.err --
+-- normativa/h41/normativa-producto/orden/22-lcsp-contrato-menor-en-2019-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000002","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_1","content":"resultado de toolu_n2_1"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_2","name":"Bash","input":{"command":"cd /s/claude/skills/normativa/references","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_2","content":"resultado de toolu_n2_2"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_3","name":"Bash","input":{"command":"cat normas.md && cd /s/claude/skills/normativa/references","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_3","content":"resultado de toolu_n2_3"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_4","name":"Bash","input":{"command":"cd /s/claude/skills/normativa/references && cat \"redaccion_en_una_fecha.md\"","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_4","content":"resultado de toolu_n2_4"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_5","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_5","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2017-12902 a1-30 --fecha 2019-06-01 --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_5","content":"resultado de toolu_n2_5"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_6","type":"message","role":"assistant","content":[{"type":"text","text":"La redacción de esa fecha es la que devuelve la herramienta.\n\n[BOE-A-2017-12902]"}]},"session_id":"00000000-0000-4000-8041-000000000002"}
+{"type":"result","subtype":"success","is_error":false,"result":"La redacción de esa fecha es la que devuelve la herramienta.\n\n[BOE-A-2017-12902]","session_id":"00000000-0000-4000-8041-000000000002"}
+-- normativa/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- normativa/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- normativa/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000003","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n3_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n3_1","content":"resultado de toolu_n3_1"}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"assistant","message":{"id":"msg_n3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n3_2","name":"Bash","input":{"command":"cd /s/claude/skills/normativa/references && cat con_herramientas.md && head -n 40 ./normas.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n3_2","content":"resultado de toolu_n3_2"}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"assistant","message":{"id":"msg_n3_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n3_3","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n3_3","content":"resultado de toolu_n3_3"}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"assistant","message":{"id":"msg_n3_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8041-000000000003"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8041-000000000003"}
+-- normativa/h41/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion --
+0
+-- normativa/h41/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err --
+-- normativa/h41/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000004","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_1","content":"resultado de toolu_n4_1"}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_2","name":"Read","input":{"file_path":"/s/claude/skills/normativa/references/con_herramientas.md"}},{"type":"tool_use","id":"toolu_n4_3","name":"Read","input":{"file_path":"/s/claude/skills/normativa/references/normas.md"}}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_2","content":"resultado de toolu_n4_2"},{"type":"tool_result","tool_use_id":"toolu_n4_3","content":"resultado de toolu_n4_3"}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_4","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a59","norma":"BOE-A-2004-4214"}}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_4","content":"resultado de toolu_n4_4"}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]"}]},"session_id":"00000000-0000-4000-8041-000000000004"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]","session_id":"00000000-0000-4000-8041-000000000004"}
+-- normativa-tabla.md --
+# Sondeo de las variantes de normativa
+
+| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | nueva.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumplen la regla |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| normativa-control | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+| normativa-producto | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 4 (4–4) | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+| normativa-remisiones-en-orden | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) |  | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | nueva.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumple |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| h41/normativa-control/herramienta/04-lgt-prescripcion-01 | sí | sí | no | no | no | no | no |  | no | no | no |  |
+| h41/normativa-producto/orden/22-lcsp-contrato-menor-en-2019-01 | sí | sí | no | no | no | no | no | no | turno 4 | no | no |  |
+| h41/normativa-producto/herramienta/04-lgt-prescripcion-01 | sí | sí | no | no | turno 2 | no | turno 2 | no | no | no | no |  |
+| h41/normativa-remisiones-en-orden/herramienta/05-trlrhl-impuestos-municipales-01 | sí | sí | no | no | turno 2 | no | turno 2 |  | no | no | no |  |
+-- plazos-y-territorio/h41/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317","referencias_del_producto":["administrativo.md","calculo_de_plazos.md","jerarquia_normativa.md","municipios.md"]}
+-- plazos-y-territorio/h41/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/codigo-de-la-sesion --
+0
+-- plazos-y-territorio/h41/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.err --
+-- plazos-y-territorio/h41/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000005","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_p1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p1_1","name":"Skill","input":{"skill":"plazos-y-territorio"}}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p1_1","content":"resultado de toolu_p1_1"}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"assistant","message":{"id":"msg_p1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p1_2","name":"Read","input":{"file_path":"/s/claude/skills/plazos-y-territorio/references/municipios.md"}}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p1_2","content":"resultado de toolu_p1_2"}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"assistant","message":{"id":"msg_p1_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p1_3","name":"Bash","input":{"command":"kitlegal territorio resolver Tordesillas --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p1_3","content":"resultado de toolu_p1_3"}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"assistant","message":{"id":"msg_p1_4","type":"message","role":"assistant","content":[{"type":"text","text":"Lo que se sabe del municipio es lo que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000005"}
+{"type":"result","subtype":"success","is_error":false,"result":"Lo que se sabe del municipio es lo que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000005"}
+-- plazos-y-territorio/h41/plazos-y-territorio-producto/herramienta/05-plazo-reposicion-leganes-01/codigo-de-la-sesion --
+0
+-- plazos-y-territorio/h41/plazos-y-territorio-producto/herramienta/05-plazo-reposicion-leganes-01/sesion.err --
+-- plazos-y-territorio/h41/plazos-y-territorio-producto/herramienta/05-plazo-reposicion-leganes-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000006","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_p2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p2_1","name":"Skill","input":{"skill":"plazos-y-territorio"}}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p2_1","content":"resultado de toolu_p2_1"}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"assistant","message":{"id":"msg_p2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p2_2","name":"Bash","input":{"command":"cd /s/claude/skills/plazos-y-territorio/references && cat administrativo.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p2_2","content":"resultado de toolu_p2_2"}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"assistant","message":{"id":"msg_p2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p2_3","name":"Bash","input":{"command":"cd /s/claude/skills/plazos-y-territorio/references && cat ./calculo_de_plazos.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p2_3","content":"resultado de toolu_p2_3"}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"assistant","message":{"id":"msg_p2_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p2_4","name":"mcp__kitlegal__territorio_resolver","input":{"consulta":"Leganés"}}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p2_4","content":"resultado de toolu_p2_4"}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"assistant","message":{"id":"msg_p2_5","type":"message","role":"assistant","content":[{"type":"text","text":"El territorio es el que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000006"}
+{"type":"result","subtype":"success","is_error":false,"result":"El territorio es el que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000006"}
+-- plazos-y-territorio/h41/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/codigo-de-la-sesion --
+0
+-- plazos-y-territorio/h41/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.err --
+-- plazos-y-territorio/h41/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000007","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_p3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p3_1","name":"Skill","input":{"skill":"plazos-y-territorio"}}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p3_1","content":"resultado de toolu_p3_1"}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"assistant","message":{"id":"msg_p3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p3_2","name":"Bash","input":{"command":"cd /s/claude/skills/plazos-y-territorio/references/ && cat municipios.md calculo_de_plazos.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p3_2","content":"resultado de toolu_p3_2"}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"assistant","message":{"id":"msg_p3_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p3_3","name":"Bash","input":{"command":"kitlegal territorio resolver Leganés --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p3_3","content":"resultado de toolu_p3_3"}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"assistant","message":{"id":"msg_p3_4","type":"message","role":"assistant","content":[{"type":"text","text":"El territorio es el que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000007"}
+{"type":"result","subtype":"success","is_error":false,"result":"El territorio es el que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000007"}
+-- plazos-y-territorio/h41/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/codigo-de-la-sesion --
+0
+-- plazos-y-territorio/h41/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.err --
+-- plazos-y-territorio/h41/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000008","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_p4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p4_1","name":"Skill","input":{"skill":"plazos-y-territorio"}}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p4_1","content":"resultado de toolu_p4_1"}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"assistant","message":{"id":"msg_p4_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p4_2","name":"mcp__kitlegal__territorio_resolver","input":{"consulta":"Leganés"}}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p4_2","content":"resultado de toolu_p4_2"}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"assistant","message":{"id":"msg_p4_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p4_3","name":"Bash","input":{"command":"cd /s/claude/skills/plazos-y-territorio/references","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p4_3","content":"resultado de toolu_p4_3"}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"assistant","message":{"id":"msg_p4_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p4_4","name":"Bash","input":{"command":"cat calculo_de_plazos.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p4_4","content":"resultado de toolu_p4_4"}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"assistant","message":{"id":"msg_p4_5","type":"message","role":"assistant","content":[{"type":"text","text":"El territorio es el que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000008"}
+{"type":"result","subtype":"success","is_error":false,"result":"El territorio es el que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000008"}
+-- plazos-y-territorio/h41/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/codigo-de-la-sesion --
+0
+-- plazos-y-territorio/h41/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.err --
+-- plazos-y-territorio/h41/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000009","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_p5_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p5_1","name":"Skill","input":{"skill":"plazos-y-territorio"}}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p5_1","content":"resultado de toolu_p5_1"}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"assistant","message":{"id":"msg_p5_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p5_2","name":"Bash","input":{"command":"cd /s/claude/skills/plazos-y-territorio/references && cat municipios.md.bak calculo_de_plazos.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p5_2","content":"resultado de toolu_p5_2"}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"assistant","message":{"id":"msg_p5_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_p5_3","name":"Bash","input":{"command":"kitlegal territorio resolver Leganés --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_p5_3","content":"resultado de toolu_p5_3"}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"assistant","message":{"id":"msg_p5_4","type":"message","role":"assistant","content":[{"type":"text","text":"El territorio es el que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000009"}
+{"type":"result","subtype":"success","is_error":false,"result":"El territorio es el que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000009"}
+-- plazos-y-territorio-tabla.md --
+# Sondeo de las variantes de plazos-y-territorio
+
+| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | administrativo.md | calculo_de_plazos.md | jerarquia_normativa.md | municipios.md |
+|---|---|---|---|---|---|---|---|---|---|---|
+| plazos-y-territorio-control | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) |
+| plazos-y-territorio-producto | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 3 (3–3) | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |
+| plazos-y-territorio-sin-condicion | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) |
+| plazos-y-territorio-condicion-por-orden | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |
+| plazos-y-territorio-lista-con-verbo | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | administrativo.md | calculo_de_plazos.md | jerarquia_normativa.md | municipios.md |
+|---|---|---|---|---|---|---|
+| h41/plazos-y-territorio-control/orden/02-territorio-municipio-no-cubierto-01 | sí | sí | no | no | no | turno 2 |
+| h41/plazos-y-territorio-producto/herramienta/05-plazo-reposicion-leganes-01 | sí | sí | turno 2 | turno 3 | no | no |
+| h41/plazos-y-territorio-sin-condicion/orden/05-plazo-reposicion-leganes-01 | sí | sí | no | turno 2 | no | turno 2 |
+| h41/plazos-y-territorio-condicion-por-orden/herramienta/11-plazo-reposicion-sin-leer-el-precepto-01 | sí | sí | no | no | no | no |
+| h41/plazos-y-territorio-lista-con-verbo/orden/10-plazo-reposicion-anterior-a-la-lpac-01 | sí | sí | no | turno 2 | no | no |
+-- jurisprudencia/h41/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317","referencias_del_producto":["consulta_preparada.md","documento_aportado.md"]}
+-- jurisprudencia/h41/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion --
+0
+-- jurisprudencia/h41/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.err --
+-- jurisprudencia/h41/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000010","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_j1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_j1_1","name":"Skill","input":{"skill":"jurisprudencia"}}]},"session_id":"00000000-0000-4000-8041-000000000010"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_j1_1","content":"resultado de toolu_j1_1"}]},"session_id":"00000000-0000-4000-8041-000000000010"}
+{"type":"assistant","message":{"id":"msg_j1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_j1_2","name":"mcp__kitlegal__cita_preparar","input":{"fecha":"2023-07-04","resolucion":"1088/2023"}}]},"session_id":"00000000-0000-4000-8041-000000000010"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_j1_2","content":"resultado de toolu_j1_2"}]},"session_id":"00000000-0000-4000-8041-000000000010"}
+{"type":"assistant","message":{"id":"msg_j1_3","type":"message","role":"assistant","content":[{"type":"text","text":"La consulta para el buscador es la que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000010"}
+{"type":"result","subtype":"success","is_error":false,"result":"La consulta para el buscador es la que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000010"}
+-- jurisprudencia/h41/jurisprudencia-producto/orden/04-documento-pegado-01/codigo-de-la-sesion --
+0
+-- jurisprudencia/h41/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.err --
+-- jurisprudencia/h41/jurisprudencia-producto/orden/04-documento-pegado-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000011","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_j2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_j2_1","name":"Skill","input":{"skill":"jurisprudencia"}}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_j2_1","content":"resultado de toolu_j2_1"}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"assistant","message":{"id":"msg_j2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_j2_2","name":"Bash","input":{"command":"cd /s/claude/skills/jurisprudencia/references && cat 'documento_aportado.md'","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_j2_2","content":"resultado de toolu_j2_2"}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"assistant","message":{"id":"msg_j2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_j2_3","name":"Bash","input":{"command":"kitlegal cita cotejar --documento \"Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144\" --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_j2_3","content":"resultado de toolu_j2_3"}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"assistant","message":{"id":"msg_j2_4","type":"message","role":"assistant","content":[{"type":"text","text":"La ficha del documento es la que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000011"}
+{"type":"result","subtype":"success","is_error":false,"result":"La ficha del documento es la que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000011"}
+-- jurisprudencia-tabla.md --
+# Sondeo de las variantes de jurisprudencia
+
+| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | consulta_preparada.md | documento_aportado.md |
+|---|---|---|---|---|---|---|---|---|
+| jurisprudencia-control | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |
+| jurisprudencia-producto | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | consulta_preparada.md | documento_aportado.md |
+|---|---|---|---|---|
+| h41/jurisprudencia-control/herramienta/01-existe-con-numero-y-fecha-01 | sí | sí | no | no |
+| h41/jurisprudencia-producto/orden/04-documento-pegado-01 | sí | sí | no | turno 2 |
+-- mezcla/h41/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}
+-- mezcla/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/codigo-de-la-sesion --
+0
+-- mezcla/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.err --
+-- mezcla/h41/jurisprudencia-control/orden/01-existe-con-numero-y-fecha-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000012","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_m1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_m1_1","name":"Skill","input":{"skill":"jurisprudencia"}}]},"session_id":"00000000-0000-4000-8041-000000000012"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_m1_1","content":"resultado de toolu_m1_1"}]},"session_id":"00000000-0000-4000-8041-000000000012"}
+{"type":"assistant","message":{"id":"msg_m1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_m1_2","name":"Bash","input":{"command":"kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000012"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_m1_2","content":"resultado de toolu_m1_2"}]},"session_id":"00000000-0000-4000-8041-000000000012"}
+{"type":"assistant","message":{"id":"msg_m1_3","type":"message","role":"assistant","content":[{"type":"text","text":"La consulta para el buscador es la que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8041-000000000012"}
+{"type":"result","subtype":"success","is_error":false,"result":"La consulta para el buscador es la que devuelve la herramienta.","session_id":"00000000-0000-4000-8041-000000000012"}
+-- mezcla/h41/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- mezcla/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.err --
+-- mezcla/h41/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8041-000000000013","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_m2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_m2_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8041-000000000013"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_m2_1","content":"resultado de toolu_m2_1"}]},"session_id":"00000000-0000-4000-8041-000000000013"}
+{"type":"assistant","message":{"id":"msg_m2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_m2_2","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2003-23186 a66 --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8041-000000000013"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_m2_2","content":"resultado de toolu_m2_2"}]},"session_id":"00000000-0000-4000-8041-000000000013"}
+{"type":"assistant","message":{"id":"msg_m2_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8041-000000000013"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8041-000000000013"}

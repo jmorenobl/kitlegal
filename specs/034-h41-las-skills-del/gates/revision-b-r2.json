@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Ronda 2 (ciclo 2): el rango 0169108..7ebf7dde solo toca specs/034-h41-las-skills-del/research.md (D21). gates/ci.log, escrito a las 22:40:00 por el `make ci` del paso reparar_cierre tras esa edición, termina en «ci: todos los controles en verde» (kitlegal-verificacion exit=0); gates/cierre.json da el job `ci` y `snapshot` en SUCCESS sobre 69f5ecd1, de la que 7ebf7dde solo difiere en research.md y gates/. Árbol limpio fuera de gates/ (git status: solo ficheros de gates/ que escribe el workflow). En una copia fuera del repositorio ($TMPDIR/kl-h41-b): `go build ./...` y `go test -count=1 ./...` en verde, 4911 tests en 32 paquetes."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no añade ni cambia código ni tests. La suite de aceptación congelada sigue intacta y activada: specs/034-h41-las-skills-del/aceptacion/laboratorio-tabla.txtar y skills-instaladas.txtar sin diferencia desde ea548abc (`git diff --stat ea548abc HEAD`), sus copias internal/app/testdata/script/h41-*.txtar idénticas (`diff -q`) y con las huellas de gates/aceptacion-congelada.json; TestEntregaDelHito en verde en la copia. gates/cuarentena.json: ninguna tarea en cuarentena. Lo juzgado en la ronda 1 sobre el código del hito no cambia."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Sin código en el rango. depguard/forbidigo y las reglas de dependencia pasan en gates/ci.log (lint en verde) y en el job `ci` de gates/cierre.json."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia en el rango; schema-check en verde en gates/ci.log. schemas/bloque.json sigue siendo el generado desde --describe («Generado desde --describe con make schema-check; no editar»)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios de código ni de contrato en el rango; los códigos de salida juzgados en la ronda 1 no se tocan."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "La reparación del cierre está registrada como decisión con la evidencia de la medición en research.md:315-363 (D21) y en gates/supuestos.md:13 («[alcance] reparar_cierre: … → …»), como pide el paso (.specify/workflows/hito/workflow.yml:971). Cada afirmación de D21 la sostiene el repositorio: gates/cierre.json (ejecución 42288846648, trabajo 128137471691, evals (normativa) FAILURE, el resto SUCCESS); gates/evals/normativa.json `umbrales`: sin_activar:claude-sonnet-5-5:herramienta 1 de 60 (≤ 0, decide true, el único que decide y no cumple), sin_activar orden 0 de 60, afirma_lo_no_leido 0 de 120, redaccion_sin_fechar 0 de 6 en cada modo, medida del juez 0 de 212 y 0 de 47, duraciones dentro de la cota; la sesión 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-01 con invocaciones [mcp serve, boe_articulo BOE-A-2003-23186 a66], activada false y la cita «[BOE-A-2003-23186, bloque a66]», la forma del ejemplo de internal/mcp/instrucciones.go:20; las -02 y -03 activadas con boe_indice, boe_articulo y graph_check; H32 gates/supuestos.md:52 (sesión -02, 1 de 60) y research D23; H39 y H40 gates/evals/normativa.json 0 de 60; versiones_de_claude_code 2.1.284 en los cuatro informes y .github/workflows/evals.yml:314; evidencias/sondeos-20261104/tabla.md 40 de 40 y evidencias/sondeos-20261106/tabla-normativa.md 30 de 30 sesiones de la eval 04 en modo herramienta con «Activa antes» sí, Claude Code 2.1.317; el frontmatter de skills/normativa/SKILL.md (líneas 1-16) fuera de todo hunk de `git diff v0.9.0 HEAD`; skills/consulta-juridica/SKILL.md:37-38 ya pide activar la skill antes de pedir nada; ADR 0050 puntos 2 y 3; «Fuera» del fichero del hito (docs/roadmap/done/H41-las-skills-mandan-leer-sus-referencias.md:87 y 90); el informe del job no tiene clave de skills activadas. Sin cambio de producto, nada que añadir a CHANGELOG, ADR ni docs/SOURCES.md."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca HTTP, datos ni secretos; el único identificador que cita es el de una sesión de eval, no una persona. FR-031: el hito no graba nada (research.md «Fuentes externas»)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "La reparación no toca la eval 04, el umbral, evals.yml, la suite congelada ni testdata/ (lo que prohíbe el paso, workflow.yml:964-971), y rechaza como atajo la frase en la descripción sin medir (D21 «Por qué» y «Rechazadas»). Ningún nolint, t.Skip, TODO ni error silenciado en el rango; gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es solo la decisión documental de no cambiar nada. gates/supuestos.md:13 lleva impacto [alcance] y es la lectura conservadora del «Criterio de decisión autónoma» (constitución, punto 4): la descripción de normativa y consulta-juridica están fuera por el fichero del hito (líneas 87 y 90) y FR-009/SC-003 fijan el frontmatter al de control; las instrucciones del servidor y la descripción de boe_articulo las cierra el ADR 0050 (puntos 2 y 3); la versión de Claude Code del job, el ADR 0031 y la prohibición de tocar la configuración de CI del propio paso. Las alternativas rechazadas constan en D21."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna salida que consuma una skill o una persona cambia en el rango; las medidas de la ronda 1 (bytes por invocación, invocaciones por pregunta, señales que caducan) siguen valiendo."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cero mecanismos nuevos: la reparación descarta añadir instrumentación (`skills_activadas` en el informe del job) y texto en el servidor o la skill que ningún FR exige (constitución, punto 2; D21 «Rechazadas»), y deja la instrumentación donde ya estaba, docs/roadmap/backlog/medida-de-las-skills.md."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El umbral que la medición incumplió tiene su control en el job y salió en rojo: `sin_activar:claude-sonnet-5-5:herramienta` figura en `umbrales` de gates/evals/normativa.json con decide true, cumple false, y el veredicto del informe es «fallo» (gates/cierre.log: `make: *** [Makefile:135: evals] Error 1`), el contrato del ADR 0029. Los once umbrales de la fila SC-010 de plan.md:264 están en el informe con decide true, y los de jurisprudencia y plazos-y-territorio (plan.md:265-266) pasan en sus jobs (cierre.json SUCCESS). Ninguno se rebaja ni se deja solo publicado. FR-051/SC-010 los decide la medición que el workflow lanza tras esta revisión; no se ha medido en esta sesión."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "FR-051/SC-010 no están cumplidos en la medición de 69f5ecd1 (sin_activar herramienta 1 de 60) y la reparación no cambia el producto: lo decide la medición siguiente; si vuelve a salir una sesión sin activar, el bucle del cierre (scripts/workflow/cierre.sh medir … 3) agota sus rondas y la persona decide. No he medido nada con modelo en esta sesión.",
+    "La sesión sin activar respondió con la forma del ejemplo de las instrucciones del servidor MCP (internal/mcp/instrucciones.go:20, «[BOE-A-2015-10565, bloque a21]») y sin leer el índice: el texto que la sesión siguió en vez de la skill es el del servidor, que el hito no toca y el ADR 0050 (punto 3) excluye como remedio de la activación; queda para la persona junto con la diferencia de versión de Claude Code (2 de 12 con 2.1.284 en el job frente a 0 de 70 con 2.1.317 en los sondeos) que D21 anota como observación, no como causa probada.",
+    "Umbrales informativos (decide false) en rojo en gates/evals/normativa.json: cuenta_su_proceso 4 de 60 en orden y 2 de 60 en herramienta (≤ 0) y fuera_de_lo_grabado 1 de 66 (orden) y 7 de 66 (herramienta) con claude-sonnet-5-5; vienen de la configuración de hitos anteriores, no del rango.",
+    "De H32 solo queda en gates/ una medición (cierre.json ronda 1, verde false; serie.jsonl una fila de normativa), así que «doce sesiones de la eval 04 en modo herramienta de los cuatro cierres» en D21 es lo que el repositorio puede sostener; si H32 tuvo una medición posterior en verde, no está en sus gates/.",
+    "No he podido ejecutar `make ci` entero en la copia (solo `go build` y `go test -count=1 ./...`, en verde): fmt, lint, vuln y schema-check los sostienen gates/ci.log (no versionado en git; mtime 22:40:00, posterior a la edición de research.md) y el job `ci` sobre 69f5ecd1 en gates/cierre.json.",
+    "Las observaciones de la ronda 1 (versionada() solo en tests, aserción tautológica en laboratorio_familias_test.go:89, celdas vacías sin referencias_del_producto, la línea de docs/ROADMAP.md fuera de T009, `producto` en misspell) siguen igual: nada del rango las toca y ninguna llega a motivo."
+  ]
+}

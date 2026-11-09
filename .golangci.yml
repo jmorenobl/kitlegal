@@ -414,6 +414,11 @@ linters:
         # (data-model de H5, cabecera; control 10 del plan de H5; research.md
         # D20); misspell lo lee como «patrons».
         - patrones
+        # «Producto», la variante <skill>-producto de cada familia del laboratorio
+        # de H41, la que se instala desde skills/<skill>, y el campo producto de
+        # familiaDelLaboratorio que la nombra (FR-022, data-model §1 de H41);
+        # misspell lo lee como «production».
+        - producto
         # «Expresiones regulares», el análisis de emergencia de _fallback_parse
         # que la entrada 7 del porte anotado en internal/source/boe/doc.go no porta
         # (H4 FR-120, research.md D18); misspell lo lee como «regulars».
