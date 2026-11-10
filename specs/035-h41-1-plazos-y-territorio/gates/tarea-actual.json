@@ -1,0 +1,22 @@
+{
+  "id": "T001",
+  "texto": "T001 [aceptacion] Escribir, a partir del spec y de [contracts/aceptacion.md](contracts/aceptacion.md) §1, sin código de producto y sin evals nuevas (FR-011 y FR-012: las evals no cambian; Fuera de alcance: «Evals nuevas, y cambiar las que ya existen»), el guion testscript specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar, byte a byte el bloque de §1 (39 líneas): la cabecera de comentario con lo que comprueba y la línea «# Cubre: US1, US2 · FR-001, FR-002, FR-003 · SC-001»; `exec kitlegal skills install --dir destino --json`; y, sobre `destino/plazos-y-territorio/SKILL.md` y `destino/plazos-y-territorio/references/calculo_de_plazos.md`, las órdenes `grep`, `grep -count=1` y `! grep` de §1 en su orden (la orden de `municipios.md` en un párrafo propio al principio del «Protocolo», delante de «Territorio: del 1 al 4…»; la de `calculo_de_plazos.md` al final del paso 7, delante de «8. **Situar el plazo**»; una vez cada enlace; ninguna viñeta `- [municipios.md]` ni `- [calculo_de_plazos.md]`; «Referencias» terminada en la viñeta de `jerarquia_normativa.md` y seguida de «## Protocolo»; «Si no lo dice, **pregúntalo** y espera» en el paso 1; la frase del 4 o 5 fuera del cuerpo, el paso 10 terminado en ``⚠ REDACCIÓN A FECHA:`.`` y seguido del 11, y la frase al final de `calculo_de_plazos.md` detrás de una línea en blanco, con `\\z`). El guion no contiene `usage: `, `unknown command`, `unexpected command` ni `cannot parse`, y no afirma nada que §1 no afirme (las otras tres referencias y la región de los paquetes los comprueban los tests de T002; research D6). Lo activa el workflow como `h41-1-skills-instaladas.txtar` en la carpeta de guiones de internal/app y lo ejecuta `TestEntregaDelHito` (el arnés e2e no cambia). Antes de terminar, con un prototipo (worktree bajo `$TMPDIR` con el guion copiado como `h41-1-skills-instaladas.txtar` en la carpeta de guiones de internal/app del worktree, `go -C <worktree> test -count=1 ./internal/app -run '^TestEntregaDelHito$/^h41-1-skills-instaladas$'`; el worktree se retira al terminar), comprobar que falla hoy por una aserción y no por no poder leerse: en su línea 21, el primer `grep`, con `no match for \"^## Protocolo\\n\\nAntes de la primera orden o llamada, lee …\"` (research V6).",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": true,
+  "base": "f54bef9ac08ce9fed37d44118ed977fad14f4f1c",
+  "rutas": [
+    "calculo_de_plazos.md",
+    "contracts/aceptacion.md",
+    "destino/plazos-y-territorio/SKILL.md",
+    "destino/plazos-y-territorio/references/calculo_de_plazos.md",
+    "h41-1-skills-instaladas.txtar",
+    "internal/app",
+    "jerarquia_normativa.md",
+    "municipios.md",
+    "specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
