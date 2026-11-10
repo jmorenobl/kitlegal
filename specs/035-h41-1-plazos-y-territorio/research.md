@@ -229,8 +229,10 @@ aplicada.
    que el test admite por skill (`fallosAdmitidosDelProducto`), hoy uno: la viñeta de `jerarquia_normativa.md` de
    `plazos-y-territorio`, que queda como en v0.9.0 porque ninguna eval llega a su condición—».
 
-El punto 2 del ADR 0052 no entra. El ejemplo de la línea 90 («como `plazos-y-territorio`») no cambia (spec, «Fuera de
-alcance»).
+El punto 2 del ADR 0052 no entra. El ejemplo de la línea 90 («como `plazos-y-territorio`») no lo cambia ninguna tarea
+(spec, «Fuera de alcance»); el barrido global lo cambió después por la viñeta que la skill conserva, la de
+`jerarquia_normativa.md`, y el de `normativa` por su frase de hoy, «si no está, lee [buscar_la_norma]…»
+(`gates/supuestos.md`).
 
 **Por qué.** Es lo que pide FR-009, con la cifra del ADR 0053; las dos frases «hasta H41.1» describen el control que
 cambia FR-007, y quitarlas sin más haría decir a la guía que toda frase con un enlace lleva «lee». La excepción va con
@@ -256,6 +258,9 @@ H41 y dejan de ser ciertas con el hito. FR-012 dice que, fuera de FR-001 a FR-01
 pide `CONTRIBUTING.md`: lectura conservadora, no se toca, y va a «Pendientes» del informe final para la persona.
 
 **Rechazada.** Corregirlas en este hito: es contenido que el spec no pide.
+
+**Después.** El barrido global, que hace que lo que dice la documentación sobre el producto sea cierto, las corrigió:
+las dos describen ahora la skill de H41.1 (`gates/supuestos.md`).
 
 ### D11 · Lo que no cambia, y su control (FR-006, FR-008, FR-012; SC-005)
 

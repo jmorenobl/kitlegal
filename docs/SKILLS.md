@@ -84,15 +84,15 @@ se busca una norma que no está en la tabla, qué se hace con cada código de sa
 plazo, qué se dice de un documento que no es el pedido.
 
 Cuándo leer cada referencia lo dice el cuerpo de una de dos maneras. Con un apartado «Referencias», una línea por
-referencia, como `plazos-y-territorio`:
+referencia, como la que conserva `plazos-y-territorio` desde H41.1:
 
 ```markdown
-- [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o no sale con 0, y
-  para explicar su cobertura.
+- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el autonómico de la
+  `comunidad` de `data`, y la norma que prevalece.
 ```
 
 o en el paso del protocolo que la necesita, con el enlace en la frase, como `normativa` y `jurisprudencia`: «si no
-está, búscala con [buscar_la_norma](references/buscar_la_norma.md)». El enlace a la referencia de un paquete no lo
+está, lee [buscar_la_norma](references/buscar_la_norma.md)». El enlace a la referencia de un paquete no lo
 escribe nadie: lo genera `make skills-sync` entre sus marcas ([abajo](#el-molde-de-un-paquete-de-materia)).
 
 **Lo que se lee y lo que no.** Lo midió el sondeo de la eval 15 de `boe-legislacion`, hoy de `normativa`

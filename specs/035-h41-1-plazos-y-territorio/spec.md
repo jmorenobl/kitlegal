@@ -194,7 +194,8 @@ Quien escriba o revise una skill lee en `docs/SKILLS.md` §1 («Cómo se remite�
   paquetes -->`), «Si no lo dice, **pregúntalo** y espera» en el paso 1, el frontmatter —la descripción incluida— y el
   resto del cuerpo quedan como en v0.9.0, salvo el movimiento de FR-003. Se comprueba con FR-005.
 - **FR-003**: El movimiento M1, y ningún otro: la frase del paso 10 «Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di
-  aparte que no has podido leerlo, sin afirmar qué dice.» (105 caracteres) sale del cuerpo y va entera, palabra por
+  aparte que no has podido leerlo, sin afirmar qué dice.» (104 caracteres; los 105 del ADR 0053 cuentan también el
+  espacio que la precede en el paso 10) sale del cuerpo y va entera, palabra por
   palabra, al final de `references/calculo_de_plazos.md`, detrás de una línea en blanco. `administrativo.md`,
   `jerarquia_normativa.md` y `municipios.md` no cambian. Se comprueba con FR-005.
 - **FR-004**: El cuerpo del `SKILL.md` de `plazos-y-territorio` mide 10 882 caracteres, y ningún cuerpo de una skill del
@@ -275,7 +276,7 @@ Quien escriba o revise una skill lee en `docs/SKILLS.md` §1 («Cómo se remite�
   vez por pregunta, al final del paso 7, en toda pregunta que llega a él; el agente toma de ella los municipios que
   cuentan, el plazo sin calcular, la lectura en la fecha de inicio y, con M1, lo que dice si la lectura sale con 4 o 5.
   Lo movido se lee solo donde se lee la referencia, en vez de en toda pregunta con el cuerpo.
-- **Por pregunta**: una de territorio lee cuerpo + `municipios.md`, unos 15 KB; una de plazos, además
+- **Por pregunta**: una de territorio lee el `SKILL.md` + `municipios.md`, unos 16 KB (16 057 bytes); una de plazos, además
   `calculo_de_plazos.md` y la referencia del paquete, como en v0.9.0. Ninguna referencia crece con las normas ni los
   bloques consultados; solo cambian cuando un hito las cambia.
 - **Las invocaciones de `kitlegal` por pregunta** no cambian: el hito no añade ni quita ninguna orden ni llamada, solo
@@ -391,6 +392,7 @@ no se fusiona sin ellas. Si no cumple, no se fusiona, y lo medido va a un ADR qu
 - El ejemplo de remisión de `docs/SKILLS.md` §1 («Con un apartado «Referencias», una línea por referencia, como
   `plazos-y-territorio`», con la viñeta de `municipios.md`), que tras FR-001 ya no está en la skill y que, con FR-007,
   `TestRemisionesDelRepositorio` da en rojo en una skill del producto: el hito pide en §1 solo la línea de FR-009, y la
-  persona lo ve en el informe final.
+  persona lo ve en el informe final. (El barrido global lo cambió después por la viñeta de `jerarquia_normativa.md`,
+  que la skill conserva, para que la guía no cite una línea que ya no está; `gates/supuestos.md`.)
 - El ADR que haría falta si el sondeo no cumple SC-003: lo escribe quien lea la medida, fuera del run.
 - Fusionar, etiquetar o publicar (ADR 0018, 0020 y 0021).

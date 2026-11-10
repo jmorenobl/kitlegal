@@ -1,16 +1,11 @@
 {
-  "id": "T005",
-  "texto": "T005 [P] [US5] CHANGELOG.md, en *Unreleased* → «Cambiado», detrás de la entrada de H41, la entrada de research D9, palabra por palabra — US5; FR-010: `plazos-y-territorio` manda leer `municipios.md` y `calculo_de_plazos.md` sin condición (H41.1; ADR 0053), sus dos viñetas fuera de «Referencias», la frase «`⚠ PLAZO:` se mantiene» al final de `calculo_de_plazos.md` para que el cuerpo quepa en el tope, nada más de la skill cambia, y `make ci` comprueba la forma con M1 y la frase de cada remisión. **Verde**: el segundo `grep` de quickstart.md §6 da la línea de la entrada; quickstart.md §1 a §4; y `make ci` en verde (quickstart.md §7).",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "767505f571d05297580054e4d775f40fef4bdd75",
-  "rutas": [
-    "CHANGELOG.md",
-    "calculo_de_plazos.md",
-    "municipios.md",
-    "quickstart.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

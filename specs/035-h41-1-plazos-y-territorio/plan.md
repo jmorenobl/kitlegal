@@ -111,7 +111,9 @@ CHANGELOG.md                          # CAMBIA: Unreleased (research D9)
 
 Sin cambios: `laboratorio/`, `skills/{normativa,jurisprudencia,consulta-juridica}`, `evals/`, `data/`, `schemas/`, el
 arnés (`scripts/evals-*.sh`, `internal/evals/laboratorio*.go` que no son `_test.go`, `cmd/laboratorio`), `Makefile`,
-`.golangci.yml`, `CONTRIBUTING.md` (research D10).
+`.golangci.yml`. `CONTRIBUTING.md` no lo cambia ninguna tarea (research D10); sus dos frases que describían
+`skills/plazos-y-territorio` como su control las corrigió el barrido global, que también cambió el ejemplo de remisión
+de `docs/SKILLS.md` §1 (`gates/supuestos.md`).
 
 **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`: el producto en `skills/`, sus controles junto a los de
 H41 en `internal/evals` e `internal/skills`, los guiones e2e en `internal/app/testdata/script/`. Ningún paquete ni
@@ -247,8 +249,10 @@ del cierre.
   contracts/skill.md; ningún umbral se rebaja.
 - **Para la persona, en el informe final**: el cambio de `internal/app/testdata/script/h41-skills-instaladas.txtar`
   (FR-013; capa 3); el de `origenesDeLaVariante`, que FR-008 no nombra y sin el que `make ci` sale en rojo (research
-  D12; `gates/supuestos.md`); `CONTRIBUTING.md` líneas 1813-1814 y 1828-1830, que siguen describiendo `skills/plazos-y-territorio`
-  como su control (research D10); y el ejemplo de remisión de `docs/SKILLS.md` §1 (línea 90), que el spec deja fuera.
+  D12; `gates/supuestos.md`); y `CONTRIBUTING.md` líneas 1813-1814 y 1828-1830, que describían
+  `skills/plazos-y-territorio` como su control (research D10), y el ejemplo de remisión de `docs/SKILLS.md` §1 (línea
+  90), que el spec deja fuera: los dos los corrigió el barrido global para que digan lo que hace la skill
+  (`gates/supuestos.md`).
 
 ## Complexity Tracking
 
