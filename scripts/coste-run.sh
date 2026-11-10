@@ -36,10 +36,11 @@ run_dir, run_id = sys.argv[1:3]
 
 # USD por millón de tokens: entrada, salida, lectura de caché. La escritura de
 # caché cuesta 1,25× la entrada (TTL 5 min) o 2× (TTL 1 h, el de Claude Code).
-# De https://platform.claude.com/docs/en/about-claude/pricing, leída el 2026-10-01.
-# La lectura de caché no es una proporción fija de la entrada: 0,1× en general,
-# 0,05× en Opus 5.5 y 0,025× en Fable 5.1.
+# De https://platform.claude.com/docs/en/about-claude/pricing, leída el 2026-10-01
+# (Fable 5.2, el 2026-11-10). La lectura de caché no es una proporción fija de la
+# entrada: 0,1× en general, 0,05× en Opus 5.5, 0,025× en Fable 5.1 y Fable 5.2.
 PRECIOS = {
+    "claude-fable-5-2": (8.0, 40.0, 0.20),
     "claude-fable-5-1": (10.0, 50.0, 0.25),
     "claude-opus-5-5": (4.0, 20.0, 0.20),
     "claude-opus-5": (5.0, 25.0, 0.50),
