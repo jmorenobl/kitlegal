@@ -8,16 +8,19 @@
 # redaccion_modificada.md y de lecturas_que_fallan.md y no en el cuerpo. En
 # jurisprudencia, sus dos órdenes —la de consulta_preparada.md antes de la tabla
 # de lo que se pide; la de documento_aportado.md, lo primero del paso 3— y ninguna
-# de la consulta que se da. plazos-y-territorio conserva su lista de control y
-# «Si no lo dice, **pregúntalo** y espera» en el paso 1, sin ninguna de las
-# órdenes de sus variantes. Y ninguna variante del laboratorio se instala.
+# de la consulta que se da. En plazos-y-territorio, desde H41.1, sus dos órdenes
+# de leer sin condición —la de municipios.md, lo primero del «Protocolo»; la de
+# calculo_de_plazos.md, al final del paso 7— y ninguna de sus dos viñetas de
+# «Referencias», «Si no lo dice, **pregúntalo** y espera» en el paso 1 y la
+# frase del 4 o 5 al final de calculo_de_plazos.md y no en el cuerpo. Y ninguna
+# variante del laboratorio se instala.
 #
 # Cubre: US1, US2, US3 · FR-001 a FR-006, FR-010, FR-025 · SC-001, SC-004, SC-005, SC-009
 #
-# El tope de 11 000 caracteres, la regla y la lista de las remisiones, el cálculo
-# desde control y la igualdad byte a byte de plazos-y-territorio con su control
-# los comprueban TestSkillsDelRepositorio, TestRemisionesDelRepositorio y
-# TestSkillsDelProductoDesdeControl.
+# El tope de 11 000 caracteres, la regla y la lista de las remisiones y el cálculo
+# de cada skill desde su control, o en plazos-y-territorio desde su forma sin
+# condición, los comprueban TestSkillsDelRepositorio,
+# TestRemisionesDelRepositorio y TestSkillsDelProductoDesdeControl.
 
 exec kitlegal skills install --dir destino --json
 
@@ -45,12 +48,15 @@ grep '(?s)Antes de pedir una u otra, lee\s+\[references/consulta_preparada\.md\]
 grep '### 3\. Con el documento delante: cotejar su ficha\s+Con cada documento, antes del cotejo, lee \[references/documento_aportado\.md\]' destino/jurisprudencia/SKILL.md
 ! grep 'Antes de dar la consulta' destino/jurisprudencia/SKILL.md
 
-# --- plazos-y-territorio, sin cambiar: su lista de control y la pregunta del
-# paso 1, sin ninguna orden de leer de sus variantes (US3) ---
-grep '^- \[municipios\.md\]\(references/municipios\.md\): al presentar un territorio, si falta el municipio o no sale con 0, y$' destino/plazos-y-territorio/SKILL.md
-grep '^- \[calculo_de_plazos\.md\]\(references/calculo_de_plazos\.md\): en los municipios que cuentan, un plazo sin calcular y una$' destino/plazos-y-territorio/SKILL.md
+# --- plazos-y-territorio, desde H41.1: sus dos órdenes de leer, cada una en su
+# sitio, sin sus viñetas de «Referencias», la pregunta del paso 1 y la frase del
+# 4 o 5 al final de calculo_de_plazos.md (US3) ---
+grep '## Protocolo\s+Antes de la primera orden o llamada, lee \[municipios\.md\]\(references/municipios\.md\):' destino/plazos-y-territorio/SKILL.md
+grep 'Un acto presunto no tiene fecha: ningún plazo\. Antes del 8, lee\s+\[calculo_de_plazos\.md\]\(references/calculo_de_plazos\.md\):' destino/plazos-y-territorio/SKILL.md
+! grep '^- \[(municipios|calculo_de_plazos)\.md\]' destino/plazos-y-territorio/SKILL.md
 grep '^1\. \*\*El municipio\*\*, de la conversación\. Si no lo dice, \*\*pregúntalo\*\* y espera: no lo supongas' destino/plazos-y-territorio/SKILL.md
-! grep '[Ll]ee \[(municipios|calculo_de_plazos)\.md\]' destino/plazos-y-territorio/SKILL.md
+! grep 'Si\s+sale\s+con\s+4\s+o\s+5' destino/plazos-y-territorio/SKILL.md
+grep '\n\nSi sale con 4 o 5, \*\*`⚠ PLAZO:` se mantiene\*\*: di aparte que no has podido leerlo, sin afirmar qué dice\.\n\z' destino/plazos-y-territorio/references/calculo_de_plazos.md
 
 # --- Ninguna variante del laboratorio se instala ---
 ! exists destino/normativa-control destino/jurisprudencia-control destino/plazos-y-territorio-control

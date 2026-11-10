@@ -1810,10 +1810,12 @@ tiene dos variantes, que se miden en `orden` y en `herramienta`:
 | `<skill>-producto` | `skills/<skill>` del árbol en el momento del sondeo: el arnés la instala desde `skills/` | en ningún sitio: no tiene copia versionada |
 
 Las tres variantes de H40 sin control siguen en la familia de `normativa`, en modo herramienta y comparadas con
-`normativa-control`. `skills/plazos-y-territorio` no cambia en H41, así que `plazos-y-territorio-producto` es
-`plazos-y-territorio-control` byte a byte: su fila dice cuánto se mueve el control de una medida a otra. Su familia
-tiene además tres formas de las órdenes de leer `municipios.md` y `calculo_de_plazos.md` (ADR 0052, punto 3), en
-`laboratorio/plazos-y-territorio/<variante>/skills/plazos-y-territorio/` y en los dos modos; cada una es
+`normativa-control`. `skills/plazos-y-territorio` no cambió en H41, así que en sus sondeos
+`plazos-y-territorio-producto` era `plazos-y-territorio-control` byte a byte y su fila decía cuánto se mueve el control
+de una medida a otra; desde H41.1 es `plazos-y-territorio-sin-condicion` con la frase del 4 o 5 al final de
+`calculo_de_plazos.md` (ADR 0053). Su familia tiene además tres formas de las órdenes de leer `municipios.md` y
+`calculo_de_plazos.md` (ADR 0052, punto 3), en `laboratorio/plazos-y-territorio/<variante>/skills/plazos-y-territorio/`
+y en los dos modos; cada una es
 `plazos-y-territorio-control` con solo esas órdenes cambiadas (su texto,
 `specs/034-h41-las-skills-del/contracts/variantes.md` §2):
 
@@ -1826,8 +1828,9 @@ tiene además tres formas de las órdenes de leer `municipios.md` y `calculo_de_
 `make ci` lo comprueba sin modelo: `TestVariantesDeControl` (cada fichero de cada `<skill>-control` tiene la huella
 SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de cada familia tiene un directorio por variante versionada
 y ninguno `<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl`
-(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara el hito, y
-`skills/plazos-y-territorio`, su control byte a byte), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
+(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41, y
+`skills/plazos-y-territorio`, la que da sobre `plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara
+H41.1, con el frontmatter de su control), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
 declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFamilias`, `TestTablaDeLasFamilias`,
 `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias: ninguna variante versionada
 se empotra en el binario, la pone `kitlegal skills install` ni la mide el job de evals. El tope de 11 000 caracteres

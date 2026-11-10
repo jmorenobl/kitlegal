@@ -29,12 +29,11 @@ Cuándo leer cada una:
 <!-- fin de los paquetes -->
 - [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el autonómico de la
   `comunidad` de `data`, y la norma que prevalece.
-- [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o no sale con 0, y
-  para explicar su cobertura.
-- [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que cuentan, un plazo sin calcular y una
-  lectura fallida o con `redaccion_posterior`.
 
 ## Protocolo
+
+Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si falta el municipio o
+no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.
 
 Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 y, solo si hay plazo, del 8 al 11.
 
@@ -54,7 +53,9 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    nada**, ni el municipio ni la fecha. Si el asunto está en la cobertura de su paquete, la línea `⚠ NO CUBIERTO:` de
    su fila, entera, **ni `plazos calcular`** ni ninguna fecha (regla 9). Si no dice la materia, **no la preguntes ni
    detengas la respuesta**: sigue con el 8, y al responder di que la fecha no vale si la ley regula el asunto aparte,
-   nombrando esos asuntos solo con la referencia. Un acto presunto no tiene fecha: ningún plazo.
+   nombrando esos asuntos solo con la referencia. Un acto presunto no tiene fecha: ningún plazo. Antes del 8, lee
+   [calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el plazo sin calcular y la
+   lectura en la fecha de inicio.
 8. **Situar el plazo**: la fecha de inicio (notificación o publicación; en el silencio, acuerdo de iniciación o
    entrada en el registro), que si falta **se pregunta**; y los municipios que cuentan, con los pasos 1 a 4: **el del
    interesado y el de la sede del órgano**, o en el contencioso-administrativo **el de la sede del juzgado**.
@@ -64,8 +65,7 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    plazo ni ninguna fecha de vencimiento, y sin el 10.
 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
     `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
-    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
-    afirmar qué dice.
+    `⚠ REDACCIÓN A FECHA:`.
 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
     la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
     `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.

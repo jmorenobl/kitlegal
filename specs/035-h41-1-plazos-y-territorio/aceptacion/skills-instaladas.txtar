@@ -1,0 +1,38 @@
+# skills-instaladas.txtar
+# Lo que instala `kitlegal skills install` de plazos-y-territorio con la forma
+# sin condición de H41 y el movimiento M1 (contracts/aceptacion.md de H41.1): la
+# orden de leer municipios.md, en un párrafo propio al principio del
+# «Protocolo», delante de «Territorio: del 1 al 4…»; la de calculo_de_plazos.md,
+# al final del paso 7, antes del 8; la lista de «Referencias» sin sus dos
+# viñetas, terminada en la de jerarquia_normativa.md; «Si no lo dice,
+# **pregúntalo** y espera» en el paso 1; y la frase del 4 o 5 fuera del paso 10
+# y al final de calculo_de_plazos.md, detrás de una línea en blanco.
+#
+# Cubre: US1, US2 · FR-001, FR-002, FR-003 · SC-001
+#
+# Que los ficheros sean, byte a byte, la variante con M1, el tope de 11 000
+# caracteres y las remisiones del plan los comprueban
+# TestSkillsDelProductoDesdeControl, TestSkillsDelRepositorio,
+# TestVerticalDeEnsayo y TestRemisionesDelRepositorio.
+
+exec kitlegal skills install --dir destino --json
+
+# --- Las dos órdenes de leer, cada una en su sitio y una vez (US1, 1 y 2) ---
+grep '^## Protocolo\n\nAntes de la primera orden o llamada, lee \[municipios\.md\]\(references/municipios\.md\): qué hacer si falta el municipio o\nno sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura\.\n\nTerritorio: del 1 al 4, y el 5 y el 6 si va más allá\.' destino/plazos-y-territorio/SKILL.md
+grep 'Un acto presunto no tiene fecha: ningún plazo\. Antes del 8, lee\n   \[calculo_de_plazos\.md\]\(references/calculo_de_plazos\.md\): los municipios que cuentan, el plazo sin calcular y la\n   lectura en la fecha de inicio\.\n8\. \*\*Situar el plazo\*\*' destino/plazos-y-territorio/SKILL.md
+grep -count=1 '\]\(references/municipios\.md\)' destino/plazos-y-territorio/SKILL.md
+grep -count=1 '\]\(references/calculo_de_plazos\.md\)' destino/plazos-y-territorio/SKILL.md
+
+# --- «Referencias» sin las dos viñetas, terminada en la de
+# jerarquia_normativa.md (US1, 3) ---
+! grep '^- \[(municipios|calculo_de_plazos)\.md\]' destino/plazos-y-territorio/SKILL.md
+grep '^<!-- fin de los paquetes -->\n- \[jerarquia_normativa\.md\]\(references/jerarquia_normativa\.md\): para el nivel que regula algo, con el autonómico de la\n  `comunidad` de `data`, y la norma que prevalece\.\n\n## Protocolo$' destino/plazos-y-territorio/SKILL.md
+
+# --- La pregunta del paso 1 (US1, 4) ---
+grep '^1\. \*\*El municipio\*\*, de la conversación\. Si no lo dice, \*\*pregúntalo\*\* y espera: no lo supongas' destino/plazos-y-territorio/SKILL.md
+
+# --- La frase del 4 o 5: fuera del paso 10 y al final de
+# calculo_de_plazos.md (US2, 1 y 2) ---
+! grep 'Si\s+sale\s+con\s+4\s+o\s+5,\s+\*\*`⚠\s+PLAZO:`\s+se\s+mantiene\*\*' destino/plazos-y-territorio/SKILL.md
+grep 'y citarlo con\n    `⚠ REDACCIÓN A FECHA:`\.\n11\. \*\*Responder\*\*' destino/plazos-y-territorio/SKILL.md
+grep 'que no has leído\. Dilo así\.\n\nSi sale con 4 o 5, \*\*`⚠ PLAZO:` se mantiene\*\*: di aparte que no has podido leerlo, sin afirmar qué dice\.\n\z' destino/plazos-y-territorio/references/calculo_de_plazos.md

@@ -82,6 +82,12 @@ sustituyen a este fichero.
   del cuerpo a una referencia va en una frase que manda leerla («lee» antes del enlace), sin «si la tienes», «antes de
   escribir la respuesta» ni «antes de dar la consulta», que cada referencia tiene alguno y que esas frases son, en
   orden, las del plan del hito.
+- **`plazos-y-territorio` manda leer `municipios.md` y `calculo_de_plazos.md` sin condición** (H41.1; ADR 0053).
+  `municipios.md`, antes de la primera orden o llamada, y `calculo_de_plazos.md`, al final del paso 7, antes de situar
+  el plazo; sus dos viñetas salen de la lista de «Referencias». Para que el cuerpo quepa en el tope, la frase de una
+  lectura que sale con 4 o 5 («`⚠ PLAZO:` se mantiene») pasa al final de `calculo_de_plazos.md`. Ni la descripción, ni
+  las órdenes que pide la skill, ni sus otras referencias cambian. `make ci` comprueba que la skill es la forma que
+  midió el laboratorio con ese movimiento y nada más, y la frase de cada una de sus remisiones.
 
 ## [0.9.0] - 2026-11-04
 

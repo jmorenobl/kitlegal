@@ -298,26 +298,30 @@ var regionesGeneradas = []struct{ inicio, fin string }{
 }
 
 // cambioDelCuerpo es un cambio del cuerpo del SKILL.md de una skill del producto
-// respecto al de su control: las líneas enteras de control que cambian, antes,
-// que están en él una sola vez, sin lo generado, y las que las sustituyen tras el
-// hito, despues (data-model §5).
+// respecto al de su base: las líneas enteras de la base que cambian, antes, que
+// están en él una sola vez, sin lo generado, y las que las sustituyen tras el
+// hito, despues (data-model §5 de H41 y §3 de H41.1).
 type cambioDelCuerpo struct {
 	antes, despues string
 }
 
-// movimientoALaReferencia es un texto que sale del SKILL.md de control, texto, y
+// movimientoALaReferencia es un texto que sale del SKILL.md de la base, texto, y
 // llega al final de una de sus referencias, referencia, con los bytes que se le
 // añaden, enLaReferencia: el mismo texto con los blancos juntados, detrás de una
-// línea en blanco (data-model §5; contracts/remisiones.md §3).
+// línea en blanco (data-model §5 de H41 y §3 de H41.1; contracts/remisiones.md
+// §3 de H41).
 type movimientoALaReferencia struct {
 	texto, referencia, enLaReferencia string
 }
 
 // declaracionDelProducto es lo que una skill del producto cambia respecto a su
-// control: los cambios de su cuerpo, en el orden del fichero, y sus movimientos
-// (data-model §5). Nada más cambia: ni el frontmatter, ni lo generado, ni
-// ninguna otra referencia (FR-007, FR-009).
+// base: la variante versionada de su familia, desde, o su control si está vacío;
+// los cambios de su cuerpo, en el orden del fichero, y sus movimientos
+// (data-model §5 de H41 y §3 de H41.1). Nada más cambia: ni el frontmatter, que
+// es el de su control, ni lo generado, ni ninguna otra referencia (FR-007,
+// FR-009 de H41; FR-005 de H41.1).
 type declaracionDelProducto struct {
+	desde       string
 	cambios     []cambioDelCuerpo
 	movimientos []movimientoALaReferencia
 }
@@ -348,10 +352,16 @@ const antesDelCotejo = "Con cada documento, antes del cotejo, lee " +
 	"lleva\n" +
 	"ficha.\n"
 
-// declaracionesDelProducto son, por skill, los cambios y los movimientos de las
-// skills del producto respecto a sus controles, con los bytes de
-// contracts/remisiones.md §2 a §4. plazos-y-territorio no tiene: es su control,
-// también lo generado (FR-010).
+// siSaleConCuatroOCinco es la frase del paso 10 del SKILL.md de
+// plazos-y-territorio-sin-condicion que sale del cuerpo a calculo_de_plazos.md
+// (M1; contracts/controles.md §1.1 de H41.1).
+const siSaleConCuatroOCinco = "Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido " +
+	"leerlo, sin afirmar qué dice."
+
+// declaracionesDelProducto son, por skill, la base, los cambios y los
+// movimientos de las skills del producto, con los bytes de
+// contracts/remisiones.md §2 a §4 de H41 y de contracts/controles.md §1.1 de
+// H41.1.
 var declaracionesDelProducto = map[string]declaracionDelProducto{
 	// Las siete remisiones de R1 a R6, con la «o» de R4 (research D1), y la
 	// salida de M-a y M-b (contracts/remisiones.md §2 y §3).
@@ -467,15 +477,37 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 			},
 		},
 	},
+	// La forma sin condición de H41 con M1 y nada más (FR-001 a FR-005 de
+	// H41.1; ADR 0053, punto 1).
+	skillDeLaFamiliaDePlazos: {
+		desde: "plazos-y-territorio-sin-condicion",
+		cambios: []cambioDelCuerpo{
+			{
+				antes: "    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has " +
+					"podido leerlo, sin\n" +
+					"    afirmar qué dice.\n",
+				despues: "    `⚠ REDACCIÓN A FECHA:`.\n",
+			},
+		},
+		movimientos: []movimientoALaReferencia{
+			{
+				texto:          siSaleConCuatroOCinco,
+				referencia:     "calculo_de_plazos.md",
+				enLaReferencia: "\n" + siSaleConCuatroOCinco + "\n",
+			},
+		},
+	},
 }
 
 // TestSkillsDelProductoDesdeControl es el control de lo que cambian las skills
-// del producto respecto a sus controles (FR-006, FR-007, FR-009, FR-010; SC-003
-// a SC-005; contracts/remisiones.md §8; data-model §5): en las de una
-// declaración, su control sin lo generado, con sus cambios y sus movimientos,
-// es skills/<skill> sin lo generado, ruta a ruta y byte a byte; cada texto
-// movido está en su referencia y no en el SKILL.md; y el frontmatter es el de
-// control. plazos-y-territorio es su control, también lo generado.
+// del producto respecto a su base (FR-006, FR-007, FR-009, FR-010 de H41 y
+// FR-005 de H41.1; SC-003 a SC-005 de H41; contracts/remisiones.md §8 de H41 y
+// contracts/controles.md §1 de H41.1; data-model §5 de H41 y §3 de H41.1): en
+// cada skill de una declaración, su base —la variante desde, o su control si no
+// la lleva— sin lo generado, con sus cambios y sus movimientos, es
+// skills/<skill> sin lo generado, ruta a ruta y byte a byte; cada texto movido
+// está en el SKILL.md de la base, no en el suyo, y sí al final de su
+// referencia; y el frontmatter es el de su control.
 func TestSkillsDelProductoDesdeControl(t *testing.T) {
 	t.Parallel()
 
@@ -488,27 +520,13 @@ func TestSkillsDelProductoDesdeControl(t *testing.T) {
 			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill])
 		})
 	}
-
-	// Es así hasta H41.1, el hito que cambia plazos-y-territorio: hasta
-	// entonces, skills/plazos-y-territorio es su control, también lo generado
-	// (FR-010; contracts/remisiones.md §8.4; research D4).
-	t.Run(skillDeLaFamiliaDePlazos, func(t *testing.T) {
-		t.Parallel()
-
-		producto := path.Join(directorioDeLasSkills, skillDeLaFamiliaDePlazos)
-
-		deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skillDeLaFamiliaDePlazos))
-		require.NoError(t, err)
-
-		delProducto, err := leerLosFicheros(repositorio, producto)
-		require.NoError(t, err)
-
-		compararLosFicheros(t, deControl, delProducto, producto, "su control")
-	})
 }
 
-// comprobarElProductoDesdeControl comprueba skills/<skill> contra su control y
-// su declaración (contracts/remisiones.md §8.1 a §8.3).
+// comprobarElProductoDesdeControl comprueba skills/<skill> contra su base y su
+// declaración, y su frontmatter contra el de su control
+// (contracts/remisiones.md §8.1 a §8.3 de H41; contracts/controles.md §1.2 de
+// H41.1). Los mensajes nombran la base: «su control», o el nombre de la
+// variante desde (research D5 de H41.1).
 func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill string,
 	declarada declaracionDelProducto,
 ) {
@@ -519,28 +537,36 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 	deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skill))
 	require.NoError(t, err)
 
+	deLaBase, laBase := deControl, "su control"
+	if declarada.desde != "" {
+		laBase = declarada.desde
+
+		deLaBase, err = leerLosFicheros(repositorio, familiaDelProducto(t, skill).directorioDeLaSkill(laBase))
+		require.NoError(t, err, "la base de %s, %s", skill, laBase)
+	}
+
 	delProducto, err := leerLosFicheros(repositorio, producto)
 	require.NoError(t, err)
 
 	t.Run("desde control", func(t *testing.T) {
 		t.Parallel()
 
-		controlSinLoGenerado, err := sinLoGenerado(deControl)
-		require.NoError(t, err, "el control de %s", skill)
+		baseSinLoGenerado, err := sinLoGenerado(deLaBase)
+		require.NoError(t, err, "la base de %s, %s", skill, laBase)
 
-		esperados, err := conLaDeclaracion(controlSinLoGenerado, declarada)
+		esperados, err := conLaDeclaracion(baseSinLoGenerado, declarada)
 		require.NoError(t, err, "la declaración de %s", skill)
 
 		obtenidos, err := sinLoGenerado(delProducto)
 		require.NoError(t, err, "%s", producto)
 
-		compararLosFicheros(t, esperados, obtenidos, producto, "lo que dan su control y su declaración")
+		compararLosFicheros(t, esperados, obtenidos, producto, "lo que dan "+laBase+" y su declaración")
 	})
 
 	t.Run("movimientos", func(t *testing.T) {
 		t.Parallel()
 
-		cuerpoDeControl := juntarLosBlancos(string(deControl[ficheroDeLaSkill]))
+		cuerpoDeLaBase := juntarLosBlancos(string(deLaBase[ficheroDeLaSkill]))
 		cuerpoDelProducto := juntarLosBlancos(string(delProducto[ficheroDeLaSkill]))
 
 		for _, movimiento := range declarada.movimientos {
@@ -550,7 +576,7 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 
 			assert.Equal(t, texto, juntarLosBlancos(movimiento.enLaReferencia),
 				"lo que llega a %s es, con los blancos juntados, lo que sale del SKILL.md", referencia)
-			assert.Contains(t, cuerpoDeControl, texto, "lo que llega a %s sale del SKILL.md de control", referencia)
+			assert.Contains(t, cuerpoDeLaBase, texto, "lo que llega a %s sale del SKILL.md de %s", referencia, laBase)
 			assert.NotContains(t, cuerpoDelProducto, texto, "lo que llega a %s no está en %s/%s", referencia,
 				producto, ficheroDeLaSkill)
 			assert.Contains(t, string(delProducto[relativa]), movimiento.enLaReferencia,
@@ -657,13 +683,13 @@ func conLasRegionesGeneradasReducidas(skill string) (string, error) {
 	return reducido.String(), nil
 }
 
-// conLaDeclaracion son los ficheros de control, sin lo generado, con los cambios
-// de la declaración aplicados a su SKILL.md, en su orden, y los bytes de cada
-// movimiento añadidos al final de su referencia. El antes de cada cambio está una
-// sola vez en el SKILL.md, con los anteriores ya aplicados; si no, es un error
-// con su número.
-func conLaDeclaracion(control map[string][]byte, declarada declaracionDelProducto) (map[string][]byte, error) {
-	esperados := maps.Clone(control)
+// conLaDeclaracion son los ficheros de la base de la declaración —su control, o
+// la variante desde—, sin lo generado, con los cambios de la declaración
+// aplicados a su SKILL.md, en su orden, y los bytes de cada movimiento añadidos
+// al final de su referencia. El antes de cada cambio está una sola vez en el
+// SKILL.md, con los anteriores ya aplicados; si no, es un error con su número.
+func conLaDeclaracion(base map[string][]byte, declarada declaracionDelProducto) (map[string][]byte, error) {
+	esperados := maps.Clone(base)
 
 	skill, laTiene := esperados[ficheroDeLaSkill]
 	if !laTiene {

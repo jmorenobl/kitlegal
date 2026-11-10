@@ -1,0 +1,8 @@
+{
+  "tarea": "T001",
+  "commit": "1486f5cc0b5bc736054ff97606c1d16a002fbf74",
+  "ficheros": {
+    "specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar": "807e9e157140670a08c661aa7919d1ced8e0d8b964a7ac284ec28f029ee6eaee",
+    "internal/app/testdata/script/h41-1-skills-instaladas.txtar": "807e9e157140670a08c661aa7919d1ced8e0d8b964a7ac284ec28f029ee6eaee"
+  }
+}

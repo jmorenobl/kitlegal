@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:106-108 («ci: todos los controles en verde», exit=0), con el guardián global sobre los 10 ficheros del barrido (ci.log:1), que son los del commit 98632340, la cabeza. `git status --porcelain` solo da gates/modelos.jsonl, gates/revision-cambios.md y gates/revision-ciclo.json, que escribe el workflow al preparar la revisión. Reproducido en una copia de la cabeza bajo $TMPDIR (git checkout-index): TestSkillsDelProductoDesdeControl, TestVariantesDeControl, TestVariantesDePlazosYTerritorio, TestArnesDeLasFamilias, TestRecetasDelSondeo, TestLaboratorioFueraDelProducto, TestTablaDeLasFamilias (internal/evals), TestRemisionesDelRepositorio, TestVerticalDeEnsayo, TestFrases (internal/skills), TestSkillsDelRepositorio y los guiones h41-skills-instaladas y h41-1-skills-instaladas de TestEntregaDelHito (internal/app), en verde; golangci-lint sobre ./internal/evals/... y ./internal/skills/..., «0 issues». No he ejecutado `make ci` entero."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El hito no añade código de producto en Go (el diff de *.go son tres _test.go). Suite congelada intacta y activa: specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar e internal/app/testdata/script/h41-1-skills-instaladas.txtar dan la huella SHA-256 807e9e15…6eaee de gates/aceptacion-congelada.json y el mismo blob (315d3d1c) que en el commit de T001 (1486f5cc); corre en TestEntregaDelHito/h41-1-skills-instaladas contra el binario construido de la copia. Mutantes de un solo cambio sobre la copia, cada uno en rojo y restaurado: un carácter del cuerpo de skills/plazos-y-territorio/SKILL.md → TestSkillsDelProductoDesdeControl/plazos-y-territorio/desde_control («SKILL.md difiere de lo que dan plazos-y-territorio-sin-condicion y su declaración»); un carácter de references/calculo_de_plazos.md → el mismo subtest con su ruta; un carácter de la descripción → …/frontmatter; una referencia de más → «references/de_mas.md sobra» y, en TestRemisionesDelRepositorio, «ningún enlace del cuerpo la manda leer»; un byte de skills/normativa/references/con_herramientas.md → …/normativa/desde_control (la rama con `desde` vacío); un byte del SKILL.md de -sin-condicion → TestVariantesDePlazosYTerritorio; un byte de municipios.md de -control → TestVariantesDeControl («difiere: su huella es…»); «sin calcular» → «sin contar» → «plazos-y-territorio: la remisión 3 no es la del plan»; «lee» quitado de la orden de municipios.md → «la regla da exactamente los fallos que admite», «la remisión 2 no es la del plan», h41-1-skills-instaladas.txtar:21 y h41-skills-instaladas.txtar:54; la frase del 4 o 5 repuesta en el cuerpo, partida en dos líneas → h41-1…:36 y h41…:58; texto detrás de la frase en calculo_de_plazos.md → h41-1…:38 y h41…:59; el control repuesto como segundo origen en origenesDeLaVariante → TestArnesDeLasFamilias («la skill de la sesión … es, ruta a ruta y byte a byte, la de …»)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD` no toca ningún .go que no sea de test (internal/evals/laboratorio_familias_test.go, internal/evals/laboratorio_sondeo_test.go, internal/skills/remisiones_test.go) ni añade imports; ninguna línea añadida lleva http., os.Exit ni fmt.Print (grep sobre las líneas «+» del diff, sin resultados). golangci-lint (depguard y forbidigo incluidos en la configuración del proyecto, que el hito no cambia) da «0 issues» en gates/ci.log:9 y en la copia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no añade ni cambia ninguna salida de applet: cambian el contenido de dos ficheros de la skill empotrada, tests y documentación. La salida real de `kitlegal skills install --dir destino --json` en los dos guiones lleva el sobre completo (ok, fuente kitlegal.skills, url, fecha_consulta, hash, data), vista en la ejecución de TestEntregaDelHito sobre la copia; los esquemas no cambian (`git diff main...HEAD --name-only -- schemas` vacío) y TestEsquemasPublicados sigue en verde (gates/ci.log:80-81)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún cambio en errores, códigos de salida ni rutas de usuario del binario: el diff no toca cmd/ ni ningún .go de producto. Los contratos del hito (contracts/skill.md, controles.md, aceptacion.md) no prometen ningún código de salida nuevo."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:85-90, en [Unreleased] → «Cambiado» (cabeceras en las líneas 13 y 60; la 0.9.0 empieza en la 92), con la entrada de FR-010; lo que afirma lo sostienen los mutantes de b y `diff -rq` de las referencias contra las de control (solo difiere calculo_de_plazos.md). docs/SKILLS.md:141-146 lleva la línea de FR-009 y sus cifras (39 y 40 de 40 frente a 3 y 11) coinciden con evidencias/sondeos-20261109/tabla-plazos-y-territorio.md:5-6 y 9-10 y con docs/ADR/0053:52; no recoge el punto 2 del ADR 0052; las dos frases «hasta H41.1» ya no están (grep sin resultados fuera de specs/, ADR y roadmap/done) y la viñeta de TestRemisionesDelRepositorio describe fallosAdmitidosDelProducto como queda en internal/skills/remisiones_test.go:57-65. CONTRIBUTING.md:1813-1818 y 1830-1833 dicen lo que hace el test tras el hito. Ningún ADR nuevo hace falta: el hito aplica el ADR 0053, ya en main. No toca fuentes (docs/SOURCES.md no aplica). Medidas de los artefactos comprobadas: SKILL.md 12 113 bytes, municipios.md 3 944, calculo_de_plazos.md 2 869 (wc -c), cuerpo de 10 882 caracteres (49 más dan «cuerpo de 11001 caracteres» con la línea de la vertical, que suma 70)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin código de red ni datos externos: `git diff main...HEAD --name-only -- data evidencias schemas scripts cmd go.mod go.sum tools .github Makefile .golangci.yml` no da nada; no hay grabaciones ni manifiesto (plan.md «Datos externos»). Ningún secreto ni dato personal en el diff (gitleaks «no leaks found», gates/ci.log:91-92). El único fichero de testdata/ existente que cambia es internal/app/testdata/script/h41-skills-instaladas.txtar, por FR-013 y en una tarea [datos] (T002), no un dato de una fuente."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ninguna línea añadida con nolint, t.Skip, TODO, FIXME ni un error descartado (grep sobre las líneas «+» de internal/, skills/, docs/, CHANGELOG.md y CONTRIBUTING.md, sin resultados). gates/cuarentena.json sin tareas. El guion de H41 cambia solo en su cabecera y en el bloque de plazos-y-territorio (líneas 51-59), como pide FR-013; sus aserciones de normativa, jurisprudencia y de las variantes no instaladas no cambian, y las nuevas se ven fallar con mutantes (líneas 54, 58 y 59). El fallo admitido de jerarquia_normativa.md no silencia la regla: se compara por igualdad (internal/skills/remisiones_test.go:151-152) y un fallo de más sale en rojo (mutantes de b)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ son los ficheros de plan.md:98-110 más CONTRIBUTING.md y el ejemplo de docs/SKILLS.md:86-95, que cambió el barrido (commit 98632340) dentro de lo que le encarga docs/WORKFLOW.md:111 (corregir el texto de la documentación que el producto ya no sostiene, nunca el código), anotado en gates/supuestos.md y en plan.md «Cierre y pendientes»: sin ello esas frases incumplirían f. laboratorio/, evals/, data/, skills/normativa, skills/jurisprudencia y skills/consulta-juridica no cambian un byte (`git diff --name-only` vacío). Los supuestos [alcance] (FR-013 sobre el guion de H41; origenesDeLaVariante sin el segundo origen) son el cambio mínimo sin el que `make ci` sale en rojo y van al informe para la persona."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El hito no cambia ninguna salida del binario; lo que consume el agente son ficheros de tamaño fijo, medidos con wc -c: una pregunta de territorio lee SKILL.md (12 113 bytes; 12 161 en v0.9.0) y municipios.md (3 944) = 16 057 bytes; una de plazos, además calculo_de_plazos.md (2 869; 2 760 en v0.9.0) y administrativo.md (9 930) = 28 856 bytes. No crecen con normas ni bloques consultados ni con el tiempo: no dependen de la caché ni del grafo, así que meses de uso dan la misma medida. Invocaciones de kitlegal por pregunta, las de v0.9.0 (el diff del SKILL.md no añade ni quita ninguna orden ni llamada); cambian de condicionales a fijas dos lecturas de fichero, que es lo que decide el ADR 0053 («Lo que cuesta»). Ninguna señal nueva en el producto."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza: el campo `desde` y la declaración de plazos-y-territorio (internal/evals/laboratorio_familias_test.go:324, 482-499, 540-546) → FR-005 («-sin-condicion con M1 y nada más»), un campo y una rama en vez de repetir sobre control los tramos de la variante; la constante siSaleConCuatroOCinco (línea 358), usada en el movimiento → FR-003; fallosAdmitidosDelProducto y assert.Equal (internal/skills/remisiones_test.go:57-65, 151-152) → FR-007 y la clarificación (opción C), que sustituyen a fueraDeLasRemisiones y su continue; la lista de tres frases en remisionesDelPlan → FR-007; origenesDeLaVariante pierde una rama (internal/evals/laboratorio_sondeo_test.go:1262-1267) → FR-005/FR-008; el guion congelado → FR-001 a FR-003 (ADR 0018) y el bloque del de H41 → FR-013. Ningún paquete, tipo exportado, función, opción ni subtest nuevo; el saldo de los tres tests es de menos código de control que antes (salen el subtest «hasta H41.1» y la tabla de exclusiones)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Filas de «Controles de umbral» (plan.md:217-233), cada una con su control visto en rojo en la copia: tope de 11 000 → TestSkillsDelRepositorio con 119 caracteres más («cuerpo de 11001 caracteres (máximo 11000)») y, con la línea de la vertical, TestVerticalDeEnsayo con 49 más (mismo defecto; TestSkillsDelRepositorio sigue en verde); 10 882 exactos y 0 bytes de diferencia con -sin-condicion + M1 → TestSkillsDelProductoDesdeControl (un carácter); variantes del laboratorio → TestVariantesDeControl y TestVariantesDePlazosYTerritorio (un byte); remisiones → TestRemisionesDelRepositorio (una palabra; un fallo de más); normativa y jurisprudencia → …/normativa/desde_control (un byte); skill de la sesión de -producto → TestArnesDeLasFamilias; guiones → TestEntregaDelHito en la línea del grep. Todos corren en `make ci` (gates/ci.log:10-85). FR-011/SC-004: los umbrales que nombra el plan existen con decide: true en el informe del cierre de H41 (specs/034-h41-las-skills-del/gates/evals/plazos-y-territorio.json, `umbrales`: sin_activar, plazo_sin_fecha, cobertura_sin_declarar, vigencia_sin_declarar, redaccion_sin_fechar y lectura_sin_intentar, con claude-sonnet-5-5 en orden y herramienta), y su configuración (.github/workflows/evals.yml, evals/) no la toca el hito. SC-003 lo mide una persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La forma que queda en el producto (-sin-condicion con M1) no se ha medido como tal: las cifras de docs/SKILLS.md:143-144 y del ADR 0053 son de la variante del laboratorio, con la frase del 4 o 5 todavía en el cuerpo. La mide el sondeo de la persona (SC-003), sin cuya tabla la propuesta no se fusiona; en esta sesión no se ha abierto ninguna sesión con modelo ni se han corrido las evals del cierre (FR-011).",
+    "skills/plazos-y-territorio/references/calculo_de_plazos.md:38 repite lo que la misma referencia ya dice en sus líneas 30-32 (una lectura que sale con 4 o 5 mantiene la línea del plazo y se dice aparte): M1 quita la frase del cuerpo y la añade donde ya estaba dicha. Lo piden FR-003 palabra por palabra y el guion congelado (h41-1-skills-instaladas.txtar:38); son 109 bytes fijos.",
+    "tasks.md:40-45 sigue diciendo que CONTRIBUTING.md y el ejemplo de remisión de docs/SKILLS.md §1 no cambian un byte; ninguna tarea los cambió, pero el barrido (98632340) sí, y actualizó spec.md, plan.md y research.md sin tocar tasks.md. Su entrada de gates/supuestos.md va como [interno] aunque deshace dos lecturas conservadoras anotadas como [alcance] (corrector_spec y plan); está en plan.md «Cierre y pendientes» para la persona.",
+    "internal/app/testdata/script/h41-skills-instaladas.txtar (SHA-256 16f73ce5…) ya no es la copia congelada de H41, specs/034-h41-las-skills-del/aceptacion/skills-instaladas.txtar (e2f794f2…), ni la huella de su gates/aceptacion-congelada.json: lo pide FR-013 y ningún control de `make ci` compara las suites de hitos cerrados; es el cambio de testdata/ que revisa la persona (capa 3).",
+    "Con la orden sin condición, municipios.md (3 944 bytes) se lee en toda pregunta de la skill, cuando con la lista de v0.9.0 se abría en 3 y 11 de 40 sesiones; calculo_de_plazos.md (2 869), en toda pregunta que llega al final del paso 7, también si el paso 7 la para. Es el coste que acepta el ADR 0053; fijo por pregunta.",
+    "El subtest de TestSkillsDelProductoDesdeControl se sigue llamando «desde control» también para plazos-y-territorio, cuya base es -sin-condicion; el mensaje del fallo sí nombra la base (internal/evals/laboratorio_familias_test.go:551 y 563).",
+    "SC-005 pide cero bytes cambiados también en skills/consulta-juridica, evals/ y el arnés, sin control en `make ci` (plan.md:238-241 lo deja al guardián de diff, configuración que el hito no toca); comprobado en esta sesión con `git diff main...HEAD --name-only`, sin resultados.",
+    "docs/ROADMAP.md:185 sigue diciendo que H41.1 va primero mientras su fichero ya está en docs/roadmap/done/ (commit e041e042, del workflow); la viñeta de docs/HISTORIAL.md se escribe al fusionar."
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "0241e6011b8aa9a6b858c8b89a77ed67e6b55631eeba622c5a50d8e1315cb6d2",
+      "bytes": 4519,
+      "fecha": "2026-11-10",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H41.1 (#254)"
+    },
+    {
+      "fichero": "guiones/recuento.py",
+      "sha256": "84bf1b989d62dd5b39d173ea05fe242fa489e52610e8926ccf85a1483911f045",
+      "bytes": 4506,
+      "fecha": "2026-11-10",
+      "versionado": "sí",
+      "origen": "guion del recuento por eval desde el detalle de la tabla, fuera del producto; copia sin cambios del de evidencias/sondeos-20261109/"
+    },
+    {
+      "fichero": "recuento.md",
+      "sha256": "ab448660f02331ca40e7b206345394db7438e0829d8635fa940b06fa3b84a0a2",
+      "bytes": 4178,
+      "fecha": "2026-11-10",
+      "versionado": "sí",
+      "origen": "salida de guiones/recuento.py sobre la tabla"
+    },
+    {
+      "fichero": "salida.txt",
+      "sha256": "2510df81a611d32b91b05c5b4d6e9d9f7eb1489f517694c30a3681e8700bd466",
+      "bytes": 488,
+      "fecha": "2026-11-10",
+      "versionado": "sí",
+      "origen": "salida de make evals-laboratorio, un lanzamiento"
+    },
+    {
+      "fichero": "tabla-plazos-y-territorio.md",
+      "sha256": "2ff2b23a6eba94492b3cbbae8cd016bf2920bd34d084c3cbd8881792036d80ef",
+      "bytes": 21453,
+      "fecha": "2026-11-10",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de plazos-y-territorio"
+    }
+  ]
+}

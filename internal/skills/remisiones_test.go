@@ -54,16 +54,20 @@ var expresionesFueraDeLasRemisiones = []string{
 // verboDeLeer es la palabra «lee» o «Lee», entera: ni «leer» ni «léelo».
 var verboDeLeer = regexp.MustCompile(`(?:^|[^\p{L}\p{N}])[Ll]ee(?:[^\p{L}\p{N}]|$)`)
 
-// fueraDeLasRemisiones son las skills de skills/ con references/ a las que
-// TestRemisionesDelRepositorio no se aplica todavía; el valor es el hito que la
-// incluye (FR-010; research D4 de H41).
-var fueraDeLasRemisiones = map[string]string{
-	"plazos-y-territorio": "H41.1",
+// fallosAdmitidosDelProducto son, por skill de skills/, los que la regla da con
+// su SKILL.md y el test admite; una skill que no está aquí no admite ninguno.
+var fallosAdmitidosDelProducto = map[string][]string{
+	// La viñeta de jerarquia_normativa.md queda como en v0.9.0 (FR-002 de H41.1;
+	// ADR 0053, punto 1 y «Lo que cuesta»): ninguna eval llega a su condición.
+	"plazos-y-territorio": {
+		"plazos-y-territorio: references/jerarquia_normativa.md: " + remisionSinElVerbo,
+	},
 }
 
 // remisionesDelPlan son, por skill, las frases del cuerpo con un enlace a una
 // referencia, fuera de la región de los paquetes, en su orden y como las da
-// Frases (contracts/remisiones.md §5 de H41; data-model §7; FR-001).
+// Frases (contracts/remisiones.md §5 de H41; data-model §7; FR-001; la de
+// plazos-y-territorio, contracts/controles.md §2.2 de H41.1).
 var remisionesDelPlan = map[string][]string{
 	"jurisprudencia": {
 		"Antes de pedir una u otra, lee [references/consulta_preparada.md](references/consulta_preparada.md): la " +
@@ -89,6 +93,14 @@ var remisionesDelPlan = map[string][]string{
 		"Si una orden no termina con `0`, lee [lecturas_que_fallan](references/lecturas_que_fallan.md) antes de " +
 			"seguir: qué hacer.",
 	},
+	"plazos-y-territorio": {
+		"- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el " +
+			"autonómico de la `comunidad` de `data`, y la norma que prevalece.",
+		"Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si falta el " +
+			"municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.",
+		"Antes del 8, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el " +
+			"plazo sin calcular y la lectura en la fecha de inicio.",
+	},
 }
 
 // fallosDeControl son los que la regla da con el SKILL.md de cada <skill>-control,
@@ -110,14 +122,16 @@ var fallosDeControl = map[string][]string{
 	},
 }
 
-// TestRemisionesDelRepositorio es el control de FR-001 a FR-003 de H41 (SC-001;
-// contracts/remisiones.md §7; research D5 a D7): por cada skill de skills/ con
-// references/, en orden de nombre, salvo las de fueraDeLasRemisiones, (1) cada
-// enlace del cuerpo de su SKILL.md a una referencia va en una frase de Frases con
-// «lee» o «Lee» antes del enlace y sin ninguna de las expresiones que no van en
-// una remisión, y cada referencia tiene alguno; y (2) las frases con un enlace a
-// una referencia, fuera de la región de los paquetes, son, enteras y en orden, las
-// de remisionesDelPlan. El subtest «control» ve fallar (1) con las remisiones de
+// TestRemisionesDelRepositorio es el control de FR-001 a FR-003 de H41 y de FR-007
+// de H41.1 (SC-001; contracts/remisiones.md §7 de H41 y contracts/controles.md §2
+// de H41.1; research D5 a D7): por cada skill de skills/ con references/, en orden
+// de nombre, (1) la regla de las remisiones —cada enlace del cuerpo de su SKILL.md
+// a una referencia va en una frase de Frases con «lee» o «Lee» antes del enlace y
+// sin ninguna de las expresiones que no van en una remisión, y cada referencia
+// tiene alguno—, sobre todo el cuerpo, da exactamente los fallos que la skill
+// admite en fallosAdmitidosDelProducto; y (2) las frases con un enlace a una
+// referencia, fuera de la región de los paquetes, son, enteras y en orden, las de
+// remisionesDelPlan. El subtest «control» ve fallar (1) con las remisiones de
 // normativa-control y jurisprudencia-control.
 func TestRemisionesDelRepositorio(t *testing.T) {
 	t.Parallel()
@@ -129,18 +143,13 @@ func TestRemisionesDelRepositorio(t *testing.T) {
 	require.NotEmpty(t, conReferencias, "hay skills con %s/ en %s", carpetaDeLasReferencias, carpetaDeLasSkills)
 
 	for _, skill := range conReferencias {
-		if _, fuera := fueraDeLasRemisiones[skill]; fuera {
-			continue
-		}
-
 		cuerpo, referencias, err := cuerpoYReferencias(repositorio, path.Join(carpetaDeLasSkills, skill))
 		require.NoError(t, err)
 
 		segmentos := Frases(cuerpo)
 
-		for _, fallo := range fallosDeLaRegla(skill, segmentos, referencias) {
-			t.Error(fallo)
-		}
+		assert.Equal(t, fallosAdmitidosDelProducto[skill], fallosDeLaRegla(skill, segmentos, referencias),
+			"%s: la regla da exactamente los fallos que admite", skill)
 
 		comprobarLaListaDelPlan(t, skill, segmentos)
 	}
