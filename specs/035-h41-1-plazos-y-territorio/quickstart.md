@@ -91,6 +91,21 @@ printf 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n' >> "$m/$p/SKILL.md"
 (cd "$m" && go test -count=1 -run '^TestVerticalDeEnsayo$' ./internal/skills/)
 # … y en verde TestSkillsDelRepositorio, porque sin la vertical cabe
 (cd "$m" && go test -count=1 -run '^TestSkillsDelRepositorio$/^skills$' ./internal/app/)
+cp "$p/SKILL.md" "$m/$p/SKILL.md"
+
+# f. un byte al principio de un fichero de normativa y de jurisprudencia (la rama con desde vacío)
+#    → rojo TestSkillsDelProductoDesdeControl/<skill>/desde_control
+for s in normativa/references/con_herramientas.md jurisprudencia/references/documento_aportado.md; do
+  { printf x; cat "skills/$s"; } > "$m/skills/$s"
+  (cd "$m" && go test -count=1 -run '^TestSkillsDelProductoDesdeControl$' ./internal/evals/)
+  cp "skills/$s" "$m/skills/$s"
+done
+
+# g. «lee » quitado de la orden de municipios.md, con el guion de H41 nuevo intacto
+#    → rojo TestEntregaDelHito/h41-skills-instaladas en su línea 54 (el bloque de FR-013)
+sed 's/llamada, lee \[municipios\.md\]/llamada, [municipios.md]/' "$p/SKILL.md" > "$m/$p/SKILL.md"
+(cd "$m" && go test -count=1 -run '^TestEntregaDelHito$/^h41-skills-instaladas$' ./internal/app/)
+cp "$p/SKILL.md" "$m/$p/SKILL.md"
 
 rm -rf "$m"
 ```

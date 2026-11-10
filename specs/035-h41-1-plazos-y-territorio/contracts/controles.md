@@ -137,6 +137,8 @@ escenario 5):
 | Mutación | Test en rojo | Lo que dice |
 |---|---|---|
 | un byte añadido a `skills/plazos-y-territorio/references/calculo_de_plazos.md` | `TestSkillsDelProductoDesdeControl` | `skills/plazos-y-territorio/references/calculo_de_plazos.md difiere de lo que dan plazos-y-territorio-sin-condicion y su declaración` |
+| un byte al principio de `skills/normativa/references/con_herramientas.md` (la rama con `desde` vacío) | `TestSkillsDelProductoDesdeControl/normativa/desde_control` | `skills/normativa/references/con_herramientas.md difiere de lo que dan su control y su declaración` |
+| un byte al principio de `skills/jurisprudencia/references/documento_aportado.md` (la rama con `desde` vacío) | `TestSkillsDelProductoDesdeControl/jurisprudencia/desde_control` | `skills/jurisprudencia/references/documento_aportado.md difiere de lo que dan su control y su declaración` |
 | un byte añadido a un fichero de `plazos-y-territorio-control` | `TestVariantesDeControl` | `<ruta> difiere: su huella es …` |
 | un byte añadido al `SKILL.md` de `plazos-y-territorio-lista-con-verbo` | `TestVariantesDePlazosYTerritorio` | `<ruta> difiere: la variante es la que da su declaración sobre plazos-y-territorio-control…` |
 | «sin calcular» → «sin contar» en la remisión de `calculo_de_plazos.md` | `TestRemisionesDelRepositorio` | `plazos-y-territorio: la remisión 3 no es la del plan` |
@@ -144,3 +146,5 @@ escenario 5):
 | 49 caracteres más en el cuerpo de `plazos-y-territorio` (10 931; 11 001 con la vertical) | `TestVerticalDeEnsayo` | `plazos-y-territorio: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)` |
 
 Un cuerpo de más de 11 000 caracteres sin la vertical lo da `TestSkillsDelRepositorio` con el mismo defecto, como hoy.
+Las mutaciones del bloque de FR-013 de `h41-skills-instaladas.txtar`, una por cada `grep`, están en
+contracts/aceptacion.md §2.

@@ -204,7 +204,9 @@ instaladas byte a byte dentro del guion: copiaría en el `txtar` lo que `TestSki
 `skills/plazos-y-territorio` y la declaración de D1.
 
 **Por qué.** Con la skill nueva y el guion viejo, `make ci` sale en rojo (V5); el guion nuevo, con la skill vieja, no se
-cumple, porque su primer `grep` busca una orden que hoy no está; y la declaración de D1 no se cumple con la skill a
+cumple, porque su primer `grep` busca una orden que hoy no está (no es una medida de V: la mide la tarea que cambia el
+guion, con la skill de hoy repuesta en la copia, en rojo en la línea 54 del fichero con la cabecera nueva, y con una
+mutación por cada `grep` del bloque; contracts/aceptacion.md §2); y la declaración de D1 no se cumple con la skill a
 medias. Juntos, cada tarea deja `make ci` en verde. Es
 un fichero existente de `testdata/`: el informe final lo lleva a la persona (V10; spec, «Assumptions»).
 

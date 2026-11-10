@@ -97,6 +97,22 @@ grep '^1\. \*\*El municipio\*\*, de la conversación\. Si no lo dice, \*\*pregú
 grep '\n\nSi sale con 4 o 5, \*\*`⚠ PLAZO:` se mantiene\*\*: di aparte que no has podido leerlo, sin afirmar qué dice\.\n\z' destino/plazos-y-territorio/references/calculo_de_plazos.md
 ```
 
-(«US3» es la historia 3 de H41, como en el resto del guion.) Con la skill de H41.1, el bloque de hoy sale en rojo en su
-línea 50 (research V5), y el bloque nuevo pasa; con la skill de hoy, el bloque nuevo no se cumple, porque su primer
-`grep` busca una orden que hoy no está: por eso van en la misma tarea.
+(«US3» es la historia 3 de H41, como en el resto del guion.) Con la skill de H41.1 y el guion de H41 de hoy entero, este
+sale en rojo en su línea 50 (research V5), y con el bloque nuevo pasa; con la skill de hoy, el bloque nuevo no se
+cumple, porque su primer `grep` busca una orden que hoy no está: por eso van en la misma tarea.
+
+La cabecera nueva tiene seis líneas donde había tres, así que en el fichero cambiado el bloque empieza en la línea 51 y
+sus seis `grep` son las líneas 54 a 59. Cada uno se ve fallar con el guion nuevo intacto y una mutación de un solo
+cambio en la skill de una copia (`TestEntregaDelHito/h41-skills-instaladas` en rojo en esa línea):
+
+| Mutación de la skill | Línea en rojo |
+|---|---|
+| `skills/plazos-y-territorio` repuesta a la de hoy (la de `plazos-y-territorio-control`) | 54 |
+| «lee » quitado de la orden de `municipios.md` (`llamada, lee [municipios.md]` → `llamada, [municipios.md]`) | 54 |
+| «lee» quitado de la orden de `calculo_de_plazos.md` (`Antes del 8, lee` → `Antes del 8,`) | 55 |
+| la viñeta `- [municipios.md](references/municipios.md): …` de control repuesta en «Referencias» | 56 (`! grep`) |
+| «\*\*pregúntalo\*\*» → «pregúntalo» en el paso 1 | 57 |
+| la frase «Si sale con 4 o 5, …» añadida al cuerpo, detrás del paso 10 | 58 (`! grep`) |
+| un byte añadido al final de `references/calculo_de_plazos.md` | 59 (`\z`) |
+
+Las mide la tarea que cambia el guion; no son medidas de la planificación.
