@@ -1256,22 +1256,14 @@ func exigirLaSesionDeLaFamilia(skill string) exigirLaSesionDelReparto {
 
 // origenesDeLaVariante son los directorios de skills cuya skill de la familia
 // tiene que ser, ruta a ruta y byte a byte, la de las sesiones de la variante
-// (contracts/arnes.md §5): laboratorio/<skill>/<variante>/skills en una variante
-// versionada; skills/ del árbol en <skill>-producto, y en
-// plazos-y-territorio-producto, también laboratorio/plazos-y-territorio/
-// plazos-y-territorio-control/skills (FR-022).
+// (contracts/arnes.md §5 de H41): laboratorio/<skill>/<variante>/skills en una
+// variante versionada, y skills/ del árbol en <skill>-producto (FR-022 de H41).
 func origenesDeLaVariante(skill, variante string) []string {
 	if variante != skill+sufijoDelProductoDelTest {
 		return []string{filepath.Join(raizDelRepositorio, "laboratorio", skill, variante, "skills")}
 	}
 
-	origenes := []string{filepath.Join(raizDelRepositorio, "skills")}
-	if skill == skillDePlazosDelTest {
-		origenes = append(origenes, filepath.Join(raizDelRepositorio, "laboratorio", skill,
-			"plazos-y-territorio-control", "skills"))
-	}
-
-	return origenes
+	return []string{filepath.Join(raizDelRepositorio, "skills")}
 }
 
 // ficherosDeLaSkillDelTest son los ficheros de la skill de ese directorio de
