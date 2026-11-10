@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.11.1"
+  version: "2.12.0"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito del roadmap sin ninguna persona entre la entrada y el informe final (ADR 0018). El fichero del hito en docs/roadmap/in-progress/ es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
@@ -35,7 +35,7 @@ inputs:
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
   # por scripts/hito.sh) traduce "@<esfuerzo>" a `--effort`; sin el wrapper,
   # `claude` rechaza el valor. Criterio de asignación en docs/WORKFLOW.md.
-  # Fable 5.1 solo donde la estructura lo pide: el juez adversarial de la revisión
+  # Fable 5.2 solo donde la estructura lo pide: el juez adversarial de la revisión
   # final (otra familia que el juez A) y lo que ya falló con Opus (escalada).
   # Los valores por defecto llevan el id completo, no el alias (ADR 0033): a qué
   # modelo resuelve un alias lo decide la versión de Claude Code de quien lanza, y
@@ -53,6 +53,7 @@ inputs:
       "opus", "opus@low", "opus@medium", "opus@high", "opus@xhigh", "opus@max",
       "sonnet", "sonnet@low", "sonnet@medium", "sonnet@high", "sonnet@xhigh", "sonnet@max",
       "haiku",
+      "claude-fable-5-2", "claude-fable-5-2@low", "claude-fable-5-2@medium", "claude-fable-5-2@high", "claude-fable-5-2@xhigh", "claude-fable-5-2@max",
       "claude-fable-5-1", "claude-fable-5-1@low", "claude-fable-5-1@medium", "claude-fable-5-1@high", "claude-fable-5-1@xhigh", "claude-fable-5-1@max",
       "claude-opus-5-5", "claude-opus-5-5@low", "claude-opus-5-5@medium", "claude-opus-5-5@high", "claude-opus-5-5@xhigh", "claude-opus-5-5@max",
       "claude-opus-5", "claude-opus-5@low", "claude-opus-5@medium", "claude-opus-5@high", "claude-opus-5@xhigh", "claude-opus-5@max",
@@ -73,7 +74,7 @@ inputs:
     prompt: "Juez A de la revisión final (rúbrica DoD)"
   modelo_adversario:
     type: string
-    default: "claude-fable-5-1@xhigh"
+    default: "claude-fable-5-2@xhigh"
     enum: *modelos
     prompt: "Juez B (adversarial) de la revisión final; otra familia que modelo_revisor para que los dos votos no fallen a la vez"
   modelo_redaccion:
@@ -88,7 +89,7 @@ inputs:
     prompt: "Primer intento de cada tarea y corrector de la revisión final"
   modelo_escalada:
     type: string
-    default: "claude-fable-5-1@xhigh"
+    default: "claude-fable-5-2@xhigh"
     enum: *modelos
     prompt: "Lo que ya falló con modelo_implementacion: reintentos de tarea y reparaciones de CI y del cierre"
   modelo_analisis:

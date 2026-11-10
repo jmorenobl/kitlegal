@@ -47,7 +47,7 @@ exit "${KITLEGAL_TEST_SALIDA:-0}"
 	erroresDelSustituto = "lo que la sesión escribe en su salida de error\n"
 
 	modeloDelJuezA = "claude-opus-5-5"
-	modeloDelJuezB = "claude-fable-5-1"
+	modeloDelJuezB = "claude-fable-5-2"
 	modeloDeSonnet = "claude-sonnet-5-5"
 )
 

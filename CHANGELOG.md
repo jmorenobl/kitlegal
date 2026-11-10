@@ -59,6 +59,11 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El juez adversarial y la escalada del workflow `hito` pasan a Fable 5.2** (workflow `hito` 2.12.0; ADR 0033). El
+  alias `fable` resuelve a `claude-fable-5-2` desde el sondeo del 2026-11-10, y `modelo_adversario` y
+  `modelo_escalada` llevan ahora `claude-fable-5-2@xhigh`. `claude-fable-5-1` sigue en la lista de valores para
+  sobrescribir un run, y `scripts/coste-run.sh` lleva el precio de Fable 5.2 (8, 40 y 0,20 USD por millón de
+  entrada, salida y lectura de caché).
 - **`normativa` y `jurisprudencia` mandan leer cada referencia en el sitio en que hace falta** (H41). Cada remisión del
   cuerpo de su `SKILL.md` es una orden de leer —«lee», el enlace, cuándo y lo que trae— puesta donde llega su
   condición, y no una referencia nombrada dentro de otra orden, tras una condición sobre el agente («si la tienes»),
