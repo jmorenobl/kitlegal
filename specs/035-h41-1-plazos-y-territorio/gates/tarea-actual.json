@@ -1,22 +1,14 @@
 {
-  "id": "T003",
-  "texto": "T003 [US3] `TestRemisionesDelRepositorio` sin exclusiones y con los fallos que admite cada skill del producto, en internal/skills/remisiones_test.go, según [contracts/controles.md](contracts/controles.md) §2 y data-model.md §4 (necesita la skill de T002: con la de hoy, la lista del plan no se cumple; research V4) — US3; FR-007; SC-001. Sale `fueraDeLasRemisiones` con su `continue` y su comentario; entra `fallosAdmitidosDelProducto` de §2.1, con la única entrada `\"plazos-y-territorio: references/jerarquia_normativa.md: \" + remisionSinElVerbo` y el comentario que dice por qué (la viñeta queda como en v0.9.0, FR-002; ADR 0053, punto 1 y «Lo que cuesta»: ninguna eval llega a su condición); por cada skill de `skills/` con `references/`, en orden de nombre, `assert.Equal(t, fallosAdmitidosDelProducto[skill], fallosDeLaRegla(skill, segmentos, referencias), \"%s: la regla da exactamente los fallos que admite\", skill)` sobre todo el cuerpo, región de los paquetes incluida; y en `remisionesDelPlan`, la lista de `plazos-y-territorio` de §2.2, sus tres frases en ese orden (la de `jerarquia_normativa.md`, la de `municipios.md` y la de `calculo_de_plazos.md`), con el defecto de hoy (`plazos-y-territorio: la remisión <n> no es la del plan`, con las dos listas). `fallosDeControl` y el subtest «control» no cambian; el comentario del test deja de nombrar exclusiones. **Verde**: quickstart.md §1 y la orden de `internal/skills` de §3, y `make lint` sin `issues`. **Mutantes**, sobre la copia y de uno en uno (contracts/controles.md §5; research V7): «sin calcular» → «sin contar» en la remisión de `calculo_de_plazos.md` → rojo con `plazos-y-territorio: la remisión 3 no es la del plan`; «Lee » delante del enlace de la viñeta de `jerarquia_normativa.md` → rojo con `plazos-y-territorio: la regla da exactamente los fallos que admite` (deja de dar el admitido) y `la remisión 1 no es la del plan`; y «lee» quitado de la orden de `municipios.md` → rojo con `plazos-y-territorio: la regla da exactamente los fallos que admite` (da uno no admitido). `make ci` en verde.",
+  "id": "T004",
+  "texto": "T004 [P] [US5] docs/SKILLS.md, en §1 «Cómo se remite», los dos cambios de research D8 y ninguno más — US5; FR-009: la frase «`plazos-y-territorio` sigue como estaba hasta H41.1, que le aplica la forma de sus órdenes que mida el laboratorio (ADR 0052, punto 3).» pasa a las dos frases de D8, punto 1 (la forma que midió el laboratorio, ADR 0053, con sus dos sitios y las cifras de 39 y 40 de 40 sesiones frente a 3 y 11, y la línea de FR-009: lo que la skill necesita en las preguntas a las que llega se manda leer sin condición, antes de la primera orden o llamada o del paso que lo usa; ADR 0053, punto 3), sin el punto 2 del ADR 0052; y en la viñeta de `TestRemisionesDelRepositorio` sale «—salvo `plazos-y-territorio`, que el test declara fuera hasta H41.1—» y entra, detrás de «Cada una lleva `lee` o `Lee` antes del enlace», el inciso de D8, punto 2 (`fallosAdmitidosDelProducto`, hoy uno: la viñeta de `jerarquia_normativa.md` de `plazos-y-territorio`). «De ahí, tres reglas más:» y el ejemplo de remisión del apartado no cambian. **Verde**: los dos primeros `grep` de quickstart.md §6 y el `awk` del apartado, leído contra FR-009; `make ci` en verde (la guía no entra en ningún test que cambie su valor esperado).",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "fa1a2b95f940ce84331dbc7cb8e5511acd733455",
+  "base": "f328af0d5bca6acbda6bfffbb6397f5c16fffd02",
   "rutas": [
-    "calculo_de_plazos.md",
-    "contracts/controles.md",
-    "data-model.md",
-    "internal/skills",
-    "internal/skills/remisiones_test.go",
+    "docs/SKILLS.md",
     "jerarquia_normativa.md",
-    "municipios.md",
-    "quickstart.md",
-    "references/",
-    "references/jerarquia_normativa.md",
-    "skills/"
+    "quickstart.md"
   ],
   "cierre": false,
   "converger": false,

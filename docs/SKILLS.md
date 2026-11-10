@@ -138,8 +138,12 @@ casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `nor
 
 H41 lleva esa forma a `normativa` y `jurisprudencia` (`specs/034-h41-las-skills-del/contracts/remisiones.md`): cada
 orden de leer va antes de la primera orden o llamada de la skill, o en el paso que usa la referencia, antes de su orden
-o llamada, y nunca antes de escribir o dar la respuesta (ADR 0051, punto 3). `plazos-y-territorio` sigue como estaba
-hasta H41.1, que le aplica la forma de sus órdenes que mida el laboratorio (ADR 0052, punto 3). De ahí, tres reglas más:
+o llamada, y nunca antes de escribir o dar la respuesta (ADR 0051, punto 3). H41.1 le aplica a `plazos-y-territorio`
+la forma que midió el laboratorio (ADR 0053): `municipios.md`, antes de la primera orden o llamada, y
+`calculo_de_plazos.md`, al final del paso 7, antes del 8; con ella, el agente abrió `municipios.md` en 39 y 40 de 40
+sesiones, frente a 3 y 11 con la lista de v0.9.0 (`evidencias/sondeos-20261109/`). Lo medido en `normativa` y en
+`plazos-y-territorio` es que lo que la skill necesita en las preguntas a las que llega se manda leer sin condición,
+antes de la primera orden o llamada o del paso que lo usa (ADR 0053, punto 3). De ahí, tres reglas más:
 
 - **La orden cuya condición la trae lo que devuelve una llamada va en el paso de esa llamada, detrás de ella.** Antes
   de la llamada el caso aún no ha llegado. Así, en el paso 2 de `normativa`, la de `redaccion_modificada.md` va detrás
@@ -156,17 +160,19 @@ hasta H41.1, que le aplica la forma de sus órdenes que mida el laboratorio (ADR
   respuesta pasa a una referencia solo si alguna eval llega al caso que la manda leer. Lo que toda respuesta necesita
   sigue en el cuerpo.
 - **`make ci` y `make skills-check` comprueban la frase de cada remisión** (`TestRemisionesDelRepositorio`,
-  `internal/skills/remisiones_test.go`). En el cuerpo del `SKILL.md` de cada skill de `skills/` con `references/`
-  —salvo `plazos-y-territorio`, que el test declara fuera hasta H41.1—, la frase de un enlace a una referencia va desde
-  el final de la anterior —un punto seguido de un espacio o de un salto de línea, una línea en blanco, o la marca de
-  una viñeta o de un paso— hasta el final de la suya; cada línea de un bloque de código, cada encabezado y cada
-  comentario HTML van aparte (`skills.Frases`, `internal/skills/frases.go`). Cada una lleva `lee` o `Lee` antes del
-  enlace y ninguna de «si la tienes», «antes de escribir la respuesta» y «antes de dar la consulta», sin distinguir
-  mayúsculas; cada referencia tiene algún enlace en el cuerpo; y las frases con un enlace a una referencia son, en
-  orden, las de la lista del plan del hito que las escribió (`remisionesDelPlan`). El defecto nombra la skill, la
-  referencia y la regla: `normativa: references/con_herramientas.md: la frase de un enlace suyo lleva «si la tienes»`;
-  y, si una frase no es la de la lista, `<skill>: la remisión <n> no es la del plan`, con las dos listas. Cambiar una
-  remisión es cambiar también esa lista.
+  `internal/skills/remisiones_test.go`). En el cuerpo del `SKILL.md` de cada skill de `skills/` con `references/`, la
+  frase de un enlace a una referencia va desde el final de la anterior —un punto seguido de un espacio o de un salto de
+  línea, una línea en blanco, o la marca de una viñeta o de un paso— hasta el final de la suya; cada línea de un bloque
+  de código, cada encabezado y cada comentario HTML van aparte (`skills.Frases`, `internal/skills/frases.go`). Cada una
+  lleva `lee` o `Lee` antes del enlace —salvo los fallos que el test admite por skill (`fallosAdmitidosDelProducto`),
+  hoy uno: la viñeta de `jerarquia_normativa.md` de `plazos-y-territorio`, que queda como en v0.9.0 porque ninguna eval
+  llega a su condición— y ninguna de «si la tienes», «antes de escribir la respuesta» y «antes de dar la consulta», sin
+  distinguir mayúsculas; cada referencia tiene algún enlace en el cuerpo; y las frases con un enlace a una referencia
+  son, en orden, las de la lista del plan del hito que las escribió (`remisionesDelPlan`). El defecto nombra la skill,
+  la referencia y la regla:
+  `normativa: references/con_herramientas.md: la frase de un enlace suyo lleva «si la tienes»`; y, si una frase no es
+  la de la lista, `<skill>: la remisión <n> no es la del plan`, con las dos listas. Cambiar una remisión es cambiar
+  también esa lista.
 
 El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
 especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con
