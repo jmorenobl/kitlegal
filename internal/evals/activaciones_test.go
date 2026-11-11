@@ -64,8 +64,9 @@ type casoDeActivaciones struct {
 // TestActivacionesDeLosUsos fija la lista de las skills activadas de una sesión
 // (FR-001; SC-001; contracts/informe.md §1; data-model §1; research D1 y D2):
 // por cada uso de Skill, en orden y también si repite skill, su input.skill y si
-// va en un turno anterior al de la primera herramienta de kitlegal del modo, o
-// en cualquiera si la sesión no tiene ninguna; en el mismo turno, no. En el modo
+// va en un turno anterior al de la primera herramienta de kitlegal del modo
+// —la primera también cuando hay varias—, o en cualquiera si la sesión no tiene
+// ninguna; en el mismo turno, no. En el modo
 // herramienta lo es una del registro, con el prefijo del servidor o sin él, y no
 // ToolSearch; en el modo orden, una orden de Bash que consulta con kitlegal, y no
 // which kitlegal; y en el de una eval sin binario ni servidor, ninguna, tampoco
@@ -88,6 +89,26 @@ func TestActivacionesDeLosUsos(t *testing.T) {
 				usoDeSkill(t, 2, skillDeConsultaJuridica),
 			},
 			esperadas: []Activacion{{Skill: skillNormativa}, {Skill: skillDeConsultaJuridica}},
+		},
+		{
+			// La primera herramienta es la del turno 1, no la del 3.
+			nombre: "entre dos herramientas de kitlegal",
+			modo:   ModoHerramienta,
+			usos: []usoDelTranscript{
+				usoDe(1, herramientaConElPrefijo), usoDeSkill(t, 2, skillNormativa),
+				usoDe(3, herramientaSinElPrefijo),
+			},
+			esperadas: []Activacion{{Skill: skillNormativa}},
+		},
+		{
+			// La primera orden es la del turno 2, no la del 4.
+			nombre: "cada skill antes de una orden kitlegal",
+			modo:   ModoOrden,
+			usos: []usoDelTranscript{
+				usoDeSkill(t, 1, skillDeConsultaJuridica), usoDeBash(t, 2, ordenQueConsultaLaLGT),
+				usoDeSkill(t, 3, skillNormativa), usoDeBash(t, 4, ordenQueConsultaLaLGT),
+			},
+			esperadas: []Activacion{{Skill: skillDeConsultaJuridica, Antes: true}, {Skill: skillNormativa}},
 		},
 		{
 			nombre:    "sin ninguna herramienta de kitlegal",

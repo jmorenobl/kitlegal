@@ -3391,7 +3391,8 @@ func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
 }
 
 // comprobarSinEvalTxt exige la sesión sin eval.txt ilegible, con la eval vacía:
-// sin la eval no cae en la serie que el plan pide, que queda sin sesiones.
+// sin la eval no cae en la serie que el plan pide, que queda sin sesiones. Desde
+// H41.2, con la lista de activaciones de su transcript, que sí se leyó.
 func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -3399,6 +3400,7 @@ func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
 	exigirMotivosDeLaRaiz(t, leido,
 		slices.Concat(motivosDeLaSerieSinSesiones(), []string{sesionDelArticulo21 + ": " + motivo})...)
 	assert.Empty(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Eval)
+	exigirLaListaDeLaSesionIlegibleLeida(t, leido)
 }
 
 // comprobarEvalDesconocida exige la sesión cuyo eval.txt no nombra ninguna eval
@@ -3429,7 +3431,8 @@ func comprobarSinPreguntaTxt(t *testing.T, leido informeLeido) {
 }
 
 // comprobarTrazaIlegible exige la sesión con la línea execve cortada ilegible por
-// su traza, con el fichero, el número de línea y su texto en el motivo.
+// su traza, con el fichero, el número de línea y su texto en el motivo. Desde
+// H41.2, con la lista de activaciones de su transcript, que sí se leyó.
 func comprobarTrazaIlegible(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -3442,6 +3445,23 @@ func comprobarTrazaIlegible(t *testing.T, leido informeLeido) {
 	exigirMotivosDeLaRaiz(t, leido,
 		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
 		sesionDelArticulo21+": "+motivo)
+	exigirLaListaDeLaSesionIlegibleLeida(t, leido)
+}
+
+// exigirLaListaDeLaSesionIlegibleLeida exige, de la sesión del art. 21 ilegible
+// con el transcript leído, la lista de activaciones de su transcript, como
+// activada: la skill de las sesiones en el turno 1 y sin ninguna herramienta de
+// kitlegal, en el resultado, en informe.json y en su sección de informe.md
+// (contracts/informe.md §2 y §3 de H41.2; research D5 de H41.2).
+func exigirLaListaDeLaSesionIlegibleLeida(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	assert.Equal(t, []Activacion{{Skill: skillDeLasSesiones, Antes: true}},
+		resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Activaciones)
+	assert.JSONEq(t, `[{"skill":"`+skillDeLasSesiones+`","antes":true}]`,
+		string(resultadoEscrito(t, leido, sesionDelArticulo21).Activaciones))
+	assert.Equal(t, parrafoDeLasSkillsActivadas+skillDeLasSesiones+" (antes)",
+		parrafoDetrasDelModeloDeLaSesion(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21)))
 }
 
 // exigirSesionIlegible exige que la sesión del art. 21 no pase con un único
