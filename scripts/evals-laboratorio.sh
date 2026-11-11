@@ -23,8 +23,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [[ $# -ne 7 ]]; then
-	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio>" >&2
+if [[ $# -ne 8 ]]; then
+	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio> <instalacion>" >&2
 	exit 1
 fi
 
@@ -54,7 +54,7 @@ mkdir "$temporal/tmp"
 codigo=0
 TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args \
 	-variantes "$1" -modos "$2" -sesiones "$3" -modelo "$4" -claude-code "$5" -concurrencia "$6" -directorio "$directorio" \
-	-temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
+	-instalacion "$8" -temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
 
 if [[ $codigo -ne 0 ]]; then
 	cat "$temporal/go-test.log" >&2

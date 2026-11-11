@@ -153,7 +153,7 @@ evals-sondeo: check-tools
 # workflow `hito` puede lanzarlo (docs/ADR/0032).
 ## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
 evals-laboratorio: check-tools
-	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)"
+	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)" "$(INSTALACION)"
 
 # La medida del juez no es de una ejecución normal del job de evals: la lanza
 # una persona, con la etiqueta evals-medir-juez en una propuesta de cambio o con
