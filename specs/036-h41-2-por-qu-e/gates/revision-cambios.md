@@ -1,9 +1,11 @@
-# Qué juzga la ronda 2 de la revisión final
+# Qué juzga la ronda 3 de la revisión final
 
-Ciclo 1: revisión final del hito. Lo escribe `scripts/workflow/revision.sh cambios` sin modelo, al preparar a los jueces (ADR 0030).
+Ciclo 2: cambios fuera de gates/ posteriores al último veredicto. Lo escribe `scripts/workflow/revision.sh cambios` sin modelo, al preparar a los jueces (ADR 0030).
 
-Tu último veredicto es el de la ronda 1, sobre `5cfda6e` (juez A: aprobado; juez B: rechazado). Lo que ha cambiado fuera de `gates/` desde entonces es el rango `5cfda6e..HEAD` (`437d4931`):
+Tu último veredicto es el de la ronda 2, sobre `437d493` (juez A: aprobado; juez B: aprobado). Lo que ha cambiado fuera de `gates/` desde entonces es el rango `437d493..HEAD` (`a68396b3`):
 
-- `437d4931` fix(H41.2): motivos de la revisión final — paso `corrector_revision`: `internal/evals/activaciones_test.go`, `internal/evals/informe_test.go`.
+- `a68396b3` fix(H41.2): cierre en la plataforma — paso `reparar_cierre`, tras una medición del cierre en rojo: `specs/036-h41-2-por-qu-e/research.md`.
 
-El diff completo de ese rango, fuera de `gates/`, está en `specs/036-h41-2-por-qu-e/gates/revision-cambios-r2.diff` (49 líneas cambiadas). Para tu regla de CONVERGENCIA, todo el rango es «la corrección», sea del corrector de la revisión o de otro paso posterior a tu veredicto.
+El diff completo de ese rango, fuera de `gates/`, está en `specs/036-h41-2-por-qu-e/gates/revision-cambios-r3.diff` (65 líneas cambiadas). Para tu regla de CONVERGENCIA, todo el rango es «la corrección», sea del corrector de la revisión o de otro paso posterior a tu veredicto.
+
+El rango trae una reparación del cierre: la medición de CI y evals que la motivó está en `gates/cierre.json`, `gates/cierre.log` y `gates/evals/*.json` (con sus `umbrales`), y sus decisiones, en las líneas `reparar_cierre` de `gates/supuestos.md`. Tras esta revisión, el workflow vuelve a medir la cabeza.
