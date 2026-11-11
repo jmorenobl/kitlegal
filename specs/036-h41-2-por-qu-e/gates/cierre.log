@@ -1,151 +1,151 @@
-== https://github.com/jmorenobl/kitlegal/actions/runs/43033002440/job/130565372883
-2026-11-11T14:21:33.8618302Z           "skill": "normativa",
-2026-11-11T14:21:33.8618505Z           "antes": true
-2026-11-11T14:21:33.8618596Z         }
-2026-11-11T14:21:33.8618689Z       ],
-2026-11-11T14:21:33.8618823Z       "por_materia": false,
-2026-11-11T14:21:33.8619017Z       "comandos_ejecutados": [
-2026-11-11T14:21:33.8619235Z         "bloque boe BOE-A-2015-10565 a21 2016-06-01"
-2026-11-11T14:21:33.8619327Z       ],
-2026-11-11T14:21:33.8619461Z       "comandos_ausentes": [],
-2026-11-11T14:21:33.8619640Z       "comandos_prohibidos_ejecutados": [],
-2026-11-11T14:21:33.8619773Z       "citas_encontradas": [
-2026-11-11T14:21:33.8619913Z         "BOE-A-2015-10565 a21"
-2026-11-11T14:21:33.8620005Z       ],
-2026-11-11T14:21:33.8620133Z       "citas_ausentes": [],
-2026-11-11T14:21:33.8620273Z       "avisos_encontrados": [],
-2026-11-11T14:21:33.8620407Z       "avisos_ausentes": [],
-2026-11-11T14:21:33.8620557Z       "hallazgos_encontrados": [],
-2026-11-11T14:21:33.8620691Z       "hallazgos_ausentes": [],
-2026-11-11T14:21:33.8620882Z       "redacciones_modificadas_encontradas": [],
-2026-11-11T14:21:33.8621064Z       "redacciones_modificadas_ausentes": [],
-2026-11-11T14:21:33.8621204Z       "plazo_encontrado": false,
-2026-11-11T14:21:33.8623862Z       "avisos_del_plazo_ausentes": [],
-2026-11-11T14:21:33.8624074Z       "no_cubierto_declarado": false,
-2026-11-11T14:21:33.8624263Z       "plazo_sin_calcular_declarado": false,
-2026-11-11T14:21:33.8624405Z       "lineas_del_plazo": [],
-2026-11-11T14:21:33.8624723Z       "territorio_encontrado": [],
-2026-11-11T14:21:33.8624866Z       "territorio_ausente": [],
-2026-11-11T14:21:33.8625009Z       "linea_sin_consulta": false,
-2026-11-11T14:21:33.8625146Z       "citas_sin_consulta": [],
-2026-11-11T14:21:33.8625269Z       "invocaciones": [
-2026-11-11T14:21:33.8625364Z         {
-2026-11-11T14:21:33.8625519Z           "orden": "mcp serve",
-2026-11-11T14:21:33.8625651Z           "codigo": -1,
-2026-11-11T14:21:33.8625798Z           "conexiones": [],
-2026-11-11T14:21:33.8625940Z           "llamada": false
-2026-11-11T14:21:33.8626030Z         },
-2026-11-11T14:21:33.8626122Z         {
-2026-11-11T14:21:33.8626346Z           "orden": "boe_indice BOE-A-2015-10565",
-2026-11-11T14:21:33.8626473Z           "codigo": 0,
-2026-11-11T14:21:33.8626638Z           "conexiones": [],
-2026-11-11T14:21:33.8626924Z           "llamada": true
-2026-11-11T14:21:33.8627012Z         },
-2026-11-11T14:21:33.8627463Z         {
-2026-11-11T14:21:33.8627903Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
-2026-11-11T14:21:33.8628040Z           "codigo": 3,
-2026-11-11T14:21:33.8628227Z           "conexiones": [],
-2026-11-11T14:21:33.8628361Z           "llamada": true
-2026-11-11T14:21:33.8628448Z         }
-2026-11-11T14:21:33.8628535Z       ],
-2026-11-11T14:21:33.8628676Z       "fuera_de_lo_grabado": [],
-2026-11-11T14:21:33.8628792Z       "otras_fallidas": [
-2026-11-11T14:21:33.8628881Z         {
-2026-11-11T14:21:33.8629203Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
-2026-11-11T14:21:33.8629322Z           "codigo": 3
-2026-11-11T14:21:33.8629414Z         }
-2026-11-11T14:21:33.8629502Z       ],
-2026-11-11T14:21:33.8629636Z       "lecturas_sin_servir": [],
-2026-11-11T14:21:33.8629770Z       "llegadas_a_la_red": [],
-2026-11-11T14:21:33.8633065Z       "respuesta": "⚠ SIN REDACCIÓN VIGENTE: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]: el 2016-06-01 no tenía redacción vigente; la tiene desde el 20161002, la fecha de vigencia de su primera redacción.\n\nEl 1 de junio de 2016 el artículo 21 de la Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas (rango: Ley) no tenía redacción vigente. Su primera redacción es de fecha de vigencia 2 de octubre de 2016, así que no puedo citar el texto que regía en esa fecha.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
-2026-11-11T14:21:33.8633220Z       "codigo_de_la_sesion": 0,
-2026-11-11T14:21:33.8633383Z       "fin_de_la_sesion": "result success",
-2026-11-11T14:21:33.8633517Z       "sesion_terminada": true,
-2026-11-11T14:21:33.8633787Z       "reintentos_por_limite_de_ritmo": 0,
-2026-11-11T14:21:33.8633897Z       "sin_medir": "",
-2026-11-11T14:21:33.8634072Z       "motivos": [],
-2026-11-11T14:21:33.8634182Z       "pasa": true
-2026-11-11T14:21:33.8634265Z     },
-2026-11-11T14:21:33.8634338Z     {
-2026-11-11T14:21:33.8634686Z       "sesion": "23-lpac-articulo-21-en-2016-herramienta-claude-sonnet-5-5-03",
-2026-11-11T14:21:33.8634877Z       "eval": "23-lpac-articulo-21-en-2016.yaml",
-2026-11-11T14:21:33.8635031Z       "modelo": "claude-sonnet-5-5",
-2026-11-11T14:21:33.8635218Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
-2026-11-11T14:21:33.8635348Z       "modo": "herramienta",
-2026-11-11T14:21:33.8635461Z       "decide": true,
-2026-11-11T14:21:33.8635572Z       "activa": true,
-2026-11-11T14:21:33.8635684Z       "activada": true,
-2026-11-11T14:21:33.8635801Z       "activaciones": [
-2026-11-11T14:21:33.8635891Z         {
-2026-11-11T14:21:33.8636041Z           "skill": "normativa",
-2026-11-11T14:21:33.8636170Z           "antes": true
-2026-11-11T14:21:33.8636263Z         }
-2026-11-11T14:21:33.8636347Z       ],
-2026-11-11T14:21:33.8636478Z       "por_materia": false,
-2026-11-11T14:21:33.8636614Z       "comandos_ejecutados": [
-2026-11-11T14:21:33.8636832Z         "bloque boe BOE-A-2015-10565 a21 2016-06-01"
-2026-11-11T14:21:33.8636921Z       ],
-2026-11-11T14:21:33.8637261Z       "comandos_ausentes": [],
-2026-11-11T14:21:33.8637605Z       "comandos_prohibidos_ejecutados": [],
-2026-11-11T14:21:33.8637743Z       "citas_encontradas": [
-2026-11-11T14:21:33.8637878Z         "BOE-A-2015-10565 a21"
-2026-11-11T14:21:33.8637969Z       ],
-2026-11-11T14:21:33.8638095Z       "citas_ausentes": [],
-2026-11-11T14:21:33.8638232Z       "avisos_encontrados": [],
-2026-11-11T14:21:33.8638361Z       "avisos_ausentes": [],
-2026-11-11T14:21:33.8638509Z       "hallazgos_encontrados": [],
-2026-11-11T14:21:33.8638639Z       "hallazgos_ausentes": [],
-2026-11-11T14:21:33.8638831Z       "redacciones_modificadas_encontradas": [],
-2026-11-11T14:21:33.8639011Z       "redacciones_modificadas_ausentes": [],
-2026-11-11T14:21:33.8639154Z       "plazo_encontrado": false,
-2026-11-11T14:21:33.8639313Z       "avisos_del_plazo_ausentes": [],
-2026-11-11T14:21:33.8639467Z       "no_cubierto_declarado": false,
-2026-11-11T14:21:33.8639706Z       "plazo_sin_calcular_declarado": false,
-2026-11-11T14:21:33.8639841Z       "lineas_del_plazo": [],
-2026-11-11T14:21:33.8639992Z       "territorio_encontrado": [],
-2026-11-11T14:21:33.8640125Z       "territorio_ausente": [],
-2026-11-11T14:21:33.8640267Z       "linea_sin_consulta": false,
-2026-11-11T14:21:33.8640400Z       "citas_sin_consulta": [],
-2026-11-11T14:21:33.8640518Z       "invocaciones": [
-2026-11-11T14:21:33.8640609Z         {
-2026-11-11T14:21:33.8640762Z           "orden": "mcp serve",
-2026-11-11T14:21:33.8640890Z           "codigo": -1,
-2026-11-11T14:21:33.8641033Z           "conexiones": [],
-2026-11-11T14:21:33.8641170Z           "llamada": false
-2026-11-11T14:21:33.8641258Z         },
-2026-11-11T14:21:33.8641348Z         {
-2026-11-11T14:21:33.8641561Z           "orden": "boe_indice BOE-A-2015-10565",
-2026-11-11T14:21:33.8641684Z           "codigo": 0,
-2026-11-11T14:21:33.8641830Z           "conexiones": [],
-2026-11-11T14:21:33.8641966Z           "llamada": true
-2026-11-11T14:21:33.8642054Z         },
-2026-11-11T14:21:33.8642146Z         {
-2026-11-11T14:21:33.8642482Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
-2026-11-11T14:21:33.8642608Z           "codigo": 3,
-2026-11-11T14:21:33.8642750Z           "conexiones": [],
-2026-11-11T14:21:33.8642886Z           "llamada": true
-2026-11-11T14:21:33.8642973Z         }
-2026-11-11T14:21:33.8643060Z       ],
-2026-11-11T14:21:33.8643199Z       "fuera_de_lo_grabado": [],
-2026-11-11T14:21:33.8643315Z       "otras_fallidas": [
-2026-11-11T14:21:33.8643403Z         {
-2026-11-11T14:21:33.8643719Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
-2026-11-11T14:21:33.8643838Z           "codigo": 3
-2026-11-11T14:21:33.8643927Z         }
-2026-11-11T14:21:33.8644082Z       ],
-2026-11-11T14:21:33.8644214Z       "lecturas_sin_servir": [],
-2026-11-11T14:21:33.8644348Z       "llegadas_a_la_red": [],
-2026-11-11T14:21:33.8647840Z       "respuesta": "El 1 de junio de 2016 el artículo 21 de la Ley 39/2015 no tenía redacción vigente, así que no hay texto que citar para ese día. No cito el contenido de ningún otro año: la lectura de esa fecha no devolvió texto.\n\n⚠ SIN REDACCIÓN VIGENTE: art. 21 de la Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas [BOE-A-2015-10565, bloque a21]: el 2016-06-01 no tenía redacción vigente; la tiene desde el 20161002, la fecha de vigencia de su primera redacción.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
-2026-11-11T14:21:33.8647996Z       "codigo_de_la_sesion": 0,
-2026-11-11T14:21:33.8648158Z       "fin_de_la_sesion": "result success",
-2026-11-11T14:21:33.8648295Z       "sesion_terminada": true,
-2026-11-11T14:21:33.8648467Z       "reintentos_por_limite_de_ritmo": 0,
-2026-11-11T14:21:33.8648578Z       "sin_medir": "",
-2026-11-11T14:21:33.8648689Z       "motivos": [],
-2026-11-11T14:21:33.8648803Z       "pasa": true
-2026-11-11T14:21:33.8648878Z     }
-2026-11-11T14:21:33.8648951Z   ]
-2026-11-11T14:21:33.8649027Z }
-2026-11-11T14:21:33.8649126Z --- fin de informe.json ---
-2026-11-11T14:21:33.8649238Z make: *** [Makefile:145: evals] Error 1
-2026-11-11T14:21:33.8659386Z ##[error]Process completed with exit code 2.
+== https://github.com/jmorenobl/kitlegal/actions/runs/43045660721/job/130608795595
+2026-11-11T15:36:27.5721443Z ^[[36;1mecho "CC_BRANCH=$CC_BRANCH" >> "$GITHUB_ENV"^[[0m
+2026-11-11T15:36:27.5733659Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T15:36:27.5734001Z env:
+2026-11-11T15:36:27.5734212Z   GOTOOLCHAIN: local
+2026-11-11T15:36:27.5734434Z   CC_FORK: false
+2026-11-11T15:36:27.5734770Z   CC_TOKEN: ***
+2026-11-11T15:36:27.5734988Z   CC_BRANCH: 
+2026-11-11T15:36:27.5735285Z   GITHUB_EVENT_PULL_REQUEST_HEAD_LABEL: jmorenobl:036-h41-2-por-qu-e
+2026-11-11T15:36:27.5735726Z   GITHUB_EVENT_PULL_REQUEST_HEAD_REPO_FULL_NAME: jmorenobl/kitlegal
+2026-11-11T15:36:27.5736097Z   GITHUB_REPOSITORY: jmorenobl/kitlegal
+2026-11-11T15:36:27.5736364Z ##[endgroup]
+2026-11-11T15:36:27.5784866Z ##[end-action id=__codecov_codecov-action.__run_6;outcome=success;conclusion=success;duration_ms=8]
+2026-11-11T15:36:27.5792457Z ##[start-action display=Override commits and pr for pull requests;id=__codecov_codecov-action.__run_7]
+2026-11-11T15:36:27.5819548Z ##[group]Run if [ -z "$CC_SHA" ];
+2026-11-11T15:36:27.5820035Z ^[[36;1mif [ -z "$CC_SHA" ];^[[0m
+2026-11-11T15:36:27.5820422Z ^[[36;1mthen^[[0m
+2026-11-11T15:36:27.5820838Z ^[[36;1m  CC_SHA="$GITHUB_EVENT_PULL_REQUEST_HEAD_SHA"^[[0m
+2026-11-11T15:36:27.5821318Z ^[[36;1mfi^[[0m
+2026-11-11T15:36:27.5821693Z ^[[36;1mif [ -z "$CC_PR" ] && [ "$CC_FORK" == 'true' ];^[[0m
+2026-11-11T15:36:27.5822164Z ^[[36;1mthen^[[0m
+2026-11-11T15:36:27.5822516Z ^[[36;1m  CC_PR="$GITHUB_EVENT_NUMBER"^[[0m
+2026-11-11T15:36:27.5822943Z ^[[36;1mfi^[[0m
+2026-11-11T15:36:27.5823238Z ^[[36;1m^[[0m
+2026-11-11T15:36:27.5823585Z ^[[36;1mecho "CC_SHA=$CC_SHA" >> "$GITHUB_ENV"^[[0m
+2026-11-11T15:36:27.5824077Z ^[[36;1mecho "CC_PR=$CC_PR" >> "$GITHUB_ENV"^[[0m
+2026-11-11T15:36:27.5846311Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T15:36:27.5847381Z env:
+2026-11-11T15:36:27.5847848Z   GOTOOLCHAIN: local
+2026-11-11T15:36:27.5848316Z   CC_FORK: false
+2026-11-11T15:36:27.5849217Z   CC_TOKEN: ***
+2026-11-11T15:36:27.5849711Z   CC_BRANCH: 
+2026-11-11T15:36:27.5850156Z   CC_PR: 
+2026-11-11T15:36:27.5850574Z   CC_SHA: 
+2026-11-11T15:36:27.5851071Z   GITHUB_EVENT_NAME: pull_request
+2026-11-11T15:36:27.5851630Z   GITHUB_EVENT_NUMBER: 256
+2026-11-11T15:36:27.5852242Z   GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7
+2026-11-11T15:36:27.5852927Z ##[endgroup]
+2026-11-11T15:36:27.5911308Z ##[end-action id=__codecov_codecov-action.__run_7;outcome=success;conclusion=success;duration_ms=11]
+2026-11-11T15:36:27.5921415Z ##[start-action display=Upload coverage to Codecov;id=__codecov_codecov-action.__run_8]
+2026-11-11T15:36:27.5938678Z ##[group]Run ${GITHUB_ACTION_PATH}/dist/codecov.sh
+2026-11-11T15:36:27.5939338Z ^[[36;1m${GITHUB_ACTION_PATH}/dist/codecov.sh^[[0m
+2026-11-11T15:36:27.5951415Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T15:36:27.5951746Z env:
+2026-11-11T15:36:27.5951964Z   GOTOOLCHAIN: local
+2026-11-11T15:36:27.5952175Z   CC_FORK: false
+2026-11-11T15:36:27.5952499Z   CC_TOKEN: ***
+2026-11-11T15:36:27.5952694Z   CC_BRANCH: 
+2026-11-11T15:36:27.5952925Z   CC_SHA: 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7
+2026-11-11T15:36:27.5953212Z   CC_PR: 
+2026-11-11T15:36:27.5953397Z   CC_BASE_SHA: 
+2026-11-11T15:36:27.5953585Z   CC_BINARY: 
+2026-11-11T15:36:27.5953781Z   CC_BUILD: 
+2026-11-11T15:36:27.5953967Z   CC_BUILD_URL: 
+2026-11-11T15:36:27.5954166Z   CC_CLEANUP: false
+2026-11-11T15:36:27.5954364Z   CC_CODE: 
+2026-11-11T15:36:27.5954548Z   CC_DIR: 
+2026-11-11T15:36:27.5954744Z   CC_DISABLE_FILE_FIXES: false
+2026-11-11T15:36:27.5954984Z   CC_DISABLE_SEARCH: false
+2026-11-11T15:36:27.5955216Z   CC_DISABLE_TELEM: false
+2026-11-11T15:36:27.5955443Z   CC_DRY_RUN: false
+2026-11-11T15:36:27.5955665Z   CC_ENTERPRISE_URL: 
+2026-11-11T15:36:27.5955890Z   CC_ENV: 
+2026-11-11T15:36:27.5956075Z   CC_EXCLUDES: 
+2026-11-11T15:36:27.5956276Z   CC_FAIL_ON_ERROR: true
+2026-11-11T15:36:27.5956549Z   CC_FILES: ./coverage.out,./coverage-integration.out
+2026-11-11T15:36:27.5956847Z   CC_FLAGS: 
+2026-11-11T15:36:27.5957031Z   CC_FORCE: 
+2026-11-11T15:36:27.5957216Z   CC_GCOV_ARGS: 
+2026-11-11T15:36:27.5957456Z   CC_GCOV_EXECUTABLE: gcov
+2026-11-11T15:36:27.5957675Z   CC_GCOV_IGNORE: 
+2026-11-11T15:36:27.5957883Z   CC_GCOV_INCLUDE: 
+2026-11-11T15:36:27.5958086Z   CC_GIT_SERVICE: github
+2026-11-11T15:36:27.5958320Z   CC_HANDLE_NO_REPORTS_FOUND: false
+2026-11-11T15:36:27.5958568Z   CC_JOB_CODE: 
+2026-11-11T15:36:27.5958766Z   CC_LEGACY: false
+2026-11-11T15:36:27.5958955Z   CC_NAME: 
+2026-11-11T15:36:27.5959331Z   CC_NETWORK_FILTER: 
+2026-11-11T15:36:27.5959561Z   CC_NETWORK_PREFIX: 
+2026-11-11T15:36:27.5959777Z   CC_NETWORK_ROOT_FOLDER: 
+2026-11-11T15:36:27.5959993Z   CC_OS: 
+2026-11-11T15:36:27.5960181Z   CC_PARENT_SHA: 
+2026-11-11T15:36:27.5960396Z   CC_PLUGINS: 
+2026-11-11T15:36:27.5960604Z   CC_RECURSE_SUBMODULES: false
+2026-11-11T15:36:27.5960853Z   CC_REPORT_TYPE: 
+2026-11-11T15:36:27.5961067Z   CC_RUN_CMD: upload-coverage
+2026-11-11T15:36:27.5961295Z   CC_SERVICE: github
+2026-11-11T15:36:27.5961506Z   CC_SKIP_VALIDATION: false
+2026-11-11T15:36:27.5961732Z   CC_SLUG: 
+2026-11-11T15:36:27.5961914Z   CC_SWIFT_PROJECT: 
+2026-11-11T15:36:27.5962119Z   CC_USE_PYPI: false
+2026-11-11T15:36:27.5962322Z   CC_VERBOSE: false
+2026-11-11T15:36:27.5962526Z   CC_VERSION: latest
+2026-11-11T15:36:27.5962723Z   CC_YML_PATH: 
+2026-11-11T15:36:27.5962917Z ##[endgroup]
+2026-11-11T15:36:27.6015156Z      _____          _
+2026-11-11T15:36:27.6015695Z     / ____|        | |
+2026-11-11T15:36:27.6016153Z    | |     ___   __| | ___  ___ _____   __
+2026-11-11T15:36:27.6016688Z    | |    / _ \ / _` |/ _ \/ __/ _ \ \ / /
+2026-11-11T15:36:27.6017237Z    | |___| (_) | (_| |  __/ (_| (_) \ V /
+2026-11-11T15:36:27.6017711Z     \_____\___/ \__,_|\___|\___\___/ \_/
+2026-11-11T15:36:27.6018780Z                            ^[[0;31m Wrapper-0.3.1^[[0m
+2026-11-11T15:36:27.6019746Z                            
+2026-11-11T15:36:27.6070922Z ^[[0;32m==>^[[0m Detected ^[[0;36mlinux^[[0m
+2026-11-11T15:36:27.6071844Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov^[[0m
+2026-11-11T15:36:27.6116317Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-11T15:36:27.6118282Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-11T15:36:27.6119371Z 
+2026-11-11T15:36:27.8656895Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-11T15:36:27.8657500Z 100 17.6M  100 17.6M    0     0  69.3M      0 --:--:-- --:--:-- --:--:-- 69.3M
+2026-11-11T15:36:27.8676953Z ^[[0;32m==>^[[0m Finishing downloading ^[[0;36mlinux:latest^[[0m
+2026-11-11T15:36:27.9485640Z       Version: ^[[0;36mv11.3.2^[[0m
+2026-11-11T15:36:27.9486265Z  
+2026-11-11T15:36:28.0061540Z gpg: directory '/home/runner/.gnupg' created
+2026-11-11T15:36:28.0062529Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-11-11T15:36:28.0973246Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-11-11T15:36:28.0974091Z gpg: key 806BB28AED779869: public key "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" imported
+2026-11-11T15:36:28.1276165Z gpg: Total number processed: 1
+2026-11-11T15:36:28.1276887Z gpg:               imported: 1
+2026-11-11T15:36:28.1281550Z ^[[0;32m==>^[[0m Verifying GPG signature integrity
+2026-11-11T15:36:28.1282713Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM^[[0m
+2026-11-11T15:36:28.1283948Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig^[[0m
+2026-11-11T15:36:28.1284370Z  
+2026-11-11T15:36:28.2644740Z gpg: Signature made Wed Oct 28 17:39:34 2026 UTC
+2026-11-11T15:36:28.2645901Z gpg:                using RSA key 27034E7FDB850E0BBC2C62FF806BB28AED779869
+2026-11-11T15:36:28.2647262Z gpg: Good signature from "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" [unknown]
+2026-11-11T15:36:28.2648571Z gpg: WARNING: This key is not certified with a trusted signature!
+2026-11-11T15:36:28.2649765Z gpg:          There is no indication that the signature belongs to the owner.
+2026-11-11T15:36:28.2650806Z Primary key fingerprint: 2703 4E7F DB85 0E0B BC2C  62FF 806B B28A ED77 9869
+2026-11-11T15:36:28.3779734Z codecov: OK
+2026-11-11T15:36:28.3790726Z ^[[0;32m==>^[[0m CLI integrity verified
+2026-11-11T15:36:28.3791095Z 
+2026-11-11T15:36:28.4410483Z ^[[0;32m ->^[[0m Token length: 36
+2026-11-11T15:36:28.4411235Z ^[[0;32m==>^[[0m Running upload-coverage
+2026-11-11T15:36:28.4421454Z       ^[[0;36m./codecov  upload-coverage -t <redacted> --fail-on-error --git-service github --sha 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7 --file ./coverage.out --file ./coverage-integration.out --gcov-executable gcov^[[0m
+2026-11-11T15:36:28.8716952Z info - 2026-11-11 15:36:28,871 -- ci service found: github-actions
+2026-11-11T15:36:28.9054301Z warning - 2026-11-11 15:36:28,905 -- xcrun is not installed or can't be found.
+2026-11-11T15:36:28.9526066Z warning - 2026-11-11 15:36:28,952 -- No gcov data found.
+2026-11-11T15:36:28.9529796Z warning - 2026-11-11 15:36:28,952 -- coverage.py is not installed or can't be found.
+2026-11-11T15:36:29.0770700Z info - 2026-11-11 15:36:29,076 -- Found 2 coverage files to report
+2026-11-11T15:36:29.0771590Z info - 2026-11-11 15:36:29,076 -- > /home/runner/work/kitlegal/kitlegal/coverage.out
+2026-11-11T15:36:29.0772472Z info - 2026-11-11 15:36:29,077 -- > /home/runner/work/kitlegal/kitlegal/coverage-integration.out
+2026-11-11T15:36:30.1798034Z info - 2026-11-11 15:36:30,179 -- Upload queued for processing complete
+2026-11-11T15:36:30.1800150Z error - 2026-11-11 15:36:30,179 -- Upload queued for processing failed: {"message":"This repository is deactivated. To resume uploading to it, please activate the repository in the Codecov UI: https://app.codecov.io/github/jmorenobl/kitlegal/config/general"}
+2026-11-11T15:36:30.2880186Z Sentry is attempting to send 3 pending events
+2026-11-11T15:36:30.2880770Z Waiting up to 2 seconds
+2026-11-11T15:36:30.2881019Z Press Ctrl-C to quit
+2026-11-11T15:36:30.4242392Z ^[[0;31m==> Failed to run upload-coverage^[[0m
+2026-11-11T15:36:30.4242912Z ^[[0;31m    Exiting...^[[0m
+2026-11-11T15:36:30.4256650Z ##[error]Process completed with exit code 1.
+2026-11-11T15:36:30.4264337Z ##[end-action id=__codecov_codecov-action.__run_8;outcome=failure;conclusion=failure;duration_ms=2834]
