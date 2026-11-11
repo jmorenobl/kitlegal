@@ -1,0 +1,90 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log, escrito a las 14:37:46, la hora del commit 437d4931, empieza por «guardián de diff ok ((global), 13 ficheros)» —los 13 de ese commit— y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con golangci-lint «0 issues» e internal/evals en verde con -race (498 s y 433 s, plazo de 20 min). Reproducido en un clon de 437d4931 fuera del repositorio: `go vet -tags evals ./internal/evals/` (sin salida); `go test -count=1 ./internal/evals/` en dos tandas, 3060 tests sin TestArnes* y 67 de TestArnes*, todos ok (3127: los 3125 de la ronda 1 más los dos casos nuevos); `go test -count=1 ./cmd/laboratorio/` (9 ok); `TestEntregaDelHito` (79 ok, con `h41-2-laboratorio-tabla` en PASS); y `golangci-lint fmt --diff` y `run` sobre ./internal/evals/... («0 issues»). No he ejecutado `make ci` entero. `git status --short` solo da ficheros de gates/ del paso de revisión (base-global-pendiente, modelos.jsonl, revision-cambios.md, revision-cambios-r2.diff)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Los dos motivos de la ronda 1 están corregidos, comprobado con sus mutantes en la copia. (1) Sin el `break` de internal/evals/activaciones.go:39, TestActivacionesDeLosUsos sale en rojo en los dos casos nuevos, «entre dos herramientas de kitlegal» (esperado normativa «después», obtenido «antes») y «cada skill antes de una orden kitlegal» (activaciones_test.go:93-112), uno por modo. (2) Sin internal/evals/informe.go:1486, TestInforme sale en rojo en `sin-eval-txt` y `traza-ilegible` (informe_test.go:3403 y :3448), por exigirLaListaDeLaSesionIlegibleLeida (:3456-3465), que exige la lista en el resultado, en `informe.json` tal como está escrito y en el párrafo `Skills activadas:` de informe.md; lo esperado, boe-legislacion «antes», es lo que trae el transcript de esos dos casos (un único tool_use, Skill boe-legislacion, y ninguna herramienta de kitlegal), fixtures que el hito no toca. La suite congelada sigue intacta: los dos ficheros de gates/aceptacion-congelada.json son iguales byte a byte (`cmp`) y ningún commit posterior a 889132fb (T001) y 1a05c15e (activación) los toca; el guion pasa en la copia."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango 5cfda6e..HEAD solo toca, fuera de gates/, dos ficheros de test (internal/evals/activaciones_test.go e informe_test.go); el código de producto es el de la ronda 1. Repetido sobre `git diff main...HEAD -- '*.go' '*.sh' Makefile`: ninguna línea añadida trae net/http, os.Exit, fmt.Print*, os.Std*, panic( ni exec.Command (grep sin resultados). internal/evals/activaciones.go:3-8 importa encoding/json, fmt, slices y strings. Ningún paquete nuevo, y cmd/, internal/cli, internal/httpx e internal/app no cambian de código (`--diff-filter=MDRT`, sin resultados). golangci-lint «0 issues» en gates/ci.log y en la copia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no toca ningún applet ni su salida: fuera de specs/ y de los fixtures, el diff es internal/evals, Makefile, dos guiones, .golangci.yml, go.mod, el guion de aceptación añadido y documentación (`git diff main...HEAD --name-status`); schemas/ no cambia. TestEsquemasPublicados, en verde en gates/ci.log (línea 80-81). El rango de esta ronda no cambia nada de esto."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios de producto en el rango. Los errores de INSTALACION y EVAL se unen a los de hoy con errors.Join (internal/evals/laboratorio_sondeo.go:399-403) y llegan como error de uso; con el mutante que acepta cualquier valor de INSTALACION (laboratorio_sondeo.go:457-458 devolviendo nil) salen en rojo cuatro casos de TestArnesConLaInstalacionDelProducto (`con-instalacion-todas` y sus tres variantes), ejecutado en la copia. El guion congelado, que fija el código 0 y la salida de error vacía de la tabla, pasa en la copia. Ningún panic en las líneas añadidas (grep sin resultados)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md, Unreleased: la lista de activaciones (:59), `INSTALACION=producto` y `EVAL=<nn>` (:67), la tabla con las skills instaladas y las activaciones (:77) y la subida de `toolchain` (:124). El rango no toca CHANGELOG.md, CONTRIBUTING.md, docs/, spec.md, plan.md, tasks.md, contracts/ ni gates/supuestos.md (`git diff 5cfda6e..HEAD --stat`, vacío), así que vale lo comprobado contra el producto en la ronda 1 (gates/revision-b-r1.json). Los comentarios de los tests nuevos dicen lo que el producto hace: la primera herramienta también cuando hay varias, y la lista de la sesión ilegible con el transcript leído (contracts/informe.md §2, research D5). tasks.md da T001 a T009 por hechas y el diff las sostiene. Ningún ADR cambia en el run y ninguna fuente se toca."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición nueva ni cambio en internal/httpx; el hito no escribe en data/ ni en evidencias/ (`--diff-filter=MDRT` y `--name-status`, sin ficheros suyos). El rango solo añade casos de test con usos escritos en el propio test y aserciones sobre fixtures sintéticos que ya existían (toolu_sintetico_01), sin datos personales ni credenciales; gitleaks «no leaks found» en gates/ci.log."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ni el rango ni el diff entero añaden //nolint, t.Skip, TODO, FIXME ni `_ =` (grep sobre las líneas añadidas de `git diff main...HEAD -- '*.go' '*.sh' Makefile`, sin resultados). Ningún fichero existente de testdata/, schemas/, data/, evidencias/, skills/, evals/ ni laboratorio/ cambia (`--diff-filter=MDRT`, sin resultados). La corrección no quita ninguna aserción: sus únicas líneas quitadas son tres de comentario reescritas (gates/revision-cambios-r2.diff), y no toca ningún fixture para hacer pasar los tests nuevos."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La corrección se ciñe a lo que pedían los dos motivos de la ronda 1: solo tests, ni código de producto ni fixtures (`git diff 5cfda6e..HEAD --name-status`: dos ficheros _test.go fuera de gates/). El resto del diff es el de la ronda 1, trazado a FR-001 a FR-024, con `toolchain go1.27.4` y `PLAZO_DE_LOS_TESTS := 20m` registrados en gates/supuestos.md, que el rango no toca."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida. Lo entregado lo lee una persona, no una skill ni el binario, y ninguna SKILL.md cambia (skills/ sin cambios): 0 invocaciones más por pregunta. La medida de la ronda 1 (gates/revision-b-r1.json: unos 111 bytes por sesión en informe.json y 43 en informe.md; 26 618 bytes la tabla de 160 sesiones) vale para un código de producto que es el mismo; no la he repetido en esta sesión. Crece con las sesiones planificadas o pedidas, no con lo acumulado, y nada persiste entre mediciones."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "La corrección añade lo mínimo que fija lo prometido: dos casos de tabla, uno por modo (activaciones_test.go:93-112), trazados a «la primera herramienta» de FR-001; y un ayudante de diez líneas llamado desde dos casos que ya existían (informe_test.go:3403, :3448, :3456-3465), trazado a contracts/informe.md §2 (tercera fila) y research D5, sin fixture, tipo ni función de producto nuevos. Cada uno sale en rojo con su mutante y ninguno cubre un estado que el producto no alcance: una sesión con dos consultas a kitlegal y una sesión ilegible por su eval o su traza las produce el job. El resto es el código de la ronda 1, sin cambios."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los controles de «Controles de umbral» de plan.md (:230-243) son los de la ronda 1, y el rango solo les añade aserciones. Repetidos en la copia dos mutantes de control: SC-001, el mismo turno contado como antes (activaciones.go:110 con `<=`), deja en rojo TestActivacionesDeLosUsos, TestInformeConLasActivaciones (herramienta-mismo-turno y orden-mismo-turno) y TestTablaConLasActivaciones (sondeos-fijos); SC-004, INSTALACION con otro valor aceptada, deja en rojo cuatro casos de TestArnesConLaInstalacionDelProducto. Los otros doce mutantes de la ronda 1 (SC-002, SC-003, SC-005, SC-006, SC-009) no los he repetido: sus tests no cambian en el rango y pasan en la copia. SC-007 son umbrales del job con `decide: true` en configuración que el hito no toca, y los mide el cierre; SC-008 lo mide una persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "No he ejecutado `make ci` entero ni repetido los catorce mutantes de umbral de la ronda 1 salvo dos (SC-001 y SC-004): el rango solo toca dos ficheros de test, y los tests de internal/evals, cmd/laboratorio y la suite congelada pasan en el clon de 437d4931.",
+    "El paquete internal/evals tarda 498 s y 433 s con -race en gates/ci.log (384 s en el de la ronda 1): el plazo de 20 minutos del Makefile da margen, pero la medida sube y baja con la carga de la máquina; abaratar las sesiones de los tests del arnés queda para una persona (gates/tarea-T007.md).",
+    "FR-005 y el caso límite «Sesión ilegible en el job» de spec.md dicen que de una sesión ilegible la lista «no se da, como lo demás leído de ella»; el producto la da si LeerSesion leyó el transcript (contracts/informe.md §2, research D5), y desde esta ronda un test lo fija: la frase del spec se lee mejor con la precisión del contrato.",
+    "No medido: el repositorio no versiona transcripciones reales del job, así que no he podido comprobar con ellas que leerLosUsos nunca falle donde LeerSesion lee (research D5); si fallara, la sesión pasaría a ilegible.",
+    "La rama del error al leer la lista (informe.go:1455-1457) y el prefijo `sesion.jsonl: ` de activacionesDeLaSesion (activaciones.go:74-76) siguen sin test, por decisión del plan (estado que Claude Code no escribe).",
+    "La subida de `toolchain` va dentro de la rama del hito y no en un commit `chore(deps)` propio, como pide CONTRIBUTING.md; está registrada en gates/supuestos.md y en CHANGELOG.md.",
+    "skillsInstaladasDelSondeo lee solo la variante del primer par (laboratorio_sondeo.go:961 y siguientes): vale mientras cada variante versionada de una familia del producto tenga una sola skill.",
+    "En la tabla, el turno de la primera herramienta se calcula dos veces (anotarLosUsos y activacionesDeLosUsos, en laboratorio_tabla.go); los casos nuevos de TestActivacionesDeLosUsos fijan la segunda, no que las dos coincidan en una sesión con varias herramientas.",
+    "El comentario de TestActivacionesDeLosUsos quedó con una línea corta tras la corrección (activaciones_test.go:69); solo es formato.",
+    "SC-007 (evals en verde en el cierre) y SC-008 (la tabla de 160 sesiones en evidencias/ y su lectura) quedan fuera de esta revisión: los miden el cierre y la persona."
+  ]
+}
