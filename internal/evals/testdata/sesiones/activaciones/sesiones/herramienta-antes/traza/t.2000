@@ -1,0 +1,2 @@
+execve("/tmp/evals/bin/kitlegal", ["/tmp/evals/bin/kitlegal", "mcp", "serve"], 0x7ffd8f13a6c0 /* 25 vars */) = 0
++++ exited with 0 +++

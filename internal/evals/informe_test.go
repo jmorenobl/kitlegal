@@ -10615,3 +10615,217 @@ El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
 [BOE-A-2015-10565, bloque a21]
 ` + "```" + `
 `
+
+// Lo que TestInformeConLasActivaciones pasa a EscribirInforme
+// (contracts/informe.md §5 de H41.2; data-model §5 de H41.2).
+const (
+	// casoDeLasActivaciones es el directorio de sus sesiones fijas: en evals/, la
+	// copia de evals/normativa/22-lcsp-contrato-menor-en-2019.yaml, con activa y
+	// redaccion_fechada, con la que el informe publica sin juez el umbral
+	// sin_activar de cada modo (research V10 de H41.2); en sesiones/, cinco por
+	// modo, cada una con lo que hace según la tabla del contrato.
+	casoDeLasActivaciones = "testdata/sesiones/activaciones"
+
+	// skillDeLasActivaciones es la skill cuya activación se busca, y
+	// evalDeLasActivaciones, la eval de todas las sesiones.
+	skillDeLasActivaciones = "normativa"
+	evalDeLasActivaciones  = "22-lcsp-contrato-menor-en-2019.yaml"
+
+	// repeticionesDeLasActivaciones son las sesiones de cada modo, todas de la
+	// misma serie, y umbralDeLasActivaciones, cuántas tienen que pasar para que
+	// pase.
+	repeticionesDeLasActivaciones = 5
+	umbralDeLasActivaciones       = 3
+
+	// motivoSinNormativa es el único motivo de las sesiones que no activan
+	// normativa: las demás pasan.
+	motivoSinNormativa = "la activación no coincide: se esperaba que la skill normativa se activara y no se activó"
+)
+
+// umbralMedido es un umbral del informe sin su descripción: lo que mide y lo que
+// decide.
+type umbralMedido struct {
+	nombre         string
+	medida         float64
+	total          int
+	comparacion    string
+	umbral         float64
+	cumple, decide bool
+}
+
+// TestInformeConLasActivaciones fija, con los valores que da el informe antes de
+// llevar la lista de activaciones de cada sesión, lo que publica de las sesiones
+// fijas de casoDeLasActivaciones (FR-004, FR-006; SC-002; contracts/informe.md
+// §5 de H41.2; research D6 de H41.2): activada de cada sesión —sí si activó
+// normativa, antes de la consulta, después o en la misma respuesta; no si no
+// activó ninguna skill o solo otra—, su resultado y sus motivos, en informe.json
+// y en la tabla «Sesiones» de informe.md; las dos series, que pasan con 3 de 5;
+// los umbrales, con sin_activar de cada modo en 2 de 5; los motivos de la raíz y
+// el veredicto. Con la lista, ninguno de estos valores cambia.
+func TestInformeConLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	destino := t.TempDir()
+
+	informe, err := EscribirInforme(InformeAEscribir{
+		Skill:           skillDeLasActivaciones,
+		Evals:           filepath.Join(casoDeLasActivaciones, "evals"),
+		Sesiones:        filepath.Join(casoDeLasActivaciones, "sesiones"),
+		Destino:         destino,
+		ModeloQueDecide: modeloSonnet55,
+		Repeticiones:    repeticionesDeLasActivaciones,
+		Umbral:          umbralDeLasActivaciones,
+		Modos:           []Modo{ModoOrden, ModoHerramienta},
+		Commit:          commitEvaluado,
+		SinPython:       filepath.Join(casosDeInforme, ficheroSinPython),
+	})
+	require.NoError(t, err)
+
+	leido := leerElInformeDeLaSkill(t, destino, informe)
+	assert.Equal(t, skillDeLasActivaciones, leido.informe.Skill)
+
+	// En orden de nombre, el de las sesiones de informe.json.
+	casos := []struct {
+		sesion   string
+		modo     Modo
+		activada bool
+	}{
+		{sesion: "herramienta-antes", modo: ModoHerramienta, activada: true},
+		{sesion: "herramienta-las-dos", modo: ModoHerramienta, activada: true},
+		{sesion: "herramienta-mismo-turno", modo: ModoHerramienta, activada: true},
+		{sesion: "herramienta-ninguna", modo: ModoHerramienta, activada: false},
+		{sesion: "herramienta-otra", modo: ModoHerramienta, activada: false},
+		{sesion: "orden-antes", modo: ModoOrden, activada: true},
+		{sesion: "orden-las-dos", modo: ModoOrden, activada: true},
+		{sesion: "orden-mismo-turno", modo: ModoOrden, activada: true},
+		{sesion: "orden-ninguna", modo: ModoOrden, activada: false},
+		{sesion: "orden-otra", modo: ModoOrden, activada: false},
+	}
+
+	sesiones := make([]string, 0, len(leido.informe.Evals))
+	for _, resultado := range leido.informe.Evals {
+		sesiones = append(sesiones, resultado.Sesion)
+	}
+
+	esperadas := make([]string, 0, len(casos))
+	for _, caso := range casos {
+		esperadas = append(esperadas, caso.sesion)
+	}
+
+	require.Equal(t, esperadas, sesiones, "informe.json lleva las diez sesiones, en orden de nombre")
+
+	tablaDeSesiones := seccionDelInforme(t, leido.md, "Sesiones")
+
+	for _, caso := range casos {
+		t.Run(caso.sesion, func(t *testing.T) {
+			t.Parallel()
+
+			resultado := resultadoDeLaSesion(t, leido.informe, caso.sesion)
+
+			motivos, celdaDeActivada, celdaDeResultado := []string{}, "sí", "pasa"
+			if !caso.activada {
+				motivos, celdaDeActivada, celdaDeResultado = []string{motivoSinNormativa}, "no", "no pasa"
+			}
+
+			assert.Equal(t, evalDeLasActivaciones, resultado.Eval)
+			assert.Equal(t, modeloSonnet55, resultado.Modelo)
+			assert.Equal(t, caso.modo, resultado.Modo)
+			assert.True(t, resultado.Activa, "la eval 22 espera que normativa se active")
+			assert.Equal(t, caso.activada, resultado.Activada, "activada de %s", caso.sesion)
+			assert.Equal(t, caso.activada, resultado.Pasa, "solo la activación decide si %s pasa", caso.sesion)
+			assert.Equal(t, motivos, resultado.Motivos)
+			assert.True(t, resultado.SesionTerminada)
+
+			celdas := celdasDeLaSesion(t, tablaDeSesiones, caso.sesion)
+			assert.Equal(t, celdaDeActivada, celdas["Activada"], "la columna Activada de %s", caso.sesion)
+			assert.Equal(t, celdaDeResultado, celdas["Resultado"], "la columna Resultado de %s", caso.sesion)
+		})
+	}
+
+	t.Run("series", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []TasaDelInforme{
+			{
+				Eval: evalDeLasActivaciones, Modelo: modeloSonnet55, Modo: ModoOrden, Planificada: true, Decide: true,
+				Formas: sinFormasExigidas, Sesiones: 5, Pasan: 3, Pasa: true,
+			},
+			{
+				Eval: evalDeLasActivaciones, Modelo: modeloSonnet55 + " (herramienta)", Modo: ModoHerramienta,
+				Planificada: true, Decide: true, Formas: sinFormasExigidas, Sesiones: 5, Pasan: 3, Pasa: true,
+			},
+		}, leido.informe.Tasas)
+	})
+
+	t.Run("umbrales", func(t *testing.T) {
+		t.Parallel()
+
+		medidos := make([]umbralMedido, 0, len(leido.informe.Umbrales))
+
+		for _, umbral := range leido.informe.Umbrales {
+			require.NotNil(t, umbral.Total, "el umbral %s lleva su total", umbral.Nombre)
+
+			medidos = append(medidos, umbralMedido{
+				nombre: umbral.Nombre, medida: umbral.Medida, total: *umbral.Total, comparacion: umbral.Comparacion,
+				umbral: umbral.Umbral, cumple: umbral.Cumple, decide: umbral.Decide,
+			})
+		}
+
+		assert.Equal(t, []umbralMedido{
+			{nombre: "sin_activar:claude-sonnet-5-5:orden", medida: 2, total: 5, comparacion: "<=", decide: true},
+			{
+				nombre: "redaccion_sin_fechar:claude-sonnet-5-5:orden", medida: 0, total: 5, comparacion: "<=",
+				cumple: true, decide: true,
+			},
+			{nombre: "sin_activar:claude-sonnet-5-5:herramienta", medida: 2, total: 5, comparacion: "<=", decide: true},
+			{
+				nombre: "redaccion_sin_fechar:claude-sonnet-5-5:herramienta", medida: 0, total: 5, comparacion: "<=",
+				cumple: true, decide: true,
+			},
+			{nombre: "fuera_de_lo_grabado:claude-sonnet-5-5:orden", medida: 0, total: 5, comparacion: "<=", cumple: true},
+			{
+				nombre: "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta", medida: 0, total: 5, comparacion: "<=",
+				cumple: true,
+			},
+		}, medidos)
+	})
+
+	t.Run("motivos-y-veredicto", func(t *testing.T) {
+		t.Parallel()
+
+		exigirMotivosDeLaRaiz(t, leido,
+			"umbral sin_activar:claude-sonnet-5-5:orden: 2 de 5 (40,0 %), y tiene que ser ≤ 0,0 %",
+			"umbral sin_activar:claude-sonnet-5-5:herramienta: 2 de 5 (40,0 %), y tiene que ser ≤ 0,0 %")
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+	})
+}
+
+// celdasDeLaSesion son, por su encabezado, las celdas de la fila de la sesión en
+// la tabla «Sesiones» de informe.md.
+func celdasDeLaSesion(t *testing.T, tabla, sesion string) map[string]string {
+	t.Helper()
+
+	lineas := strings.Split(tabla, "\n")
+	require.Greater(t, len(lineas), 2, "la tabla tiene alguna fila:\n%s", tabla)
+	require.Equal(t, filaDeTabla(encabezadosDeLaTablaDeSesiones...), lineas[0], "la tabla empieza por sus encabezados")
+
+	for _, fila := range lineas[2:] {
+		celdas := strings.Split(strings.TrimSuffix(strings.TrimPrefix(fila, "| "), " |"), " | ")
+		require.Len(t, celdas, len(encabezadosDeLaTablaDeSesiones), "la fila tiene una celda por columna: %s", fila)
+
+		if celdas[0] != sesion {
+			continue
+		}
+
+		porEncabezado := make(map[string]string, len(celdas))
+		for posicion, encabezado := range encabezadosDeLaTablaDeSesiones {
+			porEncabezado[encabezado] = celdas[posicion]
+		}
+
+		return porEncabezado
+	}
+
+	require.Failf(t, "la tabla no tiene la fila de la sesión", "%s:\n%s", sesion, tabla)
+
+	return nil
+}

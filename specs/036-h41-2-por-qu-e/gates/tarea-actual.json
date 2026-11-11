@@ -1,20 +1,26 @@
 {
-  "id": "T002",
-  "texto": "T002 La lectura compartida de los usos y la regla de la primera herramienta en un fichero propio, con la lista de activaciones y su test (FR-001, FR-020; SC-001; contracts/informe.md §1; data-model §1; research D1, D2). **Código**: internal/evals/activaciones.go, nuevo, con, movidos sin cambiar de internal/evals/laboratorio_tabla.go, `usoDelTranscript`, `leerLosUsos` y sus ayudantes `usosDelMensaje`, `bloqueConTipo`, `conResultado`, `activaAntes` y `skillDelUso`, con un único cambio: `leerLosUsos` deja de exigir `message.id` en cada `assistant` (el turno se decide con la misma regla de H39 y el id tal como se lee, también vacío; se retira el error «el mensaje assistant no tiene message.id»); la regla de `esDeKitlegal` y `consultaKitlegal` de la tabla pasa, sin cambiar, a `reconocedorDeKitlegal{herramientas, interprete}` con su método `esDeKitlegal(uso, modo)` —en `herramienta`, un uso cuyo nombre, o lo que sigue a su último `__`, es una herramienta del registro; en `orden`, una orden de `Bash` con una orden simple que invoca `kitlegal` con un verbo que da herramienta y consulta; en cualquier otro modo, incluido el `\"\"` de una eval sin binario ni servidor, ninguno— y una función que lo construye con las herramientas del registro y `nuevoInterprete()`, como hoy la tabla; y, nuevos, `Activacion{Skill string; Antes bool}` (claves JSON `skill` y `antes`) y `activacionesDeLosUsos(usos, esDeKitlegal)`: el turno de la primera herramienta y, por cada uso de `Skill` en orden, su `Activacion` (antes si su turno es anterior al de la primera, o si no hay ninguna; en el mismo turno, no; una entrada por bloque, también si repite skill), nunca nil (`[]Activacion{}` sin ninguna). En internal/evals/laboratorio_tabla.go, `contadorDelLaboratorio` guarda un `reconocedorDeKitlegal` en lugar de sus `herramientas` e `interprete` y lo usa donde hoy usa la regla; nada más de la tabla cambia. En .golangci.yml, en `linters.settings.misspell.ignore-rules`, la entrada `activacion`, primera por orden alfabético, con su comentario como las demás (`misspell`, con su diccionario solo inglés, lee el tipo `Activacion` como «Activation»; la convención del fichero, `.golangci.yml:294-295`, es neutralizar cada falso positivo del español con una entrada, nunca con `//nolint:misspell`, del que el repositorio no tiene ninguno; gates/tarea-T002.md). **Test**: internal/evals/activaciones_test.go, nuevo, `TestActivacionesDeLosUsos`, de tabla con `t.Parallel()`, con usos escritos en el test, en los modos `herramienta`, `orden` y `\"\"`: una activación antes de la primera herramienta, una en el mismo turno (después), una sin ninguna herramienta (antes), una skill activada dos veces (dos entradas), una orden `kitlegal` de `Bash` en una sesión de modo `\"\"` (antes), `which kitlegal` y `ToolSearch` que no cuentan como primera herramienta, y ninguna activación (`[]`, no nil). Mutantes que se ven en rojo y se revierten: el mismo turno contado como antes; la orden `kitlegal` de `Bash` contada en el modo `\"\"`; nil en lugar de `[]`. Sin cambiar ningún valor esperado, siguen en verde `TestTablaDeLasFamilias`, `TestTablaDeNormativa`, `TestTablaDelLaboratorio`, `TestLecturaConCd`, `TestReglaTestigo`, `TestOrdenesDeBash` y las suites congeladas de H39, H40 y H41 (FR-022, FR-023, FR-032; SC-006). `make ci` en verde.",
-  "intento": 2,
-  "datos": false,
+  "id": "T003",
+  "texto": "T003 [datos] [US1] Las sesiones fijas de los dos modos y las aserciones de lo que no cambia del informe, en una sola tarea porque el test es el que lee esas sesiones, cubre código que ya existe (`informe.go` de hoy, sin tocarlo) y sin él los fixtures no prueban nada (FR-004, FR-006; SC-002; contracts/informe.md §5; data-model §5; research D6, D14; plan.md «Diseño», el orden de trabajo del informe). **Fixtures**: internal/evals/testdata/sesiones/activaciones/, nuevo, con `evals/22-lcsp-contrato-menor-en-2019.yaml`, copia byte a byte de evals/normativa/22-lcsp-contrato-menor-en-2019.yaml (`activa: true` y `redaccion_fechada`, con la que el informe publica sin juez `sin_activar:claude-sonnet-5-5:<modo>`: research V10), y `sesiones/` con diez sesiones, `orden-antes`, `orden-ninguna`, `orden-otra`, `orden-las-dos`, `orden-mismo-turno` y las cinco `herramienta-…` de los mismos nombres, cada una con lo que hace según la tabla de contracts/informe.md §5 (la consulta, `Bash` `kitlegal boe articulo … --json` en modo orden y `mcp__kitlegal__boe_articulo` en modo herramienta; `Skill` `normativa` o `consulta-juridica` en el turno que dice la tabla; `mismo-turno`, `Skill` y la consulta en la misma respuesta), con la forma de las de internal/evals/testdata/sesiones/informe/ (modo orden) y de internal/evals/testdata/sesiones/leer-llamadas/ (modo herramienta, con `servidor.json`) y un `message.id` propio por respuesta. Ningún fichero de `testdata/` existente cambia; nada se graba. **Test**: en internal/evals/informe_test.go, `TestInformeConLasActivaciones`: escribe con `EscribirInforme`, en un directorio de `t.TempDir()`, el informe de esas sesiones con la skill `normativa`, el modelo que decide `claude-sonnet-5-5` y los dos modos, y exige con valores literales escritos en el test, sesión a sesión, `activada` (sí en `antes`, `las-dos` y `mismo-turno`; no en `ninguna` y `otra`), `sin_activar:claude-sonnet-5-5:orden` y `:herramienta` con 2 de 5, las tasas, los motivos y el veredicto que da hoy el informe; estas aserciones pasan con el `informe.go` de hoy, que la tarea no toca. Mutante que se ve en rojo y se revierte: en internal/evals/informe.go, una sesión que activa otra skill contada como activada (2 de 5 pasa a 1 de 5). `make ci` en verde.",
+  "intento": 1,
+  "datos": true,
   "aceptacion": false,
-  "base": "889132fb73e700e476f5cf37598e318d8c403da6",
+  "base": "a47cfafa70b9c8c83e7b619c96fac26e4d309781",
   "rutas": [
-    ".golangci.yml",
-    ".ignore",
     "contracts/informe.md",
-    "gates/tarea-T002.md",
-    "internal/evals/activaciones.go",
-    "internal/evals/activaciones_test.go",
-    "internal/evals/laboratorio_tabla.go"
+    "evals/22-lcsp-contrato-menor-en-2019.yaml",
+    "evals/normativa/22-lcsp-contrato-menor-en-2019.yaml",
+    "informe.go",
+    "internal/evals/informe.go",
+    "internal/evals/informe_test.go",
+    "internal/evals/testdata/sesiones/activaciones/",
+    "internal/evals/testdata/sesiones/informe/",
+    "internal/evals/testdata/sesiones/leer-llamadas/",
+    "plan.md",
+    "servidor.json",
+    "sesiones/",
+    "testdata/"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "f751149ce72157c6f0e628017b18b3651a8aac7e0064d0ff3957945afb3ed4d1"
+  "nota": "-"
 }
