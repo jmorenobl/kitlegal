@@ -1,151 +1,151 @@
-== https://github.com/jmorenobl/kitlegal/actions/runs/43045660721/job/130608795595
-2026-11-11T15:36:27.5721443Z ^[[36;1mecho "CC_BRANCH=$CC_BRANCH" >> "$GITHUB_ENV"^[[0m
-2026-11-11T15:36:27.5733659Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-2026-11-11T15:36:27.5734001Z env:
-2026-11-11T15:36:27.5734212Z   GOTOOLCHAIN: local
-2026-11-11T15:36:27.5734434Z   CC_FORK: false
-2026-11-11T15:36:27.5734770Z   CC_TOKEN: ***
-2026-11-11T15:36:27.5734988Z   CC_BRANCH: 
-2026-11-11T15:36:27.5735285Z   GITHUB_EVENT_PULL_REQUEST_HEAD_LABEL: jmorenobl:036-h41-2-por-qu-e
-2026-11-11T15:36:27.5735726Z   GITHUB_EVENT_PULL_REQUEST_HEAD_REPO_FULL_NAME: jmorenobl/kitlegal
-2026-11-11T15:36:27.5736097Z   GITHUB_REPOSITORY: jmorenobl/kitlegal
-2026-11-11T15:36:27.5736364Z ##[endgroup]
-2026-11-11T15:36:27.5784866Z ##[end-action id=__codecov_codecov-action.__run_6;outcome=success;conclusion=success;duration_ms=8]
-2026-11-11T15:36:27.5792457Z ##[start-action display=Override commits and pr for pull requests;id=__codecov_codecov-action.__run_7]
-2026-11-11T15:36:27.5819548Z ##[group]Run if [ -z "$CC_SHA" ];
-2026-11-11T15:36:27.5820035Z ^[[36;1mif [ -z "$CC_SHA" ];^[[0m
-2026-11-11T15:36:27.5820422Z ^[[36;1mthen^[[0m
-2026-11-11T15:36:27.5820838Z ^[[36;1m  CC_SHA="$GITHUB_EVENT_PULL_REQUEST_HEAD_SHA"^[[0m
-2026-11-11T15:36:27.5821318Z ^[[36;1mfi^[[0m
-2026-11-11T15:36:27.5821693Z ^[[36;1mif [ -z "$CC_PR" ] && [ "$CC_FORK" == 'true' ];^[[0m
-2026-11-11T15:36:27.5822164Z ^[[36;1mthen^[[0m
-2026-11-11T15:36:27.5822516Z ^[[36;1m  CC_PR="$GITHUB_EVENT_NUMBER"^[[0m
-2026-11-11T15:36:27.5822943Z ^[[36;1mfi^[[0m
-2026-11-11T15:36:27.5823238Z ^[[36;1m^[[0m
-2026-11-11T15:36:27.5823585Z ^[[36;1mecho "CC_SHA=$CC_SHA" >> "$GITHUB_ENV"^[[0m
-2026-11-11T15:36:27.5824077Z ^[[36;1mecho "CC_PR=$CC_PR" >> "$GITHUB_ENV"^[[0m
-2026-11-11T15:36:27.5846311Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-2026-11-11T15:36:27.5847381Z env:
-2026-11-11T15:36:27.5847848Z   GOTOOLCHAIN: local
-2026-11-11T15:36:27.5848316Z   CC_FORK: false
-2026-11-11T15:36:27.5849217Z   CC_TOKEN: ***
-2026-11-11T15:36:27.5849711Z   CC_BRANCH: 
-2026-11-11T15:36:27.5850156Z   CC_PR: 
-2026-11-11T15:36:27.5850574Z   CC_SHA: 
-2026-11-11T15:36:27.5851071Z   GITHUB_EVENT_NAME: pull_request
-2026-11-11T15:36:27.5851630Z   GITHUB_EVENT_NUMBER: 256
-2026-11-11T15:36:27.5852242Z   GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7
-2026-11-11T15:36:27.5852927Z ##[endgroup]
-2026-11-11T15:36:27.5911308Z ##[end-action id=__codecov_codecov-action.__run_7;outcome=success;conclusion=success;duration_ms=11]
-2026-11-11T15:36:27.5921415Z ##[start-action display=Upload coverage to Codecov;id=__codecov_codecov-action.__run_8]
-2026-11-11T15:36:27.5938678Z ##[group]Run ${GITHUB_ACTION_PATH}/dist/codecov.sh
-2026-11-11T15:36:27.5939338Z ^[[36;1m${GITHUB_ACTION_PATH}/dist/codecov.sh^[[0m
-2026-11-11T15:36:27.5951415Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-2026-11-11T15:36:27.5951746Z env:
-2026-11-11T15:36:27.5951964Z   GOTOOLCHAIN: local
-2026-11-11T15:36:27.5952175Z   CC_FORK: false
-2026-11-11T15:36:27.5952499Z   CC_TOKEN: ***
-2026-11-11T15:36:27.5952694Z   CC_BRANCH: 
-2026-11-11T15:36:27.5952925Z   CC_SHA: 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7
-2026-11-11T15:36:27.5953212Z   CC_PR: 
-2026-11-11T15:36:27.5953397Z   CC_BASE_SHA: 
-2026-11-11T15:36:27.5953585Z   CC_BINARY: 
-2026-11-11T15:36:27.5953781Z   CC_BUILD: 
-2026-11-11T15:36:27.5953967Z   CC_BUILD_URL: 
-2026-11-11T15:36:27.5954166Z   CC_CLEANUP: false
-2026-11-11T15:36:27.5954364Z   CC_CODE: 
-2026-11-11T15:36:27.5954548Z   CC_DIR: 
-2026-11-11T15:36:27.5954744Z   CC_DISABLE_FILE_FIXES: false
-2026-11-11T15:36:27.5954984Z   CC_DISABLE_SEARCH: false
-2026-11-11T15:36:27.5955216Z   CC_DISABLE_TELEM: false
-2026-11-11T15:36:27.5955443Z   CC_DRY_RUN: false
-2026-11-11T15:36:27.5955665Z   CC_ENTERPRISE_URL: 
-2026-11-11T15:36:27.5955890Z   CC_ENV: 
-2026-11-11T15:36:27.5956075Z   CC_EXCLUDES: 
-2026-11-11T15:36:27.5956276Z   CC_FAIL_ON_ERROR: true
-2026-11-11T15:36:27.5956549Z   CC_FILES: ./coverage.out,./coverage-integration.out
-2026-11-11T15:36:27.5956847Z   CC_FLAGS: 
-2026-11-11T15:36:27.5957031Z   CC_FORCE: 
-2026-11-11T15:36:27.5957216Z   CC_GCOV_ARGS: 
-2026-11-11T15:36:27.5957456Z   CC_GCOV_EXECUTABLE: gcov
-2026-11-11T15:36:27.5957675Z   CC_GCOV_IGNORE: 
-2026-11-11T15:36:27.5957883Z   CC_GCOV_INCLUDE: 
-2026-11-11T15:36:27.5958086Z   CC_GIT_SERVICE: github
-2026-11-11T15:36:27.5958320Z   CC_HANDLE_NO_REPORTS_FOUND: false
-2026-11-11T15:36:27.5958568Z   CC_JOB_CODE: 
-2026-11-11T15:36:27.5958766Z   CC_LEGACY: false
-2026-11-11T15:36:27.5958955Z   CC_NAME: 
-2026-11-11T15:36:27.5959331Z   CC_NETWORK_FILTER: 
-2026-11-11T15:36:27.5959561Z   CC_NETWORK_PREFIX: 
-2026-11-11T15:36:27.5959777Z   CC_NETWORK_ROOT_FOLDER: 
-2026-11-11T15:36:27.5959993Z   CC_OS: 
-2026-11-11T15:36:27.5960181Z   CC_PARENT_SHA: 
-2026-11-11T15:36:27.5960396Z   CC_PLUGINS: 
-2026-11-11T15:36:27.5960604Z   CC_RECURSE_SUBMODULES: false
-2026-11-11T15:36:27.5960853Z   CC_REPORT_TYPE: 
-2026-11-11T15:36:27.5961067Z   CC_RUN_CMD: upload-coverage
-2026-11-11T15:36:27.5961295Z   CC_SERVICE: github
-2026-11-11T15:36:27.5961506Z   CC_SKIP_VALIDATION: false
-2026-11-11T15:36:27.5961732Z   CC_SLUG: 
-2026-11-11T15:36:27.5961914Z   CC_SWIFT_PROJECT: 
-2026-11-11T15:36:27.5962119Z   CC_USE_PYPI: false
-2026-11-11T15:36:27.5962322Z   CC_VERBOSE: false
-2026-11-11T15:36:27.5962526Z   CC_VERSION: latest
-2026-11-11T15:36:27.5962723Z   CC_YML_PATH: 
-2026-11-11T15:36:27.5962917Z ##[endgroup]
-2026-11-11T15:36:27.6015156Z      _____          _
-2026-11-11T15:36:27.6015695Z     / ____|        | |
-2026-11-11T15:36:27.6016153Z    | |     ___   __| | ___  ___ _____   __
-2026-11-11T15:36:27.6016688Z    | |    / _ \ / _` |/ _ \/ __/ _ \ \ / /
-2026-11-11T15:36:27.6017237Z    | |___| (_) | (_| |  __/ (_| (_) \ V /
-2026-11-11T15:36:27.6017711Z     \_____\___/ \__,_|\___|\___\___/ \_/
-2026-11-11T15:36:27.6018780Z                            ^[[0;31m Wrapper-0.3.1^[[0m
-2026-11-11T15:36:27.6019746Z                            
-2026-11-11T15:36:27.6070922Z ^[[0;32m==>^[[0m Detected ^[[0;36mlinux^[[0m
-2026-11-11T15:36:27.6071844Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov^[[0m
-2026-11-11T15:36:27.6116317Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-2026-11-11T15:36:27.6118282Z                                  Dload  Upload   Total   Spent    Left  Speed
-2026-11-11T15:36:27.6119371Z 
-2026-11-11T15:36:27.8656895Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-2026-11-11T15:36:27.8657500Z 100 17.6M  100 17.6M    0     0  69.3M      0 --:--:-- --:--:-- --:--:-- 69.3M
-2026-11-11T15:36:27.8676953Z ^[[0;32m==>^[[0m Finishing downloading ^[[0;36mlinux:latest^[[0m
-2026-11-11T15:36:27.9485640Z       Version: ^[[0;36mv11.3.2^[[0m
-2026-11-11T15:36:27.9486265Z  
-2026-11-11T15:36:28.0061540Z gpg: directory '/home/runner/.gnupg' created
-2026-11-11T15:36:28.0062529Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
-2026-11-11T15:36:28.0973246Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
-2026-11-11T15:36:28.0974091Z gpg: key 806BB28AED779869: public key "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" imported
-2026-11-11T15:36:28.1276165Z gpg: Total number processed: 1
-2026-11-11T15:36:28.1276887Z gpg:               imported: 1
-2026-11-11T15:36:28.1281550Z ^[[0;32m==>^[[0m Verifying GPG signature integrity
-2026-11-11T15:36:28.1282713Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM^[[0m
-2026-11-11T15:36:28.1283948Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig^[[0m
-2026-11-11T15:36:28.1284370Z  
-2026-11-11T15:36:28.2644740Z gpg: Signature made Wed Oct 28 17:39:34 2026 UTC
-2026-11-11T15:36:28.2645901Z gpg:                using RSA key 27034E7FDB850E0BBC2C62FF806BB28AED779869
-2026-11-11T15:36:28.2647262Z gpg: Good signature from "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" [unknown]
-2026-11-11T15:36:28.2648571Z gpg: WARNING: This key is not certified with a trusted signature!
-2026-11-11T15:36:28.2649765Z gpg:          There is no indication that the signature belongs to the owner.
-2026-11-11T15:36:28.2650806Z Primary key fingerprint: 2703 4E7F DB85 0E0B BC2C  62FF 806B B28A ED77 9869
-2026-11-11T15:36:28.3779734Z codecov: OK
-2026-11-11T15:36:28.3790726Z ^[[0;32m==>^[[0m CLI integrity verified
-2026-11-11T15:36:28.3791095Z 
-2026-11-11T15:36:28.4410483Z ^[[0;32m ->^[[0m Token length: 36
-2026-11-11T15:36:28.4411235Z ^[[0;32m==>^[[0m Running upload-coverage
-2026-11-11T15:36:28.4421454Z       ^[[0;36m./codecov  upload-coverage -t <redacted> --fail-on-error --git-service github --sha 899708cdb85bf7ed0221e6d2cff2a4e33c54dfe7 --file ./coverage.out --file ./coverage-integration.out --gcov-executable gcov^[[0m
-2026-11-11T15:36:28.8716952Z info - 2026-11-11 15:36:28,871 -- ci service found: github-actions
-2026-11-11T15:36:28.9054301Z warning - 2026-11-11 15:36:28,905 -- xcrun is not installed or can't be found.
-2026-11-11T15:36:28.9526066Z warning - 2026-11-11 15:36:28,952 -- No gcov data found.
-2026-11-11T15:36:28.9529796Z warning - 2026-11-11 15:36:28,952 -- coverage.py is not installed or can't be found.
-2026-11-11T15:36:29.0770700Z info - 2026-11-11 15:36:29,076 -- Found 2 coverage files to report
-2026-11-11T15:36:29.0771590Z info - 2026-11-11 15:36:29,076 -- > /home/runner/work/kitlegal/kitlegal/coverage.out
-2026-11-11T15:36:29.0772472Z info - 2026-11-11 15:36:29,077 -- > /home/runner/work/kitlegal/kitlegal/coverage-integration.out
-2026-11-11T15:36:30.1798034Z info - 2026-11-11 15:36:30,179 -- Upload queued for processing complete
-2026-11-11T15:36:30.1800150Z error - 2026-11-11 15:36:30,179 -- Upload queued for processing failed: {"message":"This repository is deactivated. To resume uploading to it, please activate the repository in the Codecov UI: https://app.codecov.io/github/jmorenobl/kitlegal/config/general"}
-2026-11-11T15:36:30.2880186Z Sentry is attempting to send 3 pending events
-2026-11-11T15:36:30.2880770Z Waiting up to 2 seconds
-2026-11-11T15:36:30.2881019Z Press Ctrl-C to quit
-2026-11-11T15:36:30.4242392Z ^[[0;31m==> Failed to run upload-coverage^[[0m
-2026-11-11T15:36:30.4242912Z ^[[0;31m    Exiting...^[[0m
-2026-11-11T15:36:30.4256650Z ##[error]Process completed with exit code 1.
-2026-11-11T15:36:30.4264337Z ##[end-action id=__codecov_codecov-action.__run_8;outcome=failure;conclusion=failure;duration_ms=2834]
+== https://github.com/jmorenobl/kitlegal/actions/runs/43060976094/job/130663130953
+2026-11-11T17:04:21.0048871Z ^[[36;1m  echo "TOKENLESS=$TOKENLESS" >> "$GITHUB_ENV"^[[0m
+2026-11-11T17:04:21.0049266Z ^[[36;1mfi^[[0m
+2026-11-11T17:04:21.0049521Z ^[[36;1m^[[0m
+2026-11-11T17:04:21.0049819Z ^[[36;1mecho "CC_BRANCH=$CC_BRANCH" >> "$GITHUB_ENV"^[[0m
+2026-11-11T17:04:21.0073572Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T17:04:21.0074038Z env:
+2026-11-11T17:04:21.0074294Z   GOTOOLCHAIN: local
+2026-11-11T17:04:21.0074588Z   CC_FORK: false
+2026-11-11T17:04:21.0075040Z   CC_TOKEN: ***
+2026-11-11T17:04:21.0075291Z   CC_BRANCH: 
+2026-11-11T17:04:21.0075670Z   GITHUB_EVENT_PULL_REQUEST_HEAD_LABEL: jmorenobl:036-h41-2-por-qu-e
+2026-11-11T17:04:21.0076270Z   GITHUB_EVENT_PULL_REQUEST_HEAD_REPO_FULL_NAME: jmorenobl/kitlegal
+2026-11-11T17:04:21.0076760Z   GITHUB_REPOSITORY: jmorenobl/kitlegal
+2026-11-11T17:04:21.0077104Z ##[endgroup]
+2026-11-11T17:04:21.0145730Z ##[end-action id=__codecov_codecov-action.__run_6;outcome=success;conclusion=success;duration_ms=11]
+2026-11-11T17:04:21.0153177Z ##[start-action display=Override commits and pr for pull requests;id=__codecov_codecov-action.__run_7]
+2026-11-11T17:04:21.0171430Z ##[group]Run if [ -z "$CC_SHA" ];
+2026-11-11T17:04:21.0171696Z ^[[36;1mif [ -z "$CC_SHA" ];^[[0m
+2026-11-11T17:04:21.0171901Z ^[[36;1mthen^[[0m
+2026-11-11T17:04:21.0172114Z ^[[36;1m  CC_SHA="$GITHUB_EVENT_PULL_REQUEST_HEAD_SHA"^[[0m
+2026-11-11T17:04:21.0172413Z ^[[36;1mfi^[[0m
+2026-11-11T17:04:21.0172707Z ^[[36;1mif [ -z "$CC_PR" ] && [ "$CC_FORK" == 'true' ];^[[0m
+2026-11-11T17:04:21.0172960Z ^[[36;1mthen^[[0m
+2026-11-11T17:04:21.0173145Z ^[[36;1m  CC_PR="$GITHUB_EVENT_NUMBER"^[[0m
+2026-11-11T17:04:21.0173358Z ^[[36;1mfi^[[0m
+2026-11-11T17:04:21.0173596Z ^[[36;1m^[[0m
+2026-11-11T17:04:21.0173786Z ^[[36;1mecho "CC_SHA=$CC_SHA" >> "$GITHUB_ENV"^[[0m
+2026-11-11T17:04:21.0174148Z ^[[36;1mecho "CC_PR=$CC_PR" >> "$GITHUB_ENV"^[[0m
+2026-11-11T17:04:21.0192152Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T17:04:21.0192624Z env:
+2026-11-11T17:04:21.0192823Z   GOTOOLCHAIN: local
+2026-11-11T17:04:21.0193095Z   CC_FORK: false
+2026-11-11T17:04:21.0193575Z   CC_TOKEN: ***
+2026-11-11T17:04:21.0193882Z   CC_BRANCH: 
+2026-11-11T17:04:21.0194102Z   CC_PR: 
+2026-11-11T17:04:21.0194287Z   CC_SHA: 
+2026-11-11T17:04:21.0194483Z   GITHUB_EVENT_NAME: pull_request
+2026-11-11T17:04:21.0194777Z   GITHUB_EVENT_NUMBER: 256
+2026-11-11T17:04:21.0195127Z   GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: e8715a974f23a2e9e70af43aa4271577837ece7a
+2026-11-11T17:04:21.0195539Z ##[endgroup]
+2026-11-11T17:04:21.0240572Z ##[end-action id=__codecov_codecov-action.__run_7;outcome=success;conclusion=success;duration_ms=8]
+2026-11-11T17:04:21.0248314Z ##[start-action display=Upload coverage to Codecov;id=__codecov_codecov-action.__run_8]
+2026-11-11T17:04:21.0264937Z ##[group]Run ${GITHUB_ACTION_PATH}/dist/codecov.sh
+2026-11-11T17:04:21.0265466Z ^[[36;1m${GITHUB_ACTION_PATH}/dist/codecov.sh^[[0m
+2026-11-11T17:04:21.0283151Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T17:04:21.0283599Z env:
+2026-11-11T17:04:21.0283764Z   GOTOOLCHAIN: local
+2026-11-11T17:04:21.0283971Z   CC_FORK: false
+2026-11-11T17:04:21.0284235Z   CC_TOKEN: ***
+2026-11-11T17:04:21.0284405Z   CC_BRANCH: 
+2026-11-11T17:04:21.0284607Z   CC_SHA: e8715a974f23a2e9e70af43aa4271577837ece7a
+2026-11-11T17:04:21.0284846Z   CC_PR: 
+2026-11-11T17:04:21.0285001Z   CC_BASE_SHA: 
+2026-11-11T17:04:21.0285166Z   CC_BINARY: 
+2026-11-11T17:04:21.0285333Z   CC_BUILD: 
+2026-11-11T17:04:21.0285492Z   CC_BUILD_URL: 
+2026-11-11T17:04:21.0285661Z   CC_CLEANUP: false
+2026-11-11T17:04:21.0285837Z   CC_CODE: 
+2026-11-11T17:04:21.0285993Z   CC_DIR: 
+2026-11-11T17:04:21.0286161Z   CC_DISABLE_FILE_FIXES: false
+2026-11-11T17:04:21.0286371Z   CC_DISABLE_SEARCH: false
+2026-11-11T17:04:21.0286567Z   CC_DISABLE_TELEM: false
+2026-11-11T17:04:21.0286752Z   CC_DRY_RUN: false
+2026-11-11T17:04:21.0286924Z   CC_ENTERPRISE_URL: 
+2026-11-11T17:04:21.0287113Z   CC_ENV: 
+2026-11-11T17:04:21.0287270Z   CC_EXCLUDES: 
+2026-11-11T17:04:21.0287444Z   CC_FAIL_ON_ERROR: true
+2026-11-11T17:04:21.0287676Z   CC_FILES: ./coverage.out,./coverage-integration.out
+2026-11-11T17:04:21.0288103Z   CC_FLAGS: 
+2026-11-11T17:04:21.0288267Z   CC_FORCE: 
+2026-11-11T17:04:21.0288425Z   CC_GCOV_ARGS: 
+2026-11-11T17:04:21.0288608Z   CC_GCOV_EXECUTABLE: gcov
+2026-11-11T17:04:21.0288799Z   CC_GCOV_IGNORE: 
+2026-11-11T17:04:21.0288969Z   CC_GCOV_INCLUDE: 
+2026-11-11T17:04:21.0289150Z   CC_GIT_SERVICE: github
+2026-11-11T17:04:21.0289350Z   CC_HANDLE_NO_REPORTS_FOUND: false
+2026-11-11T17:04:21.0289562Z   CC_JOB_CODE: 
+2026-11-11T17:04:21.0289731Z   CC_LEGACY: false
+2026-11-11T17:04:21.0289907Z   CC_NAME: 
+2026-11-11T17:04:21.0290080Z   CC_NETWORK_FILTER: 
+2026-11-11T17:04:21.0290259Z   CC_NETWORK_PREFIX: 
+2026-11-11T17:04:21.0290444Z   CC_NETWORK_ROOT_FOLDER: 
+2026-11-11T17:04:21.0290622Z   CC_OS: 
+2026-11-11T17:04:21.0290777Z   CC_PARENT_SHA: 
+2026-11-11T17:04:21.0290950Z   CC_PLUGINS: 
+2026-11-11T17:04:21.0291128Z   CC_RECURSE_SUBMODULES: false
+2026-11-11T17:04:21.0291330Z   CC_REPORT_TYPE: 
+2026-11-11T17:04:21.0291509Z   CC_RUN_CMD: upload-coverage
+2026-11-11T17:04:21.0291720Z   CC_SERVICE: github
+2026-11-11T17:04:21.0291908Z   CC_SKIP_VALIDATION: false
+2026-11-11T17:04:21.0292099Z   CC_SLUG: 
+2026-11-11T17:04:21.0292272Z   CC_SWIFT_PROJECT: 
+2026-11-11T17:04:21.0292444Z   CC_USE_PYPI: false
+2026-11-11T17:04:21.0292621Z   CC_VERBOSE: false
+2026-11-11T17:04:21.0292797Z   CC_VERSION: latest
+2026-11-11T17:04:21.0292975Z   CC_YML_PATH: 
+2026-11-11T17:04:21.0293146Z ##[endgroup]
+2026-11-11T17:04:21.0349720Z      _____          _
+2026-11-11T17:04:21.0350081Z     / ____|        | |
+2026-11-11T17:04:21.0350430Z    | |     ___   __| | ___  ___ _____   __
+2026-11-11T17:04:21.0350827Z    | |    / _ \ / _` |/ _ \/ __/ _ \ \ / /
+2026-11-11T17:04:21.0351198Z    | |___| (_) | (_| |  __/ (_| (_) \ V /
+2026-11-11T17:04:21.0351601Z     \_____\___/ \__,_|\___|\___\___/ \_/
+2026-11-11T17:04:21.0352502Z                            ^[[0;31m Wrapper-0.3.1^[[0m
+2026-11-11T17:04:21.0353232Z                            
+2026-11-11T17:04:21.0399690Z ^[[0;32m==>^[[0m Detected ^[[0;36mlinux^[[0m
+2026-11-11T17:04:21.0400390Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov^[[0m
+2026-11-11T17:04:21.0447165Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-11T17:04:21.0448416Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-11T17:04:21.0448708Z 
+2026-11-11T17:04:21.2457122Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-11T17:04:21.2457771Z 100 17.6M  100 17.6M    0     0  87.5M      0 --:--:-- --:--:-- --:--:-- 88.0M
+2026-11-11T17:04:21.2484116Z ^[[0;32m==>^[[0m Finishing downloading ^[[0;36mlinux:latest^[[0m
+2026-11-11T17:04:21.3015587Z       Version: ^[[0;36mv11.3.2^[[0m
+2026-11-11T17:04:21.3016412Z  
+2026-11-11T17:04:21.4320154Z gpg: directory '/home/runner/.gnupg' created
+2026-11-11T17:04:21.4321122Z gpg: keybox '/home/runner/.gnupg/pubring.kbx' created
+2026-11-11T17:04:21.4713388Z gpg: /home/runner/.gnupg/trustdb.gpg: trustdb created
+2026-11-11T17:04:21.4714314Z gpg: key 806BB28AED779869: public key "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" imported
+2026-11-11T17:04:21.5065479Z gpg: Total number processed: 1
+2026-11-11T17:04:21.5065908Z gpg:               imported: 1
+2026-11-11T17:04:21.5073072Z ^[[0;32m==>^[[0m Verifying GPG signature integrity
+2026-11-11T17:04:21.5073788Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM^[[0m
+2026-11-11T17:04:21.5075002Z ^[[0;32m ->^[[0m Downloading ^[[0;36mhttps://cli.codecov.io/latest/linux/codecov.SHA256SUM.sig^[[0m
+2026-11-11T17:04:21.5075829Z  
+2026-11-11T17:04:21.6082794Z gpg: Signature made Wed Oct 28 17:39:34 2026 UTC
+2026-11-11T17:04:21.6083215Z gpg:                using RSA key 27034E7FDB850E0BBC2C62FF806BB28AED779869
+2026-11-11T17:04:21.6084570Z gpg: Good signature from "Codecov Uploader (Codecov Uploader Verification Key) <security@codecov.io>" [unknown]
+2026-11-11T17:04:21.6085100Z gpg: WARNING: This key is not certified with a trusted signature!
+2026-11-11T17:04:21.6085466Z gpg:          There is no indication that the signature belongs to the owner.
+2026-11-11T17:04:21.6085866Z Primary key fingerprint: 2703 4E7F DB85 0E0B BC2C  62FF 806B B28A ED77 9869
+2026-11-11T17:04:21.7754043Z codecov: OK
+2026-11-11T17:04:21.7765902Z ^[[0;32m==>^[[0m CLI integrity verified
+2026-11-11T17:04:21.7766182Z 
+2026-11-11T17:04:21.8378749Z ^[[0;32m ->^[[0m Token length: 36
+2026-11-11T17:04:21.8379167Z ^[[0;32m==>^[[0m Running upload-coverage
+2026-11-11T17:04:21.8387807Z       ^[[0;36m./codecov  upload-coverage -t <redacted> --fail-on-error --git-service github --sha e8715a974f23a2e9e70af43aa4271577837ece7a --file ./coverage.out --file ./coverage-integration.out --gcov-executable gcov^[[0m
+2026-11-11T17:04:22.2014458Z info - 2026-11-11 17:04:22,201 -- ci service found: github-actions
+2026-11-11T17:04:22.2300683Z warning - 2026-11-11 17:04:22,229 -- xcrun is not installed or can't be found.
+2026-11-11T17:04:22.2745008Z warning - 2026-11-11 17:04:22,274 -- No gcov data found.
+2026-11-11T17:04:22.2748319Z warning - 2026-11-11 17:04:22,274 -- coverage.py is not installed or can't be found.
+2026-11-11T17:04:22.3894344Z info - 2026-11-11 17:04:22,389 -- Found 2 coverage files to report
+2026-11-11T17:04:22.3895241Z info - 2026-11-11 17:04:22,389 -- > /home/runner/work/kitlegal/kitlegal/coverage.out
+2026-11-11T17:04:22.3896031Z info - 2026-11-11 17:04:22,389 -- > /home/runner/work/kitlegal/kitlegal/coverage-integration.out
+2026-11-11T17:04:23.5219101Z info - 2026-11-11 17:04:23,521 -- Upload queued for processing complete
+2026-11-11T17:04:23.5220695Z error - 2026-11-11 17:04:23,521 -- Upload queued for processing failed: {"message":"This repository is deactivated. To resume uploading to it, please activate the repository in the Codecov UI: https://app.codecov.io/github/jmorenobl/kitlegal/config/general"}
+2026-11-11T17:04:23.6173089Z ^[[0;31m==> Failed to run upload-coverage^[[0m
+2026-11-11T17:04:23.6173512Z ^[[0;31m    Exiting...^[[0m
+2026-11-11T17:04:23.6187219Z ##[error]Process completed with exit code 1.
+2026-11-11T17:04:23.6193781Z ##[end-action id=__codecov_codecov-action.__run_8;outcome=failure;conclusion=failure;duration_ms=2594]
