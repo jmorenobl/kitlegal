@@ -112,7 +112,7 @@ internal/evals/activaciones_test.go            # NUEVO: TestActivacionesDeLosUso
 internal/evals/informe.go                      # ResultadoDeEval.Activaciones; la lista de cada sesión; el párrafo de informe.md
 internal/evals/informe_test.go                 # + TestInformeConLasActivaciones; TestInforme (caso sesion-ilegible); TestInformeDeLaSuiteCompletaNoCambia (quita la lista)
 internal/evals/laboratorio_sondeo.go           # INSTALACION y EVAL; la copia de las otras skills; el plan de una eval; skills_instaladas
-internal/evals/laboratorio_sondeo_test.go      # + TestArnesConLaInstalacionDelProducto, TestArnesConUnaEval; exigirElSondeoDelArnes con skills_instaladas; TestRecetasDelSondeo con nueve argumentos
+internal/evals/laboratorio_sondeo_test.go      # + TestArnesConLaInstalacionDelProducto, TestArnesConUnaEval; exigirElSondeoDelArnes con skills_instaladas; TestRecetasDelSondeo y TestGuionDelLaboratorio con nueve argumentos
 internal/evals/laboratorio_tabla.go            # sondeoLeido.SkillsInstaladas; la instalación en la fila; las columnas nuevas; el reconocedor compartido
 internal/evals/laboratorio_tabla_test.go       # + TestTablaConLasActivaciones
 internal/evals/job_test.go                     # TestSondeoDelLaboratorio (-tags evals): -instalacion y -eval
@@ -181,6 +181,7 @@ sesiones con modelo y credencial: su aceptación en `make ci` son `TestArnesConL
 | `skills_instaladas` en `sondeo.json` y en `sondeoLeido` | FR-012, FR-020 |
 | `TestArnesConLaInstalacionDelProducto`, `TestArnesConUnaEval`; `exigirElSondeoDelArnes` con la clave | FR-015, SC-003, SC-004, SC-009 |
 | `TestRecetasDelSondeo` con nueve argumentos | FR-010, FR-013, FR-014 |
+| `TestGuionDelLaboratorio` con nueve argumentos, `-instalacion` y `-eval` delante de `-temporal` | FR-010, FR-013, FR-014 |
 | La instalación en `claveDeFila`; la de la familia sola sin constancia | FR-020, FR-022 |
 | `conLasActivaciones`: columnas nuevas solo con constancia | FR-020, FR-022, FR-023 |
 | Columnas «Activan otra skill», «Otras skills», «No activan ninguna», «Activaciones» | FR-020, FR-021 |
@@ -200,7 +201,11 @@ sesiones con modelo y credencial: su aceptación en `make ci` son `TestArnesConL
 - **Tests que cambian**: `TestInformeDeLaSuiteCompletaNoCambia` quita la lista antes de comparar con sus dos constantes,
   que no cambian, y gana los casos de lo que se quita; `TestInforme`, su caso `sesion-ilegible` exige además que no haya
   lista; `exigirElSondeoDelArnes` (de `TestArnesDeLasFamilias` y `TestArnesDeNormativa`) espera `skills_instaladas` en
-  `sondeo.json` de una familia del producto; `TestRecetasDelSondeo`, nueve argumentos. Sin cambiar ningún valor
+  `sondeo.json` de una familia del producto; `TestRecetasDelSondeo`, nueve argumentos; `TestGuionDelLaboratorio`
+  (`laboratorio_sondeo_test.go`), que hoy pasa siete argumentos a `scripts/evals-laboratorio.sh`, pasa ocho (T006) y
+  nueve (T007): un caso con `producto` de octavo y otro con `04` de noveno, `ordenDelLaboratorio` con `-instalacion` y
+  `-eval` detrás de `-directorio` y `-temporal` el último, y el caso de uso con un argumento menos de los que exige, sin
+  ejecutar go. Sin cambiar ningún valor
   esperado: los demás tests del informe, de `LeerSesion`, de la serie y de los umbrales, `TestJuzgarSinLaLista`,
   `TestArnesDelLaboratorio`, lo que exigen de cada sesión `TestArnesDeLasFamilias` y `TestArnesDeNormativa`,
   `TestTablaDeLasFamilias`, `TestTablaDeNormativa`, `TestTablaDelLaboratorio`, `TestLecturaConCd`, `TestReglaTestigo`,

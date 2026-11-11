@@ -23,13 +23,15 @@ informe de la suite completa, sin la lista, igual byte a byte que antes (contrac
 ## 2. El arnés, con el sustituto de `claude`
 
 ```sh
-go test -count=1 -run '^(TestArnesConLaInstalacionDelProducto|TestArnesConUnaEval|TestArnesDeLasFamilias|TestArnesDeNormativa|TestArnesDelLaboratorio|TestRecetasDelSondeo)$' ./internal/evals/
+go test -count=1 -run '^(TestArnesConLaInstalacionDelProducto|TestArnesConUnaEval|TestArnesDeLasFamilias|TestArnesDeNormativa|TestArnesDelLaboratorio|TestRecetasDelSondeo|TestGuionDelLaboratorio)$' ./internal/evals/
 ```
 
 Verde: con `INSTALACION=producto`, cada sesión de una variante versionada y de la `-producto` de cada familia tiene las
 cuatro skills, la de su variante en su lugar, byte a byte y sin repetir, y `sondeo.json` las nombra; sin la opción, lo de
 hoy; con `EVAL`, solo sesiones de esa eval, tantas como `SESIONES`; cada petición inválida, ninguna sesión y su mensaje;
-y la receta pasa los nueve argumentos (contracts/arnes.md §5). `TestRecetasDelSondeo` ejecuta `make -n`, que solo imprime.
+y la receta pasa los nueve argumentos y el guion los da a `go test`, con `-instalacion` y `-eval` delante de `-temporal`
+(contracts/arnes.md §5). `TestRecetasDelSondeo` ejecuta `make -n`, que solo imprime; `TestGuionDelLaboratorio`
+ejecuta el guion con un sustituto de go delante en el `PATH`, que solo anota sus argumentos.
 
 ## 3. La tabla
 

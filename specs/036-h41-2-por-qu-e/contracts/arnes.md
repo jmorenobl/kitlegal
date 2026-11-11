@@ -134,6 +134,11 @@ producto los pide.
   el argumento: las mismas sesiones y, en cada una, las mismas skills, byte a byte, sin cambiar ningún valor esperado de
   lo que instalan ni de lo que abren. Cambia solo el `sondeo.json` que exige `exigirElSondeoDelArnes` en las familias del
   producto, que gana `"skills_instaladas":["<skill>"]` (research D11); el de H39, no.
+- **`TestGuionDelLaboratorio`** (`laboratorio_sondeo_test.go`, en `make ci`, con el sustituto de go): sus casos pasan
+  nueve argumentos a `scripts/evals-laboratorio.sh`, uno con `producto` de octavo y otro con `04` de noveno y los demás
+  con los dos vacíos; `go` recibe `-directorio <directorio> -instalacion <octavo> -eval <noveno> -temporal <temporal>`,
+  con `-temporal` el último; con ocho, el guion sale con 1, da su línea de uso, que nombra `<instalacion> <eval>` detrás
+  de `<directorio>`, y no ejecuta go.
 - **`TestRecetasDelSondeo`**: su caso de `evals-laboratorio` pasa también `INSTALACION=producto EVAL=04` y espera la
   orden del llavero con los nueve argumentos.
 - **`TestSondeoDelLaboratorio`** (`-tags evals`): la entrada de la persona, con `-instalacion` y `-eval`; no corre en

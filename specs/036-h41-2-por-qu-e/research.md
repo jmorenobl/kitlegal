@@ -151,7 +151,10 @@ comentario. Sus errores van detrás del de `DIRECTORIO`, cada uno con el nombre 
 
 **Por qué.** Los siete de hoy no cambian de sitio, y la salida de error de cualquier petición de hoy no cambia: con los
 dos vacíos no dan error (FR-011, FR-014). `TestRecetasDelSondeo` (`laboratorio_sondeo_test.go:1612-1688`) es el control
-de la receta: su caso de `evals-laboratorio` gana los dos argumentos.
+de la receta: su caso de `evals-laboratorio` gana los dos argumentos. `TestGuionDelLaboratorio`
+(`laboratorio_sondeo_test.go:1434-1600`) es el del guion: hoy le pasa exactamente siete argumentos y exige que `go`
+reciba `ordenDelLaboratorio`, con `-temporal` el último; sus casos ganan los dos argumentos, `ordenDelLaboratorio`
+espera `-instalacion` y `-eval` delante de `-temporal`, y su caso de uso pasa un argumento menos de los nueve.
 
 ### D10. La instalación de las skills del producto en cada sesión
 
