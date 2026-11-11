@@ -113,23 +113,14 @@ var modosDeLaTabla = []Modo{ModoOrden, ModoHerramienta}
 
 // contadorDelLaboratorio es lo que el guion necesita para contar las sesiones
 // de un sondeo: la familia de su tabla, que da las variantes y su orden, las
-// skills, las referencias y lo que escribe, las herramientas del registro y el
-// intérprete de las invocaciones del binario.
+// skills, las referencias y lo que escribe, y el reconocedor de la primera
+// herramienta de kitlegal de cada modo.
 type contadorDelLaboratorio struct {
-	familia      familiaDeLaTabla
-	herramientas []string
-	interprete   interprete
+	familia     familiaDeLaTabla
+	reconocedor reconocedorDeKitlegal
 
 	// filas son las filas por su clave.
 	filas map[claveDeFila]*filaDelSondeo
-}
-
-// usoDelTranscript es un bloque tool_use del transcript de una sesión con el
-// turno de la respuesta que lo emite (research D10 de H39).
-type usoDelTranscript struct {
-	turno   int
-	nombre  string
-	entrada json.RawMessage
 }
 
 // familiaDeLaTabla es lo que el guion necesita de la familia de un sondeo para
@@ -403,18 +394,13 @@ func tablaDelLaboratorio(raiz string, args []string) (string, error) {
 		return "", err
 	}
 
-	herramientas, err := herramientasDelRegistro()
-	if err != nil {
-		return "", err
-	}
-
-	interprete, err := nuevoInterprete()
+	reconocedor, err := nuevoReconocedorDeKitlegal()
 	if err != nil {
 		return "", err
 	}
 
 	contador := contadorDelLaboratorio{
-		familia: familia, herramientas: herramientas, interprete: interprete,
+		familia: familia, reconocedor: reconocedor,
 		filas: map[claveDeFila]*filaDelSondeo{},
 	}
 
@@ -672,7 +658,7 @@ func (c *contadorDelLaboratorio) anotarLosUsos(contada *sesionContada, usos []us
 			entrada = primerTurno(entrada, uso.turno, c.familia.entrada != "" && skill == c.familia.entrada)
 		}
 
-		primera = primerTurno(primera, uso.turno, c.esDeKitlegal(uso, modo))
+		primera = primerTurno(primera, uso.turno, c.reconocedor.esDeKitlegal(uso, modo))
 
 		for posicion, referencia := range c.familia.referencias {
 			contada.aperturas[posicion] = primerTurno(contada.aperturas[posicion], uso.turno,
@@ -694,88 +680,6 @@ func primerTurno(anotado, turno int, loEs bool) int {
 	}
 
 	return anotado
-}
-
-// activaAntes dice si una skill activada en ese turno lo está antes de la
-// primera herramienta de kitlegal, la de ese turno (FR-041 de H39): en un turno
-// anterior, o activada y sin ninguna herramienta. En el mismo turno no, porque
-// las llamadas de una respuesta se emiten sin haber leído el resultado de las
-// otras. El turno 0 es ninguno.
-func activaAntes(activa, primera int) bool {
-	return activa > 0 && (primera == 0 || activa < primera)
-}
-
-// skillDelUso es la input.skill de un uso de Skill, cuya entrada es {skill,
-// args?} (research.md V6).
-func skillDelUso(uso usoDelTranscript) (string, error) {
-	var entrada struct {
-		Skill string `json:"skill"`
-	}
-
-	if err := json.Unmarshal(uso.entrada, &entrada); err != nil {
-		return "", fmt.Errorf("el bloque tool_use de %s del turno %d no tiene la entrada {skill, args?}: %w",
-			herramientaSkill, uso.turno, err)
-	}
-
-	return entrada.Skill, nil
-}
-
-// esDeKitlegal dice si el uso es la llamada a una herramienta de kitlegal del
-// modo de la sesión (FR-041 de H39; research D10 de H39): en el modo herramienta,
-// un uso cuyo nombre, o lo que sigue a su último «__», es una herramienta del
-// registro, de modo que ToolSearch, que carga un esquema, no lo es; en el modo
-// orden, una orden de Bash con una orden simple que invoca kitlegal con un verbo
-// que da herramienta y que consulta.
-func (c *contadorDelLaboratorio) esDeKitlegal(uso usoDelTranscript, modo Modo) bool {
-	if modo == ModoHerramienta {
-		nombre := uso.nombre
-		if corte := strings.LastIndex(nombre, separadorDelPrefijo); corte >= 0 {
-			nombre = nombre[corte+len(separadorDelPrefijo):]
-		}
-
-		return slices.Contains(c.herramientas, nombre)
-	}
-
-	orden, deBash := ordenDelUso(uso)
-	if !deBash {
-		return false
-	}
-
-	for _, palabras := range ordenesSimples(orden) {
-		if c.consultaKitlegal(palabras) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// consultaKitlegal dice si las palabras de una orden simple invocan kitlegal y
-// consultan con un verbo que da herramienta: su primera palabra que no es una
-// asignación NOMBRE=valor es kitlegal o una ruta que termina en /kitlegal, y su
-// argv, desde ella, es para InterpretarInvocacion de un applet, consulta —sin
-// ayuda, --describe ni --dry-run— y su <applet>_<verbo> es una herramienta del
-// registro, así que no lo son ni which kitlegal, ni --help, ni skills list.
-func (c *contadorDelLaboratorio) consultaKitlegal(palabras []palabraDeSh) bool {
-	inicio := slices.IndexFunc(palabras, func(palabra palabraDeSh) bool { return !palabra.asignacion })
-	if inicio < 0 {
-		return false
-	}
-
-	programa := palabras[inicio].texto
-	if programa != binarioMulticall && !strings.HasSuffix(programa, "/"+binarioMulticall) {
-		return false
-	}
-
-	argv := make([]string, 0, len(palabras)-inicio)
-	for _, palabra := range palabras[inicio:] {
-		argv = append(argv, palabra.texto)
-	}
-
-	invocacion, deApplet := c.interprete.interpretar(argv)
-
-	return deApplet && invocacion.Consulta &&
-		slices.Contains(c.herramientas, invocacion.Applet+separadorDeHerramienta+invocacion.Verbo)
 }
 
 // abreLaReferencia dice si el uso abre esa referencia de la skill de la familia
@@ -872,112 +776,6 @@ func ordenDelUso(uso usoDelTranscript) (string, bool) {
 	}
 
 	return entrada.Command, true
-}
-
-// leerLosUsos lee del transcript de la sesión sus usos de herramienta, cada uno
-// con su turno (research D10 de H39): empieza un turno el primer mensaje
-// assistant, y cada assistant que llega después de un user con algún
-// tool_result y lleva un message.id distinto del del assistant anterior; así, los
-// bloques de una misma respuesta que el transcript da en varios mensajes son del
-// mismo turno aunque un resultado llegue entre ellos (research S2 de H39).
-//
-// LeerSesion ya ha leído el transcript; de él solo se exige aquí el message.id
-// de cada assistant, sin el que no hay turno.
-func leerLosUsos(directorio string) ([]usoDelTranscript, error) {
-	contenido, err := leerFicheroDeSesion(directorio, ficheroDelTranscript)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		usos     []usoDelTranscript
-		turno    int
-		anterior string
-		resuelto bool
-	)
-
-	numero := 0
-
-	for linea := range strings.Lines(string(contenido)) {
-		numero++
-
-		var mensaje struct {
-			Type    string `json:"type"`
-			Message struct {
-				ID      string          `json:"id"`
-				Content json.RawMessage `json:"content"`
-			} `json:"message"`
-		}
-
-		if err := json.Unmarshal([]byte(linea), &mensaje); err != nil {
-			return nil, fmt.Errorf("%s, línea %d: no es un mensaje JSON: %w", ficheroDelTranscript, numero, err)
-		}
-
-		switch mensaje.Type {
-		case mensajeAssistant:
-			if mensaje.Message.ID == "" {
-				return nil, fmt.Errorf("%s, línea %d: el mensaje assistant no tiene message.id",
-					ficheroDelTranscript, numero)
-			}
-
-			if turno == 0 || (resuelto && mensaje.Message.ID != anterior) {
-				turno++
-			}
-
-			anterior, resuelto = mensaje.Message.ID, false
-
-			delMensaje, err := usosDelMensaje(mensaje.Message.Content, turno)
-			if err != nil {
-				return nil, fmt.Errorf("%s, línea %d: %w", ficheroDelTranscript, numero, err)
-			}
-
-			usos = append(usos, delMensaje...)
-		case mensajeUser:
-			resuelto = resuelto || conResultado(mensaje.Message.Content)
-		}
-	}
-
-	return usos, nil
-}
-
-// usosDelMensaje son los bloques tool_use del message.content de un mensaje
-// assistant, del turno dado.
-func usosDelMensaje(contenido json.RawMessage, turno int) ([]usoDelTranscript, error) {
-	var bloques []bloqueDeContenido
-
-	if err := json.Unmarshal(contenido, &bloques); err != nil {
-		return nil, fmt.Errorf("el mensaje assistant no tiene la lista message.content: %w", err)
-	}
-
-	var usos []usoDelTranscript
-
-	for _, bloque := range bloques {
-		if bloque.Type == bloqueToolUse {
-			usos = append(usos, usoDelTranscript{turno: turno, nombre: bloque.Name, entrada: bloque.Input})
-		}
-	}
-
-	return usos, nil
-}
-
-// bloqueConTipo es lo que se lee de un bloque del contenido de un mensaje user:
-// su type.
-type bloqueConTipo struct {
-	Type string `json:"type"`
-}
-
-// conResultado dice si el message.content de un mensaje user trae algún bloque
-// tool_result. Como en LeerSesion, de un mensaje user no se exige más forma que
-// la de la API, en la que su contenido es un texto o una lista de bloques: un
-// texto no trae ninguno, y no es un defecto.
-func conResultado(contenido json.RawMessage) bool {
-	var bloques []bloqueConTipo
-
-	if json.Unmarshal(contenido, &bloques) != nil {
-		return false
-	}
-
-	return slices.ContainsFunc(bloques, func(bloque bloqueConTipo) bool { return bloque.Type == bloqueToolResult })
 }
 
 // documento es la tabla y el detalle de las filas contadas, con las cabeceras y

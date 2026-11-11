@@ -436,7 +436,7 @@ func TestOrdenesDeBash(t *testing.T) {
 			interprete, err := nuevoInterprete()
 			require.NoError(t, err)
 
-			contador := contadorDelLaboratorio{herramientas: herramientas, interprete: interprete}
+			reconocedor := reconocedorDeKitlegal{herramientas: herramientas, interprete: interprete}
 
 			entrada, err := json.Marshal(map[string]string{"command": caso.orden})
 			require.NoError(t, err)
@@ -444,7 +444,7 @@ func TestOrdenesDeBash(t *testing.T) {
 			uso := usoDelTranscript{turno: 1, nombre: herramientaBash, entrada: entrada}
 
 			assert.Equal(t, caso.ordenes, ordenesSimples(caso.orden), "las órdenes simples de %q", caso.orden)
-			assert.Equal(t, caso.cuenta, contador.esDeKitlegal(uso, ModoOrden), "si %q cuenta", caso.orden)
+			assert.Equal(t, caso.cuenta, reconocedor.esDeKitlegal(uso, ModoOrden), "si %q cuenta", caso.orden)
 		})
 	}
 }

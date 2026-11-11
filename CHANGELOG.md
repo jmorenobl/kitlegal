@@ -89,6 +89,13 @@ sustituyen a este fichero.
   las órdenes que pide la skill, ni sus otras referencias cambian. `make ci` comprueba que la skill es la forma que
   midió el laboratorio con ese movimiento y nada más, y la frase de cada una de sus remisiones.
 
+### Seguridad
+
+- **El binario se compila con go1.27.4.** go1.27.3 traía GO-2026-6859 (`net/http`: caída de un servidor HTTP/1 por una
+  carrera de `MaxBytesReader` con las cabeceras), que `make vuln` encuentra, entre otras, en las rutas de
+  `internal/httpx`, `internal/disco` e `internal/mcp/mcptest`; go1.27.4 la corrige. Solo cambia la directiva
+  `toolchain` de `go.mod` (H41.2).
+
 ## [0.9.0] - 2026-11-04
 
 ### Añadido
