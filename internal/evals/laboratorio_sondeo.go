@@ -154,8 +154,9 @@ type resumenDelPar struct {
 //  2. prepara en el temporal kitlegal, laboratorio, home/ y la copia de las
 //     skills de cada variante pedida, desde el directorio de su familia o,
 //     la del producto, desde skills/<skill> del árbol;
-//  3. crea DIRECTORIO y su sondeo.json, con el modelo, la versión y, si se
-//     pidió la variante del producto, las referencias de su copia;
+//  3. crea DIRECTORIO y su sondeo.json, con el modelo, la versión, si se
+//     pidió la variante del producto, las referencias de su copia y, en una
+//     familia del producto, las skills instaladas (skillsInstaladasDelSondeo);
 //  4. por cada par, en su orden, abre con el repartidor, en
 //     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
 //     sondeo de la familia, en su orden y de nombre <eval>-<nn>, con el modelo
@@ -216,8 +217,13 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		return "", err
 	}
 
+	instaladas, err := skillsInstaladasDelSondeo(temporal, comprobado.familia, comprobado.pares)
+	if err != nil {
+		return "", err
+	}
+
 	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode,
-		referencias); err != nil {
+		referencias, instaladas); err != nil {
 		return "", err
 	}
 
@@ -776,6 +782,37 @@ func referenciasDeLaCopia(copia string) ([]string, error) {
 	return referencias, nil
 }
 
+// skillsInstaladasDelSondeo son las skills que instala un sondeo de una familia
+// del producto, la constancia de su sondeo.json (contracts/arnes.md §3.3 de
+// H41.2; data-model §3 y research D11 de H41.2; FR-012 de H41.2): los nombres
+// de las entradas de skills/<variante>/ del temporal, ya preparado, en el orden
+// de nombre en que las da os.ReadDir, las que enlaza cada sesión de la variante
+// (enlazarLasSkills). Las variantes de un sondeo instalan las mismas skills, así
+// que basta la de su primer par. Un sondeo de H39 no la anota, y su sondeo.json
+// es el de hoy: ninguna.
+func skillsInstaladasDelSondeo(temporal string, familia familiaDelLaboratorio,
+	pares []parDelLaboratorio,
+) ([]string, error) {
+	if familia.producto == "" || len(pares) == 0 {
+		return nil, nil
+	}
+
+	directorio := filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, pares[0].variante.Nombre)
+
+	entradas, err := os.ReadDir(directorio)
+	if err != nil {
+		return nil, fmt.Errorf("las skills instaladas %s no se pueden leer: %w", directorio, err)
+	}
+
+	instaladas := make([]string, 0, len(entradas))
+
+	for _, entrada := range entradas {
+		instaladas = append(instaladas, entrada.Name())
+	}
+
+	return instaladas, nil
+}
+
 // construirLosProgramasDelLaboratorio deja en el temporal del arnés, que recibe
 // con su ruta absoluta, kitlegal y laboratorio del árbol de trabajo de la raíz,
 // no los que tenga instalados quien lo lanza (contracts/arnes.md §3.1 de H39):
@@ -817,11 +854,13 @@ func ordenDeConstruirElLaboratorio(raiz string) *exec.Cmd {
 // crearElSondeoDelLaboratorio crea DIRECTORIO, con las carpetas que le falten
 // delante, y su sondeo.json, con el modelo y la versión de Claude Code de todas
 // sus sesiones y, si las hay, las referencias de la copia de la variante del
-// producto (contracts/arnes.md §3.2 de H39 y §3.4 de H41; data-model §6 de H39 y
-// §4 de H41; FR-032): sin ellas, el de H39 byte a byte. DIRECTORIO se crea él
-// solo, así que uno que ya existe es un error: ningún sondeo escribe donde
-// escribe otro.
-func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias []string) error {
+// producto y, si las hay, las skills instaladas de un sondeo de una familia del
+// producto (contracts/arnes.md §3.2 de H39, §3.4 de H41 y §3.3 de H41.2;
+// data-model §6 de H39, §4 de H41 y §3 de H41.2; FR-032 de H41; FR-012 de
+// H41.2): sin ninguna de las dos, el de H39 byte a byte. Solo los nombres: ni la
+// copia ni su huella se guardan en DIRECTORIO. DIRECTORIO se crea él solo, así
+// que uno que ya existe es un error: ningún sondeo escribe donde escribe otro.
+func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias, instaladas []string) error {
 	limpio := filepath.Clean(directorio)
 
 	if err := os.MkdirAll(filepath.Dir(limpio), permisosDeLaSesion); err != nil {
@@ -834,9 +873,11 @@ func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias
 
 	// sondeoLeido es lo que lee de sondeo.json el guion que cuenta el sondeo, y
 	// sus claves van en el orden de contracts/arnes.md §3.2 de H39, con
-	// referencias_del_producto detrás, solo si hay referencias (data-model §4).
+	// referencias_del_producto detrás, solo si hay referencias (data-model §4), y
+	// skills_instaladas detrás de todo, solo si hay skills instaladas
+	// (data-model §3 de H41.2).
 	contenido, err := json.Marshal(sondeoLeido{
-		Modelo: modelo, ClaudeCode: version, ReferenciasDelProducto: referencias,
+		Modelo: modelo, ClaudeCode: version, ReferenciasDelProducto: referencias, SkillsInstaladas: instaladas,
 	})
 	if err != nil {
 		return fmt.Errorf("%s no se puede codificar: %w", ficheroDelSondeo, err)

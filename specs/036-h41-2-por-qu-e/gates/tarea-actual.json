@@ -1,25 +1,19 @@
 {
-  "id": "T004",
-  "texto": "T004 [US1] La lista de activaciones en `informe.json` y en `informe.md` (FR-001, FR-002, FR-003, FR-005, FR-006; SC-001, SC-002; contracts/informe.md §1 a §3 y §5; data-model §1 y §2; research D3, D4, D5, D6). **Código**: internal/evals/juzgar.go, `ResultadoDeEval` gana `Activaciones []Activacion` con `json:\"activaciones,omitzero\"`, detrás de `Activada`; internal/evals/informe.go: `EscribirInforme` construye el `reconocedorDeKitlegal` una vez (sus errores, como los de hoy al preparar el informe); de cada sesión que `LeerSesion` leyó, también de la ilegible por su eval, su traza o su modo, la lista de `activacionesDeLosUsos` con los usos de `leerLosUsos` y el reconocedor en el modo de la sesión, junto a donde hoy se fija `Activada` (`informe.go`, `juzgada.resultado.Activada`); de una sesión sin leer, nil y sin clave; un error al leer la lista es un motivo más, `sesión ilegible: <error>`, y la lista queda nil; en la sección de cada sesión de `informe.md`, detrás de «Modelo de la sesión:», el párrafo `Skills activadas: <texto>` con `textoDeLasActivaciones`, nueva en internal/evals/activaciones.go (`normativa (antes), consulta-juridica (después)`; `ninguna` con la lista vacía), y `Skills activadas: sin leer` sin lista, con el `sinLeer` de hoy. `activada`, la tabla «Sesiones» con su columna «Activada», las tasas, los umbrales, los motivos y el veredicto se calculan como hoy. **Tests**: en internal/evals/informe_test.go, `TestInformeConLasActivaciones` gana, sesión a sesión, la lista exacta de `informe.json` y el párrafo de `informe.md` de las diez sesiones de T003 según contracts/informe.md §5 (`antes`: `normativa (antes)`; `ninguna`: `[]` y `ninguna`; `otra`: `consulta-juridica (antes)`, sin `normativa`; `las-dos`: `consulta-juridica (antes), normativa (después)`; `mismo-turno`: `normativa (después)`), sin cambiar ninguna de sus aserciones de T003; `TestInforme`, su caso `sesion-ilegible` exige además que el resultado no lleve `activaciones` y que su sección diga `Skills activadas: sin leer`, sin cambiar ningún otro valor esperado; `TestInformeDeLaSuiteCompletaNoCambia` quita de lo escrito, además del bloque `origen` y de «Medidas y reutilizadas» de H30, las claves `activaciones` de `informe.json` y los párrafos `Skills activadas:` de `informe.md`, y lo compara byte a byte con `informeJSONDeLaSuiteCompleta` e `informeMDDeLaSuiteCompleta`, que no cambian; sus casos de lo que se quita ganan los que fijan que se quita eso y nada más; un test de `textoDeLasActivaciones` en internal/evals/activaciones_test.go con la lista vacía, una entrada y dos; en internal/evals/sondeo_test.go, `juicioSinLaTraza` deja también `Activaciones` en nil, con su comentario, y nada más de `TestJuicioDelSondeo` cambia: el sondeo de `make evals-sondeo` juzga con su propio `juzgarSesionDelSondeo` (internal/evals/sondeo.go, que no cambia), que no lee la lista porque el hito no la pide en el sondeo, y el test compara su juicio con el `ResultadoDeEval` del job, que desde esta tarea la lleva (gates/tarea-T004.md). Mutantes que se ven en rojo y se revierten: «antes» y «después» cambiados en el párrafo; `omitzero` quitado (la sesión ilegible escribe `\"activaciones\":[]`); el párrafo de una sesión sin lista dado como `ninguna`; un byte más en la sección de una sesión fuera del párrafo (rojo en `TestInformeDeLaSuiteCompletaNoCambia`). Sin cambiar ningún valor esperado siguen en verde los demás tests del informe, de `LeerSesion`, de la serie de cierres y de los umbrales, y `TestJuzgarSinLaLista`, que lee informes versionados de H7.1 a H7.3 (FR-005). `make ci` en verde.",
-  "intento": 2,
+  "id": "T005",
+  "texto": "T005 [US2] La constancia de las skills instaladas en todo sondeo de una familia del producto, sin la opción todavía (FR-012, FR-015; SC-003; contracts/arnes.md §3 punto 3 y §5; data-model §3; research D11). **Código**: internal/evals/laboratorio_tabla.go, solo el tipo `sondeoLeido`, que gana `SkillsInstaladas []string` con `json:\"skills_instaladas,omitempty\"` detrás de `ReferenciasDelProducto` (la tabla aún no lo usa); internal/evals/laboratorio_sondeo.go: `crearElSondeoDelLaboratorio` escribe, en un sondeo de una familia del producto, `skills_instaladas` con los nombres de las entradas de `skills/<variante>/` del temporal en orden de nombre (sin la opción, `[\"<skill>\"]`), y en uno de H39, el `sondeo.json` de hoy; ni la copia ni su huella se guardan en `DIRECTORIO`. **Tests**: en internal/evals/laboratorio_sondeo_test.go, `exigirElSondeoDelArnes` espera en las familias del producto el `sondeo.json` de hoy con `\"skills_instaladas\":[\"<skill>\"]` detrás (también con `referencias_del_producto`), y en H39 el de hoy; lo que exigen de cada sesión `TestArnesDeLasFamilias`, `TestArnesDeNormativa` y `TestArnesDelLaboratorio`, y las sesiones que abren, no cambian. Mutantes que se ven en rojo y se revierten: la clave escrita también en H39 (rojo en `TestArnesDelLaboratorio`); la clave quitada en `<skill>-control` (rojo en `TestArnesDeLasFamilias`). `make ci` en verde.",
+  "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "00efc8deaee19e05c3d1e404b389841584186aea",
+  "base": "d126565536d3f341f9815d747425d3bbd200f655",
   "rutas": [
-    "contracts/informe.md",
-    "gates/tarea-T004.md",
-    "informe.go",
-    "informe.json",
-    "informe.md",
-    "internal/evals/activaciones.go",
-    "internal/evals/activaciones_test.go",
-    "internal/evals/informe.go",
-    "internal/evals/informe_test.go",
-    "internal/evals/juzgar.go",
-    "internal/evals/sondeo.go",
-    "internal/evals/sondeo_test.go"
+    "contracts/arnes.md",
+    "internal/evals/laboratorio_sondeo.go",
+    "internal/evals/laboratorio_sondeo_test.go",
+    "internal/evals/laboratorio_tabla.go",
+    "skills/",
+    "sondeo.json"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "dbfe13c9ef03153789200c78ed3fb9d7ca49a1730610e5852586cf223e738936"
+  "nota": "-"
 }

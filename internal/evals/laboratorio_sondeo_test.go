@@ -510,7 +510,7 @@ func TestArnesDelLaboratorio(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			exigirElSondeoDelArnes(t, caso, evalsDelLaboratorioDelTest, exigirLaSesionDelArnes)
+			exigirElSondeoDelArnes(t, caso, evalsDelLaboratorioDelTest, nil, exigirLaSesionDelArnes)
 		})
 	}
 }
@@ -567,9 +567,10 @@ type exigirLaSesionDelReparto func(t *testing.T, arnes arnesDelTest, reparto rep
 
 // exigirElSondeoDelArnes ejecuta el arnés de un caso válido y exige sus
 // sesiones —las de cada una de las evals dadas, en su orden, en cada reparto, y
-// ninguna más—, su sondeo.json, lo que ve cada sesión, con exigirLaSesion, y su
-// salida.
-func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals []string,
+// ninguna más—, su sondeo.json, con las skills instaladas dadas, ninguna en uno
+// de H39 (contracts/arnes.md §3.3 de H41.2; research D11 de H41.2), lo que ve
+// cada sesión, con exigirLaSesion, y su salida.
+func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instaladas []string,
 	exigirLaSesion exigirLaSesionDelReparto,
 ) {
 	t.Helper()
@@ -602,12 +603,13 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals []strin
 
 	contenido, err := leerFichero(filepath.Join(directorio, ficheroDelSondeo))
 	require.NoError(t, err)
-	assert.Equal(t, sondeoEscritoDelTest(t, referencias), string(contenido), "sondeo.json, byte a byte")
+	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas), string(contenido), "sondeo.json, byte a byte")
 
 	leido, err := leerElSondeo(directorio)
 	require.NoError(t, err, "el guion que cuenta el sondeo lee su sondeo.json")
 	assert.Equal(t, sondeoLeido{
 		Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio, ReferenciasDelProducto: referencias,
+		SkillsInstaladas: instaladas,
 	}, leido)
 
 	fisico, err := filepath.EvalSymlinks(directorio)
@@ -664,19 +666,33 @@ func referenciasDelProductoDelTest(t *testing.T, skill string) []string {
 }
 
 // sondeoEscritoDelTest es el sondeo.json que deja el arnés, con su salto de
-// línea final: el de H39 y H40 sin referencias del producto, y con ellas, el
-// mismo con referencias_del_producto detrás (data-model §4).
-func sondeoEscritoDelTest(t *testing.T, referencias []string) string {
+// línea final: el de H39 y H40 sin referencias del producto ni skills
+// instaladas; con referencias, el mismo con referencias_del_producto detrás
+// (data-model §4); y con skills instaladas, con skills_instaladas detrás de
+// todo (data-model §3 de H41.2).
+func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string) string {
 	t.Helper()
 
-	if len(referencias) == 0 {
-		return sondeoSinElProductoDelTest + "\n"
+	escrito := strings.TrimSuffix(sondeoSinElProductoDelTest, "}")
+
+	for _, clave := range []struct {
+		nombre string
+		lista  []string
+	}{
+		{nombre: "referencias_del_producto", lista: referencias},
+		{nombre: "skills_instaladas", lista: instaladas},
+	} {
+		if len(clave.lista) == 0 {
+			continue
+		}
+
+		lista, err := json.Marshal(clave.lista)
+		require.NoError(t, err)
+
+		escrito += `,"` + clave.nombre + `":` + string(lista)
 	}
 
-	lista, err := json.Marshal(referencias)
-	require.NoError(t, err)
-
-	return strings.TrimSuffix(sondeoSinElProductoDelTest, "}") + `,"referencias_del_producto":` + string(lista) + "}\n"
+	return escrito + "}\n"
 }
 
 // sesionesDelReparto son los nombres de las sesiones que abre un reparto: las
@@ -915,7 +931,8 @@ func TestArnesDeNormativa(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			exigirElSondeoDelArnes(t, caso, evalsDeNormativaDelTest, exigirLaSesionDeNormativa)
+			exigirElSondeoDelArnes(t, caso, evalsDeNormativaDelTest, []string{skillDeNormativaDelTest},
+				exigirLaSesionDeNormativa)
 		})
 	}
 
@@ -1202,7 +1219,8 @@ func TestArnesDeLasFamilias(t *testing.T) {
 
 			require.Equal(t, deLaFamilia.sesiones, abiertas, "las sesiones que abre la invocación")
 
-			exigirElSondeoDelArnes(t, deLaFamilia.caso, deLaFamilia.evals, exigirLaSesionDeLaFamilia(deLaFamilia.skill))
+			exigirElSondeoDelArnes(t, deLaFamilia.caso, deLaFamilia.evals, []string{deLaFamilia.skill},
+				exigirLaSesionDeLaFamilia(deLaFamilia.skill))
 		})
 	}
 }

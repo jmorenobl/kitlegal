@@ -61,12 +61,17 @@ const (
 // versión de Claude Code de todas sus sesiones y, solo si el sondeo pidió una
 // variante <skill>-producto, la clave referencias_del_producto, los nombres de
 // los ficheros de references/ de la copia de skills/<skill> que instaló, en
-// orden de nombre (FR-032). Sin ella, la clave no se escribe y el fichero es el
-// de H39 byte a byte; quien no la lee, la ignora (research V9).
+// orden de nombre (FR-032). Detrás, solo en un sondeo de una familia del
+// producto, la clave skills_instaladas, los nombres de las skills que enlaza
+// cada una de sus sesiones, en orden de nombre (FR-012 de H41.2; data-model §3
+// y research D11 de H41.2). Sin ninguna de las dos, las claves no se escriben y
+// el fichero es el de H39 byte a byte; quien no las lee, las ignora (research
+// V9).
 type sondeoLeido struct {
 	Modelo                 string   `json:"modelo"`
 	ClaudeCode             string   `json:"claude_code"`
 	ReferenciasDelProducto []string `json:"referencias_del_producto,omitempty"`
+	SkillsInstaladas       []string `json:"skills_instaladas,omitempty"`
 }
 
 // sesionContada es lo que el guion saca de una sesión (data-model §6 de H39;
