@@ -156,9 +156,13 @@ evals-sondeo: check-tools
 
 # El sondeo del laboratorio de H39 lo lanza una persona, una vez, para la tabla
 # con la que escribe el ADR que precisa el 0046; no es un veredicto
-# (specs/031-h39-c-omo-se/contracts/arnes.md). Ninguno de sus siete argumentos
-# tiene valor por defecto, porque cada uno cambia lo que se mide; DIRECTORIO,
-# relativo a la raíz del repositorio o absoluto, no puede existir. La credencial
+# (specs/031-h39-c-omo-se/contracts/arnes.md). De sus nueve argumentos, los siete
+# primeros no tienen valor por defecto, porque cada uno cambia lo que se mide;
+# DIRECTORIO, relativo a la raíz del repositorio o absoluto, no puede existir.
+# Los dos últimos, INSTALACION (vacío o producto) y EVAL (vacío o el número de
+# una eval del plan de la familia), solo valen en las familias del producto, y
+# vacíos son la instalación y el plan de hoy
+# (specs/036-h41-2-por-qu-e/contracts/arnes.md). La credencial
 # la toma scripts/evals-sondeo-llavero.sh, como en evals-sondeo; ningún paso del
 # workflow `hito` puede lanzarlo (docs/ADR/0032).
 ## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
