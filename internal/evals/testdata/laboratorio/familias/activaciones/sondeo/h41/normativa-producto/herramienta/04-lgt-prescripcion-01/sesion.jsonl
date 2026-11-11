@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000008","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_h1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_h1_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8412-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_h1_1","content":"resultado de toolu_h1_1"}]},"session_id":"00000000-0000-4000-8412-000000000008"}
+{"type":"assistant","message":{"id":"msg_h1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_h1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000008"}

@@ -646,7 +646,7 @@ func TestLecturaConCd(t *testing.T) {
 		{
 			nombre: normativa.skill,
 			familia: tablaDeLaFamilia(normativa,
-				map[string][]string{varianteDeControlDeNormativa: normativa.referencias}),
+				map[string][]string{varianteDeControlDeNormativa: normativa.referencias}, false),
 			casos: casosDeLecturaConCdDeNormativa(),
 		},
 		{nombre: "h39", familia: tablaDeH39(declarada), casos: casosDeLecturaConCdDeH39(declarada)},
@@ -808,6 +808,215 @@ func TestTablaDeLasFamilias(t *testing.T) {
 		assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(sondeos, sondeoFijoDeLaMezcla, varianteDeControlDeNormativa)+
 			" no es ninguna variante de "+skillDeLaFamiliaDeJurisprudencia+"\n", tabla.errores)
 	})
+}
+
+// Las sesiones fijas de familias/activaciones/sondeo/, tres sondeos de
+// normativa-producto en modo herramienta con claude-sonnet-5-5 —h41-2-a, con
+// normativa sola en skills_instaladas; h41-2-b, con las cuatro skills del
+// producto; y h41, de H41, sin la clave—, y la tabla que el guion da de ellas,
+// familias/activaciones/tabla.md: copias byte a byte de los ficheros bajo
+// activaciones/ del guion de aceptación de H41.2 y de su tabla esperada, la de
+// contracts/tabla.md §4 de H41.2 (FR-020 a FR-022 y FR-024 de H41.2;
+// contracts/tabla.md §6 de H41.2).
+const (
+	familiaFijaDeLasActivaciones = "activaciones"
+	sondeoFijoConNormativaSola   = "h41-2-a"
+	sondeoFijoConLasCuatro       = "h41-2-b"
+)
+
+// varianteDeLasActivaciones es la variante de las sesiones fijas de las
+// activaciones, todas de la eval de la LGT en el modo herramienta.
+const varianteDeLasActivaciones = "normativa-producto"
+
+// sesionConActivaciones es la ruta, relativa a su sondeo, de la sesión de ese
+// número de las de las activaciones, y la de sus copias.
+func sesionConActivaciones(numero int) string {
+	return sesionDeNormativa(varianteDeLasActivaciones, ModoHerramienta, evalDeNormativaDeLaLGT, numero)
+}
+
+// Tres sesiones fijas de los sondeos de las activaciones, cada una de un sondeo
+// fijo: la de h41-2-a activa normativa antes de la primera herramienta, y nada
+// más; las de h41-2-b, una activa normativa antes y después consulta-juridica dos
+// veces, y la otra, consulta-juridica antes, y nada más.
+var (
+	sesionQueActivaLaDeLaFamilia = sesionConActivaciones(1)
+	sesionQueActivaOtraDosVeces  = sesionConActivaciones(3)
+	sesionQueActivaSoloOtra      = sesionConActivaciones(1)
+)
+
+// Las cuatro skills del producto, tal como las une la celda de la instalación,
+// y lo que es cada sondeo que el test monta con las sesiones fijas de las
+// activaciones.
+const (
+	lasCuatroSkillsInstaladas         = "consulta-juridica, jurisprudencia, normativa, plazos-y-territorio"
+	sesionesDeLaFilaConActivaciones   = 40
+	referenciasDeLaFamiliaDeNormativa = 8
+)
+
+// filaDeCuarentaSesionesConLasActivaciones es la fila de 40 sesiones con las
+// cuatro skills instaladas, 39 copias de la que activa normativa sola y una de
+// la que activa además consulta-juridica dos veces: las cuatro celdas de 40 de
+// contracts/tabla.md §4 de H41.2 (research V3 de H41.2), con consulta-juridica
+// contada una vez, y ninguna de las ocho referencias abierta.
+var filaDeCuarentaSesionesConLasActivaciones = "| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.284 | " +
+	lasCuatroSkillsInstaladas + " | 0 | 40 | 40 de 40 · 100,0 % [91,2–100,0 %] | 1 de 40 · 2,5 % [0,4–12,9 %] | " +
+	"consulta-juridica: 1 de 40 · 2,5 % [0,4–12,9 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | " +
+	strings.Repeat("0 de 40 · 0,0 % [0,0–8,8 %] | ", referenciasDeLaFamiliaDeNormativa) + " |\n"
+
+// TestTablaConLasActivaciones fija la tabla de una familia del producto con la
+// constancia de las skills instaladas (FR-020 a FR-022 y FR-024 de H41.2;
+// SC-005 de H41.2; contracts/tabla.md §2 a §4 y §6 de H41.2): sobre las sesiones
+// fijas de las activaciones, su salida es, byte a byte, su tabla.md; sobre un
+// sondeo de 40 sesiones, la fila lleva las cuatro celdas de 40 del contrato; y
+// las filas van por versión antes que por instalación, y las otras skills, en
+// orden de nombre.
+func TestTablaConLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sondeos-fijos", probarLosSondeosFijosConLasActivaciones)
+	t.Run("cuarenta-sesiones", probarCuarentaSesionesConLasActivaciones)
+	t.Run("orden-de-las-filas-y-de-las-otras-skills", probarElOrdenConLasActivaciones)
+}
+
+// probarLosSondeosFijosConLasActivaciones fija la salida del guion sobre las
+// sesiones fijas de las activaciones: la de su tabla.md, byte a byte, con el
+// código 0 y nada en la salida de error.
+func probarLosSondeosFijosConLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	esperada, err := os.ReadFile(filepath.Join(familiasFijas, familiaFijaDeLasActivaciones, tablaDeLaFamiliaFija))
+	require.NoError(t, err)
+
+	tabla := contarElSondeo(t, filepath.Join(familiasFijas, familiaFijaDeLasActivaciones, sondeosDeLaFamilia))
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de las activaciones, byte a byte")
+	assert.Empty(t, tabla.errores)
+}
+
+// probarCuarentaSesionesConLasActivaciones fija las cuatro celdas de 40 de
+// contracts/tabla.md §4 de H41.2 en un sondeo que el test monta con el
+// sondeo.json de h41-2-b, el de las cuatro skills, 39 copias de la sesión que
+// activa normativa sola y una de la que activa además consulta-juridica dos
+// veces, y el detalle de las 40.
+func probarCuarentaSesionesConLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	sondeo := t.TempDir()
+	copiarElSondeoFijoDeLasActivaciones(t, sondeoFijoConLasCuatro, sondeo, sinCambiar)
+
+	for numero := 1; numero < sesionesDeLaFilaConActivaciones; numero++ {
+		copiarLaSesionFijaDeLasActivaciones(t, sondeoFijoConNormativaSola, sesionQueActivaLaDeLaFamilia, sondeo,
+			sesionConActivaciones(numero))
+	}
+
+	copiarLaSesionFijaDeLasActivaciones(t, sondeoFijoConLasCuatro, sesionQueActivaOtraDosVeces, sondeo,
+		sesionConActivaciones(sesionesDeLaFilaConActivaciones))
+
+	tabla := contarElSondeo(t, sondeo)
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Contains(t, tabla.salida, filaDeCuarentaSesionesConLasActivaciones)
+	assert.Equal(t, 1, strings.Count(tabla.salida, "| "+varianteDeLasActivaciones+" | herramienta |"), "una sola fila")
+
+	sinAbrir := strings.Repeat("no | ", referenciasDeLaFamiliaDeNormativa)
+
+	assert.Contains(t, tabla.salida, "| "+sesionConActivaciones(1)+" | sí | sí | normativa (antes) | "+sinAbrir+" |\n")
+	assert.Contains(t, tabla.salida, "| "+sesionConActivaciones(sesionesDeLaFilaConActivaciones)+
+		" | sí | sí | normativa (antes), consulta-juridica (después), consulta-juridica (después) | "+sinAbrir+" |\n")
+	assert.Equal(t, sesionesDeLaFilaConActivaciones,
+		strings.Count(tabla.salida, "\n| "+path.Join(varianteDeLasActivaciones, string(ModoHerramienta))+"/"),
+		"una línea del detalle por sesión, con la ruta relativa al sondeo")
+	assert.Empty(t, tabla.errores)
+}
+
+// probarElOrdenConLasActivaciones fija el orden de las filas y el de las otras
+// skills en dos sondeos que el test monta con las sesiones fijas de las
+// activaciones: a, con el sondeo.json de h41-2-a (2.1.284, normativa sola) y su
+// sesión que activa normativa; y b, con el de h41-2-b con la versión 2.1.317 (las
+// cuatro skills), la sesión que activa consulta-juridica sola y una copia suya
+// que activa plazos-y-territorio en su lugar, que va antes por su ruta. La fila
+// de 2.1.284 va antes que la de 2.1.317, aunque «consulta-juridica, …» va antes
+// que «normativa» por orden de texto, porque la versión ordena antes que la
+// instalación; y «Otras skills» da consulta-juridica antes que
+// plazos-y-territorio, por su nombre y no por el orden de las sesiones, unidas
+// por «; ».
+func probarElOrdenConLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	sondeos := t.TempDir()
+	conNormativaSola := filepath.Join(sondeos, "a")
+	conLasCuatro := filepath.Join(sondeos, "b")
+
+	copiarElSondeoFijoDeLasActivaciones(t, sondeoFijoConNormativaSola, conNormativaSola, sinCambiar)
+	copiarLaSesionFijaDeLasActivaciones(t, sondeoFijoConNormativaSola, sesionQueActivaLaDeLaFamilia, conNormativaSola,
+		sesionConActivaciones(1))
+
+	copiarElSondeoFijoDeLasActivaciones(t, sondeoFijoConLasCuatro, conLasCuatro, func(contenido string) string {
+		return strings.Replace(contenido, `"claude_code":"2.1.284"`, `"claude_code":"2.1.317"`, 1)
+	})
+
+	// La copia que activa plazos-y-territorio en lugar de consulta-juridica.
+	directorio, err := os.OpenRoot(copiarLaSesionFijaDeLasActivaciones(t, sondeoFijoConLasCuatro,
+		sesionQueActivaSoloOtra, conLasCuatro, sesionConActivaciones(1)))
+	require.NoError(t, err)
+
+	t.Cleanup(func() { require.NoError(t, directorio.Close()) })
+
+	contenido, err := directorio.ReadFile(ficheroDelTranscript)
+	require.NoError(t, err)
+	require.Equal(t, 1, bytes.Count(contenido, []byte(`"skill":"consulta-juridica"`)),
+		"la sesión fija activa consulta-juridica una vez")
+	require.NoError(t, directorio.WriteFile(ficheroDelTranscript, bytes.Replace(contenido,
+		[]byte(`"skill":"consulta-juridica"`), []byte(`"skill":"plazos-y-territorio"`), 1), 0o600))
+
+	copiarLaSesionFijaDeLasActivaciones(t, sondeoFijoConLasCuatro, sesionQueActivaSoloOtra, conLasCuatro,
+		sesionConActivaciones(2))
+
+	tabla := contarElSondeo(t, sondeos)
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+
+	deLaVersionAnterior := strings.Index(tabla.salida,
+		"| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.284 | normativa | 0 | 1 | ")
+	deLaPosterior := strings.Index(tabla.salida,
+		"| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.317 | "+lasCuatroSkillsInstaladas+" | 0 | 2 | ")
+
+	require.GreaterOrEqual(t, deLaVersionAnterior, 0, "la fila de 2.1.284 con normativa sola:\n%s", tabla.salida)
+	require.GreaterOrEqual(t, deLaPosterior, 0, "la fila de 2.1.317 con las cuatro:\n%s", tabla.salida)
+	assert.Less(t, deLaVersionAnterior, deLaPosterior, "la versión ordena las filas antes que la instalación")
+	assert.Contains(t, tabla.salida, "| 2 de 2 · 100,0 % [34,2–100,0 %] | consulta-juridica: 1 de 2 · 50,0 % "+
+		"[9,5–90,5 %]; plazos-y-territorio: 1 de 2 · 50,0 % [9,5–90,5 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | ")
+	assert.Empty(t, tabla.errores)
+}
+
+// copiarElSondeoFijoDeLasActivaciones escribe en ese directorio el sondeo.json
+// del sondeo fijo de las activaciones de ese nombre, con el cambio dado.
+func copiarElSondeoFijoDeLasActivaciones(t *testing.T, fijo, sondeo string, cambio func(string) string) {
+	t.Helper()
+
+	// filepath.Clean es lo que el control de rutas reconoce como saneado (gosec
+	// G304): el sondeo es uno de los fijos de las activaciones.
+	contenido, err := os.ReadFile(filepath.Clean(filepath.Join(familiasFijas, familiaFijaDeLasActivaciones,
+		sondeosDeLaFamilia, fijo, ficheroDelSondeo)))
+	require.NoError(t, err)
+
+	require.NoError(t, os.MkdirAll(sondeo, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(sondeo, ficheroDelSondeo), []byte(cambio(string(contenido))), 0o600))
+}
+
+// sinCambiar es el cambio de copiarElSondeoFijoDeLasActivaciones que deja el
+// sondeo.json byte a byte.
+func sinCambiar(contenido string) string { return contenido }
+
+// copiarLaSesionFijaDeLasActivaciones copia la sesión fija de esa ruta del
+// sondeo fijo de las activaciones de ese nombre en la ruta dada del sondeo, y
+// devuelve su directorio.
+func copiarLaSesionFijaDeLasActivaciones(t *testing.T, fijo, fija, sondeo, ruta string) string {
+	t.Helper()
+
+	return copiarLaSesionFijaDe(t, filepath.Join(familiasFijas, familiaFijaDeLasActivaciones, sondeosDeLaFamilia, fijo),
+		fija, sondeo, ruta)
 }
 
 // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
