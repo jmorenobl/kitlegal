@@ -58,6 +58,49 @@ func activacionesDeLosUsos(usos []usoDelTranscript, esDeKitlegal func(usoDelTran
 	return activaciones, nil
 }
 
+// activacionesDeLaSesion es la lista de activaciones de la sesión del
+// directorio, con la primera herramienta de kitlegal que el reconocedor da en el
+// modo de la sesión (FR-001; data-model §2). El error empieza, como los de
+// leerLosUsos, por el transcript.
+func activacionesDeLaSesion(directorio string, reconocedor reconocedorDeKitlegal, modo Modo) ([]Activacion, error) {
+	usos, err := leerLosUsos(directorio)
+	if err != nil {
+		return nil, err
+	}
+
+	activaciones, err := activacionesDeLosUsos(usos, func(uso usoDelTranscript) bool {
+		return reconocedor.esDeKitlegal(uso, modo)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ficheroDelTranscript, err)
+	}
+
+	return activaciones, nil
+}
+
+// textoDeLasActivaciones es la lista de activaciones de una sesión tal como la
+// escriben informe.md y el detalle de la tabla (FR-002; contracts/informe.md §3;
+// research D4): cada skill con «(antes)» o «(después)», en su orden y separadas
+// por «, »; «ninguna» si la lista está vacía.
+func textoDeLasActivaciones(activaciones []Activacion) string {
+	if len(activaciones) == 0 {
+		return ningunaEnElInforme
+	}
+
+	textos := make([]string, 0, len(activaciones))
+
+	for _, activacion := range activaciones {
+		cuando := "después"
+		if activacion.Antes {
+			cuando = "antes"
+		}
+
+		textos = append(textos, activacion.Skill+" ("+cuando+")")
+	}
+
+	return strings.Join(textos, ", ")
+}
+
 // activaAntes dice si una skill activada en ese turno lo está antes de la
 // primera herramienta de kitlegal, la de ese turno (FR-041 de H39): en un turno
 // anterior, o activada y sin ninguna herramienta. En el mismo turno no, porque

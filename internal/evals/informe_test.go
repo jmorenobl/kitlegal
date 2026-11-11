@@ -134,10 +134,12 @@ type tasaCruda struct {
 // reintentos por límite de ritmo, si quedó sin medir y sus
 // invocaciones tal como están escritos; y, desde H21, su modo, si lleva la línea
 // sin consulta y sus citas sin consulta (contracts/evals-en-dos-modos.md §4 de
-// H21).
+// H21). Desde H41.2, su lista de activaciones, vacía si no lleva la clave
+// (contracts/informe.md §2 de H41.2).
 type resultadoCrudo struct {
 	Sesion                       string            `json:"sesion"`
 	Modo                         jsontext.Value    `json:"modo"`
+	Activaciones                 jsontext.Value    `json:"activaciones"`
 	ComandosProhibidosEjecutados jsontext.Value    `json:"comandos_prohibidos_ejecutados"`
 	AvisosEncontrados            jsontext.Value    `json:"avisos_encontrados"`
 	AvisosAusentes               jsontext.Value    `json:"avisos_ausentes"`
@@ -3266,6 +3268,9 @@ func comprobarSesionSinTerminar(t *testing.T, leido informeLeido) {
 
 // comprobarSesionIlegible exige la sesión sin codigo-de-la-sesion ilegible y la
 // cabecera sin ningún modelo ni versión, porque no se pudo leer ninguna sesión.
+// Desde H41.2, de la sesión que LeerSesion no leyó no se da la lista de
+// activaciones: su resultado no lleva la clave y su sección dice que no se leyó
+// (FR-005 de H41.2; contracts/informe.md §2 y §3 de H41.2).
 func comprobarSesionIlegible(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -3277,6 +3282,29 @@ func comprobarSesionIlegible(t *testing.T, leido informeLeido) {
 	assert.Empty(t, leido.informe.VersionesDeClaudeCode)
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
 		"Modelos de las sesiones: ninguno", "Versiones de Claude Code: ninguna")
+
+	assert.Nil(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Activaciones)
+	assert.Nil(t, resultadoEscrito(t, leido, sesionDelArticulo21).Activaciones,
+		"el resultado de la sesión sin leer no lleva la clave activaciones")
+	assert.Equal(t, "Skills activadas: sin leer",
+		parrafoDetrasDelModeloDeLaSesion(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21)))
+}
+
+// parrafoDetrasDelModeloDeLaSesion es el párrafo de la sección de una sesión de
+// informe.md que sigue al de «Modelo de la sesión:», el de sus skills activadas
+// desde H41.2 (contracts/informe.md §3 de H41.2).
+func parrafoDetrasDelModeloDeLaSesion(t *testing.T, seccion string) string {
+	t.Helper()
+
+	parrafos := strings.Split(seccion, "\n\n")
+
+	posicion := slices.IndexFunc(parrafos, func(parrafo string) bool {
+		return strings.HasPrefix(parrafo, parrafoDelModeloDeLaSesion)
+	})
+	require.GreaterOrEqual(t, posicion, 0, "la sección tiene el párrafo «Modelo de la sesión:»:\n%s", seccion)
+	require.Less(t, posicion+1, len(parrafos), "la sección tiene un párrafo detrás de «Modelo de la sesión:»:\n%s", seccion)
+
+	return parrafos[posicion+1]
 }
 
 // comprobarLlegadaALaRed exige la conexión de clase red en red, en su tabla de
@@ -8372,7 +8400,10 @@ func TestLineasFechadasSinRedaccionPosterior(t *testing.T) {
 // primera línea distinta. Desde T007 de H30 los dos existen, y el test exige
 // que estén para quitarlos de verdad; los casos de lo que se quita fijan que se
 // quita eso y nada más, y los de la primera línea distinta, que se dice la
-// primera.
+// primera. Desde T004 de H41.2 se quitan también, de informe.json, la clave
+// activaciones de cada sesión y, de informe.md, el párrafo «Skills activadas:»
+// de la sección de cada sesión, lo único que H41.2 añade al informe (SC-002 de
+// H41.2; research D6 de H41.2): las dos constantes siguen siendo las de antes.
 func TestInformeDeLaSuiteCompletaNoCambia(t *testing.T) {
 	t.Parallel()
 
@@ -8386,9 +8417,15 @@ func TestInformeDeLaSuiteCompletaNoCambia(t *testing.T) {
 
 		require.Contains(t, leido.escrito, "\n  \"origen\": {\n", "informe.json lleva el bloque origen, que se quita")
 		require.Contains(t, leido.md, "\n## Medidas y reutilizadas\n", "informe.md lleva la sección, que se quita")
+		require.Contains(t, leido.escrito, "\n"+claveDeLasActivaciones,
+			"informe.json lleva la lista de activaciones de cada sesión, que se quita")
+		require.Contains(t, leido.md, "\n"+parrafoDeLasSkillsActivadas,
+			"informe.md lleva el párrafo de las skills activadas de cada sesión, que se quita")
 
-		exigirElTextoFijado(t, ficheroDelInformeJSON, informeJSONDeLaSuiteCompleta, sinElOrigen(leido.escrito))
-		exigirElTextoFijado(t, ficheroDelInformeMD, informeMDDeLaSuiteCompleta, sinLasMedidasYReutilizadas(leido.md))
+		exigirElTextoFijado(t, ficheroDelInformeJSON, informeJSONDeLaSuiteCompleta,
+			sinLasActivaciones(sinElOrigen(leido.escrito)))
+		exigirElTextoFijado(t, ficheroDelInformeMD, informeMDDeLaSuiteCompleta,
+			sinLasSkillsActivadas(sinLasMedidasYReutilizadas(leido.md)))
 	})
 
 	for _, caso := range casosDeLoQueSeQuita() {
@@ -8421,8 +8458,9 @@ type casoDeLoQueSeQuita struct {
 }
 
 // casosDeLoQueSeQuita son los de lo que se quita: el bloque origen de la raíz
-// de informe.json, esté donde esté y ocupe una línea o varias, y nada más; y la
-// sección «Medidas y reutilizadas» de informe.md, esté donde esté, y nada más.
+// de informe.json, esté donde esté y ocupe una línea o varias, y nada más; la
+// sección «Medidas y reutilizadas» de informe.md, esté donde esté, y nada más;
+// y, desde H41.2, los de casosDeLasActivacionesQueSeQuitan.
 func casosDeLoQueSeQuita() []casoDeLoQueSeQuita {
 	const (
 		sinOrigen = "{\n  \"skill\": \"jurisprudencia\",\n  \"evals\": []\n}\n"
@@ -8437,7 +8475,7 @@ func casosDeLoQueSeQuita() []casoDeLoQueSeQuita {
 		laNombra = "# Informe de evals de jurisprudencia\n\n## Sesión 01\n\nMedidas y reutilizadas: ninguna\n"
 	)
 
-	return []casoDeLoQueSeQuita{
+	casos := []casoDeLoQueSeQuita{
 		{nombre: "sin-origen-no-se-quita-nada", quitar: sinElOrigen, escrito: sinOrigen, queda: sinOrigen},
 		{
 			nombre: "el-origen-entre-dos-claves", quitar: sinElOrigen,
@@ -8475,6 +8513,100 @@ func casosDeLoQueSeQuita() []casoDeLoQueSeQuita {
 		{
 			nombre: "una-linea-que-la-nombra-se-queda", quitar: sinLasMedidasYReutilizadas,
 			escrito: laNombra, queda: laNombra,
+		},
+	}
+
+	return append(casos, casosDeLasActivacionesQueSeQuitan()...)
+}
+
+// casosDeLasActivacionesQueSeQuitan son los de lo que se quita desde H41.2: la
+// clave activaciones de cada sesión de informe.json, en una línea o en varias y
+// sea o no la última de la sesión, y nada más; y el párrafo «Skills activadas:»
+// que sigue al de «Modelo de la sesión:» en informe.md, y nada más.
+func casosDeLasActivacionesQueSeQuitan() []casoDeLoQueSeQuita {
+	const (
+		activada    = "      \"activada\": true,\n"
+		porMateria  = "      \"por_materia\": false\n"
+		deUnaSesion = "    {\n      \"sesion\": \"01\",\n" + activada + porMateria + "    }"
+		vacia       = "      \"activaciones\": [],\n"
+		dos         = "      \"activaciones\": [\n        {\n          \"skill\": \"consulta-juridica\",\n" +
+			"          \"antes\": true\n        },\n        {\n          \"skill\": \"normativa\",\n" +
+			"          \"antes\": false\n        }\n      ],\n"
+		otraDeLaRaiz  = "{\n  \"activaciones\": [],\n  \"evals\": []\n}\n"
+		enLaRespuesta = "{\n  \"evals\": [\n    {\n" +
+			"      \"respuesta\": \"\\\"activaciones\\\": []\",\n      \"activada\": true\n    }\n  ]\n}\n"
+
+		laSeccion = "## Sesión 01\n\nEval: 01.yaml\n\nModelo pedido: claude-sonnet-5-5\n\n" +
+			"Modelo de la sesión: claude-sonnet-5-5\n\nPregunta:\n"
+		elParrafo    = "Skills activadas: consulta-juridica (antes), normativa (después)\n\n"
+		pregunta     = "Pregunta:\n"
+		elModelo     = "Modelo de la sesión: claude-sonnet-5-5\n\n"
+		dosSecciones = "# Informe de evals de normativa\n\n" + laSeccion + "\n" + laSeccion
+		sinElModelo  = "## Sesión 01\n\nEval: 01.yaml\n\nSkills activadas: ninguna\n\nPregunta:\n"
+		pegado       = "## Sesión 01\n\nModelo de la sesión: claude-sonnet-5-5\nSkills activadas: ninguna\n"
+	)
+
+	// conLaLista es la sesión con esa lista detrás de activada, e informeDe, el
+	// informe.json con esas sesiones.
+	conLaLista := func(lista string) string { return strings.Replace(deUnaSesion, activada, activada+lista, 1) }
+	informeDe := func(sesiones ...string) string {
+		return "{\n  \"evals\": [\n" + strings.Join(sesiones, ",\n") + "\n  ]\n}\n"
+	}
+
+	return []casoDeLoQueSeQuita{
+		{
+			nombre: "sin-activaciones-no-se-quita-nada", quitar: sinLasActivaciones,
+			escrito: informeDe(deUnaSesion), queda: informeDe(deUnaSesion),
+		},
+		{
+			nombre: "la-lista-vacia", quitar: sinLasActivaciones,
+			escrito: informeDe(conLaLista(vacia)), queda: informeDe(deUnaSesion),
+		},
+		{
+			nombre: "la-lista-en-varias-lineas", quitar: sinLasActivaciones,
+			escrito: informeDe(conLaLista(dos)), queda: informeDe(deUnaSesion),
+		},
+		{
+			nombre: "las-de-dos-sesiones", quitar: sinLasActivaciones,
+			escrito: informeDe(conLaLista(vacia), conLaLista(dos)), queda: informeDe(deUnaSesion, deUnaSesion),
+		},
+		{
+			// Detrás de la última clave de la sesión, la coma de la anterior sobra.
+			nombre: "la-lista-al-final-de-la-sesion", quitar: sinLasActivaciones,
+			escrito: informeDe(strings.Replace(deUnaSesion, porMateria,
+				strings.TrimSuffix(porMateria, "\n")+",\n"+strings.TrimSuffix(dos, ",\n")+"\n", 1)),
+			queda: informeDe(deUnaSesion),
+		},
+		{
+			nombre: "una-clave-que-no-es-de-una-sesion-se-queda", quitar: sinLasActivaciones,
+			escrito: otraDeLaRaiz, queda: otraDeLaRaiz,
+		},
+		{
+			nombre: "una-respuesta-que-la-nombra-se-queda", quitar: sinLasActivaciones,
+			escrito: enLaRespuesta, queda: enLaRespuesta,
+		},
+		{
+			nombre: "sin-el-parrafo-no-se-quita-nada", quitar: sinLasSkillsActivadas,
+			escrito: dosSecciones, queda: dosSecciones,
+		},
+		{
+			nombre: "el-parrafo-de-cada-sesion", quitar: sinLasSkillsActivadas,
+			escrito: strings.ReplaceAll(dosSecciones, pregunta, elParrafo+pregunta),
+			queda:   dosSecciones,
+		},
+		{
+			// Al final, la línea en blanco que lo separa del anterior sobra.
+			nombre: "el-parrafo-al-final", quitar: sinLasSkillsActivadas,
+			escrito: elModelo + strings.TrimSuffix(elParrafo, "\n"),
+			queda:   strings.TrimSuffix(elModelo, "\n"),
+		},
+		{
+			nombre: "un-parrafo-que-no-sigue-al-modelo-se-queda", quitar: sinLasSkillsActivadas,
+			escrito: sinElModelo, queda: sinElModelo,
+		},
+		{
+			nombre: "una-linea-que-no-es-un-parrafo-se-queda", quitar: sinLasSkillsActivadas,
+			escrito: pegado, queda: pegado,
 		},
 	}
 }
@@ -8602,6 +8734,74 @@ func sinLasMedidasYReutilizadas(md string) string {
 	}
 
 	return strings.Join(slices.Delete(lineas, principio, final), "")
+}
+
+// Lo que H41.2 añade a informe.json y a informe.md de cada sesión
+// (contracts/informe.md §2 y §3 de H41.2), y que sinLasActivaciones y
+// sinLasSkillsActivadas quitan: la clave activaciones de una sesión, con los
+// seis espacios de su nivel, y el párrafo de sus skills activadas, que sigue al
+// de su modelo.
+const (
+	claveDeLasActivaciones      = `      "activaciones": `
+	parrafoDeLasSkillsActivadas = "Skills activadas: "
+	parrafoDelModeloDeLaSesion  = "Modelo de la sesión: "
+)
+
+// sinLasActivaciones es informe.json, escrito con dos espacios por nivel, sin la
+// clave activaciones de ninguna sesión (contracts/informe.md §2 de H41.2): de su
+// línea, la de la clave con los seis espacios del nivel de las claves de una
+// sesión, a la que cierra la lista, la primera detrás con esos seis espacios
+// delante —ella misma, si la lista va en una línea—; y, si era la última clave de
+// la sesión, sin la coma de la anterior. Sin ella, informe.json tal cual.
+func sinLasActivaciones(escrito string) string {
+	lineas := strings.SplitAfter(escrito, "\n")
+	quedan := make([]string, 0, len(lineas))
+
+	for principio := 0; principio < len(lineas); principio++ {
+		if !strings.HasPrefix(lineas[principio], claveDeLasActivaciones) {
+			quedan = append(quedan, lineas[principio])
+
+			continue
+		}
+
+		final := principio
+		if valor := strings.TrimSpace(strings.TrimPrefix(lineas[principio], claveDeLasActivaciones)); valor == "[" {
+			final += 1 + slices.IndexFunc(lineas[principio+1:], func(linea string) bool {
+				return strings.HasPrefix(linea, "      ") && !strings.HasPrefix(linea, "       ")
+			})
+		}
+
+		if !strings.HasSuffix(strings.TrimSuffix(lineas[final], "\n"), ",") && len(quedan) > 0 {
+			anterior := strings.TrimSuffix(quedan[len(quedan)-1], "\n")
+			quedan[len(quedan)-1] = strings.TrimSuffix(anterior, ",") + "\n"
+		}
+
+		principio = final
+	}
+
+	return strings.Join(quedan, "")
+}
+
+// sinLasSkillsActivadas es informe.md sin el párrafo «Skills activadas:» de la
+// sección de ninguna sesión (contracts/informe.md §3 de H41.2): la línea que lo
+// empieza detrás de la línea en blanco que sigue a la de «Modelo de la sesión:»,
+// con esa línea en blanco. Sin él, informe.md tal cual.
+func sinLasSkillsActivadas(md string) string {
+	lineas := strings.SplitAfter(md, "\n")
+	quedan := make([]string, 0, len(lineas))
+
+	for posicion, linea := range lineas {
+		if posicion >= 2 && strings.HasPrefix(linea, parrafoDeLasSkillsActivadas) && lineas[posicion-1] == "\n" &&
+			strings.HasPrefix(lineas[posicion-2], parrafoDelModeloDeLaSesion) {
+			quedan = quedan[:len(quedan)-1]
+
+			continue
+		}
+
+		quedan = append(quedan, linea)
+	}
+
+	return strings.Join(quedan, "")
 }
 
 // Lo que TestInformeConReutilizadas da a su ejecución con una eval reutilizada:
@@ -10661,7 +10861,9 @@ type umbralMedido struct {
 // activó ninguna skill o solo otra—, su resultado y sus motivos, en informe.json
 // y en la tabla «Sesiones» de informe.md; las dos series, que pasan con 3 de 5;
 // los umbrales, con sin_activar de cada modo en 2 de 5; los motivos de la raíz y
-// el veredicto. Con la lista, ninguno de estos valores cambia.
+// el veredicto. Con la lista, ninguno de estos valores cambia. Y, desde T004 de
+// H41.2, la lista de cada sesión, la exacta en informe.json y su párrafo detrás
+// de «Modelo de la sesión:» en informe.md (FR-001 a FR-003; SC-001).
 func TestInformeConLasActivaciones(t *testing.T) {
 	t.Parallel()
 
@@ -10684,22 +10886,59 @@ func TestInformeConLasActivaciones(t *testing.T) {
 	leido := leerElInformeDeLaSkill(t, destino, informe)
 	assert.Equal(t, skillDeLasActivaciones, leido.informe.Skill)
 
+	// Desde T004 de H41.2, la lista de activaciones de cada sesión tal como la
+	// escribe informe.json y su párrafo de informe.md (FR-001 a FR-003; SC-001;
+	// contracts/informe.md §2, §3 y §5 de H41.2), las mismas en los dos modos.
+	const (
+		normativaAntes = `[{"skill":"normativa","antes":true}]`
+		ninguna        = `[]`
+		otraAntes      = `[{"skill":"consulta-juridica","antes":true}]`
+		lasDos         = `[{"skill":"consulta-juridica","antes":true},{"skill":"normativa","antes":false}]`
+		mismoTurno     = `[{"skill":"normativa","antes":false}]`
+
+		parrafoAntes      = "Skills activadas: normativa (antes)"
+		parrafoNinguna    = "Skills activadas: ninguna"
+		parrafoOtra       = "Skills activadas: consulta-juridica (antes)"
+		parrafoLasDos     = "Skills activadas: consulta-juridica (antes), normativa (después)"
+		parrafoMismoTurno = "Skills activadas: normativa (después)"
+	)
+
 	// En orden de nombre, el de las sesiones de informe.json.
 	casos := []struct {
-		sesion   string
-		modo     Modo
-		activada bool
+		sesion       string
+		modo         Modo
+		activada     bool
+		activaciones string
+		parrafo      string
 	}{
-		{sesion: "herramienta-antes", modo: ModoHerramienta, activada: true},
-		{sesion: "herramienta-las-dos", modo: ModoHerramienta, activada: true},
-		{sesion: "herramienta-mismo-turno", modo: ModoHerramienta, activada: true},
-		{sesion: "herramienta-ninguna", modo: ModoHerramienta, activada: false},
-		{sesion: "herramienta-otra", modo: ModoHerramienta, activada: false},
-		{sesion: "orden-antes", modo: ModoOrden, activada: true},
-		{sesion: "orden-las-dos", modo: ModoOrden, activada: true},
-		{sesion: "orden-mismo-turno", modo: ModoOrden, activada: true},
-		{sesion: "orden-ninguna", modo: ModoOrden, activada: false},
-		{sesion: "orden-otra", modo: ModoOrden, activada: false},
+		{
+			sesion: "herramienta-antes", modo: ModoHerramienta, activada: true,
+			activaciones: normativaAntes, parrafo: parrafoAntes,
+		},
+		{
+			sesion: "herramienta-las-dos", modo: ModoHerramienta, activada: true,
+			activaciones: lasDos, parrafo: parrafoLasDos,
+		},
+		{
+			sesion: "herramienta-mismo-turno", modo: ModoHerramienta, activada: true,
+			activaciones: mismoTurno, parrafo: parrafoMismoTurno,
+		},
+		{
+			sesion: "herramienta-ninguna", modo: ModoHerramienta, activada: false,
+			activaciones: ninguna, parrafo: parrafoNinguna,
+		},
+		{
+			sesion: "herramienta-otra", modo: ModoHerramienta, activada: false,
+			activaciones: otraAntes, parrafo: parrafoOtra,
+		},
+		{sesion: "orden-antes", modo: ModoOrden, activada: true, activaciones: normativaAntes, parrafo: parrafoAntes},
+		{sesion: "orden-las-dos", modo: ModoOrden, activada: true, activaciones: lasDos, parrafo: parrafoLasDos},
+		{
+			sesion: "orden-mismo-turno", modo: ModoOrden, activada: true,
+			activaciones: mismoTurno, parrafo: parrafoMismoTurno,
+		},
+		{sesion: "orden-ninguna", modo: ModoOrden, activada: false, activaciones: ninguna, parrafo: parrafoNinguna},
+		{sesion: "orden-otra", modo: ModoOrden, activada: false, activaciones: otraAntes, parrafo: parrafoOtra},
 	}
 
 	sesiones := make([]string, 0, len(leido.informe.Evals))
@@ -10739,6 +10978,13 @@ func TestInformeConLasActivaciones(t *testing.T) {
 			celdas := celdasDeLaSesion(t, tablaDeSesiones, caso.sesion)
 			assert.Equal(t, celdaDeActivada, celdas["Activada"], "la columna Activada de %s", caso.sesion)
 			assert.Equal(t, celdaDeResultado, celdas["Resultado"], "la columna Resultado de %s", caso.sesion)
+
+			escrito := resultadoEscrito(t, leido, caso.sesion).Activaciones
+			require.NotNil(t, escrito, "el resultado de %s lleva la clave activaciones", caso.sesion)
+			assert.Equal(t, caso.activaciones, compacto(t, escrito), "activaciones de %s en informe.json", caso.sesion)
+			assert.Equal(t, caso.parrafo,
+				parrafoDetrasDelModeloDeLaSesion(t, seccionDelInforme(t, leido.md, "Sesión "+caso.sesion)),
+				"el párrafo de %s en informe.md, detrás de «Modelo de la sesión:»", caso.sesion)
 		})
 	}
 

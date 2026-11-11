@@ -193,6 +193,41 @@ func TestActivacionesDeLosUsos(t *testing.T) {
 	}
 }
 
+// TestTextoDeLasActivaciones fija el texto de la lista de activaciones de una
+// sesión en informe.md (FR-002; contracts/informe.md §3; research D4): cada
+// skill con «(antes)» o «(después)», en el orden de la lista y separadas por
+// «, »; y «ninguna» con la lista vacía.
+func TestTextoDeLasActivaciones(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre       string
+		activaciones []Activacion
+		texto        string
+	}{
+		{nombre: "ninguna", activaciones: []Activacion{}, texto: "ninguna"},
+		{nombre: "una-antes", activaciones: []Activacion{{Skill: skillNormativa, Antes: true}}, texto: "normativa (antes)"},
+		{
+			nombre:       "una-despues",
+			activaciones: []Activacion{{Skill: skillNormativa}},
+			texto:        "normativa (después)",
+		},
+		{
+			nombre:       "dos-en-su-orden",
+			activaciones: []Activacion{{Skill: skillNormativa, Antes: true}, {Skill: skillDeConsultaJuridica}},
+			texto:        "normativa (antes), consulta-juridica (después)",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.texto, textoDeLasActivaciones(caso.activaciones))
+		})
+	}
+}
+
 // TestLaActivacionEnJSON fija las claves de una activación en JSON, skill y
 // antes (data-model §1), y que la lista sin ninguna se escribe [].
 func TestLaActivacionEnJSON(t *testing.T) {
