@@ -1504,6 +1504,189 @@ func exigirLaSesionConElProducto(skill string) exigirLaSesionDelReparto {
 	}
 }
 
+// errorDeEvalConLaDeH39 es el error de EVAL con variantes de la familia de H39,
+// que no tiene el plan de una familia del producto (contracts/arnes.md §2).
+const errorDeEvalConLaDeH39 = "EVAL: las variantes del laboratorio de H39 no tienen el plan de una familia del producto"
+
+// casosDeUsoDeUnaEval son los casos de TestArnesConUnaEval que son un error de
+// uso (contracts/arnes.md §2 y §5; FR-011, FR-013): un EVAL que no es el número
+// de dos cifras de ninguna eval del plan de la familia pedida —07 en normativa,
+// 4, 04-lgt y, en plazos-y-territorio, 04, que es de normativa—; EVAL con la de
+// H39; EVAL con SESIONES=0, que con él pide un entero mayor que 0; EVAL sin
+// familia, que no da su error; y el primer ejemplo de §2, con sus tres líneas en
+// su orden. Cada uno, con su mensaje y nada hecho.
+func casosDeUsoDeUnaEval() []casoDeUsoDelArnes {
+	return []casoDeUsoDelArnes{
+		{
+			nombre: "con-eval-07-en-normativa",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval = "normativa-producto", "herramienta", "07"
+			},
+			error: mensajeFijo("EVAL: «07» no es el número de ninguna eval del plan de normativa"),
+		},
+		{
+			nombre: "con-eval-de-una-cifra",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval = "normativa-producto", "herramienta", "4"
+			},
+			error: mensajeFijo("EVAL: «4» no es el número de ninguna eval del plan de normativa"),
+		},
+		{
+			// El comienzo del nombre de la eval no es su número.
+			nombre: "con-eval-y-parte-de-su-nombre",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval = "normativa-producto", "herramienta", "04-lgt"
+			},
+			error: mensajeFijo("EVAL: «04-lgt» no es el número de ninguna eval del plan de normativa"),
+		},
+		{
+			// 04 es de una eval del plan de normativa, no del de plazos-y-territorio.
+			nombre: "con-eval-04-en-plazos-y-territorio",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval = "plazos-y-territorio-control", "herramienta", "04"
+			},
+			error: mensajeFijo("EVAL: «04» no es el número de ninguna eval del plan de plazos-y-territorio"),
+		},
+		{
+			nombre:     "con-eval-y-la-de-h39",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Eval = "04" },
+			error:      mensajeFijo(errorDeEvalConLaDeH39),
+		},
+		{
+			nombre: "con-eval-y-sesiones-0",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones, a.Eval = "normativa-producto", "herramienta", "0", "04"
+			},
+			error: mensajeFijo("SESIONES: «0» no es un entero mayor que 0"),
+		},
+		{
+			// Sin familia, EVAL no da error: ya lo da el de VARIANTES.
+			nombre: "con-eval-y-una-variante-que-no-existe",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval = "otra", "herramienta", "07"
+			},
+			error: mensajeFijo("VARIANTES: «otra» no es ninguna variante del laboratorio"),
+		},
+		{
+			// El primer ejemplo de contracts/arnes.md §2: el error de SESIONES en su
+			// sitio, y los de INSTALACION y EVAL detrás del de DIRECTORIO, en ese
+			// orden.
+			nombre: "el-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones, a.Concurrencia, a.Instalacion, a.Eval = "control", "orden", "0", "1",
+					"todas", "04"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"SESIONES: «0» no es un entero mayor que 0",
+				"INSTALACION: «todas» no es producto",
+				errorDeEvalConLaDeH39,
+			}, "\n")),
+		},
+	}
+}
+
+// casoDeUnaEval es un caso de TestArnesConUnaEval en el que el arnés abre
+// sesiones: el caso, la eval pedida, las skills que anota su sondeo.json y lo
+// que ve cada una de sus sesiones.
+type casoDeUnaEval struct {
+	caso           casoValidoDelArnes
+	eval           string
+	instaladas     []string
+	exigirLaSesion exigirLaSesionDelReparto
+}
+
+// invocacionDeUnaEval es el caso válido de una invocación con esa variante de la
+// familia de esa skill, en modo herramienta, con EVAL el número de dos cifras
+// de esa eval, el comienzo de su nombre, esas SESIONES y esa INSTALACION: un
+// reparto que abre sesiones sesiones de la eval, <eval>-01 a <eval>-<sesiones>,
+// y ninguna más; cada una con las skills de hoy o, con INSTALACION=producto, con
+// las cuatro del producto (contracts/arnes.md §3 y §5; FR-013).
+func invocacionDeUnaEval(nombre, variante, skill, eval string, sesiones int, instalacion string) casoDeUnaEval {
+	producto := ""
+	if variante == skill+sufijoDelProductoDelTest {
+		producto = skill
+	}
+
+	deUnaEval := casoDeUnaEval{
+		caso: casoValidoDelArnes{
+			nombre: nombre,
+			argumentos: func(a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = variante, string(ModoHerramienta), fmt.Sprint(sesiones)
+				a.Instalacion, a.Eval = instalacion, eval[:2]
+			},
+			repartos: []repartoEsperado{{
+				variante: variante, modo: ModoHerramienta, porEval: sesiones, abiertas: sesiones,
+				linea: fmt.Sprintf("- %s, herramienta: %d abiertas.", variante, sesiones),
+			}},
+			producto: producto,
+		},
+		eval:           eval,
+		instaladas:     []string{skill},
+		exigirLaSesion: exigirLaSesionDeLaFamilia(skill),
+	}
+
+	if instalacion == "producto" {
+		deUnaEval.instaladas, deUnaEval.exigirLaSesion = skillsDelProductoDelTest, exigirLaSesionConElProducto(skill)
+	}
+
+	return deUnaEval
+}
+
+// casosValidosDeUnaEval son los casos de TestArnesConUnaEval en los que el arnés
+// abre sesiones (contracts/arnes.md §1 y §5; FR-013, FR-030; SC-009): una
+// variante de cada familia con SESIONES que no son múltiplo de 4, y las dos
+// invocaciones de FR-030 con SESIONES=2, sin INSTALACION y con producto.
+func casosValidosDeUnaEval() []casoDeUnaEval {
+	return []casoDeUnaEval{
+		invocacionDeUnaEval("normativa-con-la-04", "normativa-producto", skillDeNormativaDelTest,
+			"04-lgt-prescripcion.yaml", 3, ""),
+		invocacionDeUnaEval("plazos-y-territorio-con-la-05", "plazos-y-territorio-control", skillDePlazosDelTest,
+			"05-plazo-reposicion-leganes.yaml", 2, ""),
+		invocacionDeUnaEval("jurisprudencia-con-la-03", "jurisprudencia-producto", skillDeJurisprudenciaDelTest,
+			"03-por-materia.yaml", 1, ""),
+		invocacionDeUnaEval("la-de-fr-030-con-la-skill-sola", "normativa-producto", skillDeNormativaDelTest,
+			"04-lgt-prescripcion.yaml", 2, ""),
+		invocacionDeUnaEval("la-de-fr-030-con-el-producto", "normativa-producto", skillDeNormativaDelTest,
+			"04-lgt-prescripcion.yaml", 2, "producto"),
+	}
+}
+
+// TestArnesConUnaEval fija EVAL en el arnés del sondeo del laboratorio, sin
+// modelo (contracts/arnes.md §2, §3 y §5; data-model §3; research D8 y D9;
+// FR-011, FR-013, FR-015; SC-004, SC-009), con la construcción sustituida y el
+// sustituto de claude de TestArnesDelLaboratorio, que anota sus invocaciones.
+//
+// Con un EVAL que no es el número de ninguna eval del plan de la familia, con
+// la de H39 o con SESIONES=0, devuelve un error de uso con los mensajes de §2,
+// no construye nada, no abre ninguna sesión y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes).
+//
+// Con una eval del plan, abre SESIONES sesiones de esa eval en el par pedido,
+// <eval>-01 a <eval>-<SESIONES>, y ninguna más, aunque SESIONES no sea múltiplo
+// de 4; cada una, con las skills de hoy o, con INSTALACION=producto, con las
+// cuatro del producto; y sondeo.json anota las skills instaladas
+// (exigirElSondeoDelArnes).
+func TestArnesConUnaEval(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDeUnaEval() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	for _, deUnaEval := range casosValidosDeUnaEval() {
+		t.Run(deUnaEval.caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElSondeoDelArnes(t, deUnaEval.caso, []string{deUnaEval.eval}, deUnaEval.instaladas,
+				deUnaEval.exigirLaSesion)
+		})
+	}
+}
+
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y
 // laboratorio para el arnés del laboratorio en un temporal del test (contracts/arnes.md
 // §3.1 de H39): kitlegal en bin/ y laboratorio en laboratorio-bin/, cada uno un
@@ -1640,16 +1823,16 @@ type casoDelGuionDelLaboratorio struct {
 // TestGuionDelLaboratorio fija scripts/evals-laboratorio.sh (contracts/arnes.md
 // §1 de H39; FR-030, FR-032 de H39), como TestGuionDelSondeo el guion del sondeo
 // de una skill, con el sustituto de go delante en el PATH y un TMPDIR vacío del
-// test. Con ocho argumentos, crea en TMPDIR su temporal con la plantilla
+// test. Con nueve argumentos, crea en TMPDIR su temporal con la plantilla
 // kitlegal-laboratorio.XXXXXX y ejecuta, en la raíz del repositorio y con el
 // tmp/ de ese temporal como TMPDIR, la orden go test de TestSondeoDelLaboratorio
-// con los ocho tras -args, DIRECTORIO con la raíz delante si es relativo,
-// INSTALACION detrás, y -temporal con ese temporal, el último, con sus dos salidas en su go-test.log. Si go test
-// sale con 0 y deja uso.txt, el guion sale con 1 e imprime solo uso.txt, en la
-// salida de error; si go test falla, aunque deje uso.txt, sale con 1 e imprime
-// su registro; si no, sale con 0 e imprime salida.txt. Sin ocho argumentos, el
-// uso y el código 1, sin ejecutar go (contracts/arnes.md §1 y §5 de H41.2;
-// research D9 de H41.2). En todos los casos, el TMPDIR del test
+// con los nueve tras -args, DIRECTORIO con la raíz delante si es relativo,
+// INSTALACION y EVAL detrás, y -temporal con ese temporal, el último, con sus
+// dos salidas en su go-test.log. Si go test sale con 0 y deja uso.txt, el guion
+// sale con 1 e imprime solo uso.txt, en la salida de error; si go test falla,
+// aunque deje uso.txt, sale con 1 e imprime su registro; si no, sale con 0 e
+// imprime salida.txt. Sin nueve argumentos, el uso y el código 1, sin ejecutar
+// go (contracts/arnes.md §1 y §5 de H41.2; research D9 de H41.2). En todos los casos, el TMPDIR del test
 // queda vacío: el guion borra su temporal.
 func TestGuionDelLaboratorio(t *testing.T) {
 	t.Parallel()
@@ -1690,7 +1873,7 @@ func exigirElGuionDelLaboratorio(t *testing.T, caso casoDelGuionDelLaboratorio, 
 
 	anotaciones := filepath.Join(comun, sustitutoGo)
 	if caso.sinGo {
-		assert.NoDirExists(t, anotaciones, "sin ocho argumentos, el guion no ejecuta go")
+		assert.NoDirExists(t, anotaciones, "sin nueve argumentos, el guion no ejecuta go")
 
 		return
 	}
@@ -1729,24 +1912,27 @@ func exigirElGoDelLaboratorio(t *testing.T, anotado goAnotado, delGuion []string
 }
 
 // ordenDelLaboratorio son los argumentos de go de la orden de
-// TestSondeoDelLaboratorio (contracts/arnes.md §1 de H39 y de H41.2), con los
-// seis primeros de los ocho argumentos del guion, en su orden, ese DIRECTORIO,
-// el octavo, INSTALACION, tal cual, y su temporal, el último.
+// TestSondeoDelLaboratorio (contracts/arnes.md §1 y §5 de H39 y de H41.2), con
+// los seis primeros de los nueve argumentos del guion, en su orden, ese
+// DIRECTORIO, el octavo, INSTALACION, y el noveno, EVAL, tal cual, y su
+// temporal, el último.
 func ordenDelLaboratorio(argumentos []string, directorio, temporal string) []string {
 	return []string{
 		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestSondeoDelLaboratorio$", "./internal/evals/",
 		"-args", "-variantes", argumentos[0], "-modos", argumentos[1], "-sesiones", argumentos[2], "-modelo",
 		argumentos[3], "-claude-code", argumentos[4], "-concurrencia", argumentos[5], "-directorio", directorio,
-		"-instalacion", argumentos[7], "-temporal", temporal,
+		"-instalacion", argumentos[7], "-eval", argumentos[8], "-temporal", temporal,
 	}
 }
 
-// casosDelGuionDelLaboratorio son los casos de TestGuionDelLaboratorio, con ocho
-// argumentos, el octavo producto en el de un DIRECTORIO absoluto y vacío en los
-// demás: go test sale con 0, con un DIRECTORIO relativo y con uno absoluto; sale
-// con 1; sale con 0 y deja uso.txt, con los errores de SESIONES=6 y
-// MODELO=sonnet o con el de DIRECTORIO vacío, que el guion pasa vacío; sale con
-// 1 y deja uso.txt; y el guion recibe siete argumentos, uno menos de los ocho.
+// casosDelGuionDelLaboratorio son los casos de TestGuionDelLaboratorio, con nueve
+// argumentos, el octavo producto en el de un DIRECTORIO absoluto, el noveno 04
+// en el de uno relativo, con el octavo vacío, para que los dos se vean por
+// separado, y los dos vacíos en los demás: go test sale con 0, con un DIRECTORIO
+// relativo y con uno absoluto; sale con 1; sale con 0 y deja uso.txt, con los
+// errores de SESIONES=6 y MODELO=sonnet o con el de DIRECTORIO vacío, que el
+// guion pasa vacío; sale con 1 y deja uso.txt; y el guion recibe ocho
+// argumentos, uno menos de los nueve.
 func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
 
@@ -1755,7 +1941,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-0-y-directorio-relativo",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control,instrucciones", "orden,herramienta", "8",
-					modeloDelLaboratorio, versionDelClaudeDelLaboratorio, "2", directorioRelativoDelLaboratorio, "")
+					modeloDelLaboratorio, versionDelClaudeDelLaboratorio, "2", directorioRelativoDelLaboratorio, "", "04")
 			},
 			codigo: 0,
 			salida: salidaDelSustitutoDeGo,
@@ -1764,7 +1950,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-0-y-directorio-absoluto",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "parametro", "herramienta", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioAbsolutoDelLaboratorio, "producto")
+					versionDelClaudeDelLaboratorio, "1", directorioAbsolutoDelLaboratorio, "producto", "")
 			},
 			codigo: 0,
 			salida: salidaDelSustitutoDeGo,
@@ -1773,7 +1959,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-1",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "")
+					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "", "")
 			},
 			codigoDeGo: 1,
 			codigo:     1,
@@ -1783,7 +1969,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "uso-con-dos-argumentos-que-no-valen",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
-					"1", directorioAbsolutoDelLaboratorio, "")
+					"1", directorioAbsolutoDelLaboratorio, "", "")
 			},
 			uso:    usoDelLaboratorioConDosArgumentos,
 			codigo: 1,
@@ -1792,7 +1978,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "uso-sin-directorio",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", "", "")
+					versionDelClaudeDelLaboratorio, "1", "", "", "")
 			},
 			uso:    usoDelLaboratorioSinDirectorio,
 			codigo: 1,
@@ -1801,7 +1987,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-1-y-deja-uso",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
-					"1", directorioRelativoDelLaboratorio, "")
+					"1", directorioRelativoDelLaboratorio, "", "")
 			},
 			codigoDeGo: 1,
 			uso:        usoDelLaboratorioConDosArgumentos,
@@ -1809,16 +1995,16 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			deError:    registro,
 		}, desdeLaRaiz: true},
 		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
-			// Los siete de antes: el guion da su uso, que nombra <instalacion>
-			// detrás de <directorio>, y no ejecuta go.
-			nombre: "sin-ocho-argumentos",
+			// Los ocho de antes: el guion da su uso, que nombra <instalacion> y
+			// <eval> detrás de <directorio>, y no ejecuta go.
+			nombre: "sin-nueve-argumentos",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio)
+					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "")
 			},
 			codigo: 1,
 			deError: []string{"evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> " +
-				"<modelo> <claude-code> <concurrencia> <directorio> <instalacion>"},
+				"<modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval>"},
 			sinGo: true,
 		}},
 	}
@@ -1833,11 +2019,11 @@ const prefijoDeLaOrdenDelLlavero = "scripts/evals-sondeo-llavero.sh"
 // los valores fijos de sus casos (contracts/arnes.md §1 de H39): el guion del
 // llavero con el nombre del guion que ejecuta y los argumentos de make detrás,
 // cada uno entre comillas dobles y en su orden; los cinco del sondeo de una
-// skill y los ocho del laboratorio (contracts/arnes.md §1 y §5 de H41.2).
+// skill y los nueve del laboratorio (contracts/arnes.md §1 y §5 de H41.2).
 const (
 	ordenDeLaRecetaDelSondeo      = `scripts/evals-sondeo-llavero.sh sondeo "normativa" "01" "claude-sonnet-5-5" "2" "1"`
 	ordenDeLaRecetaDelLaboratorio = `scripts/evals-sondeo-llavero.sh laboratorio "control,instrucciones" ` +
-		`"orden,herramienta" "8" "claude-sonnet-5-5" "2.1.284" "2" "sondeo-de-prueba" "producto"`
+		`"orden,herramienta" "8" "claude-sonnet-5-5" "2.1.284" "2" "sondeo-de-prueba" "producto" "04"`
 )
 
 // variablesDelMakeQueLanzaElTest son las que el make que lanza go test, el de
@@ -1881,7 +2067,7 @@ func TestRecetasDelSondeo(t *testing.T) {
 			orden: func(ctx context.Context) *exec.Cmd {
 				return exec.CommandContext(ctx, "make", "-n", "evals-laboratorio", "VARIANTES=control,instrucciones",
 					"MODOS=orden,herramienta", "SESIONES=8", "MODELO=claude-sonnet-5-5", "CLAUDE_CODE=2.1.284",
-					"CONCURRENCIA=2", "DIRECTORIO=sondeo-de-prueba", "INSTALACION=producto")
+					"CONCURRENCIA=2", "DIRECTORIO=sondeo-de-prueba", "INSTALACION=producto", "EVAL=04")
 			},
 			esperada: ordenDeLaRecetaDelLaboratorio,
 		},

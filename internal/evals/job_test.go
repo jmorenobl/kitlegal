@@ -102,6 +102,8 @@ var (
 		"directorio, que no puede existir, en el que el sondeo del laboratorio deja sus sesiones")
 	banderaInstalacion = flag.String("instalacion", "",
 		"instalación de las sesiones del sondeo del laboratorio: vacía, o producto, las cuatro skills del producto")
+	banderaEval = flag.String("eval", "",
+		"eval del sondeo del laboratorio: vacía, o el número de dos cifras de una eval del plan de la familia")
 )
 
 // Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
@@ -707,6 +709,7 @@ func TestSondeoDelLaboratorio(t *testing.T) {
 			Concurrencia: *banderaConcurrencia,
 			Directorio:   *banderaDirectorio,
 			Instalacion:  *banderaInstalacion,
+			Eval:         *banderaEval,
 		},
 		Entorno:               os.Environ(),
 		Raiz:                  raizDelRepositorio,

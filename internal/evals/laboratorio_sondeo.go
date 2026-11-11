@@ -26,12 +26,19 @@ const (
 	argumentoClaudeCode  = "CLAUDE_CODE"
 	argumentoDirectorio  = "DIRECTORIO"
 	argumentoInstalacion = "INSTALACION"
+	argumentoEval        = "EVAL"
 )
 
 // instalacionDelProducto es el único valor de INSTALACION, el que instala en
 // cada sesión las cuatro skills del producto (contracts/arnes.md §2 y §3.1 de
 // H41.2; research D7 de H41.2). Vacía, la instalación de hoy.
 const instalacionDelProducto = "producto"
+
+// formaDelNumeroDeUnaEval es la de EVAL cuando vale: el número de dos cifras con
+// el que empieza, seguido de un guion, el fichero de una eval (contracts/arnes.md
+// §2 de H41.2; research D8 de H41.2), como cada número de EVALS de make
+// evals-sondeo.
+var formaDelNumeroDeUnaEval = regexp.MustCompile(`^[0-9]{2}$`)
 
 // separadorDeLaLista separa los elementos de VARIANTES y de MODOS.
 const separadorDeLaLista = ","
@@ -68,9 +75,10 @@ const (
 	banderaDeLaVersion   = "--version"
 )
 
-// ArgumentosDelLaboratorio son los ocho argumentos de make evals-laboratorio,
+// ArgumentosDelLaboratorio son los nueve argumentos de make evals-laboratorio,
 // tal como llegan, sin interpretar (contracts/arnes.md §1 y §2 de H39 y de
-// H41.2; data-model §3 de H41.2): los siete de H39 e INSTALACION, detrás.
+// H41.2; data-model §3 de H41.2): los siete de H39 e INSTALACION y EVAL,
+// detrás.
 type ArgumentosDelLaboratorio struct {
 	Variantes    string
 	Modos        string
@@ -80,6 +88,7 @@ type ArgumentosDelLaboratorio struct {
 	Concurrencia string
 	Directorio   string
 	Instalacion  string
+	Eval         string
 }
 
 // SondeoDelLaboratorio es lo que sondearElLaboratorio necesita para abrir las
@@ -132,12 +141,18 @@ type laboratorioComprobado struct {
 	familia   familiaDelLaboratorio
 	pares     []parDelLaboratorio
 
-	// porEval son las sesiones de cada eval en cada par: SESIONES/4.
+	// porEval son las sesiones de cada eval en cada par: SESIONES con EVAL y
+	// SESIONES/4 sin él.
 	porEval int
 
 	// conElProducto es INSTALACION=producto: cada sesión ve, además de la
 	// skill de su variante, las demás de skills/ del árbol (FR-010 de H41.2).
 	conElProducto bool
+
+	// eval es el fichero de la eval de EVAL, la única que planifica cada par, o
+	// vacío sin EVAL: cada par planifica las cuatro del sondeo de la familia
+	// (FR-013 de H41.2; data-model §3 de H41.2).
+	eval string
 
 	modelo       string
 	claudeCode   string
@@ -162,7 +177,8 @@ type resumenDelPar struct {
 //  1. comprueba, antes de construir nada, los argumentos, la credencial y la
 //     versión de Claude Code (comprobarElLaboratorio), y lee las evals del
 //     directorio de evals de la familia pedida y, de ellas, las que planifica
-//     su sondeo (evalsDelPlan);
+//     su sondeo o, con EVAL, solo la pedida, una de ellas (evalsDeCadaPar;
+//     FR-013 de H41.2);
 //  2. prepara en el temporal kitlegal, laboratorio, home/ y la copia de las
 //     skills de cada variante pedida, desde el directorio de su familia o,
 //     la del producto, desde skills/<skill> del árbol, y, con
@@ -173,7 +189,8 @@ type resumenDelPar struct {
 //     familia del producto, las skills instaladas (skillsInstaladasDelSondeo);
 //  4. por cada par, en su orden, abre con el repartidor, en
 //     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
-//     sondeo de la familia, en su orden y de nombre <eval>-<nn>, con el modelo
+//     sondeo de la familia o, con EVAL, SESIONES de la pedida, en su orden y
+//     de nombre <eval>-<nn>, con el modelo
 //     pedido y el modo del par: preparadas con el directorio de evals de la
 //     familia, sin traza, con la copia de las skills de la variante, el entorno
 //     del sondeo de una skill (entornoDelSondeo) y el tope de 240 s con su
@@ -210,7 +227,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		return "", fmt.Errorf("las evals del laboratorio no se pueden leer: %w", err)
 	}
 
-	evals, err := comprobado.familia.evalsDelPlan(leidas)
+	evals, err := comprobado.evalsDeCadaPar(leidas)
 	if err != nil {
 		return "", err
 	}
@@ -310,6 +327,19 @@ func comprobarElLaboratorio(s SondeoDelLaboratorio) (laboratorioComprobado, erro
 	return comprobado, nil
 }
 
+// evalsDeCadaPar son las evals que planifica cada par, de las leídas del
+// directorio de evals de la familia (contracts/arnes.md §3.2 de H41.2; FR-013
+// de H41.2): las del sondeo de la familia (evalsDelPlan), con su error, o, con
+// EVAL, solo la pedida, que es una de ellas.
+func (c laboratorioComprobado) evalsDeCadaPar(leidas []Eval) ([]Eval, error) {
+	evals, err := c.familia.evalsDelPlan(leidas)
+	if err != nil || c.eval == "" {
+		return evals, err
+	}
+
+	return slices.DeleteFunc(evals, func(eval Eval) bool { return eval.Fichero != c.eval }), nil
+}
+
 // variantesDeLaFamiliaDeH39 es cómo nombra el error de una mezcla las variantes
 // de la familia de H39, la única que no es del producto (contracts/arnes.md §2
 // de H40 y de H41; research D14).
@@ -322,13 +352,15 @@ const variantesDeLaFamiliaDeH39 = "variantes del laboratorio de H39"
 // de las cuatro, separados por comas y sin repetir; los que valen, todos de una
 // sola familia; MODOS, orden, herramienta o los dos, separados por comas y sin
 // repetir; cada par de una variante y un modo que valen, un modo de los de la
-// variante, en el orden de las familias; SESIONES, un entero mayor que 0 y
-// múltiplo de 4; MODELO, un identificador completo; CLAUDE_CODE, no vacía;
-// CONCURRENCIA, un entero mayor o igual que 1; DIRECTORIO, no vacío y que no
-// existe; e INSTALACION, vacía o producto, y producto solo con variantes de una
-// familia del producto (errorDeLaInstalacion; contracts/arnes.md §2 de H41.2).
-// Los errores de todos van juntos, uno por línea y en ese orden, para que quien
-// lanza la orden los corrija de una vez.
+// variante, en el orden de las familias; SESIONES, un entero mayor que 0 y, sin
+// EVAL, múltiplo de 4 (sesionesDeCadaEval); MODELO, un identificador completo;
+// CLAUDE_CODE, no vacía; CONCURRENCIA, un entero mayor o igual que 1;
+// DIRECTORIO, no vacío y que no existe; INSTALACION, vacía o producto, y
+// producto solo con variantes de una familia del producto
+// (errorDeLaInstalacion); y EVAL, vacío o el número de una eval del plan de la
+// familia, que tiene que ser del producto (evalDelArgumento; contracts/arnes.md
+// §2 de H41.2). Los errores de todos van juntos, uno por línea y en ese orden,
+// para que quien lanza la orden los corrija de una vez.
 func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio) (laboratorioComprobado, error) {
 	familias := slices.Concat([]familiaDelLaboratorio{declarada.familia()}, familiasDelProducto)
 
@@ -354,7 +386,7 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 		errDeLosPares = append(errDeLosPares, noValen...)
 	}
 
-	porEval, errDeLasSesiones := sesionesDeCadaEval(a.Sesiones)
+	porEval, errDeLasSesiones := sesionesDeCadaEval(a.Sesiones, a.Eval)
 	concurrencia, errDeLaConcurrencia := enteroDelArgumento(argumentoConcurrencia, a.Concurrencia)
 
 	errDeLaVersion := error(nil)
@@ -362,10 +394,12 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 		errDeLaVersion = fmt.Errorf("%s: está vacía", argumentoClaudeCode)
 	}
 
+	eval, errDeLaEval := evalDelArgumento(a.Eval, familia)
+
 	err := errors.Join(slices.Concat(errDeLasVariantes, []error{errDeLaMezcla}, errDeLosModos, errDeLosPares,
 		[]error{
 			errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
-			comprobarElDirectorioDelSondeo(a.Directorio), errorDeLaInstalacion(a.Instalacion, familia),
+			comprobarElDirectorioDelSondeo(a.Directorio), errorDeLaInstalacion(a.Instalacion, familia), errDeLaEval,
 		})...)
 	if err != nil {
 		return laboratorioComprobado{}, err
@@ -373,9 +407,39 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 
 	return laboratorioComprobado{
 		declarada: declarada, familia: familia, pares: pares, porEval: porEval,
-		conElProducto: a.Instalacion == instalacionDelProducto, modelo: a.Modelo, claudeCode: a.ClaudeCode,
-		concurrencia: concurrencia, directorio: a.Directorio,
+		conElProducto: a.Instalacion == instalacionDelProducto, eval: eval, modelo: a.Modelo,
+		claudeCode: a.ClaudeCode, concurrencia: concurrencia, directorio: a.Directorio,
 	}, nil
+}
+
+// evalDelArgumento es el fichero de la eval de EVAL en el plan de la familia de
+// las variantes pedidas que valen, y su error (contracts/arnes.md §2 de H41.2;
+// research D8 de H41.2): vacío y sin error sin EVAL; con la familia de H39, la
+// única que no es del producto, el de que sus variantes no tienen el plan de una
+// familia del producto; y, con una del producto, la eval de su sondeo cuyo
+// fichero empieza por EVAL y un guion, si EVAL es un número de dos cifras, o el
+// error que dice que no es el de ninguna. Sin familia —sin variantes, porque
+// ninguna vale o porque las que valen se mezclan—, EVAL no da error: ya lo dan
+// el de VARIANTES o el de la mezcla.
+func evalDelArgumento(eval string, familia familiaDelLaboratorio) (string, error) {
+	switch {
+	case eval == "" || len(familia.variantes) == 0:
+		return "", nil
+	case familia.producto == "":
+		return "", fmt.Errorf("%s: las %s no tienen el plan de una familia del producto", argumentoEval,
+			variantesDeLaFamiliaDeH39)
+	}
+
+	if formaDelNumeroDeUnaEval.MatchString(eval) {
+		for _, fichero := range familia.evalsDelSondeo {
+			if strings.HasPrefix(fichero, eval+"-") {
+				return fichero, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("%s: «%s» no es el número de ninguna eval del plan de %s", argumentoEval, eval,
+		familia.skill)
 }
 
 // errorDeLaInstalacion es el error de INSTALACION con la familia de las
@@ -539,17 +603,26 @@ func paresPedidos(declaradas []varianteDelLaboratorio, variantes []string, modos
 	return pares, noValen
 }
 
-// sesionesDeCadaEval son las sesiones de cada eval en cada par, SESIONES/4, si
-// SESIONES es un entero mayor que 0, escrito sin nada más, que cabe en un int y
-// es múltiplo de 4.
-func sesionesDeCadaEval(valor string) (int, error) {
+// sesionesDeCadaEval son las sesiones de cada eval en cada par con ese EVAL
+// (contracts/arnes.md §2 de H41.2): con él, las SESIONES de la eval pedida, si
+// SESIONES es un entero mayor que 0, escrito sin nada más, que cabe en un int;
+// sin él, como en H39, SESIONES/4, si además es múltiplo de 4. La regla la
+// decide que EVAL venga o no, valga o no: su error es otro.
+func sesionesDeCadaEval(valor, eval string) (int, error) {
 	sesiones, err := strconv.Atoi(valor)
-	if err != nil || !formaDeUnEnteroPositivo.MatchString(valor) || sesiones%evalsDelLaboratorio != 0 {
+	entero := err == nil && formaDeUnEnteroPositivo.MatchString(valor)
+
+	switch {
+	case eval != "" && entero:
+		return sesiones, nil
+	case eval != "":
+		return 0, fmt.Errorf("%s: «%s» no es un entero mayor que 0", argumentoSesiones, valor)
+	case entero && sesiones%evalsDelLaboratorio == 0:
+		return sesiones / evalsDelLaboratorio, nil
+	default:
 		return 0, fmt.Errorf("%s: «%s» no es un múltiplo de %d mayor que 0", argumentoSesiones, valor,
 			evalsDelLaboratorio)
 	}
-
-	return sesiones / evalsDelLaboratorio, nil
 }
 
 // comprobarElModeloCompleto exige un MODELO con la forma de un identificador
