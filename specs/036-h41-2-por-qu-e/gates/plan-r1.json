@@ -1,0 +1,111 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt vacío. Cada fila es cierta para este plan: I (sin fuentes ni httpx; las sesiones con proxyQueRechaza, internal/evals/sesiones.go:73 y :561-564); III (guion congelado que hoy falla en el cmp, fixtures [datos], nada en red); IV (errores de argumentos como errorDeUso, laboratorio_sondeo.go:271-291; tabla con código 1, laboratorio_tabla.go:369-385; os.Exit solo en cmd/laboratorio); V (ninguna dependencia nueva; lo manipulado, regla genérica); VI-X ciertos (ninguna bandera del binario; la lista nombra cualquier skill; EVAL vale para cualquier plan). Están las seis reglas de dependencia de docs/ROADMAP.md §2 (líneas 55-60), más la del SDK de MCP y TestArquitectura; ninguna falta."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Technical Context: solo biblioteca estándar (encoding/json, encoding/json/v2 y jsontext, que informe.go ya importa en sus líneas 5-6; os, path/filepath, slices, strings) y testify/go-internal en los tests; Complexity Tracking no añade ninguna dependencia."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Todo va en internal/evals, que ya importa internal/app para el registro (sesion.go:338-345; trazas.go:366-399); activaciones.go no escribe nada; ni net/http, ni SQLite, ni os.Exit nuevos; internal/core e internal/graph no cambian."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Los errores de INSTALACION y EVAL van con errors.Join junto a los de hoy, envueltos en errorDeUso (laboratorio_sondeo.go:343-349 y :277-280), y scripts/evals-laboratorio.sh sale con 1 tras imprimir uso.txt (líneas 64-69): «distinto de 0», como pide FR-011. La tabla da el defecto inesperado con código 1. El informe da «sesión ilegible: <error>» como motivo (D5). kitlegal y sus códigos no cambian."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Guion congelado aceptacion/laboratorio-tabla.txtar, con el patrón sh -c … || true y cmp para que falle por aserción (contracts/aceptacion.md), activado como h41-2-laboratorio-tabla.txtar (los de H41 y H41.1 siguen el mismo prefijo en internal/app/testdata/script/). Las historias 1 y 2 explican el «no aplica» del guion y nombran sus tests en make ci. Los unitarios: TestActivacionesDeLosUsos, TestInformeConLasActivaciones, TestArnesConLaInstalacionDelProducto, TestArnesConUnaEval y TestTablaConLasActivaciones. Los fixtures, con ruta: testdata/sesiones/activaciones/ y testdata/laboratorio/familias/activaciones/. Y los tests que cambian, con lo que cambia en cada uno."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "El plan cubre FR-001 a FR-033 y no toca skills/, evals/, laboratorio/ ni .github/workflows/evals.yml. Pero contracts/arnes.md §2 dice «Con unas VARIANTES que no son de ninguna familia o que mezclan familias, ni INSTALACION ni EVAL dan error propio», y el error del valor de INSTALACION («INSTALACION: «<v>» no es producto») no depende de la familia. Leída al pie de la letra, la frase lo suprime, contra FR-011 («junto a los demás errores, uno por línea»). Ningún test de §5 fija esa combinación."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No hay ningún //nolint (Technical Context: golang-lint), ningún t.Skip ni ningún TODO. El error de leerLosUsos no se silencia: es un motivo de sesión ilegible (D5). Que no se exija message.id está justificado en D1 y en Complexity Tracking, con la alternativa «silenciar el error» rechazada."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": false,
+      "evidencia": "D1, D2, D3, D6, D7, D8 y D11 documentan sus rechazadas, y D12 lo hace en Complexity Tracking. D10, la instalación de las cuatro skills, no documenta ninguna: ni ejecutar el kitlegal de bin/ del temporal con skills install, que es literalmente «como las deja make install», ni enlazar skills/ del árbol sin copiarlo. D13, «Otras skills» en una sola celda, tampoco descarta una columna por cada otra skill, que es la forma que la tabla ya usa con las referencias. La constitución, en «Criterio de decisión autónoma» 3, pide registrar la alternativa rechazada y por qué."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Lo he comprobado en esta sesión. V1: go doc encoding/json/v2.Marshal dice «a nil slice is encoded as an empty JSON array» y omitzero «only a nil slice». V17: go doc os.CopyFS («will not overwrite existing files», fs.ErrExist). V11: json v1 ignora las claves desconocidas. V5: los 318 assistant de testdata llevan id msg_. V4 está en sesion_test.go:677-687, limites_test.go:20 e informe_test.go:6442. V16: wc -c da 349, 89, 290 y 35+1. V3: con Wilson salen todos los extremos. En el código: leerLosUsos (laboratorio_tabla.go:877-941), modoDeLaSesion (sesion.go:355-368), make install (Makefile:72-75), skills.go:24 y evals.yml:392-398. Lo que no se puede comprobar en local queda como S1 (message.id de Claude Code) y S2 (Make, con su control en TestRecetasDelSondeo)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "El §5 lo he ejecutado: da exactamente las tres líneas del Makefile (59, 154 y 155) y ninguna de ci.yml; ci no tiene evals-laboratorio, y job_test.go empieza con //go:build evals. Los §1 a §4 nombran tests y rutas que entrega el hito o que existen (TestInforme, TestArnes*, TestTabla*, TestLecturaConCd y TestEntregaDelHito sin etiqueta de compilación). El §3 solo escribe en $TMPDIR, y el §6 declara la red de vuln y los coverage*.out ignorados."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "No hay grabaciones, ni manifiesto, ni TestGrabar*. Ningún fichero de data/, evidencias/ o docs/SOURCES.md cambia. Los fixtures son transcripciones sintéticas de tareas [datos], con el precedente de H39 a H41."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "El sondeo de 160 sesiones y el ADR los hace la persona después del run (FR-030 y FR-031; D17; gates/supuestos.md, línea [alcance]). TestSondeoDelLaboratorio necesita -tags evals y no corre en make ci, y ninguna tarea mide en la plataforma."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Rehecho el cálculo. informe.json: 109 bytes con una activación (24+10+32+24+10+8+1, con WithIndent de dos espacios), 26 con [] y 0 sin leer. Como mucho 24×3×2×2 = 288 sesiones por medición, así que unos 31 KB, y unos 10-11 KB en informe.md a 36 bytes el párrafo. El sondeo: sondeo.json de 89 a 349 bytes, cuatro filas y 160 líneas de detalle de 150-190 bytes, unos 27-30 KB. Ninguna skill lo pide. No crece con normas ni bloques consultados, solo con las sesiones del plan o las pedidas, y cada medición o sondeo escribe el suyo, así que ninguna señal persiste."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "La tabla de Trazabilidad lleva cada mecanismo a un FR/SC. Que leerLosUsos deje de exigir message.id lo pide FR-004/SC-002: los transcripts de los tests del informe no lo llevan (V4), y la exigencia los volvería ilegibles. Que no haya primera herramienta en las sesiones sin binario lo pide FR-001: esas sesiones existen en el job (evals/normativa/21 y plazos-y-territorio/04). Lo manipulado no tiene comprobación ni test propios (D1, D5). Ningún paquete nuevo y un solo fichero nuevo."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Cada SC con umbral sin persona tiene su fila: SC-001/002 (informe_test, activaciones_test), SC-003/004/009 (laboratorio_sondeo_test), SC-005 (laboratorio_tabla_test y TestEntregaDelHito), SC-006 (TestEntregaDelHito y las tres tablas fijas) y SC-007, con 11+11+12 evals:<skill>:<umbral> que coinciden uno a uno con los publicados con decide: true en el cierre de H41.1 (specs/035-…/gates/informe-final.md, línea 12). Cada control cubre las formas del requisito: con opción y sin ella, con EVAL y sin él, los dos modos, una versionada y la -producto de cada familia. Con la medida por encima del umbral, el test sale en rojo en make ci o el job en medir_cierre. SC-008 es de la persona."
+    }
+  ],
+  "motivos": [
+    "[f] contracts/arnes.md §2: la frase «Con unas VARIANTES que no son de ninguna familia o que mezclan familias, ni INSTALACION ni EVAL dan error propio: el de VARIANTES ya lo dice» suprime, leída al pie de la letra, también el error del valor de INSTALACION, que no depende de la familia. Eso va contra FR-011, que lo quiere «junto a los demás errores, uno por línea». Vía: los argumentos de quien lanza el arnés, p. ej. `make evals-laboratorio VARIANTES=otra MODOS=herramienta SESIONES=4 … INSTALACION=todas`. Diferencia: la salida de error lista «VARIANTES: «otra» no es ninguna variante del laboratorio» solo, o además «INSTALACION: «todas» no es producto». Qué cambiar: acotar la frase de §2 a los errores que dependen de la familia (INSTALACION=producto o EVAL con variantes de H39, y EVAL fuera del plan de la familia) y decir que «INSTALACION: «<v>» no es producto» sale siempre que el valor no es vacío ni producto. Si se quiere fijar sin un mecanismo nuevo, basta añadir esa combinación a los casos de error de TestArnesConLaInstalacionDelProducto de §5.",
+    "[h] research.md: D10 elige copiar con os.CopyFS cada skill de skills/ junto a la variante sin documentar ninguna alternativa rechazada. Las hay: ejecutar `skills install` con el kitlegal de bin/ del temporal, que es lo que hace make install, y retirar después la skill de la familia; o enlazar skills/<otra> del árbol sin copiarlo. D13 pone «Otras skills» en una sola celda «<skill>: k de n · …; …» sin descartar una columna por cada otra skill, que es la forma que la tabla ya usa con sus referencias. Qué cambiar: añadir a D10 y a D13 su «Alternativas rechazadas», con el porqué de la elegida, como piden el criterio h y el «Criterio de decisión autónoma» 3. Por ejemplo, para D10: skills install deja un manifiesto y entradas de host que la variante tendría que sustituir; para D13: columnas que dependen de qué skills activen las sesiones cambiarían la cabecera de una tabla a otra."
+  ],
+  "observaciones": [
+    "research D9 sitúa TestRecetasDelSondeo en laboratorio_sondeo_test.go:1612-1688; está en 1642-1689.",
+    "research V12 nombra serie.sh y entradasDelInforme como lectores de informe.json, pero también lo leen internal/evals/plataforma.go, origen.go y decision.go, y scripts/workflow/comun.sh lo extrae del registro. Ninguno decodifica con RejectUnknownMembers o DisallowUnknownFields (grep en internal y cmd), así que la conclusión de FR-005 se sostiene.",
+    "research V13 mira las banderas de job_test.go:37-83, pero las del laboratorio están en 97-101 y siguientes. He comprobado que ninguna bandera se llama -eval ni -instalacion en internal/evals.",
+    "El informe.json de normativa del cierre de H41.1 (specs/035-…/gates/evals/normativa.json) pesa 972,8 KB con 222 sesiones. La lista le añade 24-43 KB (2,5-4,5 %), y informe.md va entero a GITHUB_STEP_SUMMARY (scripts/evals.sh:221-222), que tiene un límite de 1 MiB. El plan no relaciona el aumento con esas bases. No hay evidencia en el repositorio de que informe.md esté cerca del límite, así que no es motivo.",
+    "D5 afirma que, tras LeerSesion, leerLosUsos solo falla con un transcript que Claude Code no escribe. Para la 2.1.284 del job no hay transcripciones en el repositorio. leerLosUsos no es más estricto que leerAssistant con message.content: solo además decodifica message como objeto en cada línea. Y las tablas de evidencias/sondeos-2026110x se sacaron con leerLosUsos de transcripciones reales de 2.1.317 a 2.1.322.",
+    "contracts/tabla.md §3: con n = 0 dice «las cinco primeras y la instalación, llenas», pero las llenas son siete: Variante, Modo, Modelo, Claude Code, Skills instaladas, Sin terminar y n. El ejemplo de §4 lo deja claro.",
+    "SC-007 nombra «las evals de las skills del producto». consulta-juridica no publica ningún umbral con decide: true, y su veredicto lo deciden sus series (ADR 0016), configuración que el hito no toca.",
+    "Quickstart §5 espera tres líneas del Makefile. Si el comentario nuevo de evals-laboratorio (research D16) nombra el objetivo, el grep dará más.",
+    "TestTablaConLasActivaciones y el guion congelado comparan la misma tabla.md byte a byte, sobre dos copias del fixture: la de testdata/ y la del txtar. Es el patrón de H40 y H41, y el test unitario aporta además la fila de 40 copias de SC-005.",
+    "D1 deja de exigir message.id. En los transcripts de los tests sin id todas las respuestas caen en el turno 1, así que su lista diría «después». No se afirma nada sobre eso y TestInformeDeLaSuiteCompletaNoCambia quita la lista, pero conviene que ningún test nuevo se apoye en esos transcripts para la lista."
+  ]
+}
