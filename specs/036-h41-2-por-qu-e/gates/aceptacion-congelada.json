@@ -2,6 +2,7 @@
   "tarea": "T001",
   "commit": "889132fb73e700e476f5cf37598e318d8c403da6",
   "ficheros": {
-    "specs/036-h41-2-por-qu-e/aceptacion/laboratorio-tabla.txtar": "8c516d6ff22487fab7a8d824f12ca6ad9be138b04315e19f94056bf9ddaf8610"
+    "specs/036-h41-2-por-qu-e/aceptacion/laboratorio-tabla.txtar": "8c516d6ff22487fab7a8d824f12ca6ad9be138b04315e19f94056bf9ddaf8610",
+    "internal/app/testdata/script/h41-2-laboratorio-tabla.txtar": "8c516d6ff22487fab7a8d824f12ca6ad9be138b04315e19f94056bf9ddaf8610"
   }
 }
