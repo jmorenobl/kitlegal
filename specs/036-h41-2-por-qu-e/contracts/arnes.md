@@ -52,7 +52,7 @@ los dos nuevos van detrás del de `DIRECTORIO`. Vacíos, los dos son «sin la op
 
 Tres de esos errores dependen de la familia de las variantes pedidas: el de `INSTALACION=producto` y el de `EVAL` no vacío
 con variantes de H39, y el de un `EVAL` que no es el número de ninguna eval del plan de la familia. Solo se dan cuando las
-variantes pedidas que valen son de una sola familia (`familiaDeLasVariantes`, `laboratorio_sondeo.go:361-378`); si ninguna
+variantes pedidas que valen son de una sola familia (`familiaDeLasVariantes`, `laboratorio_sondeo.go:470-487`); si ninguna
 vale, o las que valen mezclan familias, no hay familia, y el error de `VARIANTES` o el de la mezcla ya lo dicen. El de
 `INSTALACION: «<v>» no es producto` no depende de la familia: sale siempre que el valor no es vacío ni `producto`, con
 cualquier `VARIANTES`. La regla de `SESIONES` la decide que `EVAL` venga o no, valga o no. Dos ejemplos, en la salida de
@@ -75,7 +75,7 @@ INSTALACION: «todas» no es producto
 
 ## 3. Lo que prepara y abre
 
-Lo de H41, con dos diferencias:
+Lo de H41, con tres diferencias:
 
 1. **Skills** (FR-010). En el temporal, `skills/<variante>/` tiene la copia de la variante, como hoy. Con
    `INSTALACION=producto`, tiene además la de cada directorio de `skills/` del árbol que no es la skill de la familia, con

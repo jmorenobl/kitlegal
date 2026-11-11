@@ -25,7 +25,8 @@ que la de los sondeos de antes salga igual byte a byte.
 
 ## Technical Context
 
-**Language/Version**: Go 1.27 (`go 1.27.0`, `toolchain go1.27.3` en `go.mod`).
+**Language/Version**: Go 1.27 (`go 1.27.0` en `go.mod`; su `toolchain`, `go1.27.3` al planificar, pasa a `go1.27.4` en
+el hito por GO-2026-6859, que `make vuln` encuentra en go1.27.3: `CHANGELOG.md`, «Seguridad»).
 
 **Primary Dependencies**: las fijadas, sin ninguna nueva. Biblioteca estándar en el código (`encoding/json`,
 `encoding/json/v2` y `encoding/json/jsontext` donde ya se usan, `os`, `path/filepath`, `slices`, `strings`) y lo que ya usan
@@ -109,18 +110,22 @@ specs/036-h41-2-por-qu-e/
 ```text
 internal/evals/activaciones.go                 # NUEVO: Activacion, activacionesDeLosUsos, textoDeLasActivaciones, reconocedorDeKitlegal; leerLosUsos y sus ayudantes, movidos de laboratorio_tabla.go
 internal/evals/activaciones_test.go            # NUEVO: TestActivacionesDeLosUsos
-internal/evals/informe.go                      # ResultadoDeEval.Activaciones; la lista de cada sesión; el párrafo de informe.md
+internal/evals/juzgar.go                       # ResultadoDeEval.Activaciones, con omitzero
+internal/evals/informe.go                      # la lista de cada sesión; el párrafo de informe.md
 internal/evals/informe_test.go                 # + TestInformeConLasActivaciones; TestInforme (caso sesion-ilegible); TestInformeDeLaSuiteCompletaNoCambia (quita la lista)
 internal/evals/laboratorio_sondeo.go           # INSTALACION y EVAL; la copia de las otras skills; el plan de una eval; skills_instaladas
 internal/evals/laboratorio_sondeo_test.go      # + TestArnesConLaInstalacionDelProducto, TestArnesConUnaEval; exigirElSondeoDelArnes con skills_instaladas; TestRecetasDelSondeo y TestGuionDelLaboratorio con nueve argumentos
 internal/evals/laboratorio_tabla.go            # sondeoLeido.SkillsInstaladas; la instalación en la fila; las columnas nuevas; el reconocedor compartido
 internal/evals/laboratorio_tabla_test.go       # + TestTablaConLasActivaciones
 internal/evals/job_test.go                     # TestSondeoDelLaboratorio (-tags evals): -instalacion y -eval
+internal/evals/sondeo_test.go                  # juicioSinLaTraza quita la lista, que el sondeo de una skill no lee
 internal/evals/testdata/sesiones/activaciones/                       # NUEVO [datos]: evals/ y diez sesiones
 internal/evals/testdata/laboratorio/familias/activaciones/           # NUEVO [datos]: sondeo/{h41,h41-2-a,h41-2-b}/ y tabla.md
 scripts/evals-laboratorio.sh                   # nueve argumentos; -instalacion y -eval
 scripts/evals-sondeo-llavero.sh                # comentario: nueve argumentos
-Makefile                                       # receta de evals-laboratorio con "$(INSTALACION)" "$(EVAL)"; su comentario («siete argumentos»)
+Makefile                                       # receta de evals-laboratorio con "$(INSTALACION)" "$(EVAL)"; su comentario («siete argumentos»); -timeout $(PLAZO_DE_LOS_TESTS), 20m, en test y test-integration (T007)
+.golangci.yml                                  # misspell: «activacion» en ignore-rules
+go.mod                                         # toolchain go1.27.4
 CONTRIBUTING.md                                # «Job de evals»: la lista; «El sondeo del laboratorio»: los dos argumentos y las columnas
 CHANGELOG.md                                   # Unreleased
 ```

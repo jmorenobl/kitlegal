@@ -19,9 +19,9 @@ algún `tool_result` y lleva un `message.id` distinto del anterior); «antes», 
 herramienta, o cualquiera si no hay ninguna; en el mismo turno, no. Cada `tool_use` de `Skill` es una entrada, también
 si repite skill.
 
-## 2. El informe del job (`internal/evals/informe.go`; FR-001 a FR-005)
+## 2. El informe del job (`internal/evals/informe.go` y `juzgar.go`; FR-001 a FR-005)
 
-- `ResultadoDeEval` gana `Activaciones []Activacion` con `json:"activaciones,omitzero"`, detrás de `Activada`.
+- `ResultadoDeEval` (`juzgar.go`) gana `Activaciones []Activacion` con `json:"activaciones,omitzero"`, detrás de `Activada`.
   - Sesión que `LeerSesion` leyó: la lista de `activacionesDeLosUsos` con los usos de `leerLosUsos` y el reconocedor en
     el modo de la sesión; `[]` si no activó ninguna.
   - Sesión que `LeerSesion` no leyó, o cuya lista no se pudo leer: nil, sin clave en `informe.json`. Un error al leerla es

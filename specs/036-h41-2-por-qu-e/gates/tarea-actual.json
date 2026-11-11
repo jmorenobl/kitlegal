@@ -1,22 +1,11 @@
 {
-  "id": "T009",
-  "texto": "T009 La documentación de lo que deja de ser cierto (FR-001, FR-002, FR-010, FR-012, FR-013, FR-014, FR-020; DoD §1; research D16): CHANGELOG.md, en *Unreleased*, la lista de activaciones de cada sesión en `informe.json` y en `informe.md` del job, `INSTALACION=producto` y `EVAL=<nn>` de `make evals-laboratorio`, `skills_instaladas` en `sondeo.json` y las columnas nuevas de la tabla de una familia del producto; CONTRIBUTING.md, en «Job de evals», `activaciones` en la lista de lo que lleva `informe.json` y el párrafo `Skills activadas:` de `informe.md`, y en «El sondeo del laboratorio», la tabla de argumentos con `INSTALACION` y `EVAL` (y `SESIONES` entero mayor que 0 con `EVAL`), `skills_instaladas` y las columnas «Skills instaladas», «Activan otra skill», «Otras skills», «No activan ninguna» y, en el detalle, «Activaciones», con las órdenes de contracts/arnes.md §1; en el Makefile, solo el comentario que precede a `evals-laboratorio` («siete argumentos» → nueve, con los dos nuevos y que vacíos son la instalación y el plan de hoy) y su línea `##` de ayuda si nombra los argumentos, sin cambiar la receta (`TestRecetasDelSondeo` sigue en verde); la cabecera de comentario de scripts/evals-laboratorio.sh («Los siete argumentos» → los nueve) y la de scripts/evals-sondeo-llavero.sh («con sus siete» → nueve), sin cambiar código ni órdenes. Ningún ADR (el que lee el sondeo se escribe fuera del run: FR-031, research D16), ninguna fila nueva en docs/SOURCES.md (no hay fuente nueva) y ningún esquema. `make ci` en verde.",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "03ba0fb47b00aa805207f7b32ba5a050e5d7e9af",
-  "rutas": [
-    "CHANGELOG.md",
-    "CONTRIBUTING.md",
-    "Makefile",
-    "contracts/arnes.md",
-    "docs/SOURCES.md",
-    "informe.json",
-    "informe.md",
-    "scripts/evals-laboratorio.sh",
-    "scripts/evals-sondeo-llavero.sh",
-    "sondeo.json"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

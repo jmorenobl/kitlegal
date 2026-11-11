@@ -328,8 +328,8 @@ umbral o el job.
 - **Lista de activaciones en el informe del job** (FR-001, FR-002). La escribe el job una vez por sesión y la lee la
   persona al leer el informe de una medición, también la del cierre cuando sale en rojo: sobre todo la de las sesiones que cuentan en
   `sin_activar`, una o ninguna por medición en la serie de partida. Tamaño: una entrada por `tool_use` de `Skill`,
-  acotada por los turnos de la sesión; lo esperado, sin medir en esta sesión, es una o dos entradas de unos 45 bytes en
-  `informe.json` (el nombre más «antes») y una línea en `informe.md`. Con unos centenares de sesiones por medición son
+  acotada por los turnos de la sesión; lo esperado es una o dos entradas, que añaden a la sesión 109 bytes en
+  `informe.json` con una y 195 con dos (research V2, con la sangría del informe), y una línea en `informe.md`. Con unos centenares de sesiones por medición son
   unas decenas de kilobytes como mucho. No crece con el uso del producto —cientos de normas y miles de bloques
   consultados no la cambian—, solo con las sesiones que planifica el job. No es una señal que persista: cada medición
   escribe su informe, y la de la siguiente cabeza da otra lista.

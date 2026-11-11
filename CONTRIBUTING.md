@@ -1789,7 +1789,7 @@ de **una sola familia**: los nombres son de `variantes.yaml` o de las variantes 
 las otras dos familias del producto, abajo), y mezclarlos es un
 error de uso más, `VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de normativa`, detrás de los de los
 nombres. Cada par variante × modo se comprueba con su familia (`VARIANTES y MODOS: <v> no se mide en modo <m>`), y
-`SESIONES` sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
+`SESIONES`, sin `EVAL` (H41.2, abajo), sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
 `05-trlrhl-impuestos-municipales.yaml`, `15-irpf-rendimientos-por-materia.yaml` y `22-lcsp-contrato-menor-en-2019.yaml`
 de `evals/normativa`, las del job, sin copia, y en ese orden. Cada sesión se prepara como en el job, con las consultas de
 todas las evals de `evals/normativa` servidas por lo grabado y los proxies que rechazan toda petición (ADR 0043), y queda
@@ -1861,7 +1861,7 @@ rige `skills/`, no las variantes versionadas.
 La orden, los argumentos y la cadena son los de arriba. `VARIANTES` es de **una sola familia**: pedir variantes de
 varias es `VARIANTES: se mezclan variantes de <a> y variantes de <b>`, una por familia pedida, en el orden de las
 familias, separadas por comas y la última con «y»; la de H39 se nombra «del laboratorio de H39», así que la mezcla de
-H39 y `normativa` da el mensaje de H40. `SESIONES` sigue siendo múltiplo de 4: cada familia tiene cuatro evals de
+H39 y `normativa` da el mensaje de H40. `SESIONES`, sin `EVAL` (abajo), sigue siendo múltiplo de 4: cada familia tiene cuatro evals de
 `evals/<skill>`, las del job, sin copia y en este orden (a qué condiciones de las remisiones llega cada una,
 `specs/034-h41-las-skills-del/research.md`, D15):
 

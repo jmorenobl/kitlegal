@@ -3,8 +3,8 @@
 Desde la raíz del repositorio, con Go 1.27 (`go.mod`). Los escenarios 1 a 6 no usan modelo ni credencial, no escriben en
 el índice ni en el historial de git y salen con 0 cuando el hito está hecho. Los escenarios 1 a 5 no usan red ni
 escriben en el árbol de trabajo: solo en la caché de compilación de Go y, el 3 y los tests, en el directorio temporal. El
-6, `make ci`, además: su objetivo `vuln` consulta la base de vulnerabilidades de Go, que requiere red (`Makefile:118`), y
-`test` y `test-integration` dejan `coverage.out` y `coverage-integration.out` en la raíz (`Makefile:87` y `:91`),
+6, `make ci`, además: su objetivo `vuln` consulta la base de vulnerabilidades de Go, que requiere red (`Makefile:128`), y
+`test` y `test-integration` dejan `coverage.out` y `coverage-integration.out` en la raíz (`Makefile:97` y `:101`),
 ignorados por git (`.gitignore`: `/*.out`, `/coverage.*`). Lo que comprueba cada uno, en contracts/; los nombres de los
 tests, en plan.md, «Gates». Antes del hito ya salen en verde los tests de H39 a H41 de los escenarios 1, 2 y 3 y las
 suites del 4; lo demás nombra tests, ficheros o argumentos que entrega el hito.
