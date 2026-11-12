@@ -1,0 +1,12 @@
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal-sondeos/h41-2/sola-2.1.284, con claude-sonnet-5-5 y Claude Code 2.1.284.
+- normativa-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal-sondeos/h41-2/sola-2.1.284
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal-sondeos/h41-2/todas-2.1.284, con claude-sonnet-5-5 y Claude Code 2.1.284.
+- normativa-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal-sondeos/h41-2/todas-2.1.284
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal-sondeos/h41-2/sola-2.1.322, con claude-sonnet-5-5 y Claude Code 2.1.322.
+- normativa-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal-sondeos/h41-2/sola-2.1.322
+Sondeo del laboratorio en /Users/jorge/Projects/kitlegal-sondeos/h41-2/todas-2.1.322, con claude-sonnet-5-5 y Claude Code 2.1.322.
+- normativa-producto, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/Projects/kitlegal-sondeos/h41-2/todas-2.1.322

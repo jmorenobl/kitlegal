@@ -1,0 +1,28 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "8a21ec688d63977532fda5d0c27c41a0623d9422f888e61f37471e69bad0a6c4",
+      "bytes": 4101,
+      "fecha": "2026-11-12",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H41.2 (#256)"
+    },
+    {
+      "fichero": "salida.txt",
+      "sha256": "4ed326d2130854c75d01e7132e9419ee232265b780c15c71d16529e371ded360",
+      "bytes": 1124,
+      "fecha": "2026-11-12",
+      "versionado": "sí",
+      "origen": "salida de make evals-laboratorio, cuatro lanzamientos"
+    },
+    {
+      "fichero": "tabla-normativa.md",
+      "sha256": "b07247952828a95f0dbd3535ba347dcc0257aa79508e9538927251f8fb87c966",
+      "bytes": 27529,
+      "fecha": "2026-11-12",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de las cuatro filas"
+    }
+  ]
+}
