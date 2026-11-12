@@ -59,6 +59,13 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El paso `hito_a_done` del workflow `hito` cubre el gancho de pre-commit, y el supervisor espera al índice de git
+  antes de reanudar** (workflow `hito` 2.12.1). En H41 y en H41.2 el commit del paso pasó de su timeout de 30 s con el
+  gancho de pre-commit corriendo (`make secrets` tardó 36 a 38 s con la máquina cargada), y el supervisor lo reanudó
+  al segundo, con el índice todavía tomado, y gastó sus dos reanudaciones en «index.lock: File exists». El paso tiene
+  ahora 120 s, como los demás que commitean, y un test lo exige a todos; antes de reanudar un fallo transitorio,
+  `scripts/hito.sh` espera como mucho `KITLEGAL_ESPERA_INDICE` segundos (120) a que se libere el índice y, si no, se
+  detiene sin borrar el candado.
 - **El juez adversarial y la escalada del workflow `hito` pasan a Fable 5.2** (workflow `hito` 2.12.0; ADR 0033). El
   alias `fable` resuelve a `claude-fable-5-2` desde el sondeo del 2026-11-10, y `modelo_adversario` y
   `modelo_escalada` llevan ahora `claude-fable-5-2@xhigh`. `claude-fable-5-1` sigue en la lista de valores para

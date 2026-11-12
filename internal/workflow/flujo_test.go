@@ -32,15 +32,59 @@ var (
 
 // pasoDelWorkflow es lo que el test lee de cada paso de workflow.yml.
 type pasoDelWorkflow struct {
-	ID    string            `yaml:"id"`
-	Tipo  string            `yaml:"type"`
-	Model string            `yaml:"model"`
-	Run   string            `yaml:"run"`
-	Items string            `yaml:"items"`
-	Then  []pasoDelWorkflow `yaml:"then"`
-	Else  []pasoDelWorkflow `yaml:"else"`
-	Steps []pasoDelWorkflow `yaml:"steps"`
-	Step  *pasoDelWorkflow  `yaml:"step"`
+	ID      string            `yaml:"id"`
+	Tipo    string            `yaml:"type"`
+	Model   string            `yaml:"model"`
+	Run     string            `yaml:"run"`
+	Items   string            `yaml:"items"`
+	Timeout int               `yaml:"timeout"`
+	Then    []pasoDelWorkflow `yaml:"then"`
+	Else    []pasoDelWorkflow `yaml:"else"`
+	Steps   []pasoDelWorkflow `yaml:"steps"`
+	Step    *pasoDelWorkflow  `yaml:"step"`
+}
+
+// pisoDeUnCommit es el timeout mínimo, en segundos, de un paso que commitea: el
+// commit pasa el gancho de pre-commit (lefthook.yml), cuyo `make secrets`
+// tardó 36 a 38 s con la máquina cargada en H41.2, y 120 s es lo que ya tenían
+// los demás pasos que commitean.
+const pisoDeUnCommit = 120
+
+// pasosQueCommitean son los pasos shell que hacen un commit con el gancho de
+// pre-commit en el tiempo de su timeout. Los que lo hacen dentro de `make ci`
+// tienen 1800 s y no se listan.
+var pasosQueCommitean = []string{
+	"hito_a_done", "commit_artefactos_plan", "commit_artefactos_tasks", "commit_tarea",
+	"activar_aceptacion", "cerrar_revision",
+}
+
+// TestLosPasosQueCommiteanCubrenElGancho: en H41 y en H41.2 el commit de
+// hito_a_done pasó de los 30 s de su timeout con el gancho de pre-commit
+// todavía corriendo, y el paso falló sin haber fallado nada. Todo paso que
+// commitea lleva al menos pisoDeUnCommit.
+func TestLosPasosQueCommiteanCubrenElGancho(t *testing.T) {
+	t.Parallel()
+
+	var flujo struct {
+		Steps []pasoDelWorkflow `yaml:"steps"`
+	}
+
+	require.NoError(t, yaml.Unmarshal([]byte(leerDelRepositorio(t, rutaDelWorkflow)), &flujo))
+
+	pasos := map[string]pasoDelWorkflow{}
+	for _, paso := range aplanar(flujo.Steps) {
+		pasos[paso.ID] = paso
+	}
+
+	for _, id := range pasosQueCommitean {
+		paso, esta := pasos[id]
+		if !assert.True(t, esta, "el paso %s existe", id) {
+			continue
+		}
+
+		assert.Equal(t, "shell", paso.Tipo, "%s es un paso shell", id)
+		assert.GreaterOrEqual(t, paso.Timeout, pisoDeUnCommit, "el timeout de %s cubre el gancho de pre-commit", id)
+	}
 }
 
 // TestCadaPasoConModeloDiceSuPasoYSuRol: spec-kit no le dice al ejecutable de
@@ -141,4 +185,23 @@ func TestLaSesionDeSpecifyLaRecogeElPasoSiguiente(t *testing.T) {
 	assert.Equal(t, "recoger_sesiones", flujo.Steps[2].ID, "recoger_sesiones sigue a specify")
 	assert.Equal(t, "shell", flujo.Steps[2].Tipo)
 	assert.Equal(t, "scripts/workflow/modelos.sh recoger", flujo.Steps[2].Run)
+}
+
+// aplanar da los pasos de la lista y, detrás de cada uno, los que lleva dentro
+// (then, else, steps y step), en el orden del fichero.
+func aplanar(lista []pasoDelWorkflow) []pasoDelWorkflow {
+	var pasos []pasoDelWorkflow
+
+	for _, paso := range lista {
+		pasos = append(pasos, paso)
+		pasos = append(pasos, aplanar(paso.Then)...)
+		pasos = append(pasos, aplanar(paso.Else)...)
+		pasos = append(pasos, aplanar(paso.Steps)...)
+
+		if paso.Step != nil {
+			pasos = append(pasos, aplanar([]pasoDelWorkflow{*paso.Step})...)
+		}
+	}
+
+	return pasos
 }

@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.12.0"
+  version: "2.12.1"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito del roadmap sin ninguna persona entre la entrada y el informe final (ADR 0018). El fichero del hito en docs/roadmap/in-progress/ es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
@@ -156,10 +156,12 @@ steps:
   # El fichero del hito pasa de docs/roadmap/in-progress/ a done/ en el primer commit
   # de su rama, la que acaba de crear specify: al fusionar la propuesta de cambio,
   # main lo tiene hecho, y como es parte del producto desde el principio lo ven todas
-  # las revisiones y todas las mediciones (ADR 0030).
+  # las revisiones y todas las mediciones (ADR 0030). Su commit pasa el gancho de
+  # pre-commit, que con la máquina cargada tarda más de 30 s (H41 y H41.2): 120 s,
+  # como los demás pasos que commitean (TestLosPasosQueCommiteanCubrenElGancho).
   - id: hito_a_done
     type: shell
-    timeout: 30
+    timeout: 120
     run: "scripts/workflow/hito-a-done.sh {{ inputs.hito }}"
 
   # ================================================================ clarify: pregunta un proceso, responde otro, nadie escala
