@@ -120,6 +120,11 @@ con una regla de forma que el agente solo puede sacar de donde se ponga, 40 sesi
   descripción de un parámetro dice cómo se rellena y nada más.
 - Las instrucciones del servidor y una skill de entrada no mejoran la activación de una skill que se activa sola, y la
   de entrada se salta en 13 y 23 de 40. Nombrar las herramientas en la descripción ni ayuda ni estorba.
+- La activación se mide con todas las skills del producto instaladas (`INSTALACION=producto`), como las deja
+  `kitlegal skills install` (ADR 0054). Con las cuatro, la eval 04 de `normativa` en modo herramienta no activa
+  ninguna skill en 6 de 80 sesiones, y con `normativa` sola, en 0 de 80 en el mismo sondeo. El «40 de 40» de «Activan
+  antes» de los sondeos de H39 a H41.1 es de una instalación con una sola skill. Si la causa es el presupuesto del
+  listado de skills de Claude Code, lo mide H41.3.
 
 **Cómo se remite.** El laboratorio no reproducía el defecto de `normativa` en modo herramienta, donde las referencias
 casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `normativa` fuera del producto
