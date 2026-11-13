@@ -573,8 +573,11 @@ func exigirQueSoloPasaEnElSondeo(t *testing.T, informe Informe, juicio juicioDel
 // las otras fallidas, las lecturas sin servir (FR-015 de H26.1) ni las llegadas
 // a la red; sin los motivos de un comando ausente o de un prohibido ejecutado;
 // y, sin ellos, pasa si no le queda ningún motivo, como toda sesión que se
-// juzga.
+// juzga. Desde H41.2, sin la lista de activaciones, que no sale de la traza
+// pero que el sondeo tampoco lee: el hito solo la da en el informe del job
+// (contracts/informe.md §2 de H41.2), y juzgarSesionDelSondeo no cambia.
 func juicioSinLaTraza(resultado ResultadoDeEval) ResultadoDeEval {
+	resultado.Activaciones = nil
 	resultado.ComandosEjecutados, resultado.ComandosAusentes, resultado.ComandosProhibidosEjecutados = nil, nil, nil
 	resultado.Invocaciones, resultado.FueraDeLoGrabado = nil, nil
 	resultado.OtrasFallidas, resultado.LecturasSinServir, resultado.LlegadasALaRed = nil, nil, nil

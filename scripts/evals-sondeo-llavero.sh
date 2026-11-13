@@ -2,13 +2,13 @@
 # Entrada de `make evals-sondeo` y de `make evals-laboratorio`: toma la credencial de la suscripción de quien lo lanza
 # y ejecuta el guion que nombra su primer argumento, de una lista cerrada, con los demás (ADR 0032;
 # specs/031-h39-c-omo-se/contracts/arnes.md §1): `sondeo`, scripts/evals-sondeo.sh con sus cinco; `laboratorio`,
-# scripts/evals-laboratorio.sh con sus siete. Con otro, o sin ninguno, su uso y 1, sin tocar la credencial. Los dos
+# scripts/evals-laboratorio.sh con sus nueve. Con otro, o sin ninguno, su uso y 1, sin tocar la credencial. Los dos
 # abren sesiones con modelo: los lanza una persona, o una sesión interactiva a petición suya; nunca un paso del
 # workflow `hito`.
 #
 #   make evals-sondeo SKILL=<skill> EVALS=<nn>[,<nn>…] MODELO=<id> REPETICIONES=<n> [CONCURRENCIA=<n>]
 #   make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
-#     CONCURRENCIA=<c> DIRECTORIO=<ruta>
+#     CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto] [EVAL=<nn>]
 #
 # La credencial no vive en ningún fichero que una sesión pueda leer. En H7.4 estaba en uno, y una sesión del run la
 # leyó con `cat` dentro de un guion —las reglas `deny` de Claude Code solo cubren su herramienta Read— y abrió con

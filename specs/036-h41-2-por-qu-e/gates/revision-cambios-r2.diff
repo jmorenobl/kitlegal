@@ -1,0 +1,99 @@
+diff --git a/internal/evals/activaciones_test.go b/internal/evals/activaciones_test.go
+index 2b3cbdef..e82bd731 100644
+--- a/internal/evals/activaciones_test.go
++++ b/internal/evals/activaciones_test.go
+@@ -64,8 +64,9 @@ type casoDeActivaciones struct {
+ // TestActivacionesDeLosUsos fija la lista de las skills activadas de una sesión
+ // (FR-001; SC-001; contracts/informe.md §1; data-model §1; research D1 y D2):
+ // por cada uso de Skill, en orden y también si repite skill, su input.skill y si
+-// va en un turno anterior al de la primera herramienta de kitlegal del modo, o
+-// en cualquiera si la sesión no tiene ninguna; en el mismo turno, no. En el modo
++// va en un turno anterior al de la primera herramienta de kitlegal del modo
++// —la primera también cuando hay varias—, o en cualquiera si la sesión no tiene
++// ninguna; en el mismo turno, no. En el modo
+ // herramienta lo es una del registro, con el prefijo del servidor o sin él, y no
+ // ToolSearch; en el modo orden, una orden de Bash que consulta con kitlegal, y no
+ // which kitlegal; y en el de una eval sin binario ni servidor, ninguna, tampoco
+@@ -89,6 +90,26 @@ func TestActivacionesDeLosUsos(t *testing.T) {
+ 			},
+ 			esperadas: []Activacion{{Skill: skillNormativa}, {Skill: skillDeConsultaJuridica}},
+ 		},
++		{
++			// La primera herramienta es la del turno 1, no la del 3.
++			nombre: "entre dos herramientas de kitlegal",
++			modo:   ModoHerramienta,
++			usos: []usoDelTranscript{
++				usoDe(1, herramientaConElPrefijo), usoDeSkill(t, 2, skillNormativa),
++				usoDe(3, herramientaSinElPrefijo),
++			},
++			esperadas: []Activacion{{Skill: skillNormativa}},
++		},
++		{
++			// La primera orden es la del turno 2, no la del 4.
++			nombre: "cada skill antes de una orden kitlegal",
++			modo:   ModoOrden,
++			usos: []usoDelTranscript{
++				usoDeSkill(t, 1, skillDeConsultaJuridica), usoDeBash(t, 2, ordenQueConsultaLaLGT),
++				usoDeSkill(t, 3, skillNormativa), usoDeBash(t, 4, ordenQueConsultaLaLGT),
++			},
++			esperadas: []Activacion{{Skill: skillDeConsultaJuridica, Antes: true}, {Skill: skillNormativa}},
++		},
+ 		{
+ 			nombre:    "sin ninguna herramienta de kitlegal",
+ 			modo:      ModoOrden,
+diff --git a/internal/evals/informe_test.go b/internal/evals/informe_test.go
+index be1e023c..1777f355 100644
+--- a/internal/evals/informe_test.go
++++ b/internal/evals/informe_test.go
+@@ -3391,7 +3391,8 @@ func comprobarEvalSinSesion(t *testing.T, leido informeLeido) {
+ }
+ 
+ // comprobarSinEvalTxt exige la sesión sin eval.txt ilegible, con la eval vacía:
+-// sin la eval no cae en la serie que el plan pide, que queda sin sesiones.
++// sin la eval no cae en la serie que el plan pide, que queda sin sesiones. Desde
++// H41.2, con la lista de activaciones de su transcript, que sí se leyó.
+ func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
+ 	t.Helper()
+ 
+@@ -3399,6 +3400,7 @@ func comprobarSinEvalTxt(t *testing.T, leido informeLeido) {
+ 	exigirMotivosDeLaRaiz(t, leido,
+ 		slices.Concat(motivosDeLaSerieSinSesiones(), []string{sesionDelArticulo21 + ": " + motivo})...)
+ 	assert.Empty(t, resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Eval)
++	exigirLaListaDeLaSesionIlegibleLeida(t, leido)
+ }
+ 
+ // comprobarEvalDesconocida exige la sesión cuyo eval.txt no nombra ninguna eval
+@@ -3429,7 +3431,8 @@ func comprobarSinPreguntaTxt(t *testing.T, leido informeLeido) {
+ }
+ 
+ // comprobarTrazaIlegible exige la sesión con la línea execve cortada ilegible por
+-// su traza, con el fichero, el número de línea y su texto en el motivo.
++// su traza, con el fichero, el número de línea y su texto en el motivo. Desde
++// H41.2, con la lista de activaciones de su transcript, que sí se leyó.
+ func comprobarTrazaIlegible(t *testing.T, leido informeLeido) {
+ 	t.Helper()
+ 
+@@ -3442,6 +3445,23 @@ func comprobarTrazaIlegible(t *testing.T, leido informeLeido) {
+ 	exigirMotivosDeLaRaiz(t, leido,
+ 		motivoDeLaTasa(ficheroDeLaEval01, modeloQueDecide, 0, 1, 1),
+ 		sesionDelArticulo21+": "+motivo)
++	exigirLaListaDeLaSesionIlegibleLeida(t, leido)
++}
++
++// exigirLaListaDeLaSesionIlegibleLeida exige, de la sesión del art. 21 ilegible
++// con el transcript leído, la lista de activaciones de su transcript, como
++// activada: la skill de las sesiones en el turno 1 y sin ninguna herramienta de
++// kitlegal, en el resultado, en informe.json y en su sección de informe.md
++// (contracts/informe.md §2 y §3 de H41.2; research D5 de H41.2).
++func exigirLaListaDeLaSesionIlegibleLeida(t *testing.T, leido informeLeido) {
++	t.Helper()
++
++	assert.Equal(t, []Activacion{{Skill: skillDeLasSesiones, Antes: true}},
++		resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21).Activaciones)
++	assert.JSONEq(t, `[{"skill":"`+skillDeLasSesiones+`","antes":true}]`,
++		string(resultadoEscrito(t, leido, sesionDelArticulo21).Activaciones))
++	assert.Equal(t, parrafoDeLasSkillsActivadas+skillDeLasSesiones+" (antes)",
++		parrafoDetrasDelModeloDeLaSesion(t, seccionDelInforme(t, leido.md, "Sesión "+sesionDelArticulo21)))
+ }
+ 
+ // exigirSesionIlegible exige que la sesión del art. 21 no pase con un único

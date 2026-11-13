@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (fuera de git por .gitignore:25), escrito a las 16:00:06, la hora del commit a68396b3, empieza por «guardián de diff ok ((global), 13 ficheros)» —los 13 de ese commit, según `git show --stat`— y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con golangci-lint «0 issues», internal/evals en verde con -race (255 s y 229 s, plazo de 20 min) y gitleaks «no leaks found» sobre 130 MB, con los informes nuevos del cierre dentro. En la plataforma, gates/cierre.json da `ci` y `snapshot` en SUCCESS sobre a27c2760, y de ahí a la cabeza solo cambia, fuera de gates/, research.md (`git diff --stat 437d493..HEAD -- . ':!specs/036-h41-2-por-qu-e/gates'`: 1 fichero, 65 líneas añadidas). No he vuelto a ejecutar `make ci` ni los tests: el rango no trae código. `git status --short` solo da ficheros de gates/ del paso de revisión (base-global-pendiente, modelos.jsonl, revision-cambios.md, revision-ciclo.json, la línea [proceso] del ciclo 2 en supuestos.md, cierre-reparaciones y revision-cambios-r3.diff)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no toca código ni tests: los de la ronda 2, con sus mutantes, valen para un código que es el mismo, y no los he repetido en esta sesión. La suite congelada sigue intacta: `git rev-parse` da el mismo blob (42ef0361) para el guion en 889132fb (T001) y en la cabeza, en las dos rutas de gates/aceptacion-congelada.json, y `git log` sobre ellas solo da 889132fb y 1a05c15e (la activación). Está en verde en gates/ci.log (internal/app, líneas 17 y 50) y en el `ci` de la plataforma (gates/cierre.json)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no trae código. Repetido sobre las líneas añadidas de `git diff main...HEAD -- '*.go' '*.sh' Makefile`: 0 con net/http, os.Exit, fmt.Print, panic(, //nolint, t.Skip, TODO o FIXME (grep -c). golangci-lint «0 issues» en gates/ci.log:9."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no toca ningún applet ni su salida: fuera de specs/ y de los testdata/, `git diff --stat main...HEAD` da internal/evals, Makefile, los dos guiones del sondeo, .golangci.yml, go.mod y documentación; schemas/ no cambia. TestEsquemasPublicados en verde en gates/ci.log:80-81. El rango no cambia nada de esto."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios de producto en el rango. Lo que el contrato del job promete ocurre en la medición real: el umbral sin cumplir pone `veredicto: fallo` en gates/evals/normativa.json con un solo motivo, `make evals` sale con error (gates/cierre.log:150-151, «make: *** [Makefile:145: evals] Error 1» y «Process completed with exit code 2»), el trabajo `evals (normativa)` queda en FAILURE y gates/cierre.json da `verde: false`."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Lo único que cambia es D18 de research.md (:273-336, dentro de «## Decisiones», :14), y cada afirmación suya que se puede medir la he comprobado contra el repositorio. Con jq sobre gates/evals/normativa.json: commit a27c2760, veredicto «fallo» con el único motivo «umbral sin_activar:claude-sonnet-5-5:herramienta: 1 de 60 (1,7 %)»; 23 evals medidas, 0 reutilizadas, 222 sesiones, Claude Code 2.1.284; los demás umbrales con `decide: true` cumplen (sin_activar en orden 0 de 60, redaccion_sin_fechar 0 de 6 en cada modo, afirma_lo_no_leido 1 de 120, medida del juez 0 de 212 y 0 de 47, duraciones 543, 498, 112 y 116 s). La sesión `04-lgt-prescripcion-herramienta-claude-sonnet-5-5-02` tiene `activaciones: []`, `activada: false`, una sola llamada (`boe_articulo BOE-A-2003-23186 a66`, código 0), «result success» y el motivo que D18 cita; las `-01` y `-03` activan normativa antes y piden boe_indice, boe_articulo y graph_check, y las tres del modo orden la activan. De las sesiones de claude-sonnet-5-5 en evals que activan la skill, 59 de 60 en modo herramienta activan normativa y ninguna otra skill, y las 60 del modo orden, con consulta-juridica además en las tres de la eval 18. El juez marca esa sesión en afirma_lo_no_leido con sus tres votos, por los arts. 67 y 68 de la LGT. `git rev-parse` da el mismo árbol en main y en la cabeza para skills/normativa (26368b38, el `arbol_de_la_skill` de gates/serie.jsonl), skills/consulta-juridica (c86a61d7), skills (f02407d5), evals (e3417b0f) y el blob de .github/workflows/evals.yml (3c3b286f). Los cierres de H39 (a593631b), H40 (179bd217), H41 (d5e66197) y H41.1 (e4915f6a) dan 0 de 60 con 2.1.284 en su gates/evals/normativa.json. Las referencias de línea son exactas (juzgar.go:549, informe.go:1454 y :1485, evals.yml:392-398), y las citas, literales: «Fuera» del fichero del hito (:46-51), D25 y D27 de H32 (research.md:337, :373, :375), D21 de H41 (:315-364, que dice que las cuatro caídas anteriores son ejecuciones de evals.yml, y :380), el ADR 0050 (decisión, 2 y 3) y el punto 4 del «Criterio de decisión autónoma». La decisión está también en gates/supuestos.md:20, con su impacto ([alcance]) y las alternativas descartadas. Sin comprobar: el `informe.md` del job, que el repositorio no versiona, y que la sesión de la reparación no abrió ninguna sesión con modelo, que lo dice ella."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición nueva ni cambio en internal/httpx, data/ o evidencias/. Los cuatro informes del cierre que entran en gates/evals/ son respuestas a evals sintéticas: 0 coincidencias con la forma de un NIF o un NIE en los cuatro (grep -cE), y gitleaks «no leaks found» en gates/ci.log:92."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "La reparación no pone el cierre en verde tocando lo que mide: skills/, evals/ y .github/ tienen en la cabeza el árbol de main (`git rev-parse`, iguales los tres), y fuera de gates/ solo cambia research.md. El rojo no se calla: D18 (:324-325) y gates/supuestos.md:20 dicen que el criterio «las evals de las skills del producto salen en verde en la medición del cierre» no se cumple en esta medición y que repetir el job no es un remedio. Ningún fixture, umbral ni test cambia, y el diff entero sigue sin //nolint, t.Skip, TODO ni FIXME en las líneas añadidas."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La reparación hace lo que FR-033 pide para este caso (spec.md:306-310; plan.md:256-258): es `sin_activar` de la eval 04 de normativa en modo herramienta, y no se toca skill, eval, umbral ni versión del job. No se aparta del fichero del hito, que deja fuera cada sitio desde el que se podría actuar (:46-51), ni de lo que decidieron D27 de H32 y D21 de H41 para la misma caída. El supuesto de gates/supuestos.md:20 es la lectura conservadora, coherente con el spec, y nombra lo descartado."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido por primera vez sobre un informe real del job: gates/evals/normativa.json pesa 1 338 695 bytes con 222 sesiones y 1 311 267 sin la clave `activaciones` (`jq 'del(.evals[].activaciones)' | wc -c`): la lista añade 27 428 bytes, 123,5 por sesión, el 2,0 % del informe; la lista más larga tiene 3 entradas. En los cuatro informes del cierre (504 sesiones) toda sesión lleva su lista, ninguna nula ni ausente. Crece con las sesiones medidas, no con lo acumulado, y nada persiste entre mediciones. Ninguna SKILL.md cambia: 0 invocaciones más por pregunta. El `informe.md` del job no lo he medido: no está en el repositorio."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni código, ni test, ni opción, ni rama. Son 65 líneas de registro de una decisión en research.md, que piden el punto 3 del «Criterio de decisión autónoma» y la regla de los cambios del cierre (decisión con su evidencia en research.md y en gates/supuestos.md). El código es el de la ronda 2."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El control de SC-007 se ve funcionar en la medición real: `sin_activar:claude-sonnet-5-5:herramienta` está en `umbrales` de gates/evals/normativa.json con `decide: true`, medida 1 de 60, umbral 0 y `cumple: false`, y eso pone el veredicto en «fallo», el trabajo en FAILURE y `verde: false` en gates/cierre.json. La medida es la de `activada`, como antes del hito: 59 de las 60 sesiones de claude-sonnet-5-5 en modo herramienta con `activa: true` tienen `activada: true` (jq), y en las 504 sesiones de los cuatro informes `activada` coincide con que la lista nombre la skill evaluada (0 diferencias). Los controles de SC-001 a SC-006 y SC-009 son los de la ronda 2, sobre un código que no cambia, y pasan en gates/ci.log; sus mutantes no los he repetido. SC-008 lo mide una persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SC-007 no se cumple en la medición del cierre de a27c2760: `sin_activar` en modo herramienta, 1 de 60 (≤ 0). No es motivo porque ningún corrector puede arreglarlo sin tocar lo que el fichero del hito deja fuera (skill, eval, umbral, versión del job, la causa); FR-033 lo prevé y lo deja a una persona. La medición siguiente repite el job sin ningún cambio en lo que mide: si sale en verde no cierra la serie.",
+    "La caída es la quinta registrada de la eval 04 en modo herramienta y la primera con lista: `activaciones: []`, ninguna skill activada, tampoco consulta-juridica, con las cuatro instaladas y Claude Code 2.1.284. Es el dato que el hito pedía, para el ADR que lea el sondeo de FR-030.",
+    "Esa misma sesión es el 1 de 120 de `afirma_lo_no_leido`: sin la skill, nombra los arts. 67 y 68 de la LGT sin haberlos leído. Está dentro de su umbral (≤ 2,8 %).",
+    "Mi observación de la ronda 2 sobre las transcripciones reales queda medida en este cierre: en las 504 sesiones de los cuatro informes hay 0 ilegibles y 0 sin medir, así que leerLosUsos no falló en ningún transcript del job donde LeerSesion leyó. Es una medición, no una garantía.",
+    "Sin comprobar: que el `informe.md` del job del cierre dé la lista de la sesión que cae, como dice FR-033; el repositorio solo guarda el `informe.json`. Lo fija el test del informe, no esta medición.",
+    "En el informe de normativa hay umbrales informativos (`decide: false`) sin cumplir que no son de este hito: `cuenta_su_proceso` 1 de 60 en orden y 6 de 60 en herramienta, y `fuera_de_lo_grabado` 11 de 66 con claude-sonnet-5-5 en herramienta y 34 y 35 de 42 con claude-haiku-4-5.",
+    "No he ejecutado `make ci`, los tests ni los mutantes en esta ronda: el rango solo cambia research.md, y gates/ci.log es de la cabeza.",
+    "Siguen de la ronda 2, sin cambio: la subida de `toolchain` va en la rama del hito y no en un commit `chore(deps)` propio; skillsInstaladasDelSondeo lee solo la variante del primer par; la rama del error al leer la lista (informe.go:1455-1457) sigue sin test por decisión del plan; y SC-008 (la tabla de 160 sesiones y su lectura) lo mide la persona antes de fusionar."
+  ]
+}

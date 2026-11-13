@@ -1,0 +1,93 @@
+diff antes/contracts/arnes.md ahora/contracts/arnes.md
+--- antes/contracts/arnes.md	2026-11-11 02:33:11
++++ ahora/contracts/arnes.md	2026-11-11 02:34:36
+@@ -50,9 +50,13 @@
+ | `SESIONES`, con `EVAL` | un entero mayor que 0 | `SESIONES: «<n>» no es un entero mayor que 0` |
+ | `SESIONES`, sin `EVAL` | como hoy: un múltiplo de 4 mayor que 0 | como hoy |
+ 
+-Con unas `VARIANTES` que no son de ninguna familia o que mezclan familias, ni `INSTALACION` ni `EVAL` dan error propio: el
+-de `VARIANTES` ya lo dice. La regla de `SESIONES` la decide que `EVAL` venga o no, valga o no. Ejemplo, en la salida de
+-error, de `VARIANTES=control MODOS=orden SESIONES=0 MODELO=claude-sonnet-5-5 CLAUDE_CODE=2.1.284 CONCURRENCIA=1
++Tres de esos errores dependen de la familia de las variantes pedidas: el de `INSTALACION=producto` y el de `EVAL` no vacío
++con variantes de H39, y el de un `EVAL` que no es el número de ninguna eval del plan de la familia. Solo se dan cuando las
++variantes pedidas que valen son de una sola familia (`familiaDeLasVariantes`, `laboratorio_sondeo.go:361-378`); si ninguna
++vale, o las que valen mezclan familias, no hay familia, y el error de `VARIANTES` o el de la mezcla ya lo dicen. El de
++`INSTALACION: «<v>» no es producto` no depende de la familia: sale siempre que el valor no es vacío ni `producto`, con
++cualquier `VARIANTES`. La regla de `SESIONES` la decide que `EVAL` venga o no, valga o no. Dos ejemplos, en la salida de
++error. El de `VARIANTES=control MODOS=orden SESIONES=0 MODELO=claude-sonnet-5-5 CLAUDE_CODE=2.1.284 CONCURRENCIA=1
+ DIRECTORIO=<uno que no existe> INSTALACION=todas EVAL=04`:
+ 
+ ```text
+@@ -61,6 +65,14 @@
+ EVAL: las variantes del laboratorio de H39 no tienen el plan de una familia del producto
+ ```
+ 
++Y el de `VARIANTES=otra MODOS=herramienta SESIONES=4 MODELO=claude-sonnet-5-5 CLAUDE_CODE=2.1.284 CONCURRENCIA=1
++DIRECTORIO=<uno que no existe> INSTALACION=todas`, sin familia:
++
++```text
++VARIANTES: «otra» no es ninguna variante del laboratorio
++INSTALACION: «todas» no es producto
++```
++
+ ## 3. Lo que prepara y abre
+ 
+ Lo de H41, con dos diferencias:
+@@ -109,8 +121,9 @@
+     `jurisprudencia`, `normativa` y `plazos-y-territorio`; la de la familia es, ruta a ruta y byte a byte, la de
+     `laboratorio/<skill>/<skill>-control/skills/<skill>` o la de `skills/<skill>`, y cada otra, la de `skills/<otra>`; y
+     `sondeo.json` lleva las cuatro en `skills_instaladas`. Falla con la primera sesión cuyas skills difieren.
+-  - Con `INSTALACION=todas`, y con `INSTALACION=producto` y `VARIANTES=control` (H39): 0 sesiones, nada construido,
+-    `DIRECTORIO` sin crear y su mensaje de §2.
++  - Con `INSTALACION=todas`, con `INSTALACION=todas` y `VARIANTES=otra` (sin familia), y con `INSTALACION=producto` y
++    `VARIANTES=control` (H39): 0 sesiones, nada construido, `DIRECTORIO` sin crear y sus mensajes de §2; con
++    `VARIANTES=otra`, los dos del segundo ejemplo, en ese orden.
+ - **`TestArnesConUnaEval`** (`laboratorio_sondeo_test.go`; FR-011, FR-013, FR-015; SC-004, SC-009): con `EVAL`, una
+   variante de cada familia —`normativa-producto` con `EVAL=04 SESIONES=3`, `plazos-y-territorio-control` con
+   `EVAL=05 SESIONES=2` y `jurisprudencia-producto` con `EVAL=03 SESIONES=1`, en modo herramienta— abre solo
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-11 02:33:11
++++ ahora/research.md	2026-11-11 02:36:52
+@@ -166,8 +166,24 @@
+ como está en el árbol; `make install` es `skills install -g --host claude` con el binario del árbol (`Makefile:72-75`), que
+ empotra `SKILL.md` y `references/*` de cada skill byte a byte (`skills.go:1-25`), y el job instala así
+ (`.github/workflows/evals.yml:392-398`). Los directorios de las variantes versionadas solo tienen la skill de su familia,
+-que es lo que fijan sus huellas (`TestVariantesDeControl`), así que ningún nombre se repite.
++que es lo que fijan sus huellas (`TestVariantesDeControl`), así que ningún nombre se repite. La copia se hace una vez, en
++`preparar` (`laboratorio_sondeo.go:686-718`), antes de abrir ninguna sesión, así que todas las sesiones de una invocación
++ven la misma instalación, la que anota `skills_instaladas` (D11).
+ 
++**Alternativas rechazadas.** *Ejecutar `skills install` con el `kitlegal` que `ConstruirLosProgramas` deja en el
++temporal, y retirar después la skill de la familia para poner la variante en su lugar*: `skills install` escribe en su
++ámbito —`./.agents/skills/` o, con `-g`, el del `HOME`, que en el sondeo es `home/`, uno para todas sus sesiones
++(`preparar`, `laboratorio_sondeo.go:680-697`)— las skills, su manifiesto `kitlegal.json` y una entrada por host, enlace o
++copia (`internal/core/instalacion/manifiesto.go:60-75`), y no en `skills/<variante>/`, el directorio que
++`enlazarLasSkills` enlaza en cada sesión. Las variantes de una misma invocación, como `normativa-control,normativa-producto`
++en FR-033 de H41, compartirían un ámbito con una sola skill de la familia; el manifiesto declararía la skill que la sustitución ya ha quitado; y `skills_instaladas`
++tendría que leerse de otro sitio. Lo que instalaría de cada skill son los mismos bytes que la copia —el binario empotra
++`SKILL.md` y `references/*` de `skills/` tal cual (`skills.go:1-25`)—, así que FR-010 no gana nada con ello. *Enlazar
++`skills/<otra>` del árbol en `skills/<variante>/` sin copiarlo*: cada sesión leería el árbol mientras dura la invocación,
++y un cambio en `skills/` durante ella cambiaría lo que ven las sesiones siguientes, contra la instalación única para todas
++las sesiones de un sondeo que anota `skills_instaladas` (D11) y contra la copia que H41 ya hace de `<skill>-producto` (su
++research D14).
++
+ ### D11. La constancia de FR-012: `skills_instaladas` en `sondeo.json`
+ 
+ **Decisión.** Todo sondeo de una familia del producto escribe en su `sondeo.json`, detrás de `referencias_del_producto`
+@@ -206,7 +222,15 @@
+ 
+ **Por qué.** FR-020 pide los nombres de las otras skills «cada uno con las sesiones que lo activan» y «cada recuento como
+ k de n con su porcentaje y su intervalo»: la cifra de cada nombre es un recuento, y va con su intervalo. La instalación
+-va con las demás celdas que definen la fila, para que se lea también en una fila con `n` = 0 (FR-021).
++va con las demás celdas que definen la fila, para que se lea también en una fila con `n` = 0 (FR-021). Una sola celda
++deja la misma cabecera en todas las tablas de una familia, con cualquier skill que activen las sesiones.
++
++**Alternativas rechazadas.** *Una columna por cada otra skill, como las de las referencias*: las de las referencias son
++las de la familia, fijas para cada familia (contracts/tabla.md §2 y data-model §8 de H41), y no dependen de lo que hagan
++las sesiones; una columna por otra skill dependería de qué skills activan las sesiones de la tabla, así que la cabecera
++cambiaría de una tabla a otra de la misma familia, y al añadir un sondeo al directorio, y dos tablas ya no se leerían
++columna a columna. Las filas sin la opción, que solo tienen instalada la skill de su familia, llevarían además una celda
++por cada skill que no tenían.
+ 
+ ### D14. Fixtures y tamaño de las pruebas
+ 

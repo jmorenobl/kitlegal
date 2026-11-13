@@ -146,6 +146,14 @@ type ResultadoDeEval struct {
 	Activa   bool `json:"activa"`
 	Activada bool `json:"activada"`
 
+	// Activaciones son las skills que activó la sesión, en el orden del
+	// transcript y cada una con si fue antes de la primera herramienta de
+	// kitlegal (FR-001 y FR-005 de H41.2; contracts/informe.md §2 de H41.2;
+	// research D3 de H41.2): vacía si no activó ninguna, y nil, sin la clave, si
+	// LeerSesion no leyó la sesión o la lista no se pudo leer. No decide nada:
+	// Activada, las tasas, los umbrales y el veredicto no la miran.
+	Activaciones []Activacion `json:"activaciones,omitzero"`
+
 	// PorMateria es el de la eval: si su pregunta no identifica lo que pregunta y
 	// lo busca por su materia (Eval.PorMateria). Con él, la serie de cierres
 	// reparte las respuestas por clase de pregunta sin leer las evals (ADR 0038,

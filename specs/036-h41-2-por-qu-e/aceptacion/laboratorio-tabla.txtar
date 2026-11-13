@@ -1,0 +1,145 @@
+# laboratorio-tabla.txtar
+# La tabla de un sondeo de normativa con las skills que tenían instaladas sus
+# sesiones y lo que activaron, con `laboratorio tabla`, el programa que lanza la
+# persona, sin red, modelo ni credencial (contracts/tabla.md §1 a §4;
+# contracts/aceptacion.md). Tres sondeos de normativa-producto en modo
+# herramienta con claude-sonnet-5-5: h41-2-a (2.1.284, normativa sola), h41-2-b
+# (2.1.284, las cuatro skills del producto) y h41 (2.1.317, de H41, sin
+# skills_instaladas en su sondeo.json, cuya fila da como instalación la skill de
+# la familia sola). Una fila por variante, modo, modelo, versión de Claude Code
+# y skills instaladas, la instalación por orden de texto; en cada una, sobre sus
+# sesiones terminadas, las que activan normativa antes de la primera
+# herramienta, las que activan otra skill, cada otra skill con las suyas y las
+# que no activan ninguna, con su intervalo de Wilson; y una fila con todas sus
+# sesiones sin terminar, con los recuentos vacíos. En el detalle, la lista de
+# activaciones de cada sesión con «antes» o «después» de la primera
+# herramienta: la skill en el mismo turno que la primera herramienta no es
+# antes, la que se activa dos veces sale dos veces, la sesión sin ninguna dice
+# «ninguna» y la sin terminar la deja vacía. Ninguna sesión abre una referencia.
+#
+# Cubre: US3 · FR-020, FR-021, FR-022, FR-024 · SC-005
+#
+# El programa no va en el PATH: el arnés da su ruta absoluta en
+# KITLEGAL_LABORATORIO_BIN (H40). La primera invocación, a través del intérprete
+# de órdenes, no hace fallar el guion por su código: mientras la tabla no lea
+# skills_instaladas ni las activaciones, el guion falla en la comparación de lo
+# que escribe con la tabla esperada. La segunda exige el código 0, la misma
+# tabla y la salida de error vacía.
+
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla activaciones > activaciones.out || true'
+cmp activaciones.out activaciones-tabla.md
+exec $KITLEGAL_LABORATORIO_BIN tabla activaciones
+cmp stdout activaciones-tabla.md
+! stderr .
+
+-- activaciones/h41-2-a/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.284","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"],"skills_instaladas":["normativa"]}
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000001","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_a1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a1_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8412-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a1_1","content":"resultado de toolu_a1_1"}]},"session_id":"00000000-0000-4000-8412-000000000001"}
+{"type":"assistant","message":{"id":"msg_a1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a1_2","content":"resultado de toolu_a1_2"}]},"session_id":"00000000-0000-4000-8412-000000000001"}
+{"type":"assistant","message":{"id":"msg_a1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000001"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000001"}
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-02/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-02/sesion.err --
+-- activaciones/h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-02/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000002","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_a2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a2_1","name":"Skill","input":{"skill":"normativa"}},{"type":"tool_use","id":"toolu_a2_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a2_1","content":"resultado de toolu_a2_1"},{"type":"tool_result","tool_use_id":"toolu_a2_2","content":"resultado de toolu_a2_2"}]},"session_id":"00000000-0000-4000-8412-000000000002"}
+{"type":"assistant","message":{"id":"msg_a2_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000002"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000002"}
+-- activaciones/h41-2-b/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.284","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"],"skills_instaladas":["consulta-juridica","jurisprudencia","normativa","plazos-y-territorio"]}
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000003","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_b1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b1_1","name":"Skill","input":{"skill":"consulta-juridica"}}]},"session_id":"00000000-0000-4000-8412-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b1_1","content":"resultado de toolu_b1_1"}]},"session_id":"00000000-0000-4000-8412-000000000003"}
+{"type":"assistant","message":{"id":"msg_b1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b1_2","name":"boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b1_2","content":"resultado de toolu_b1_2"}]},"session_id":"00000000-0000-4000-8412-000000000003"}
+{"type":"assistant","message":{"id":"msg_b1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000003"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000003"}
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-02/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-02/sesion.err --
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-02/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000004","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_b2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_1","name":"Skill","input":{"skill":"consulta-juridica"}}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b2_1","content":"resultado de toolu_b2_1"}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"assistant","message":{"id":"msg_b2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_2","name":"boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b2_2","content":"resultado de toolu_b2_2"}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"assistant","message":{"id":"msg_b2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_3","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b2_3","content":"resultado de toolu_b2_3"}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"assistant","message":{"id":"msg_b2_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000004"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000004"}
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-03/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-03/sesion.err --
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-03/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000005","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_b3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b3_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b3_1","content":"resultado de toolu_b3_1"}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"assistant","message":{"id":"msg_b3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b3_2","name":"boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b3_2","content":"resultado de toolu_b3_2"}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"assistant","message":{"id":"msg_b3_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b3_3","name":"Skill","input":{"skill":"consulta-juridica"}}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b3_3","content":"resultado de toolu_b3_3"}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"assistant","message":{"id":"msg_b3_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b3_4","name":"Skill","input":{"skill":"consulta-juridica"}}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b3_4","content":"resultado de toolu_b3_4"}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"assistant","message":{"id":"msg_b3_5","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000005"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000005"}
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-04/codigo-de-la-sesion --
+0
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-04/sesion.err --
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-04/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000006","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_b4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b4_1","name":"boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b4_1","content":"resultado de toolu_b4_1"}]},"session_id":"00000000-0000-4000-8412-000000000006"}
+{"type":"assistant","message":{"id":"msg_b4_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8412-000000000006"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8412-000000000006"}
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-05/codigo-de-la-sesion --
+124
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-05/sesion.err --
+-- activaciones/h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-05/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000007","model":"claude-sonnet-5-5","claude_code_version":"2.1.284"}
+{"type":"assistant","message":{"id":"msg_b5_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b5_1","name":"Skill","input":{"skill":"consulta-juridica"}}]},"session_id":"00000000-0000-4000-8412-000000000007"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b5_1","content":"resultado de toolu_b5_1"}]},"session_id":"00000000-0000-4000-8412-000000000007"}
+{"type":"assistant","message":{"id":"msg_b5_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b5_2","name":"boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000007"}
+-- activaciones/h41/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"]}
+-- activaciones/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+124
+-- activaciones/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- activaciones/h41/normativa-producto/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8412-000000000008","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_h1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_h1_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8412-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_h1_1","content":"resultado de toolu_h1_1"}]},"session_id":"00000000-0000-4000-8412-000000000008"}
+{"type":"assistant","message":{"id":"msg_h1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_h1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8412-000000000008"}
+-- activaciones-tabla.md --
+# Sondeo de las variantes de normativa
+
+| Variante | Modo | Modelo | Claude Code | Skills instaladas | Sin terminar | n | Activan antes | Activan otra skill | Otras skills | No activan ninguna | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumplen la regla |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.284 | consulta-juridica, jurisprudencia, normativa, plazos-y-territorio | 1 | 4 | 1 de 4 · 25,0 % [4,6–69,9 %] | 3 de 4 · 75,0 % [30,1–95,4 %] | consulta-juridica: 3 de 4 · 75,0 % [30,1–95,4 %] | 1 de 4 · 25,0 % [4,6–69,9 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] | 0 de 4 · 0,0 % [0,0–49,0 %] |  |
+| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.284 | normativa | 0 | 2 | 1 de 2 · 50,0 % [9,5–90,5 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | ninguna | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] |  |
+| normativa-producto | herramienta | claude-sonnet-5-5 | 2.1.317 | normativa | 1 | 0 |  |  |  |  |  |  |  |  |  |  |  |  |  |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | Activaciones | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumple |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-01 | sí | no | consulta-juridica (antes) | no | no | no | no | no | no | no | no |  |
+| h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-02 | sí | no | consulta-juridica (antes), normativa (después) | no | no | no | no | no | no | no | no |  |
+| h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-03 | sí | sí | normativa (antes), consulta-juridica (después), consulta-juridica (después) | no | no | no | no | no | no | no | no |  |
+| h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-04 | sí | no | ninguna | no | no | no | no | no | no | no | no |  |
+| h41-2-b/normativa-producto/herramienta/04-lgt-prescripcion-05 | no: tope de 240 s agotado (código 124) |  |  |  |  |  |  |  |  |  |  |  |
+| h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-01 | sí | sí | normativa (antes) | no | no | no | no | no | no | no | no |  |
+| h41-2-a/normativa-producto/herramienta/04-lgt-prescripcion-02 | sí | no | normativa (después) | no | no | no | no | no | no | no | no |  |
+| h41/normativa-producto/herramienta/04-lgt-prescripcion-01 | no: tope de 240 s agotado (código 124) |  |  |  |  |  |  |  |  |  |  |  |
