@@ -86,13 +86,13 @@ var (
 )
 
 // Banderas con las que scripts/evals-laboratorio.sh invoca, tras -args, el
-// sondeo del laboratorio (contracts/arnes.md §1 de H39), además de -modelo,
+// sondeo del laboratorio (contracts/arnes.md §1 de H39 y de H41.2), además de -modelo,
 // -concurrencia y -temporal, las del sondeo de una skill, y de -sesiones, la del
 // job, con SESIONES: los argumentos de make que no tienen, tal como los escribe
 // quien lo lanza, salvo DIRECTORIO relativo, que el guion recibe desde la raíz
 // del repositorio y pasa con ella delante. Son texto, como -repeticiones y
 // -concurrencia, para que un valor que no vale lo nombre sondearElLaboratorio
-// con su argumento de make (contracts/arnes.md §2 de H39).
+// con su argumento de make (contracts/arnes.md §2 de H39 y de H41.2).
 var (
 	banderaVariantes  = flag.String("variantes", "", "variantes del sondeo del laboratorio, separadas por comas")
 	banderaModos      = flag.String("modos", "", "modos del sondeo del laboratorio, separados por comas")
@@ -100,6 +100,10 @@ var (
 		"versión de Claude Code que pide el sondeo del laboratorio, la de claude --version")
 	banderaDirectorio = flag.String("directorio", "",
 		"directorio, que no puede existir, en el que el sondeo del laboratorio deja sus sesiones")
+	banderaInstalacion = flag.String("instalacion", "",
+		"instalación de las sesiones del sondeo del laboratorio: vacía, o producto, las cuatro skills del producto")
+	banderaEval = flag.String("eval", "",
+		"eval del sondeo del laboratorio: vacía, o el número de dos cifras de una eval del plan de la familia")
 )
 
 // Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
@@ -704,6 +708,8 @@ func TestSondeoDelLaboratorio(t *testing.T) {
 			ClaudeCode:   *banderaClaudeCode,
 			Concurrencia: *banderaConcurrencia,
 			Directorio:   *banderaDirectorio,
+			Instalacion:  *banderaInstalacion,
+			Eval:         *banderaEval,
 		},
 		Entorno:               os.Environ(),
 		Raiz:                  raizDelRepositorio,

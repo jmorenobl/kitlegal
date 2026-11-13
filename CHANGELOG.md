@@ -56,6 +56,33 @@ sustituyen a este fichero.
   sondeo de H39 no cambia. «Cumplen la regla» solo va en la de `normativa`. En la tabla de una familia del producto,
   un directorio de variante de otra familia es un defecto, `laboratorio: <ruta> no es ninguna variante de <skill>`,
   con código 1 y sin tabla.
+- **El informe del job de evals dice qué skills activó cada sesión** (H41.2). En `informe.json`, cada elemento de
+  `evals` lleva, detrás de `activada`, `activaciones`: una entrada por cada uso de la herramienta `Skill` del
+  transcript, en su orden, con `skill`, el nombre que pidió tal cual, y `antes`, verdadero si va en un turno anterior al
+  de la primera herramienta de kitlegal —o en cualquiera, si la sesión no tiene ninguna—; `[]` si no activó ninguna, y
+  sin la clave si la sesión no se leyó. En `informe.md`, la sección de cada sesión lleva, detrás de «Modelo de la
+  sesión:», `Skills activadas: consulta-juridica (antes), normativa (después)`, `Skills activadas: ninguna` o
+  `Skills activadas: sin leer`. Así se ve si una sesión de `sin_activar` activó otra skill, y cuál. `activada`,
+  `sin_activar`, cada tasa, cada umbral, cada motivo y el veredicto no cambian.
+- **`make evals-laboratorio` acepta `INSTALACION=producto` y `EVAL=<nn>`** (H41.2), detrás de los siete argumentos de
+  antes, con la misma orden y la misma credencial; vacíos, son la instalación y el plan de hasta ahora, byte a byte. En
+  las tres familias del producto, `INSTALACION=producto` deja en cada sesión las cuatro skills de `skills/` del árbol,
+  cada una byte a byte, con la variante de la sesión en el lugar de la skill de su familia. `EVAL=<nn>` pide una sola
+  eval del plan de la familia —`04`, `05`, `15` o `22` en `normativa`; `02`, `05`, `10` u `11` en
+  `plazos-y-territorio`; `01`, `03`, `04` o `06` en `jurisprudencia`—, y cada par variante × modo abre `SESIONES`
+  sesiones de ella, `<eval>-01` en adelante; con `EVAL`, `SESIONES` es un entero mayor que 0, sin ser múltiplo de 4.
+  Un valor que no vale, o cualquiera de los dos con variantes del laboratorio de H39, es un error de uso más, con el
+  nombre del argumento, y no abre ninguna sesión. En una familia del producto, `sondeo.json` anota además, con la
+  opción o sin ella, `skills_instaladas`: los nombres de las skills que tuvo instaladas cada sesión, en orden de nombre.
+- **`make laboratorio-tabla` cuenta las skills instaladas y las activaciones de un sondeo de una familia del producto**
+  (H41.2) si algún sondeo de la ruta tiene `skills_instaladas`. Una fila por variante, modo, modelo, versión de Claude
+  Code y skills instaladas, con cuatro columnas más: «Skills instaladas», tras «Claude Code», con los nombres unidos
+  por «, » o, en un sondeo sin la clave, la skill de la familia sola; y, tras «Activan antes», «Activan otra skill»,
+  «Otras skills», cada otra skill en orden de nombre con las sesiones que la activan, o `ninguna`, y «No activan
+  ninguna», con su recuento e intervalo de Wilson al 95 % como las demás. El detalle lleva «Activaciones» tras «Activa
+  antes», la lista de cada sesión con «antes» o «después». Una skill activada varias veces cuenta una vez en cada
+  recuento. Sin ningún sondeo con `skills_instaladas`, la tabla y el detalle son los de antes, byte a byte, y la del
+  laboratorio de H39 no cambia.
 
 ### Cambiado
 
@@ -95,6 +122,13 @@ sustituyen a este fichero.
   lectura que sale con 4 o 5 («`⚠ PLAZO:` se mantiene») pasa al final de `calculo_de_plazos.md`. Ni la descripción, ni
   las órdenes que pide la skill, ni sus otras referencias cambian. `make ci` comprueba que la skill es la forma que
   midió el laboratorio con ese movimiento y nada más, y la frase de cada una de sus remisiones.
+
+### Seguridad
+
+- **El binario se compila con go1.27.4.** go1.27.3 traía GO-2026-6859 (`net/http`: caída de un servidor HTTP/1 por una
+  carrera de `MaxBytesReader` con las cabeceras), que `make vuln` encuentra, entre otras, en las rutas de
+  `internal/httpx`, `internal/disco` e `internal/mcp/mcptest`; go1.27.4 la corrige. Solo cambia la directiva
+  `toolchain` de `go.mod` (H41.2).
 
 ## [0.9.0] - 2026-11-04
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # Sondeo del laboratorio de H39, o de las variantes de una de las tres familias de las skills del producto, normativa
 # (H40 y H41), plazos-y-territorio o jurisprudencia (H41), una familia por invocación, con Claude Code: abre las
-# sesiones de las cuatro evals de la familia con cada variante y modo pedidos y las deja en DIRECTORIO, sin juzgarlas,
-# para la tabla de make laboratorio-tabla (FR-030 a FR-033 de H39; FR-010 de H40; FR-030 a FR-033 de H41;
-# specs/031-h39-c-omo-se/contracts/arnes.md §1 y §2; specs/032-h40-por-qu-e/contracts/arnes.md §1 a §3;
-# specs/034-h41-las-skills-del/contracts/arnes.md §1 a §3; research.md D8 de H39). Como scripts/evals-sondeo.sh: crea su
+# sesiones de las cuatro evals de la familia, o de la que pide EVAL, con cada variante y modo pedidos y las deja en
+# DIRECTORIO, sin juzgarlas, para la tabla de make laboratorio-tabla (FR-030 a FR-033 de H39; FR-010 de H40; FR-030 a
+# FR-033 de H41; FR-010 a FR-015 de H41.2; specs/031-h39-c-omo-se/contracts/arnes.md §1 y §2;
+# specs/032-h40-por-qu-e/contracts/arnes.md §1 a §3; specs/034-h41-las-skills-del/contracts/arnes.md §1 a §3;
+# specs/036-h41-2-por-qu-e/contracts/arnes.md §1 a §3; research.md D8 de H39). Como scripts/evals-sondeo.sh: crea su
 # directorio temporal y lo borra al terminar, con el código que sea; ejecuta con una sola orden de Go
 # TestSondeoDelLaboratorio, que comprueba los argumentos, la credencial y la versión de Claude Code antes de construir
 # nada, construye kitlegal y laboratorio del árbol de trabajo en el temporal, abre las sesiones y deja su salida en
@@ -13,18 +14,19 @@
 # solo en la salida de error, sin el registro de go test, y sale con 1. No usa nada posterior a bash 3.2, el de macOS.
 #
 #   make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
-#     CONCURRENCIA=<c> DIRECTORIO=<ruta>
+#     CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto] [EVAL=<nn>]
 #
-# Los siete argumentos son los de make, en ese orden y tal como los escribe quien lo lanza: ninguno tiene valor por
-# defecto, y los que no valen los nombra TestSondeoDelLaboratorio. Abre sesiones con modelo y consume la suscripción de
+# Los nueve argumentos son los de make, en ese orden y tal como los escribe quien lo lanza: los siete primeros no tienen
+# valor por defecto; INSTALACION y EVAL, vacíos, son la instalación y el plan de hoy; y los que no valen los nombra
+# TestSondeoDelLaboratorio. Abre sesiones con modelo y consume la suscripción de
 # quien lo lanza, con CLAUDE_CODE_OAUTH_TOKEN: lo ejecuta una persona; ni make ci, ni los ganchos, ni el job de evals,
 # ni ningún paso del workflow (FR-032 de H39). La credencial se la pone en el entorno scripts/evals-sondeo-llavero.sh,
 # que es lo que ejecuta make (ADR 0032).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [[ $# -ne 7 ]]; then
-	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio>" >&2
+if [[ $# -ne 9 ]]; then
+	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval>" >&2
 	exit 1
 fi
 
@@ -54,7 +56,7 @@ mkdir "$temporal/tmp"
 codigo=0
 TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args \
 	-variantes "$1" -modos "$2" -sesiones "$3" -modelo "$4" -claude-code "$5" -concurrencia "$6" -directorio "$directorio" \
-	-temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
+	-instalacion "$8" -eval "$9" -temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
 
 if [[ $codigo -ne 0 ]]; then
 	cat "$temporal/go-test.log" >&2

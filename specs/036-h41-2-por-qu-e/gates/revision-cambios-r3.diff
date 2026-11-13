@@ -1,0 +1,76 @@
+diff --git a/specs/036-h41-2-por-qu-e/research.md b/specs/036-h41-2-por-qu-e/research.md
+index 7fd0d376..68ca4807 100644
+--- a/specs/036-h41-2-por-qu-e/research.md
++++ b/specs/036-h41-2-por-qu-e/research.md
+@@ -270,6 +270,71 @@ para que el informe final lo dé en «Supuestos y pendientes», como H41 (su `ga
+ 
+ **Por qué.** FR-014, FR-031 y ADR 0032: abre sesiones con modelo y credencial.
+ 
++### D18. reparar_cierre: el cierre da en rojo la caída que el hito mide, y la reparación no toca nada (FR-033)
++
++**Evidencia.** La medición de cierre de la cabeza `a27c2760` (`gates/cierre.json`, ronda 1; ejecución 43033002440) da
++en rojo un solo trabajo, `evals (normativa)` (130565372883); `ci`, `snapshot`, `construir`, `tanda` y las evals de
++`consulta-juridica`, `plazos-y-territorio` y `jurisprudencia` pasan. Leído en la sesión de la reparación, con `jq`, de
++`gates/evals/normativa.json`, sin abrir ninguna sesión con modelo:
++
++- el veredicto es `fallo` con un solo motivo: «umbral sin_activar:claude-sonnet-5-5:herramienta: 1 de 60 (1,7 %), y
++  tiene que ser ≤ 0,0 %». Los demás umbrales con `decide: true` cumplen: `sin_activar` en modo orden, 0 de 60;
++  `redaccion_sin_fechar`, 0 de 6 en cada modo; `afirma_lo_no_leido`, 1 de 120 (≤ 2,8 %); la medida del juez, 0 de 212 y
++  0 de 47; las duraciones, 543, 498, 112 y 116 s (≤ 900). El job midió las 23 evals (ninguna reutilizada, 222
++  sesiones) con Claude Code 2.1.284 (`versiones_de_claude_code`);
++- la sesión es `04-lgt-prescripcion-herramienta-claude-sonnet-5-5-02`: su única llamada es
++  `boe_articulo BOE-A-2003-23186 a66` (código 0), termina con `result success` y su motivo es «la activación no
++  coincide: se esperaba que la skill normativa se activara y no se activó». Es la forma de las cuatro caídas que da el
++  fichero del hito. Las otras dos repeticiones de la eval en ese modo (`-01` y `-03`) activan `normativa` antes de la
++  primera herramienta y piden `boe_indice`, `boe_articulo` y `graph_check`; las tres del modo orden la activan;
++- **lo que este hito añade al informe (FR-001) lo dice por primera vez de una caída del job**: `activaciones` de esa
++  sesión es `[]`. No activó ninguna skill, tampoco `consulta-juridica`, con las cuatro del producto instaladas por
++  `make install` (`.github/workflows/evals.yml:392-398`). En modo herramienta, 59 de las 60 sesiones de
++  `claude-sonnet-5-5` en evals que activan la skill activan `normativa` y ninguna activa otra; en modo orden, las 60, y
++  las tres de la eval 18 activan además `consulta-juridica`. Es una sesión: no dice qué activaron las cuatro caídas
++  anteriores, cuyos informes no llevan la lista;
++- el juez marca esa misma sesión en `afirma_lo_no_leido` con sus tres votos (nombra los arts. 67 y 68 de la LGT y dice
++  de qué tratan sin haberlos leído): es el 1 de 120 de la clase, dentro de su umbral;
++- `activada` y la lista salen de dos lecturas del mismo transcript, `Sesion.Activada` (`juzgar.go:549`,
++  `informe.go:1485`) y `activacionesDeLaSesion` (`informe.go:1454`), y coinciden; el umbral cuenta la primera, como
++  antes del hito (FR-004);
++- nada de lo que la sesión ve antes de activar cambia en la rama: `git rev-parse` da el mismo árbol en `main` y en la
++  cabeza para `skills/normativa` (`26368b38`, el `arbol_de_la_skill` de `gates/serie.jsonl`),
++  `skills/consulta-juridica`, `evals/` y `.github/workflows/evals.yml`, y `git diff --stat main...HEAD` fuera de
++  `specs/` y de los `testdata/` solo da `internal/evals/` (el informe y el arnés), `go.mod` (la directiva `toolchain`),
++  `Makefile`, los dos guiones del sondeo, `.golangci.yml` y documentación;
++- en los cierres que guardan su informe, el mismo umbral dio 0 de 60 con 2.1.284: H39 (`a593631b`), H40 (`179bd217`),
++  la medición de H41 que guarda su `gates/` (`d5e66197`) y H41.1 (`e4915f6a`) (`gates/evals/normativa.json` de cada
++  uno).
++
++Con las cuatro del fichero del hito, es la quinta caída registrada de la eval 04 en modo herramienta, todas en el job;
++la serie sigue sin denominador cerrado.
++
++**Decisión.** Se aplica FR-033 (plan, «Cierre y pendientes»): la reparación no toca ninguna skill, eval, umbral ni
++versión del job, ni el binario. La caída va a la persona como la quinta de la serie, con su lista de activaciones
++vacía, para el ADR que lea el sondeo de FR-030. La medición siguiente del workflow repite el job con las mismas skills,
++evals, umbrales y versiones: esta reparación no cambia nada de lo que el job mide, su resultado no se puede medir ni
++anticipar desde aquí, y no es un remedio. Si sale en verde no cierra la serie ni dice nada de la causa; si vuelve a
++caer, es otra sesión de la misma serie. En la sesión de la reparación no se mide nada con modelo.
++
++**Por qué.** Es la caída que el hito existe para medir, y su fichero deja fuera cada sitio desde el que se podría
++actuar: «cambiar ninguna skill, su cuerpo, sus referencias o su descripción, también la de `consulta-juridica`»,
++«cambiar el umbral de `sin_activar`, cómo se cuenta o ningún otro umbral», «cambiar `VERSION_DE_CLAUDE_CODE`», la eval
++04 y «arreglar la causa, si sale: la elige el ADR que lea el sondeo». Un cambio en la descripción de `normativa`
++cambiaría además `normativa-producto`, la variante que mide el sondeo de la aceptación, sin poder medirlo en el run.
++Es la lectura conservadora de una decisión de alcance y de una decisión cerrada (constitución, «Criterio de decisión
++autónoma», 4), y la que ya tomaron D27 de H32 y D21 de H41 para esta misma caída. El criterio del hito «las evals de
++las skills del producto salen en verde en la medición del cierre, en los dos modos» no se cumple en esta medición
++(SC-007): el informe final da el umbral sin cumplir con sus cifras, y decide una persona.
++
++**Rechazadas.** Cambiar la descripción o el cuerpo de `normativa` o de `consulta-juridica` (fuera, por el fichero del
++hito). Pedir la skill activa en las instrucciones del servidor o en la descripción de `boe_articulo`: el ADR 0050
++(decisión, 2 y 3) lo descarta para asegurar la activación, y es arreglar la causa. Tocar la eval 04, el umbral, su
++`decide` o `evals.yml` (ADR 0029, 0031, 0038 y 0045). Tomar la medición siguiente como remedio: es repetir el job sin
++cambios, «que sería medir para ver si sale en verde» (D25 y D27 de H32; «Rechazadas» de D21 de H41). Llevar la lista de
++activaciones al cuerpo de la propuesta cambiando `scripts/workflow/informe.sh`: ya descartado por alcance
++(`gates/supuestos.md`, `corrector_spec`); la lista está en `gates/evals/normativa.json`.
++
+ ## Comprobado en esta sesión
+ 
+ - **V1** `encoding/json/v2`: «By default, a nil slice is encoded as an empty JSON array, unless the FormatNilSliceAsNull

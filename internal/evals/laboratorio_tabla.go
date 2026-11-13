@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"math"
 	"os"
 	"path"
@@ -61,12 +62,17 @@ const (
 // versión de Claude Code de todas sus sesiones y, solo si el sondeo pidió una
 // variante <skill>-producto, la clave referencias_del_producto, los nombres de
 // los ficheros de references/ de la copia de skills/<skill> que instaló, en
-// orden de nombre (FR-032). Sin ella, la clave no se escribe y el fichero es el
-// de H39 byte a byte; quien no la lee, la ignora (research V9).
+// orden de nombre (FR-032). Detrás, solo en un sondeo de una familia del
+// producto, la clave skills_instaladas, los nombres de las skills que enlaza
+// cada una de sus sesiones, en orden de nombre (FR-012 de H41.2; data-model §3
+// y research D11 de H41.2). Sin ninguna de las dos, las claves no se escriben y
+// el fichero es el de H39 byte a byte; quien no las lee, las ignora (research
+// V9).
 type sondeoLeido struct {
 	Modelo                 string   `json:"modelo"`
 	ClaudeCode             string   `json:"claude_code"`
 	ReferenciasDelProducto []string `json:"referencias_del_producto,omitempty"`
+	SkillsInstaladas       []string `json:"skills_instaladas,omitempty"`
 }
 
 // sesionContada es lo que el guion saca de una sesión (data-model §6 de H39;
@@ -90,14 +96,20 @@ type sesionContada struct {
 
 	// cumple dice si la respuesta cumple la regla testigo.
 	cumple bool
+
+	// activaciones son las skills que activa, en su orden, cada una con si va
+	// antes de la primera herramienta de kitlegal del modo (FR-020 de H41.2;
+	// data-model §4 de H41.2); nil en una sesión que no entra en n.
+	activaciones []Activacion
 }
 
 // claveDeFila es lo que define una fila de la tabla: la variante, por su
-// posición en la declaración, el modo, por la suya en modosDeLaTabla, el modelo
-// y la versión de Claude Code (data-model §7 de H39).
+// posición en la declaración, el modo, por la suya en modosDeLaTabla, el modelo,
+// la versión de Claude Code (data-model §7 de H39) y las skills instaladas, la
+// celda de instalacionDelSondeo (FR-020 de H41.2; data-model §4 de H41.2).
 type claveDeFila struct {
-	variante, modo  int
-	modelo, version string
+	variante, modo              int
+	modelo, version, instaladas string
 }
 
 // filaDelSondeo es una fila de la tabla con sus sesiones.
@@ -113,23 +125,14 @@ var modosDeLaTabla = []Modo{ModoOrden, ModoHerramienta}
 
 // contadorDelLaboratorio es lo que el guion necesita para contar las sesiones
 // de un sondeo: la familia de su tabla, que da las variantes y su orden, las
-// skills, las referencias y lo que escribe, las herramientas del registro y el
-// intérprete de las invocaciones del binario.
+// skills, las referencias y lo que escribe, y el reconocedor de la primera
+// herramienta de kitlegal de cada modo.
 type contadorDelLaboratorio struct {
-	familia      familiaDeLaTabla
-	herramientas []string
-	interprete   interprete
+	familia     familiaDeLaTabla
+	reconocedor reconocedorDeKitlegal
 
 	// filas son las filas por su clave.
 	filas map[claveDeFila]*filaDelSondeo
-}
-
-// usoDelTranscript es un bloque tool_use del transcript de una sesión con el
-// turno de la respuesta que lo emite (research D10 de H39).
-type usoDelTranscript struct {
-	turno   int
-	nombre  string
-	entrada json.RawMessage
 }
 
 // familiaDeLaTabla es lo que el guion necesita de la familia de un sondeo para
@@ -160,6 +163,13 @@ type familiaDeLaTabla struct {
 	// H41).
 	conCd bool
 
+	// conLasActivaciones dice si la tabla lleva, en su cabecera y en sus filas,
+	// las celdas de las skills instaladas y de las activaciones (FR-020 y FR-022
+	// de H41.2; contracts/tabla.md §2 de H41.2; research D12 de H41.2): solo en
+	// una familia del producto con algún sondeo con skills_instaladas; la de H39
+	// no las lleva (FR-023 de H41.2).
+	conLasActivaciones bool
+
 	// titulo, cabeceraDeLaTabla y cabeceraDelDetalle son las líneas con que
 	// empiezan la tabla y su detalle.
 	titulo, cabeceraDeLaTabla, cabeceraDelDetalle string
@@ -171,9 +181,10 @@ type familiaDeLaTabla struct {
 
 // celdasDeLaFamilia son las celdas que cada familia escribe detrás de las que
 // comparten las dos: las seis primeras de una fila (variante, modo, modelo,
-// versión, sin terminar y n) y las dos primeras del detalle (sesión y
-// terminada). Una fila sin ninguna sesión terminada y una sesión sin terminar
-// llevan vacías las demás, hasta tener tantas celdas como su cabecera.
+// versión, sin terminar y n, con la de las skills instaladas detrás de la
+// versión en una tabla con las activaciones) y las dos primeras del detalle
+// (sesión y terminada). Una fila sin ninguna sesión terminada y una sesión sin
+// terminar llevan vacías las demás, hasta tener tantas celdas como su cabecera.
 type celdasDeLaFamilia interface {
 	// deLaFila son las celdas de los recuentos de una fila de esa variante con
 	// sus sesiones terminadas, que son alguna.
@@ -217,12 +228,17 @@ const (
 // tablaDeLaFamilia es la familia de la tabla de las variantes de una familia del
 // producto (contracts/tabla.md §1 a §3 de H41; data-model §8 de H41; research
 // D16 y D17 de H41), con las referencias de cada variante que leen los sondeos,
-// por su nombre: sus variantes, también la del producto, en el orden de su
-// declaración; su skill, sin skill de entrada; las referencias de la tabla, la
-// unión de las de esas variantes en orden de nombre, con una columna por cada
-// una; la lectura con cd; y, solo si la familia tiene variante con regla testigo,
-// su columna, que solo se llena en esa variante.
-func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]string) familiaDeLaTabla {
+// por su nombre, y si alguno tiene la constancia de las skills instaladas: sus
+// variantes, también la del producto, en el orden de su declaración; su skill,
+// sin skill de entrada; las referencias de la tabla, la unión de las de esas
+// variantes en orden de nombre, con una columna por cada una; la lectura con cd;
+// solo si la familia tiene variante con regla testigo, su columna, que solo se
+// llena en esa variante; y, solo con la constancia, la de las skills instaladas
+// y las de las activaciones (contracts/tabla.md §3 de H41.2; research D13 de
+// H41.2).
+func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]string,
+	conLasActivaciones bool,
+) familiaDeLaTabla {
 	var referencias []string
 	for _, deLaVariante := range porVariante {
 		referencias = append(referencias, deLaVariante...)
@@ -231,9 +247,23 @@ func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]st
 	slices.Sort(referencias)
 	referencias = slices.Compact(referencias)
 
-	tabla := slices.Concat([]string{"Variante", "Modo", "Modelo", "Claude Code", "Sin terminar", "n", "Activan antes"},
-		referencias)
-	detalle := slices.Concat([]string{"Sesión", "Terminada", "Activa antes"}, referencias)
+	tabla := []string{"Variante", "Modo", "Modelo", "Claude Code"}
+	if conLasActivaciones {
+		tabla = append(tabla, "Skills instaladas")
+	}
+
+	tabla = append(tabla, "Sin terminar", "n", "Activan antes")
+	if conLasActivaciones {
+		tabla = append(tabla, "Activan otra skill", "Otras skills", "No activan ninguna")
+	}
+
+	detalle := []string{"Sesión", "Terminada", "Activa antes"}
+	if conLasActivaciones {
+		detalle = append(detalle, "Activaciones")
+	}
+
+	tabla = append(tabla, referencias...)
+	detalle = append(detalle, referencias...)
 
 	if familia.conLaRegla != "" {
 		tabla = append(tabla, tituloDeLaReglaEnLaTabla)
@@ -246,11 +276,13 @@ func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]st
 		skill:              familia.skill,
 		referencias:        referencias,
 		conCd:              true,
+		conLasActivaciones: conLasActivaciones,
 		titulo:             "# Sondeo de las variantes de " + familia.skill,
 		cabeceraDeLaTabla:  cabeceraConTitulos(tabla),
 		cabeceraDelDetalle: cabeceraConTitulos(detalle),
 		celdas: celdasDelProducto{
 			conLaRegla: familia.conLaRegla, referencias: referencias, porVariante: porVariante,
+			skill: familia.skill, conLasActivaciones: conLasActivaciones,
 		},
 	}
 }
@@ -265,9 +297,11 @@ func cabeceraConTitulos(titulos []string) string {
 // tabla.md §1 de H40 y de H41; research D9 de H40): la de la primera variante
 // que lee, en orden de nombre de los sondeos y, dentro de cada uno, de sus
 // variantes. Si es de una de las familias del producto, la suya, con las
-// referencias de las variantes que leen los sondeos; si no, o sin ninguna
-// variante, la de la declaración del laboratorio del repositorio de esa raíz, que
-// solo se lee entonces, con su comportamiento de hoy (FR-023 de H40).
+// referencias de las variantes que leen los sondeos y, si alguno tiene la
+// constancia de las skills instaladas, con las celdas de las activaciones
+// (research D12 de H41.2); si no, o sin ninguna variante, la de la declaración
+// del laboratorio del repositorio de esa raíz, que solo se lee entonces, con su
+// comportamiento de hoy (FR-023 de H40 y de H41.2).
 func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error) {
 	primera, err := primeraVariante(sondeos)
 	if err != nil {
@@ -284,7 +318,12 @@ func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error
 			return familiaDeLaTabla{}, err
 		}
 
-		return tablaDeLaFamilia(familia, porVariante), nil
+		conLasActivaciones, err := algunoConLaConstancia(sondeos)
+		if err != nil {
+			return familiaDeLaTabla{}, err
+		}
+
+		return tablaDeLaFamilia(familia, porVariante, conLasActivaciones), nil
 	}
 
 	declarada, err := leerLaDeclaracionDelRepositorio(raiz)
@@ -329,6 +368,37 @@ func referenciasDeLasVariantes(familia familiaDelLaboratorio, sondeos []string) 
 	}
 
 	return porVariante, nil
+}
+
+// algunoConLaConstancia dice si alguno de los sondeos, en su orden, tiene en su
+// sondeo.json la constancia de las skills instaladas, la clave
+// skills_instaladas (FR-012 y FR-022 de H41.2; contracts/tabla.md §2 de H41.2).
+// Un sondeo.json que no se puede leer es el error de leerElSondeo.
+func algunoConLaConstancia(sondeos []string) (bool, error) {
+	for _, sondeo := range sondeos {
+		leido, err := leerElSondeo(sondeo)
+		if err != nil {
+			return false, err
+		}
+
+		if len(leido.SkillsInstaladas) > 0 {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// instalacionDelSondeo es la celda de las skills instaladas de las filas de un
+// sondeo (FR-020 y FR-022 de H41.2; contracts/tabla.md §3 de H41.2): los nombres
+// de su skills_instaladas, unidos por «, », o la skill de la familia sola si el
+// sondeo no tiene la constancia.
+func instalacionDelSondeo(leido sondeoLeido, skill string) string {
+	if len(leido.SkillsInstaladas) == 0 {
+		return skill
+	}
+
+	return strings.Join(leido.SkillsInstaladas, ", ")
 }
 
 // primeraVariante es el nombre del primer directorio de variante de los
@@ -403,18 +473,13 @@ func tablaDelLaboratorio(raiz string, args []string) (string, error) {
 		return "", err
 	}
 
-	herramientas, err := herramientasDelRegistro()
-	if err != nil {
-		return "", err
-	}
-
-	interprete, err := nuevoInterprete()
+	reconocedor, err := nuevoReconocedorDeKitlegal()
 	if err != nil {
 		return "", err
 	}
 
 	contador := contadorDelLaboratorio{
-		familia: familia, herramientas: herramientas, interprete: interprete,
+		familia: familia, reconocedor: reconocedor,
 		filas: map[claveDeFila]*filaDelSondeo{},
 	}
 
@@ -557,7 +622,7 @@ func (c *contadorDelLaboratorio) contarLaVariante(ruta, sondeo string, leido son
 
 		clave := claveDeFila{
 			variante: posicion, modo: slices.Index(modosDeLaTabla, modo),
-			modelo: leido.Modelo, version: leido.ClaudeCode,
+			modelo: leido.Modelo, version: leido.ClaudeCode, instaladas: instalacionDelSondeo(leido, c.familia.skill),
 		}
 
 		sesiones, err := subdirectorios(filepath.Join(directorio, nombre))
@@ -655,7 +720,9 @@ func (c *contadorDelLaboratorio) contarLaSesion(ruta, directorio string, modo Mo
 // turno en que activa cada skill, el de la primera herramienta de kitlegal del
 // modo y el de la primera apertura de cada referencia, cada uno el del primer
 // uso que lo es, de modo que una referencia abierta varias veces cuenta una
-// (research D10 de H39; contracts/tabla.md §2 de H40).
+// (research D10 de H39; contracts/tabla.md §2 de H40); y la lista de sus
+// activaciones, con la misma primera herramienta (FR-020 de H41.2; data-model §4
+// de H41.2).
 func (c *contadorDelLaboratorio) anotarLosUsos(contada *sesionContada, usos []usoDelTranscript, modo Modo) error {
 	var activa, entrada, primera int
 
@@ -672,7 +739,7 @@ func (c *contadorDelLaboratorio) anotarLosUsos(contada *sesionContada, usos []us
 			entrada = primerTurno(entrada, uso.turno, c.familia.entrada != "" && skill == c.familia.entrada)
 		}
 
-		primera = primerTurno(primera, uso.turno, c.esDeKitlegal(uso, modo))
+		primera = primerTurno(primera, uso.turno, c.reconocedor.esDeKitlegal(uso, modo))
 
 		for posicion, referencia := range c.familia.referencias {
 			contada.aperturas[posicion] = primerTurno(contada.aperturas[posicion], uso.turno,
@@ -682,6 +749,15 @@ func (c *contadorDelLaboratorio) anotarLosUsos(contada *sesionContada, usos []us
 
 	contada.activaAntes = activaAntes(activa, primera)
 	contada.entradaAntes = activaAntes(entrada, primera)
+
+	activaciones, err := activacionesDeLosUsos(usos, func(uso usoDelTranscript) bool {
+		return c.reconocedor.esDeKitlegal(uso, modo)
+	})
+	if err != nil {
+		return err
+	}
+
+	contada.activaciones = activaciones
 
 	return nil
 }
@@ -694,88 +770,6 @@ func primerTurno(anotado, turno int, loEs bool) int {
 	}
 
 	return anotado
-}
-
-// activaAntes dice si una skill activada en ese turno lo está antes de la
-// primera herramienta de kitlegal, la de ese turno (FR-041 de H39): en un turno
-// anterior, o activada y sin ninguna herramienta. En el mismo turno no, porque
-// las llamadas de una respuesta se emiten sin haber leído el resultado de las
-// otras. El turno 0 es ninguno.
-func activaAntes(activa, primera int) bool {
-	return activa > 0 && (primera == 0 || activa < primera)
-}
-
-// skillDelUso es la input.skill de un uso de Skill, cuya entrada es {skill,
-// args?} (research.md V6).
-func skillDelUso(uso usoDelTranscript) (string, error) {
-	var entrada struct {
-		Skill string `json:"skill"`
-	}
-
-	if err := json.Unmarshal(uso.entrada, &entrada); err != nil {
-		return "", fmt.Errorf("el bloque tool_use de %s del turno %d no tiene la entrada {skill, args?}: %w",
-			herramientaSkill, uso.turno, err)
-	}
-
-	return entrada.Skill, nil
-}
-
-// esDeKitlegal dice si el uso es la llamada a una herramienta de kitlegal del
-// modo de la sesión (FR-041 de H39; research D10 de H39): en el modo herramienta,
-// un uso cuyo nombre, o lo que sigue a su último «__», es una herramienta del
-// registro, de modo que ToolSearch, que carga un esquema, no lo es; en el modo
-// orden, una orden de Bash con una orden simple que invoca kitlegal con un verbo
-// que da herramienta y que consulta.
-func (c *contadorDelLaboratorio) esDeKitlegal(uso usoDelTranscript, modo Modo) bool {
-	if modo == ModoHerramienta {
-		nombre := uso.nombre
-		if corte := strings.LastIndex(nombre, separadorDelPrefijo); corte >= 0 {
-			nombre = nombre[corte+len(separadorDelPrefijo):]
-		}
-
-		return slices.Contains(c.herramientas, nombre)
-	}
-
-	orden, deBash := ordenDelUso(uso)
-	if !deBash {
-		return false
-	}
-
-	for _, palabras := range ordenesSimples(orden) {
-		if c.consultaKitlegal(palabras) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// consultaKitlegal dice si las palabras de una orden simple invocan kitlegal y
-// consultan con un verbo que da herramienta: su primera palabra que no es una
-// asignación NOMBRE=valor es kitlegal o una ruta que termina en /kitlegal, y su
-// argv, desde ella, es para InterpretarInvocacion de un applet, consulta —sin
-// ayuda, --describe ni --dry-run— y su <applet>_<verbo> es una herramienta del
-// registro, así que no lo son ni which kitlegal, ni --help, ni skills list.
-func (c *contadorDelLaboratorio) consultaKitlegal(palabras []palabraDeSh) bool {
-	inicio := slices.IndexFunc(palabras, func(palabra palabraDeSh) bool { return !palabra.asignacion })
-	if inicio < 0 {
-		return false
-	}
-
-	programa := palabras[inicio].texto
-	if programa != binarioMulticall && !strings.HasSuffix(programa, "/"+binarioMulticall) {
-		return false
-	}
-
-	argv := make([]string, 0, len(palabras)-inicio)
-	for _, palabra := range palabras[inicio:] {
-		argv = append(argv, palabra.texto)
-	}
-
-	invocacion, deApplet := c.interprete.interpretar(argv)
-
-	return deApplet && invocacion.Consulta &&
-		slices.Contains(c.herramientas, invocacion.Applet+separadorDeHerramienta+invocacion.Verbo)
 }
 
 // abreLaReferencia dice si el uso abre esa referencia de la skill de la familia
@@ -874,117 +868,11 @@ func ordenDelUso(uso usoDelTranscript) (string, bool) {
 	return entrada.Command, true
 }
 
-// leerLosUsos lee del transcript de la sesión sus usos de herramienta, cada uno
-// con su turno (research D10 de H39): empieza un turno el primer mensaje
-// assistant, y cada assistant que llega después de un user con algún
-// tool_result y lleva un message.id distinto del del assistant anterior; así, los
-// bloques de una misma respuesta que el transcript da en varios mensajes son del
-// mismo turno aunque un resultado llegue entre ellos (research S2 de H39).
-//
-// LeerSesion ya ha leído el transcript; de él solo se exige aquí el message.id
-// de cada assistant, sin el que no hay turno.
-func leerLosUsos(directorio string) ([]usoDelTranscript, error) {
-	contenido, err := leerFicheroDeSesion(directorio, ficheroDelTranscript)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		usos     []usoDelTranscript
-		turno    int
-		anterior string
-		resuelto bool
-	)
-
-	numero := 0
-
-	for linea := range strings.Lines(string(contenido)) {
-		numero++
-
-		var mensaje struct {
-			Type    string `json:"type"`
-			Message struct {
-				ID      string          `json:"id"`
-				Content json.RawMessage `json:"content"`
-			} `json:"message"`
-		}
-
-		if err := json.Unmarshal([]byte(linea), &mensaje); err != nil {
-			return nil, fmt.Errorf("%s, línea %d: no es un mensaje JSON: %w", ficheroDelTranscript, numero, err)
-		}
-
-		switch mensaje.Type {
-		case mensajeAssistant:
-			if mensaje.Message.ID == "" {
-				return nil, fmt.Errorf("%s, línea %d: el mensaje assistant no tiene message.id",
-					ficheroDelTranscript, numero)
-			}
-
-			if turno == 0 || (resuelto && mensaje.Message.ID != anterior) {
-				turno++
-			}
-
-			anterior, resuelto = mensaje.Message.ID, false
-
-			delMensaje, err := usosDelMensaje(mensaje.Message.Content, turno)
-			if err != nil {
-				return nil, fmt.Errorf("%s, línea %d: %w", ficheroDelTranscript, numero, err)
-			}
-
-			usos = append(usos, delMensaje...)
-		case mensajeUser:
-			resuelto = resuelto || conResultado(mensaje.Message.Content)
-		}
-	}
-
-	return usos, nil
-}
-
-// usosDelMensaje son los bloques tool_use del message.content de un mensaje
-// assistant, del turno dado.
-func usosDelMensaje(contenido json.RawMessage, turno int) ([]usoDelTranscript, error) {
-	var bloques []bloqueDeContenido
-
-	if err := json.Unmarshal(contenido, &bloques); err != nil {
-		return nil, fmt.Errorf("el mensaje assistant no tiene la lista message.content: %w", err)
-	}
-
-	var usos []usoDelTranscript
-
-	for _, bloque := range bloques {
-		if bloque.Type == bloqueToolUse {
-			usos = append(usos, usoDelTranscript{turno: turno, nombre: bloque.Name, entrada: bloque.Input})
-		}
-	}
-
-	return usos, nil
-}
-
-// bloqueConTipo es lo que se lee de un bloque del contenido de un mensaje user:
-// su type.
-type bloqueConTipo struct {
-	Type string `json:"type"`
-}
-
-// conResultado dice si el message.content de un mensaje user trae algún bloque
-// tool_result. Como en LeerSesion, de un mensaje user no se exige más forma que
-// la de la API, en la que su contenido es un texto o una lista de bloques: un
-// texto no trae ninguno, y no es un defecto.
-func conResultado(contenido json.RawMessage) bool {
-	var bloques []bloqueConTipo
-
-	if json.Unmarshal(contenido, &bloques) != nil {
-		return false
-	}
-
-	return slices.ContainsFunc(bloques, func(bloque bloqueConTipo) bool { return bloque.Type == bloqueToolResult })
-}
-
 // documento es la tabla y el detalle de las filas contadas, con las cabeceras y
 // las celdas de la familia (contracts/tabla.md §3 y §4 de H39 y de H40), en el
 // orden de las filas: el de la declaración de la familia, orden antes que
-// herramienta, y modelo y versión por orden de texto; y en el detalle, el de las
-// filas y, dentro, por ruta.
+// herramienta, y modelo, versión e instalación por orden de texto; y en el
+// detalle, el de las filas y, dentro, por ruta.
 func (c *contadorDelLaboratorio) documento() string {
 	filas := make([]*filaDelSondeo, 0, len(c.filas))
 	for _, fila := range c.filas {
@@ -1017,7 +905,8 @@ func (c *contadorDelLaboratorio) documento() string {
 	return documento.String()
 }
 
-// compararClaves ordena dos claves de fila por variante, modo, modelo y versión.
+// compararClaves ordena dos claves de fila por variante, modo, modelo, versión e
+// instalación, en ese orden (contracts/tabla.md §3 de H41.2).
 func compararClaves(a, b claveDeFila) int {
 	if a.variante != b.variante {
 		return a.variante - b.variante
@@ -1031,13 +920,18 @@ func compararClaves(a, b claveDeFila) int {
 		return strings.Compare(a.modelo, b.modelo)
 	}
 
-	return strings.Compare(a.version, b.version)
+	if a.version != b.version {
+		return strings.Compare(a.version, b.version)
+	}
+
+	return strings.Compare(a.instaladas, b.instaladas)
 }
 
 // lineaDeLaFila es la línea de la tabla de una fila (contracts/tabla.md §3 de
-// H39 y de H40): la variante, el modo, el modelo, la versión, las sesiones sin
-// terminar y n, y detrás, las celdas de la familia o, con n = 0, todas vacías
-// (FR-042 de H39; FR-021 de H40).
+// H39 y de H40): la variante, el modo, el modelo, la versión, en una tabla con
+// las activaciones las skills instaladas (contracts/tabla.md §3 de H41.2), las
+// sesiones sin terminar y n, y detrás, las celdas de la familia o, con n = 0,
+// todas vacías (FR-042 de H39; FR-021 de H40 y de H41.2).
 func (c *contadorDelLaboratorio) lineaDeLaFila(fila *filaDelSondeo) string {
 	variante := c.familia.variantes[fila.variante]
 
@@ -1050,10 +944,13 @@ func (c *contadorDelLaboratorio) lineaDeLaFila(fila *filaDelSondeo) string {
 	}
 
 	n := len(terminadas)
-	celdas := []string{
-		variante.Nombre, string(modosDeLaTabla[fila.modo]), fila.modelo, fila.version,
-		strconv.Itoa(len(fila.sesiones) - n), strconv.Itoa(n),
+
+	celdas := []string{variante.Nombre, string(modosDeLaTabla[fila.modo]), fila.modelo, fila.version}
+	if c.familia.conLasActivaciones {
+		celdas = append(celdas, fila.instaladas)
 	}
+
+	celdas = append(celdas, strconv.Itoa(len(fila.sesiones)-n), strconv.Itoa(n))
 
 	if n == 0 {
 		return lineaDeCeldas(conLasVacias(celdas, c.familia.cabeceraDeLaTabla)...)
@@ -1114,9 +1011,10 @@ func (celdasDeH39) delDetalle(variante varianteDelLaboratorio, sesion sesionCont
 
 // celdasDelProducto son las celdas de la tabla de las variantes de una familia
 // del producto (contracts/tabla.md §3 de H40 y de H41; research D10 de H40 y D17
-// de H41): «Activan antes»; una por referencia de la tabla, vacía, no a cero, en
-// la variante que no la tiene; y, en una familia con variante con regla testigo,
-// la regla, solo en esa variante.
+// de H41): «Activan antes»; con las activaciones, las de las otras skills
+// (contracts/tabla.md §3 de H41.2); una por referencia de la tabla, vacía, no a
+// cero, en la variante que no la tiene; y, en una familia con variante con regla
+// testigo, la regla, solo en esa variante.
 type celdasDelProducto struct {
 	// conLaRegla es la variante en cuya fila y cuyo detalle se escribe la regla
 	// testigo; en las demás, la celda va vacía, no a cero. Vacía, la familia no
@@ -1129,17 +1027,82 @@ type celdasDelProducto struct {
 
 	// porVariante son las referencias que tiene cada variante, por su nombre.
 	porVariante map[string][]string
+
+	// skill es la de la familia, por el nombre de su frontmatter: las demás que
+	// active una sesión son otras skills.
+	skill string
+
+	// conLasActivaciones dice si la fila lleva, detrás de «Activan antes», las
+	// celdas de las otras skills, y el detalle, detrás de «Activa antes», la
+	// lista de las activaciones (FR-020 de H41.2).
+	conLasActivaciones bool
+}
+
+// celdasDeLasActivaciones son las celdas que la tabla con las activaciones da
+// detrás de «Activan antes» en una fila con alguna sesión terminada (FR-020 de
+// H41.2; contracts/tabla.md §3 de H41.2; research D13 de H41.2): cuántas activan,
+// en cualquier turno, alguna skill que no es la de la familia; cada una de esas
+// skills, en orden de nombre, con cuántas la activan, unidas por «; », o
+// «ninguna»; y cuántas no activan ninguna. Una sesión cuenta una vez en cada
+// recuento, también la que activa una skill dos veces.
+func (c celdasDelProducto) celdasDeLasActivaciones(terminadas []sesionContada) []string {
+	n := len(terminadas)
+	porSkill := map[string]int{}
+
+	for _, sesion := range terminadas {
+		for _, otra := range c.otrasSkills(sesion) {
+			porSkill[otra]++
+		}
+	}
+
+	otras := ningunaEnElInforme
+
+	if len(porSkill) > 0 {
+		textos := make([]string, 0, len(porSkill))
+
+		for _, otra := range slices.Sorted(maps.Keys(porSkill)) {
+			textos = append(textos, otra+": "+recuento(porSkill[otra], n))
+		}
+
+		otras = strings.Join(textos, "; ")
+	}
+
+	return []string{
+		recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return len(c.otrasSkills(s)) > 0 }), n),
+		otras,
+		recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return len(s.activaciones) == 0 }), n),
+	}
+}
+
+// otrasSkills son las skills que no son la de la familia y que la sesión activa
+// en cualquier turno, cada una una vez y en orden de nombre.
+func (c celdasDelProducto) otrasSkills(sesion sesionContada) []string {
+	var otras []string
+
+	for _, activacion := range sesion.activaciones {
+		if activacion.Skill != c.skill {
+			otras = append(otras, activacion.Skill)
+		}
+	}
+
+	slices.Sort(otras)
+
+	return slices.Compact(otras)
 }
 
 // deLaFila son las de los recuentos de una fila de una familia del producto con
-// alguna sesión terminada: cuántas activan antes; por cada referencia que tiene
-// la variante, cuántas la abren y, si alguna, « · turno <mediana>
-// (<mínimo>–<máximo>)» de la primera apertura de las que la abren; y cuántas
-// cumplen la regla, en la variante que la lleva.
+// alguna sesión terminada: cuántas activan antes; con las activaciones, las de
+// las otras skills; por cada referencia que tiene la variante, cuántas la abren
+// y, si alguna, « · turno <mediana> (<mínimo>–<máximo>)» de la primera apertura
+// de las que la abren; y cuántas cumplen la regla, en la variante que la lleva.
 func (c celdasDelProducto) deLaFila(variante varianteDelLaboratorio, terminadas []sesionContada) []string {
 	n := len(terminadas)
-	celdas := make([]string, 0, len(c.referencias)+2)
+	celdas := make([]string, 0, len(c.referencias)+5)
 	celdas = append(celdas, recuento(cuantasLoSon(terminadas, func(s sesionContada) bool { return s.activaAntes }), n))
+
+	if c.conLasActivaciones {
+		celdas = append(celdas, c.celdasDeLasActivaciones(terminadas)...)
+	}
 
 	for posicion, referencia := range c.referencias {
 		celdas = append(celdas, c.siLaTiene(variante, referencia, func() string {
@@ -1158,11 +1121,17 @@ func (c celdasDelProducto) deLaFila(variante varianteDelLaboratorio, terminadas 
 }
 
 // delDetalle son las de una sesión terminada de una familia del producto: si
-// activa antes; por cada referencia que tiene la variante, «no» o el turno de su
-// primera apertura; y si cumple la regla, en la variante que la lleva.
+// activa antes; con las activaciones, su lista, con «antes» o «después», o
+// «ninguna» (contracts/tabla.md §3 de H41.2); por cada referencia que tiene la
+// variante, «no» o el turno de su primera apertura; y si cumple la regla, en la
+// variante que la lleva.
 func (c celdasDelProducto) delDetalle(variante varianteDelLaboratorio, sesion sesionContada) []string {
-	celdas := make([]string, 0, len(c.referencias)+2)
+	celdas := make([]string, 0, len(c.referencias)+3)
 	celdas = append(celdas, siONo(sesion.activaAntes))
+
+	if c.conLasActivaciones {
+		celdas = append(celdas, textoDeLasActivaciones(sesion.activaciones))
+	}
 
 	for posicion, referencia := range c.referencias {
 		celdas = append(celdas, c.siLaTiene(variante, referencia, func() string {

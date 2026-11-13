@@ -82,13 +82,23 @@ install: check-tools
 # corre).
 MEDIDAS_DE_TIEMPO := ^(TestMedidasDeTiempo|TestCosteDelGrafo)$$
 
+# El plazo de go test para cada paquete, en test y test-integration. Sin él
+# valen los 10 minutos de go test por omisión, y internal/evals ya no cabe
+# siempre en ellos: sus tests del arnés del laboratorio abren con -race unas
+# 180 sesiones con su preparación de verdad, y el paquete tarda, solo, entre
+# 5 y más de 9 minutos según la carga de la máquina y el orden de -shuffle, y
+# más con los demás paquetes a la vez (medido en H41.2, T007: un make test sin
+# ningún test en rojo se cortó a los 10 minutos). El plazo no quita el
+# control, que sigue cortando un test colgado con su volcado.
+PLAZO_DE_LOS_TESTS := 20m
+
 ## test: tests unitarios con detector de carreras y perfil de cobertura
 test: check-tools
-	go test -race -shuffle=on -coverprofile=coverage.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
+	go test -race -shuffle=on -timeout $(PLAZO_DE_LOS_TESTS) -coverprofile=coverage.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
 
 ## test-integration: tests con la etiqueta de compilación integration
 test-integration: check-tools
-	go test -race -tags=integration -coverprofile=coverage-integration.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
+	go test -race -tags=integration -timeout $(PLAZO_DE_LOS_TESTS) -coverprofile=coverage-integration.out -skip '$(MEDIDAS_DE_TIEMPO)' ./...
 
 ## test-tiempos: las cotas de tiempo de los guiones e2e y el coste del grafo, solas y sin nada más en marcha
 test-tiempos: check-tools
@@ -146,14 +156,18 @@ evals-sondeo: check-tools
 
 # El sondeo del laboratorio de H39 lo lanza una persona, una vez, para la tabla
 # con la que escribe el ADR que precisa el 0046; no es un veredicto
-# (specs/031-h39-c-omo-se/contracts/arnes.md). Ninguno de sus siete argumentos
-# tiene valor por defecto, porque cada uno cambia lo que se mide; DIRECTORIO,
-# relativo a la raíz del repositorio o absoluto, no puede existir. La credencial
+# (specs/031-h39-c-omo-se/contracts/arnes.md). De sus nueve argumentos, los siete
+# primeros no tienen valor por defecto, porque cada uno cambia lo que se mide;
+# DIRECTORIO, relativo a la raíz del repositorio o absoluto, no puede existir.
+# Los dos últimos, INSTALACION (vacío o producto) y EVAL (vacío o el número de
+# una eval del plan de la familia), solo valen en las familias del producto, y
+# vacíos son la instalación y el plan de hoy
+# (specs/036-h41-2-por-qu-e/contracts/arnes.md). La credencial
 # la toma scripts/evals-sondeo-llavero.sh, como en evals-sondeo; ningún paso del
 # workflow `hito` puede lanzarlo (docs/ADR/0032).
 ## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
 evals-laboratorio: check-tools
-	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)"
+	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)" "$(INSTALACION)" "$(EVAL)"
 
 # La medida del juez no es de una ejecución normal del job de evals: la lanza
 # una persona, con la etiqueta evals-medir-juez en una propuesta de cambio o con

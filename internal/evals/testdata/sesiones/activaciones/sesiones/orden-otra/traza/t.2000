@@ -1,0 +1,2 @@
+execve("/usr/local/bin/kitlegal", ["kitlegal", "boe", "articulo", "BOE-A-2017-12902", "a1-30", "--fecha", "2019-06-01", "--json"], 0x7ffd8f13a6c0 /* 25 vars */) = 0
++++ exited with 0 +++

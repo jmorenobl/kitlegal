@@ -1,0 +1,97 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-11 01:31:35
++++ ahora/checklists/requirements.md	2026-11-11 01:33:07
+@@ -21,7 +21,8 @@
+ - [x] No [NEEDS CLARIFICATION] markers remain — el de FR-013 (cómo se pide solo la eval 04 al arnés) lo cerró
+   clarify con la opción A: un argumento nuevo del arnés.
+ - [x] Requirements are testable and unambiguous — FR-001 a FR-006 con su test de informe; FR-010 a FR-015 con el del
+-  arnés; FR-020 a FR-024 con el del guion; FR-032 y FR-033 con las suites congeladas y el job; FR-030 y FR-031 los
++  arnés (lo que instala depende de la opción de FR-010; las sesiones que abre, solo del argumento de FR-013);
++  FR-020 a FR-024 con el del guion; FR-032 y FR-033 con las suites congeladas y el job; FR-030 y FR-031 los
+   comprueba la persona (SC-008).
+ - [x] Success criteria are measurable — SC-001 (100 %), SC-002 (0 diferencias), SC-003 (0 bytes, 4 skills, 0
+   repetidas), SC-004 (0 sesiones), SC-005 (valores exactos), SC-006 (0 bytes), SC-007 (job de evals), SC-008 (capa 3).
+@@ -38,8 +39,9 @@
+ ## Feature Readiness
+ 
+ - [x] All functional requirements have clear acceptance criteria — FR-001 a FR-006 en US1 y SC-001/SC-002; FR-010 a
+-  FR-015 en US2 y SC-003/SC-004; FR-020 a FR-024 en US3 y SC-005/SC-006; FR-030 y FR-031 en US4 y SC-008; FR-032 en
+-  SC-006; FR-033 en SC-007.
++  FR-015 en US2 y SC-003/SC-004/SC-009; FR-020 a FR-024 en US3 y SC-005/SC-006; FR-030 y FR-031 en US4 y SC-008;
++  FR-032 en SC-006; FR-033 en SC-007 (evals en verde y el informe final con las cifras del umbral sin cumplir, como
++  hoy) y, para la lista de activaciones del cierre, en SC-001 (la del informe del job, FR-001 y FR-002).
+ - [x] User scenarios cover primary flows — informe del job (US1), instalación del arnés (US2), tabla (US3), sondeo y
+   ADR (US4).
+ - [x] Feature meets measurable outcomes defined in Success Criteria — SC-001 a SC-008, con los «Controles» y la
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-11 01:31:35
++++ ahora/spec.md	2026-11-11 01:32:49
+@@ -56,8 +56,8 @@
+ 
+ ### User Story 1 - El informe del job dice qué skills activó cada sesión (Priority: P1)
+ 
+-Quien lee el informe del job —la persona antes de fusionar, y el informe final del run cuando el cierre sale en rojo—
+-ve, por cada sesión, qué skills activó, en qué orden y si fue antes o después de la primera herramienta de kitlegal.
++Quien lee el informe del job (`informe.json` e `informe.md`) —la persona antes de fusionar, también cuando el cierre
++sale en rojo— ve, por cada sesión, qué skills activó, en qué orden y si fue antes o después de la primera herramienta de kitlegal.
+ Una sesión que cuenta en `sin_activar` dice si activó otra skill o ninguna. Nada de lo que el informe ya cuenta cambia.
+ 
+ **Why this priority**: es lo que el informe del job no deja saber hoy de la caída, y lo que la persona necesita para
+@@ -219,9 +219,9 @@
+   `make install` —cada una idéntica byte a byte, fichero a fichero, a la de `skills/` del árbol que lanza el sondeo—,
+   con la variante de la sesión en el lugar de la skill de su familia, y ningún nombre repetido. En `<skill>-producto`,
+   la variante es la copia de `skills/<skill>`, y la sesión tiene `skills/` tal cual. Sin la opción, el arnés instala
+-  en cada sesión exactamente lo que instala hoy (`specs/034-h41-las-skills-del/contracts/arnes.md` §3), byte a byte, y
+-  abre las mismas sesiones. Cómo se llama la opción y qué valores toma lo decide el plan; ausente o vacía es «sin la
+-  opción».
++  en cada sesión exactamente lo que instala hoy (`specs/034-h41-las-skills-del/contracts/arnes.md` §3), byte a byte.
++  Las sesiones que abre no dependen de la opción: las de hoy sin el argumento de FR-013, y las de FR-013 con él. Cómo
++  se llama la opción y qué valores toma lo decide el plan; ausente o vacía es «sin la opción».
+ - **FR-011**: La opción de FR-010 con variantes del laboratorio de H39, que no son de ninguna familia del producto, o
+   con un valor que no vale; el argumento de FR-013 con un valor que no es ninguna eval del plan de la familia pedida
+   o con variantes del laboratorio de H39, que no tienen un plan de una familia del producto, es un error de
+@@ -305,8 +305,9 @@
+   `specs/034-h41-las-skills-del/aceptacion/`) siguen en verde en `make ci` sin cambiar ningún fichero suyo.
+ - **FR-033**: Las evals de las skills del producto salen en verde en la medición del cierre, en los dos modos. Si el
+   cierre da en rojo la caída que este hito mide (`sin_activar` en la eval 04 de `normativa` en modo herramienta), la
+-  reparación no la arregla tocando una skill, una eval, un umbral ni las versiones del job, y el informe final la da
+-  con sus cifras y con la lista de activaciones de la sesión (FR-001) para que decida una persona.
++  reparación no la arregla tocando una skill, una eval, un umbral ni las versiones del job; el informe final da el
++  umbral sin cumplir con sus cifras, como hoy, y la lista de activaciones de esas sesiones está en el `informe.json` y
++  el `informe.md` del job del cierre (FR-001, FR-002), para que decida una persona.
+ 
+ ### Key Entities
+ 
+@@ -321,12 +322,11 @@
+ ### Uso, de fuera adentro
+ 
+ Ninguna skill del producto ni el binario que se distribuye consume nada de lo que entrega el hito: lo consumen la
+-persona que lee el informe del job o la tabla y escribe el ADR, y el informe final del run cuando el cierre sale en
+-rojo. Lo que gana la skill es indirecto: saber de dónde viene la caída de la eval 04 antes de cambiar `normativa`, su
++persona que lee el informe del job o la tabla y escribe el ADR. Lo que gana la skill es indirecto: saber de dónde viene la caída de la eval 04 antes de cambiar `normativa`, su
+ umbral o el job.
+ 
+ - **Lista de activaciones en el informe del job** (FR-001, FR-002). La escribe el job una vez por sesión y la lee la
+-  persona, o el informe final del run, al leer el informe de una medición: sobre todo la de las sesiones que cuentan en
++  persona al leer el informe de una medición, también la del cierre cuando sale en rojo: sobre todo la de las sesiones que cuentan en
+   `sin_activar`, una o ninguna por medición en la serie de partida. Tamaño: una entrada por `tool_use` de `Skill`,
+   acotada por los turnos de la sesión; lo esperado, sin medir en esta sesión, es una o dos entradas de unos 45 bytes en
+   `informe.json` (el nombre más «antes») y una línea en `informe.md`. Con unos centenares de sesiones por medición son
+@@ -405,9 +405,9 @@
+   que el informe del job y la tabla del sondeo lean la activación igual.
+ - «Como las deja `make install`» es lo que deja `kitlegal skills install -g --host claude` con el binario del árbol:
+   las cuatro skills de `skills/`, cada una como está en el árbol.
+-- «Sin la opción, el arnés hace lo que hace hoy» se lee con su control en el hito: lo que instala y las sesiones que
+-  abre no cambian en un byte. Que el sondeo deje constancia de su instalación también sin la opción (FR-012) no cambia
+-  nada de eso, y es lo que deja a la tabla decir las skills instaladas de las filas sin la opción, que el sondeo de
++- «Sin la opción, el arnés hace lo que hace hoy» se lee con su control en el hito: lo que instala no cambia en un
++  byte, y las sesiones que abre no dependen de la opción (las de hoy sin el argumento de FR-013, las de FR-013 con él).
++  Que el sondeo deje constancia de su instalación también sin la opción (FR-012) no cambia nada de eso, y es lo que deja a la tabla decir las skills instaladas de las filas sin la opción, que el sondeo de
+   H41.2 necesita (dos de sus cuatro filas).
+ - La opción solo tiene sentido en las familias del producto: la del laboratorio de H39 no es ninguna skill de
+   `skills/` cuyo lugar ocupar, y con ella la opción es un error de argumentos (FR-011), la lectura que menos
+@@ -435,3 +435,4 @@
+   (FR-013); pedir más de una eval a la vez al arnés; pedir una eval en una familia del laboratorio de H39.
+ - Que el job de evals mida las variantes o lance el arnés, o que `make ci` abra sesiones con modelo.
+ - Lanzar el sondeo y escribir el ADR dentro del run, grabar lecturas nuevas o escribir en `evidencias/` desde el run.
++- Cambiar el informe final del workflow (`scripts/workflow/informe.sh`) para que dé las activaciones de cada sesión.

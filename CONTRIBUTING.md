@@ -1367,6 +1367,17 @@ Cómo se lee el informe:
 - **La clase de pregunta**: cada elemento de `evals` de `informe.json` lleva `por_materia`, el de su eval, también
   con `false`. Con él, y con `juez.respuestas`, la serie de cierres reparte por modo y por clase de pregunta las
   respuestas que marca el juez sin leer las evals (ADR 0038, punto 6; `docs/WORKFLOW.md`, «La serie de cierres»).
+- **Las skills activadas**, desde H41.2: cada elemento de `evals` de `informe.json` lleva, detrás de `activada`,
+  `activaciones`, una entrada por cada `tool_use` de `Skill` del transcript, en su orden, con `skill`, su
+  `input.skill` tal cual, y `antes`, verdadero si va en un turno anterior al de la primera herramienta de kitlegal
+  —una herramienta del registro en modo herramienta, una orden simple `kitlegal` con un verbo que da herramienta y
+  consulta en modo orden— o en cualquiera si la sesión no tiene ninguna; en el mismo turno, no. Turno y primera
+  herramienta son los de la tabla del laboratorio, que cuenta con la misma regla. Es `[]` en una sesión leída sin
+  ninguna, y la clave falta en una sesión sin leer. En `informe.md`, la sección de cada sesión lleva, detrás de «Modelo de la sesión:», el párrafo
+  `Skills activadas: consulta-juridica (antes), normativa (después)`, `Skills activadas: ninguna` con la lista vacía
+  o `Skills activadas: sin leer` sin ella. Dice si una sesión que cuenta en `sin_activar` activó otra skill, y cuál;
+  `activada`, la columna «Activada», `sin_activar`, cada tasa, cada umbral, cada motivo y el veredicto no cambian
+  (`specs/036-h41-2-por-qu-e/contracts/informe.md`).
 - **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
@@ -1645,7 +1656,7 @@ suscripción de quien lo lanza: ni `make ci` ni ningún flujo lo ejecutan.
 **La credencial no vive en un fichero** (ADR 0032). `make evals-sondeo` y `make evals-laboratorio` pasan por
 `scripts/evals-sondeo-llavero.sh`, cuyo primer argumento, de una lista cerrada, dice qué guion ejecuta con los demás:
 `sondeo`, `scripts/evals-sondeo.sh` con sus cinco (`SKILL`, `EVALS`, `MODELO`, `REPETICIONES` y `CONCURRENCIA`), y
-`laboratorio`, `scripts/evals-laboratorio.sh` con sus siete ([El sondeo del laboratorio](#el-sondeo-del-laboratorio));
+`laboratorio`, `scripts/evals-laboratorio.sh` con sus nueve ([El sondeo del laboratorio](#el-sondeo-del-laboratorio));
 con otro, o sin ninguno, imprime su uso y termina con `1` sin tocar el llavero. Si `CLAUDE_CODE_OAUTH_TOKEN` no está
 ya en el entorno, el guion la lee en macOS de un llavero propio —no el de inicio de
 sesión— que está bloqueado: el sistema abre un diálogo que pide la contraseña del llavero, y el guion lo vuelve a
@@ -1681,25 +1692,36 @@ y cuáles cumplen la regla. Lo lanza una persona para la tabla con la que escrib
 
 ```sh
 make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
-  CONCURRENCIA=<c> DIRECTORIO=<ruta>
+  CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto] [EVAL=<nn>]
 ```
 
-La cadena es `make` → `scripts/evals-sondeo-llavero.sh laboratorio` con los siete, que toma la credencial como en
+La cadena es `make` → `scripts/evals-sondeo-llavero.sh laboratorio` con los nueve, que toma la credencial como en
 `make evals-sondeo` → `scripts/evals-laboratorio.sh`, que crea un temporal y lo borra al terminar → `go test -tags
-evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args …`. Ninguno de los siete
-argumentos tiene valor por defecto, porque cada uno cambia lo que se mide, y antes de abrir ninguna sesión se comprueban
-todos; los errores salen juntos, uno por línea y cada uno con el nombre de su argumento:
+evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args …`. Ninguno de los siete primeros
+argumentos tiene valor por defecto, porque cada uno cambia lo que se mide; los dos últimos, `INSTALACION` y `EVAL`
+(H41.2, solo en las familias del producto, abajo), vacíos son la instalación y el plan de antes. Antes de abrir ninguna
+sesión se comprueban todos; los errores salen juntos, uno por línea y cada uno con el nombre de su argumento, los de
+`INSTALACION` y `EVAL` detrás del de `DIRECTORIO`:
 
 | Argumento | Vale si | Mensaje si no |
 |---|---|---|
 | `VARIANTES` | nombres de `variantes.yaml`, separados por comas, sin repetir | `VARIANTES: «<v>» no es ninguna variante del laboratorio` o `VARIANTES: «<v>» se repite` |
 | `MODOS` | `orden`, `herramienta` o los dos, separados por comas, sin repetir | `MODOS: «<m>» no es orden ni herramienta` |
 | cada par variante × modo | el modo es de la variante: `instrucciones` y `parametro`, solo `herramienta`; las otras seis, los dos | `VARIANTES y MODOS: <v> no se mide en modo <m>` |
-| `SESIONES` | entero mayor o igual que 4 y múltiplo de 4: se reparten por igual entre las cuatro evals | `SESIONES: «<n>» no es un múltiplo de 4 mayor que 0` |
+| `SESIONES`, sin `EVAL` | entero mayor o igual que 4 y múltiplo de 4: se reparten por igual entre las cuatro evals | `SESIONES: «<n>» no es un múltiplo de 4 mayor que 0` |
+| `SESIONES`, con `EVAL` | entero mayor que 0: son todas de esa eval; lo decide que `EVAL` venga, valga o no | `SESIONES: «<n>» no es un entero mayor que 0` |
 | `MODELO` | identificador completo, `^claude-[a-z]+-[0-9]+(-[0-9]+)*$`, no un alias como `sonnet` | `MODELO: «<id>» no es un identificador completo de modelo (claude-<familia>-<versión>, como claude-sonnet-5-5)` |
 | `CLAUDE_CODE` | no vacía | `CLAUDE_CODE: está vacía` |
 | `CONCURRENCIA` | entero mayor o igual que 1 | `CONCURRENCIA: «<c>» no es un entero mayor o igual que 1` |
 | `DIRECTORIO` | no vacío y no existe; relativo, desde la raíz del repositorio | `DIRECTORIO: está vacío` o `DIRECTORIO: <ruta> ya existe` |
+| `INSTALACION` | vacío, o `producto` | `INSTALACION: «<v>» no es producto` |
+| `INSTALACION=producto` | las variantes pedidas son de una familia del producto | `INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia del producto` |
+| `EVAL` | vacío, o el número de dos cifras de una de las cuatro evals del plan de la familia pedida, la que empieza por `<nn>-` | `EVAL: «<v>» no es el número de ninguna eval del plan de <skill>` |
+| `EVAL` no vacío | las variantes pedidas son de una familia del producto | `EVAL: las variantes del laboratorio de H39 no tienen el plan de una familia del producto` |
+
+Los errores de `INSTALACION=producto`, de `EVAL` no vacío y de un `EVAL` que no es de la familia solo salen cuando las
+variantes pedidas que valen son de una sola familia: si ninguna vale, o se mezclan familias, ya lo dicen los errores de
+`VARIANTES`. `INSTALACION: «<v>» no es producto` sale con cualquier `VARIANTES`.
 
 Detrás, en este orden y solo si los argumentos valen: la credencial, `CLAUDE_CODE_OAUTH_TOKEN` no vacía, con el mensaje
 de `make evals-sondeo`; y el primer campo de `claude --version`, con el `PATH` de quien lo lanza, igual a
@@ -1762,12 +1784,12 @@ aplicada sobre control, o el test falla con su motivo; que control no cambia lo 
 `TestReglaTestigoDeNormativa`, `TestArnesDeNormativa`, `TestTablaDeNormativa` y `TestLaboratorioFueraDelProducto`, que
 mira también los nombres de esta familia. El tope de 11 000 caracteres de cuerpo no se aplica a las variantes.
 
-La orden, los siete argumentos y la cadena son los de arriba; cambia solo lo que vale en `VARIANTES`. Una invocación es
+La orden, los argumentos y la cadena son los de arriba; cambia solo lo que vale en `VARIANTES`. Una invocación es
 de **una sola familia**: los nombres son de `variantes.yaml` o de las variantes de `normativa` (desde H41, también de
 las otras dos familias del producto, abajo), y mezclarlos es un
 error de uso más, `VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de normativa`, detrás de los de los
 nombres. Cada par variante × modo se comprueba con su familia (`VARIANTES y MODOS: <v> no se mide en modo <m>`), y
-`SESIONES` sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
+`SESIONES`, sin `EVAL` (H41.2, abajo), sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
 `05-trlrhl-impuestos-municipales.yaml`, `15-irpf-rendimientos-por-materia.yaml` y `22-lcsp-contrato-menor-en-2019.yaml`
 de `evals/normativa`, las del job, sin copia, y en ese orden. Cada sesión se prepara como en el job, con las consultas de
 todas las evals de `evals/normativa` servidas por lo grabado y los proxies que rechazan toda petición (ADR 0043), y queda
@@ -1836,10 +1858,10 @@ declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFam
 se empotra en el binario, la pone `kitlegal skills install` ni la mide el job de evals. El tope de 11 000 caracteres
 rige `skills/`, no las variantes versionadas.
 
-La orden, los siete argumentos y la cadena son los de arriba. `VARIANTES` es de **una sola familia**: pedir variantes de
+La orden, los argumentos y la cadena son los de arriba. `VARIANTES` es de **una sola familia**: pedir variantes de
 varias es `VARIANTES: se mezclan variantes de <a> y variantes de <b>`, una por familia pedida, en el orden de las
 familias, separadas por comas y la última con «y»; la de H39 se nombra «del laboratorio de H39», así que la mezcla de
-H39 y `normativa` da el mensaje de H40. `SESIONES` sigue siendo múltiplo de 4: cada familia tiene cuatro evals de
+H39 y `normativa` da el mensaje de H40. `SESIONES`, sin `EVAL` (abajo), sigue siendo múltiplo de 4: cada familia tiene cuatro evals de
 `evals/<skill>`, las del job, sin copia y en este orden (a qué condiciones de las remisiones llega cada una,
 `specs/034-h41-las-skills-del/research.md`, D15):
 
@@ -1850,10 +1872,11 @@ H39 y `normativa` da el mensaje de H40. `SESIONES` sigue siendo múltiplo de 4: 
 | `jurisprudencia` | `01-existe-con-numero-y-fecha`, `03-por-materia`, `04-documento-pegado` y `06-documento-que-no-es-el-pedido` |
 
 Cada sesión se prepara como en el job, servida por lo grabado y con los proxies que rechazan toda petición (ADR 0043),
-y tiene instalada solo la skill de su variante, con el nombre de la de la familia; en modo herramienta, el servidor es
-`kitlegal mcp serve` del árbol en todas. Con `<skill>-producto`, el arnés copia `skills/<skill>` del árbol en el
-temporal y anota en `sondeo.json` la clave `referencias_del_producto`: los nombres de los ficheros de su `references/`,
-en orden de nombre, y nada más de la skill. Sin `<skill>-producto`, `sondeo.json` es el de H39.
+y, sin `INSTALACION=producto` (abajo), tiene instalada solo la skill de su variante, con el nombre de la de la familia;
+en modo herramienta, el servidor es `kitlegal mcp serve` del árbol en todas. Con `<skill>-producto`, el arnés copia
+`skills/<skill>` del árbol en el temporal y anota en `sondeo.json` la clave `referencias_del_producto`: los nombres de
+los ficheros de su `references/`, en orden de nombre, y nada más de la skill. Sin `<skill>-producto`, `sondeo.json` no
+la lleva; desde H41.2 lleva además, en toda familia del producto, `skills_instaladas` (abajo).
 
 La tabla de una familia del producto es la de H40 con la skill y las referencias de la familia, con el título
 `# Sondeo de las variantes de <skill>`. Las columnas de las referencias son las de las variantes versionadas, de su
@@ -1900,6 +1923,59 @@ ni en las referencias a cuya condición llegan las evals. Si no, la propuesta no
 dice qué medir después. La tabla de `plazos-y-territorio` no decide la fusión: con la misma regla frente a
 `plazos-y-territorio-control` y el desglose por eval del detalle, va a un ADR que escribe la persona y que dice qué
 forma aplica H41.1 o, si ninguna cumple, que no aplica ninguna y qué medir después.
+
+H41.2 añade a las familias del producto los dos últimos argumentos, para medir si las sesiones de la eval 04 que en el
+job no activan `normativa` en modo herramienta lo deben a la versión de Claude Code del job o a tener instaladas, como
+allí, las demás skills del producto (`specs/036-h41-2-por-qu-e/contracts/arnes.md`). Con `INSTALACION=producto`, el
+temporal tiene, además de la copia de la variante, la de cada directorio de `skills/` del árbol que no es la skill de
+la familia, y cada sesión ve las cuatro
+skills del producto, cada una byte a byte, con la de su variante en el lugar de la de su familia y ningún nombre
+repetido; en `<skill>-producto`, eso es `skills/` entera. Con `EVAL=<nn>`, el plan de cada par variante × modo son
+`SESIONES` sesiones de esa eval, `<eval>-01` en adelante, en lugar de `SESIONES/4` de cada una de las cuatro. Vacíos,
+los dos son lo de antes, byte a byte. En toda familia del producto, con la opción o sin ella, `sondeo.json` lleva al
+final `skills_instaladas`, los nombres de las skills que enlaza cada sesión, en orden de nombre; ni su copia ni su
+huella quedan en `DIRECTORIO`, y un sondeo de H39 no la lleva:
+
+```json
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.284","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"],"skills_instaladas":["consulta-juridica","jurisprudencia","normativa","plazos-y-territorio"]}
+```
+
+Si algún sondeo de la ruta lleva `skills_instaladas`, la tabla de una familia del producto tiene una fila por variante,
+modo, modelo, versión de Claude Code y skills instaladas, en ese orden, con cuatro columnas más: «Skills instaladas»,
+detrás de «Claude Code», los nombres unidos por «, », o la skill de la familia sola en la fila de un sondeo sin la
+clave; y, detrás de «Activan antes», «Activan otra skill», las sesiones que activan, en cualquier turno, alguna skill
+que no es la de la familia; «Otras skills», cada una de esas skills en orden de nombre con las sesiones que la activan
+(`consulta-juridica: <k> de <n> · <p> % [<lo>–<hi> %]`), unidas por «; », o `ninguna`; y «No activan ninguna», las
+que no tienen ningún `tool_use` de `Skill`. Cada recuento es `<k> de <n>` con su intervalo de Wilson al 95 %, como los
+demás, y una sesión cuenta una vez en cada uno: la que activa la de la familia y otra, en las dos columnas; la que
+activa una skill dos veces, una vez. Con `n` = 0, los recuentos van vacíos y la instalación, llena. El detalle lleva
+«Activaciones» detrás de «Activa antes»: la lista de la sesión, como el párrafo `Skills activadas:` de `informe.md`, o
+`ninguna`, y vacía en una sesión sin terminar. Sin ningún sondeo con `skills_instaladas` —los anteriores a H41.2—, la
+tabla y el detalle son los de H41, byte a byte, y la del laboratorio de H39 no cambia. Qué cuenta cada columna lo fija
+`specs/036-h41-2-por-qu-e/contracts/tabla.md`. `make ci` lo comprueba sin modelo: el arnés, con un sustituto de
+`claude`, en `TestArnesConLaInstalacionDelProducto` y `TestArnesConUnaEval`, y la tabla, con sesiones fijas, en
+`TestTablaConLasActivaciones`; el informe del job, en `TestInformeConLasActivaciones`.
+
+La medida de H41.2 son cuatro filas de 40 sesiones de `normativa-producto`, todas de la eval 04, en modo herramienta y
+con `claude-sonnet-5-5`: Claude Code 2.1.284 y la versión del día, cada una con `normativa` sola y con las cuatro
+skills del producto. Cuatro invocaciones y una tabla; `CLAUDE_CODE` es la versión que la persona tiene en el `PATH` en
+cada una, que el arnés comprueba antes de abrir nada:
+
+```sh
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=40 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-2/sola-2.1.284 EVAL=04
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=40 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-2/todas-2.1.284 EVAL=04 INSTALACION=producto
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=40 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=<la del día> CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-2/sola-<la del día> EVAL=04
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=40 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=<la del día> CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-2/todas-<la del día> EVAL=04 INSTALACION=producto
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41-2
+```
+
+4 × 40 = 160 sesiones. La tabla va a `evidencias/` y, con su lectura, a la propuesta de cambio, que no se fusiona sin
+ellas; no decide la fusión, que la deciden los controles. Con ella escribe la persona el ADR que dice qué se hace con
+la caída; ni el run ni un paso del workflow lanzan el sondeo o escriben ese ADR.
 
 ## `make vuln` necesita red
 

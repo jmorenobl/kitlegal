@@ -1119,7 +1119,14 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
 	}
 
-	sesiones, err := juzgarSesiones(e, conjunto.Evals)
+	// Uno para todas las sesiones, que se juzgan una tras otra: su intérprete
+	// guarda lo que lee de cada invocación.
+	reconocedor, err := nuevoReconocedorDeKitlegal()
+	if err != nil {
+		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
+	}
+
+	sesiones, err := juzgarSesiones(e, conjunto.Evals, reconocedor)
 	if err != nil {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
 	}
@@ -1364,8 +1371,9 @@ func (e InformeAEscribir) planCompleto(evals []Eval) PlanDeEvals {
 }
 
 // juzgarSesiones juzga cada entrada del directorio de sesiones, en orden de
-// nombre. El error queda para el directorio que no se puede listar.
-func juzgarSesiones(e InformeAEscribir, evals []Eval) ([]sesionJuzgada, error) {
+// nombre, con el reconocedor de la primera herramienta de kitlegal de cada una.
+// El error queda para el directorio que no se puede listar.
+func juzgarSesiones(e InformeAEscribir, evals []Eval, reconocedor reconocedorDeKitlegal) ([]sesionJuzgada, error) {
 	entradas, err := os.ReadDir(e.Sesiones)
 	if err != nil {
 		return nil, fmt.Errorf("el directorio de sesiones %s no se puede listar: %w", e.Sesiones, err)
@@ -1373,7 +1381,7 @@ func juzgarSesiones(e InformeAEscribir, evals []Eval) ([]sesionJuzgada, error) {
 
 	sesiones := make([]sesionJuzgada, 0, len(entradas))
 	for _, entrada := range entradas {
-		sesiones = append(sesiones, juzgarSesion(e, evals, entrada.Name()))
+		sesiones = append(sesiones, juzgarSesion(e, evals, entrada.Name(), reconocedor))
 	}
 
 	return sesiones, nil
@@ -1383,13 +1391,17 @@ func juzgarSesiones(e InformeAEscribir, evals []Eval) ([]sesionJuzgada, error) {
 // nombra su eval.txt y el modo que da su directorio, o la deja sin pasar con un
 // motivo por cada fichero que no se pudo leer (paso 2 de EscribirInforme). Si no
 // se puede saber si tiene servidor.json, su motivo va detrás del de pregunta.txt
-// y la sesión queda sin modo.
-func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada {
+// y la sesión queda sin modo. De la sesión que LeerSesion leyó, también de la que
+// queda sin pasar por otro fichero, da la lista de sus activaciones con el
+// reconocedor en su modo; si no se puede leer, es un motivo más y la lista no
+// se da (FR-001 y FR-005 de H41.2; research D5 de H41.2).
+func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string, reconocedor reconocedorDeKitlegal) sesionJuzgada {
 	dir := filepath.Join(e.Sesiones, nombre)
 
 	var (
-		juzgada sesionJuzgada
-		motivos []string
+		juzgada      sesionJuzgada
+		motivos      []string
+		activaciones []Activacion
 	)
 
 	nombreDeEval, eval, errDeEval := leerEvalDeLaSesion(dir, e.Evals, evals)
@@ -1438,10 +1450,16 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		} else {
 			juzgada.trazaLeida = true
 		}
+
+		activaciones, err = activacionesDeLaSesion(dir, reconocedor, modo)
+		if err != nil {
+			motivos = append(motivos, motivoDeSesionIlegible+err.Error())
+		}
 	}
 
 	if len(motivos) == 0 {
 		juzgada.resultado = juzgarEnModo(eval, juzgada.sesion, e.Skill, modo)
+		juzgada.resultado.Activaciones = activaciones
 		juzgada.resultado.Sesion = nombre
 		juzgada.resultado.Modelo = juzgada.clave.modelo
 		juzgada.resultado.ModeloDeLaSesion = juzgada.sesion.Modelo
@@ -1465,6 +1483,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 	if juzgada.leida {
 		codigo := juzgada.sesion.Codigo
 		juzgada.resultado.Activada = juzgada.sesion.Activada(e.Skill)
+		juzgada.resultado.Activaciones = activaciones
 		juzgada.resultado.Respuesta = juzgada.sesion.Respuesta
 		juzgada.resultado.CodigoDeLaSesion = &codigo
 		juzgada.resultado.FinDeLaSesion = juzgada.sesion.Fin
@@ -2700,10 +2719,11 @@ func filasDeVotosCortados(cortados []VotoCortado) [][]string {
 	return filas
 }
 
-// sesion añade la sección de una sesión: su eval, la pregunta, las invocaciones
-// con su código y sus conexiones, la respuesta y, si la sesión no terminó, no se
-// pudo leer o quedó sin medir, sus motivos de sesión ilegible, sin terminar o sin
-// medir y su salida de error.
+// sesion añade la sección de una sesión: su eval, sus modelos, las skills que
+// activó (desde H41.2), la pregunta, las invocaciones con su código y sus
+// conexiones, la respuesta y, si la sesión no terminó, no se pudo leer o quedó
+// sin medir, sus motivos de sesión ilegible, sin terminar o sin medir y su salida
+// de error.
 func (d *documento) sesion(juzgada sesionJuzgada) {
 	resultado := juzgada.resultado
 
@@ -2711,6 +2731,16 @@ func (d *documento) sesion(juzgada sesionJuzgada) {
 	d.parrafo("Eval: " + cmp.Or(resultado.Eval, ningunaEnElInforme))
 	d.parrafo("Modelo pedido: " + cmp.Or(resultado.Modelo, sinLeer))
 	d.parrafo("Modelo de la sesión: " + cmp.Or(resultado.ModeloDeLaSesion, sinLeer))
+
+	// Sin la lista, nil, la sesión no se leyó o su lista no se pudo leer; la de
+	// una sesión que no activó ninguna skill está vacía (contracts/informe.md §3
+	// de H41.2).
+	if resultado.Activaciones == nil {
+		d.parrafo("Skills activadas: " + sinLeer)
+	} else {
+		d.parrafo("Skills activadas: " + textoDeLasActivaciones(resultado.Activaciones))
+	}
+
 	d.textoLeido("Pregunta", juzgada.pregunta, juzgada.preguntaLeida)
 
 	if juzgada.trazaLeida {

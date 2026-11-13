@@ -295,6 +295,12 @@ linters:
       # falso positivo a falso positivo en ignore-rules (research.md D9).
       locale: US
       ignore-rules:
+        # «Activacion», el tipo de una skill activada de una sesión y de si va
+        # antes de la primera herramienta de kitlegal, en
+        # internal/evals/activaciones.go, cuyo nombre fijan el modelo de datos §1
+        # y el contrato del informe §1 de H41.2 (FR-001, T002); misspell lo lee
+        # como «activation».
+        - activacion
         # «Procedimiento administrativo común», la búsqueda de la lista cerrada de
         # grabación cuya dirección fija byte a byte el contrato verbos-y-salidas §1
         # de H4 y que TestConsultaDeBusqueda, en
