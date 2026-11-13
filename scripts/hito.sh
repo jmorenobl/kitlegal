@@ -37,7 +37,9 @@
 #                y reanuda con los mismos modelos. No consume reanudaciones: lo
 #                acota el presupuesto de tiempo.
 #   transitorio  cualquier otro fallo de un paso → reanuda; el mismo paso no se
-#                reanuda más de dos veces.
+#                reanuda más de dos veces. Antes espera, como mucho
+#                KITLEGAL_ESPERA_INDICE segundos (120), a que ningún git tenga
+#                tomado el índice; si sigue tomado, para sin borrar el candado.
 #   rechazo      el juez de entrada rechazó el spec (check_gate_spec): el único
 #                camino de vuelta a la persona antes del final; informe de
 #                rechazo en gates/informe-rechazo.md.
@@ -65,6 +67,7 @@ max_reanudaciones="${KITLEGAL_MAX_REANUDACIONES:-8}"
 fallback="${KITLEGAL_MODELO_FALLBACK:-fable=claude-opus-5-5,opus=claude-sonnet-5-5}"
 espera_limite="${KITLEGAL_ESPERA_LIMITE:-60}"
 espera_sin_repuesto="${KITLEGAL_ESPERA_SIN_REPUESTO:-1800}"
+espera_indice="${KITLEGAL_ESPERA_INDICE:-120}"
 tiempo_maximo="${KITLEGAL_TIEMPO_MAXIMO:-172800}"
 transcripts="${KITLEGAL_TRANSCRIPTS:-$HOME/.claude/projects/$(printf '%s' "$PWD" | sed -E 's/[^A-Za-z0-9]/-/g')}"
 # Entrypoints con los que se reconoce una sesión headless en los transcripts.
@@ -272,6 +275,12 @@ supervisar() {
           log "reanuda a mano: scripts/hito.sh --resume $run"; avisar "Fallo repetido en $paso ($run)"; return 1
         fi
         reanudados="$reanudados$(nombre_paso "$paso") "
+        # Un paso cortado a mitad de un commit deja el índice tomado unos segundos
+        # (H41.2): reanudar antes gasta las reanudaciones del paso en el mismo choque.
+        if ! esperar_indice "$espera_indice"; then
+          log "el índice de git sigue tomado tras ${espera_indice}s ($(git rev-parse --git-path index.lock)): si ningún git está vivo, el candado es de un proceso muerto; bórralo y reanuda a mano: scripts/hito.sh --resume $run"
+          avisar "Índice de git tomado en $paso ($run)"; return 1
+        fi
         log "fallo transitorio en '$paso' ($detalle); reanuda ($n/$max_reanudaciones)";;
     esac
   done

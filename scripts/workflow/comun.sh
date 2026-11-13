@@ -229,3 +229,19 @@ informe_del_trabajo() { # $1 = ejecución, $2 = trabajo, $3 = destino, $4 = nomb
   rm -f "$3"; echo "evals: el registro de $4 no trae un informe.json legible" >&2
   return 1
 }
+
+# Espera, como mucho $1 segundos, a que ningún git tenga tomado el índice. Un paso que
+# vence su timeout a mitad de un commit deja vivo un rato el git y su gancho de
+# pre-commit, con el candado del índice puesto, y lo que se reanuda en ese momento falla
+# con «Unable to create '…/index.lock': File exists» (H41.2, en `hito_a_done` y en
+# `publicar`). Sale con 1 si el candado sigue ahí al vencer el plazo, y no lo borra
+# nunca: puede ser de un git vivo.
+esperar_indice() { # $1 = segundos
+  local candado restante="$1"
+  candado=$(git rev-parse --git-path index.lock) || return 0
+  while [ -e "$candado" ]; do
+    [ "$restante" -gt 0 ] || return 1
+    sleep 1
+    restante=$((restante - 1))
+  done
+}
