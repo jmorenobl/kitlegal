@@ -30,6 +30,7 @@ const (
 	banderaVersion = "version"
 	banderaMacOS   = "macos"
 	banderaWindows = "windows"
+	banderaLinux   = "linux"
 	banderaIcono   = "icono"
 	banderaPlugin  = "plugin"
 	banderaSalida  = "salida"
@@ -42,13 +43,13 @@ const prefijoDeLaLinea = "empaquetar: "
 // errUso es el fallo de una invocación que no tiene la forma de ninguna de las
 // dos órdenes: sin orden, con una que no existe, con una bandera que la orden
 // no tiene o que llega sin su valor, o con un argumento de más.
-var errUso = errors.New("uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … | " +
+var errUso = errors.New("uso: empaquetar piezas -version … -macos … -windows … -linux … -icono … -salida … | " +
 	"empaquetar catalogo -version … -plugin … -salida …")
 
 // Ejecutar atiende la línea de órdenes del paso que empaqueta y devuelve su
 // código (contracts/paso.md §1 de H22):
 //
-//	empaquetar piezas   -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>
+//	empaquetar piezas   -version <versión> -macos <binario> -windows <binario> -linux <binario> -icono <png> -salida <carpeta>
 //	empaquetar catalogo -version <versión> -plugin <kitlegal-plugin.zip> -salida <carpeta>
 //
 // piezas escribe en la carpeta kitlegal.mcpb y kitlegal-plugin.zip, con las
@@ -104,6 +105,7 @@ func ejecutarPiezas(args []string) error {
 		bandera{nombre: banderaVersion, valor: &piezas.Version},
 		bandera{nombre: banderaMacOS, valor: &piezas.MacOS},
 		bandera{nombre: banderaWindows, valor: &piezas.Windows},
+		bandera{nombre: banderaLinux, valor: &piezas.Linux},
 		bandera{nombre: banderaIcono, valor: &piezas.Icono},
 		bandera{nombre: banderaSalida, valor: &piezas.Salida},
 	)

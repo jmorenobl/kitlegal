@@ -109,8 +109,12 @@ el zip, sube el nuevo.
 **Si ya tienes las skills con `kitlegal skills install`** y además instalas el plugin, en Claude Code las tienes dos
 veces: las de tu disco y las del plugin, que llega también a Claude Code.
 
-**En Linux** no hay app de escritorio de Claude en la que instalar el plugin: se usa el programa instalado, con
-Claude Code, como hasta ahora ([Instalar con la terminal](#instalar-con-la-terminal)).
+**En Linux** no hay app de escritorio de Claude, pero el plugin que instalas en tu cuenta llega también a Claude Code,
+con su servidor: desde la versión que lleva el binario de Linux, funciona en equipos linux/amd64 (probado el
+2026-11-15). En linux/arm64 el servidor del plugin no arranca; ahí, y si prefieres no usar el plugin, se usa el
+programa instalado con Claude Code, como hasta ahora ([Instalar con la terminal](#instalar-con-la-terminal)). Si
+además lo añadiste a mano como servidor de Claude Code (`claude mcp add … kitlegal mcp serve`), con el plugin lo
+tienes dos veces: quítalo con `claude mcp remove kitlegal`.
 
 **Desde Claude en el móvil y en la web** se puede preguntar una vez instalado, mientras tu equipo esté encendido y
 con la app de escritorio abierta: la conversación usa las herramientas de tu equipo, donde kitlegal sigue corriendo

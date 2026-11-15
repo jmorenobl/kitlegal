@@ -10,8 +10,9 @@
 //
 // Tiene dos órdenes (contracts/paso.md §1 de H22):
 //
-//   - piezas escribe los dos zips a partir de los dos binarios que recibe, que
-//     copia sin mirarlos, del icono, de las herramientas que el registro de
+//   - piezas escribe los dos zips a partir de los tres binarios que recibe —el
+//     universal de macOS, el de Windows amd64 y el de Linux amd64 (ADR 0035,
+//     enmienda «Linux en la extensión»)—, que copia sin mirarlos, del icono, de las herramientas que el registro de
 //     applets anuncia por MCP y de las skills empotradas (piezas.go);
 //   - catalogo escribe el catálogo de una versión, con el plugin de la release
 //     de esa versión dentro, como carpeta (catalogo.go).

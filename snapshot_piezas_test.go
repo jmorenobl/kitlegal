@@ -52,11 +52,13 @@ const (
 	extensionDelSnapshot = "kitlegal.mcpb"
 	pluginDelSnapshot    = "kitlegal-plugin.zip"
 
-	// Las cuatro entradas de la extensión (FR-010).
+	// Las cinco entradas de la extensión (FR-010; la de Linux, por la enmienda
+	// «Linux en la extensión» del ADR 0035).
 	manifiestoDeLaExtension = "manifest.json"
 	iconoDeLaExtension      = "icon.png"
 	servidorDeLaExtension   = "server/kitlegal"
 	servidorDeWindows       = "server/kitlegal.exe"
+	servidorDeLinux         = "server/kitlegal-linux"
 
 	// fichaDelPlugin y servidorDelPlugin son las dos entradas del plugin que no
 	// son de ninguna skill: su ficha (FR-020) y la extensión, que lleva dentro
@@ -93,6 +95,11 @@ const (
 	binarioDeWindows = "kitlegal.exe"
 	archivoDeWindows = "kitlegal_windows_amd64.zip"
 
+	// archivoDeLinux es el de la única arquitectura de Linux que la extensión
+	// lleva: `platform_overrides` distingue el sistema, no la arquitectura (ADR
+	// 0035).
+	archivoDeLinux = "kitlegal_linux_amd64.tar.gz"
+
 	// carpetaDeLaInstalacion es donde `kitlegal skills install` deja las skills
 	// en un proyecto, y manifiestoDeLaInstalacion, el fichero que escribe junto
 	// a ellas y que no es de ninguna skill (H19).
@@ -109,10 +116,10 @@ const (
 // piezasDelSnapshot son los dos ficheros que el paso deja en dist/ (FR-060).
 var piezasDelSnapshot = []string{extensionDelSnapshot, pluginDelSnapshot}
 
-// entradasDeLaExtension son las cuatro entradas de la extensión, y ninguna más
+// entradasDeLaExtension son las cinco entradas de la extensión, y ninguna más
 // (FR-010, FR-062).
 var entradasDeLaExtension = []string{
-	manifiestoDeLaExtension, iconoDeLaExtension, servidorDeLaExtension, servidorDeWindows,
+	manifiestoDeLaExtension, iconoDeLaExtension, servidorDeLaExtension, servidorDeWindows, servidorDeLinux,
 }
 
 // argumentosDelServidor son los de `mcp_config`: `kitlegal mcp serve` (FR-012).
@@ -171,10 +178,11 @@ type arranqueLeido struct {
 	PorPlataforma plataformasLeidas `json:"platform_overrides"`
 }
 
-// plataformasLeidas es `platform_overrides`: solo Windows cambia la orden, y la
-// lectura estricta rechaza cualquier otra plataforma.
+// plataformasLeidas es `platform_overrides`: Windows y Linux cambian la orden,
+// y la lectura estricta rechaza cualquier otra plataforma.
 type plataformasLeidas struct {
 	Win32 ordenLeida `json:"win32"`
+	Linux ordenLeida `json:"linux"`
 }
 
 // ordenLeida es lo que una plataforma cambia de `mcp_config`.
@@ -446,13 +454,16 @@ func probarManifiestoDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 			Tipo:    "binary",
 			Entrada: servidorDeLaExtension,
 			Arranque: arranqueLeido{
-				Orden:         carpetaDeLaExtension + "/" + servidorDeLaExtension,
-				Argumentos:    argumentosDelServidor,
-				PorPlataforma: plataformasLeidas{Win32: ordenLeida{Orden: carpetaDeLaExtension + "/" + servidorDeWindows}},
+				Orden:      carpetaDeLaExtension + "/" + servidorDeLaExtension,
+				Argumentos: argumentosDelServidor,
+				PorPlataforma: plataformasLeidas{
+					Win32: ordenLeida{Orden: carpetaDeLaExtension + "/" + servidorDeWindows},
+					Linux: ordenLeida{Orden: carpetaDeLaExtension + "/" + servidorDeLinux},
+				},
 			},
 		},
 		Herramientas:   manifiesto.Herramientas,
-		Compatibilidad: compatibilidadLeida{Plataformas: []string{"darwin", "win32"}},
+		Compatibilidad: compatibilidadLeida{Plataformas: []string{"darwin", "win32", "linux"}},
 	}, manifiesto,
 		"el manifiesto no lleva cada campo de data-model §3 con su valor: lo fijo, los textos del paso y la versión "+
 			"que imprime el binario del snapshot, sin su `v` (FR-061)")
@@ -461,21 +472,25 @@ func probarManifiestoDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 		"la descripción corta del manifiesto pasa de %d caracteres (FR-066)", maximoDeLaDescripcion)
 }
 
-// probarBinariosDeLaExtension: la extensión lleva exactamente sus cuatro
+// probarBinariosDeLaExtension: la extensión lleva exactamente sus cinco
 // entradas; server/kitlegal, con el bit de ejecución, es un universal de dos
 // arquitecturas, una amd64 y una arm64, cada una byte a byte el kitlegal del
-// archivo de macOS de su arquitectura; y server/kitlegal.exe es byte a byte el
-// del archivo de Windows amd64 (H22 FR-062, SC-005).
+// archivo de macOS de su arquitectura; server/kitlegal.exe es byte a byte el
+// del archivo de Windows amd64; y server/kitlegal-linux, con el bit de
+// ejecución, es byte a byte el del archivo de Linux amd64 (H22 FR-062, SC-005;
+// ADR 0035, enmienda «Linux en la extensión»).
 func probarBinariosDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 	t.Helper()
 
 	extension := abrirZip(t, snapshot, extensionDelSnapshot)
 
 	require.ElementsMatchf(t, entradasDeLaExtension, extension.entradas(),
-		"las entradas de %s no son exactamente las cuatro de data-model §2 (FR-062)", extension.ruta)
+		"las entradas de %s no son exactamente las cinco de data-model §2 (FR-062)", extension.ruta)
 
-	assert.NotZerof(t, extension.entrada(t, servidorDeLaExtension).Mode()&0o100,
-		"%s no lleva el bit de ejecución en %s (FR-062)", servidorDeLaExtension, extension.ruta)
+	for _, servidor := range []string{servidorDeLaExtension, servidorDeLinux} {
+		assert.NotZerof(t, extension.entrada(t, servidor).Mode()&0o100,
+			"%s no lleva el bit de ejecución en %s (FR-062)", servidor, extension.ruta)
+	}
 
 	for arquitectura, delUniversal := range arquitecturasDelUniversal(t, extension.leer(t, servidorDeLaExtension)) {
 		archivo := nombreDelProyecto + "_darwin_" + arquitectura + ".tar.gz"
@@ -486,6 +501,9 @@ func probarBinariosDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 
 	mismosBytes(t, abrirZip(t, snapshot, archivoDeWindows).leer(t, binarioDeWindows),
 		extension.leer(t, servidorDeWindows), servidorDeWindows, binarioDeWindows+" de "+archivoDeWindows+" (FR-062)")
+
+	mismosBytes(t, binarioDelTarGz(t, snapshot, archivoDeLinux), extension.leer(t, servidorDeLinux),
+		servidorDeLinux, nombreDelProyecto+" de "+archivoDeLinux+" (FR-062)")
 }
 
 // arquitecturasDelUniversal lee con debug/macho el binario universal de macOS
@@ -574,7 +592,9 @@ func probarIconoDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 }
 
 // probarServidorDeLaExtension: con la extensión extraída en una carpeta cuyo
-// nombre lleva espacios, la orden de `mcp_config` con `${__dirname}` resuelto a
+// nombre lleva espacios, la orden de la plataforma que ejecuta el test —la de
+// `platform_overrides` de su sistema o, sin ella, la de `mcp_config`— con
+// `${__dirname}` resuelto a
 // esa carpeta, sus argumentos —que tienen que ser `mcp` y `serve`— y la raíz
 // del sistema de ficheros como directorio de trabajo, el servidor completa el
 // saludo y lista, como conjunto de nombres y descripciones, exactamente `tools`
@@ -591,9 +611,13 @@ func probarServidorDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 	require.Equal(t, argumentosDelServidor, arranque.Argumentos,
 		"los argumentos de `mcp_config` no son `mcp` y `serve` (FR-064)")
 
-	carpeta := extraerLaExtension(t, extension, binarioDeLaPlataforma(t, snapshot))
+	orden := ordenDeLaPlataforma(arranque)
+	servidor, enLaExtension := strings.CutPrefix(orden, carpetaDeLaExtension+"/")
+	require.Truef(t, enLaExtension, "la orden de %s no cuelga de %s: %s", runtime.GOOS, carpetaDeLaExtension, orden)
 
-	anunciadas := herramientasDelServidor(t, strings.ReplaceAll(arranque.Orden, carpetaDeLaExtension, carpeta))
+	carpeta := extraerLaExtension(t, extension, servidor, binarioDeLaPlataforma(t, snapshot))
+
+	anunciadas := herramientasDelServidor(t, strings.ReplaceAll(orden, carpetaDeLaExtension, carpeta))
 
 	assert.ElementsMatch(t, manifiesto.Herramientas, anunciadas,
 		"lo que el servidor de la extensión lista, por nombre y descripción, no es exactamente `tools` del manifiesto "+
@@ -607,16 +631,38 @@ func probarServidorDeLaExtension(t *testing.T, snapshot snapshotLeido) {
 	assert.Subset(t, nombres, herramientasDeHoy, "a `tools` del manifiesto le falta alguna de las diez herramientas de hoy (FR-061)")
 }
 
+// ordenDeLaPlataforma es la orden con la que la app y Claude Code arrancan el
+// servidor de la extensión en la plataforma que ejecuta el test: la de
+// `platform_overrides` de su sistema, si la tiene, y si no, la de `mcp_config`.
+// Claude Code en Linux no mira `compatibility`: sin la orden de Linux, lanzaba
+// el binario de macOS (ADR 0035, enmienda «Linux en la extensión»).
+func ordenDeLaPlataforma(arranque arranqueLeido) string {
+	switch runtime.GOOS {
+	case "linux":
+		return arranque.PorPlataforma.Linux.Orden
+	case "windows":
+		return arranque.PorPlataforma.Win32.Orden
+	default:
+		return arranque.Orden
+	}
+}
+
 // extraerLaExtension extrae la extensión en una carpeta temporal cuyo nombre
-// lleva espacios y un carácter que no es ASCII, y devuelve su ruta. En el
-// sitio del binario de macOS pone un enlace simbólico al binario del snapshot
-// de la plataforma que ejecuta el test, que es el que puede arrancar aquí. Es
-// un enlace y no una copia porque un ejecutable escrito desde el proceso del
-// test y lanzado a continuación da a veces «text file busy» en Linux cuando
-// otra subprueba lanza un proceso a la vez, y las de TestSnapshot corren en
-// paralelo (research.md V32 de H22). Lo demás va con el modo de un fichero
-// cualquiera: nada de ello se ejecuta.
-func extraerLaExtension(t *testing.T, extension zipDelSnapshot, binario string) string {
+// lleva espacios y un carácter que no es ASCII, y devuelve su ruta. El
+// servidor, la entrada que la orden de la plataforma arranca, va con el bit de
+// ejecución. En linux/amd64, la plataforma del trabajo snapshot de la
+// integración continua, es el binario de Linux que la extensión lleva, el que
+// arranca Claude Code. En otra plataforma, cuyo binario la extensión no lleva o
+// no puede arrancar aquí, es un enlace simbólico al binario del snapshot de la
+// plataforma que ejecuta el test.
+//
+// El binario de la extensión lo escribe en su sitio `install`, otro proceso, y
+// no el del test: un ejecutable escrito desde el proceso del test y lanzado a
+// continuación da a veces «text file busy» en Linux cuando otra subprueba
+// lanza un proceso a la vez, y las de TestSnapshot corren en paralelo
+// (research.md V32 de H22). Lo demás va con el modo de un fichero cualquiera:
+// nada de ello se ejecuta.
+func extraerLaExtension(t *testing.T, extension zipDelSnapshot, servidor, binario string) string {
 	t.Helper()
 
 	carpeta := filepath.Join(t.TempDir(), "la extensión extraída")
@@ -632,7 +678,13 @@ func extraerLaExtension(t *testing.T, extension zipDelSnapshot, binario string) 
 			require.NoError(t, raiz.MkdirAll(subcarpeta, 0o700))
 		}
 
-		if entrada == servidorDeLaExtension {
+		if entrada == servidor && runtime.GOOS == "linux" && runtime.GOARCH == "amd64" {
+			instalarEjecutable(t, extension.leer(t, entrada), filepath.Join(carpeta, filepath.FromSlash(entrada)))
+
+			continue
+		}
+
+		if entrada == servidor {
 			require.NoError(t, raiz.Symlink(binario, entrada))
 
 			continue
@@ -642,6 +694,23 @@ func extraerLaExtension(t *testing.T, extension zipDelSnapshot, binario string) 
 	}
 
 	return carpeta
+}
+
+// instalarEjecutable deja esos bytes en destino con el modo 0755. Los escribe
+// el test en un fichero sin bit de ejecución, que nunca se lanza, y los copia
+// a su sitio `install`, para que el proceso del test no tenga nunca abierto
+// para escribir el fichero que luego se ejecuta (research.md V32 de H22).
+func instalarEjecutable(t *testing.T, contenido []byte, destino string) {
+	t.Helper()
+
+	provisional := filepath.Join(t.TempDir(), "servidor")
+	require.NoError(t, os.WriteFile(provisional, contenido, 0o600))
+
+	//nolint:gosec // las dos rutas son temporales del test y los demás argumentos, literales; no hay entrada externa.
+	copia := exec.CommandContext(t.Context(), "install", "-m", "0755", provisional, destino)
+
+	salida, err := copia.CombinedOutput()
+	require.NoErrorf(t, err, "install no deja el servidor de la extensión en %s: %s", destino, salida)
 }
 
 // herramientasDelServidor arranca el servidor con esa orden y `mcp serve`,

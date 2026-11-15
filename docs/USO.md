@@ -10,6 +10,20 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-11-15 · El plugin en Claude Code en Linux no arranca su servidor
+
+- **Qué se pidió.** Usar kitlegal con Claude Code en un servidor Linux nuevo, con el plugin que la cuenta ya tenía
+  instalado.
+- **Qué pasó.** El plugin 0.8.1 llegó sincronizado, con sus skills, pero su servidor quedó en rojo:
+  `ENOEXEC … posix_spawn`. Claude Code lanzaba `server/kitlegal` de la extensión, el universal de macOS, sin mirar
+  `compatibility.platforms`, que solo decía macOS y Windows. Se sorteó con un servidor de usuario,
+  `claude mcp add --scope user kitlegal -- kitlegal mcp serve`.
+- **Qué faltó.** El binario de Linux en la extensión. H22 lo dejó fuera porque no hay app de escritorio en Linux, y
+  desde que el plugin lleva la extensión dentro, esa razón ya no vale.
+- **Qué se hizo.** Un prototipo a mano, con el binario linux/amd64 y `platform_overrides.linux`: conectó en Claude Code
+  en Linux, y en el Mac respondieron con la cita el chat, Claude Code dentro de la app y Cowork. La extensión lleva desde
+  entonces el binario de Linux (ADR 0035, «Linux en la extensión»).
+
 ### 2026-11-02 · En modo herramienta, las referencias de `normativa` no se abren
 
 - **Qué se pidió.** Saber por qué, en los sondeos de la #214, `con_herramientas.md` se abrió en 4 de 80 sesiones en
