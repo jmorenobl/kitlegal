@@ -441,7 +441,10 @@ jobs:
 
           # 1. Todo el sistema de ficheros salvo /proc y /sys, como root: ejecutables y enlaces python* y pypy*, y bibliotecas
           # libpython* y libpypy*. Se retira cada uno; si está en <prefijo>/bin y <prefijo>/lib tiene un python* o un pypy*,
-          # se retira la instalación entera, salvo que contenga algo de lo que el job usa.
+          # se retira la instalación entera, salvo que contenga algo de lo que el job usa. Lo que está en un squashfs —un
+          # snap, como /snap/core22, que la imagen del runner monta desde noviembre de 2026— es de solo lectura y no se
+          # puede borrar: se desmonta el squashfs entero, en diferido para que no lo impida un proceso que lo tenga
+          # abierto, y su contenido deja de verse, para la búsqueda de abajo y para la de scripts/evals.sh.
           busqueda=(find / '(' -path /proc -o -path /sys ')' -prune -o '(' '(' -type f -perm /111 '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' -type l '(' -iname 'python*' -o -iname 'pypy*' ')' ')' -o '(' '(' -type f -o -type l ')' '(' -iname 'libpython*' -o -iname 'libpypy*' ')' ')' ')' -print)
           echo "búsqueda: ${busqueda[*]}"
           encontrado=$(sudo "${busqueda[@]}")
@@ -457,6 +460,13 @@ jobs:
                 lib=$(sudo find -H "$prefijo/lib" -mindepth 1 -maxdepth 1 '(' -iname 'python*' -o -iname 'pypy*' ')' -print -quit)
               fi
               if [ -n "$lib" ] && ! contiene_algo_usado "$prefijo"; then objetivo=$prefijo; fi
+            fi
+            if [ "$(findmnt -n -o FSTYPE -T "$objetivo")" = squashfs ]; then
+              montaje=$(findmnt -n -o TARGET -T "$objetivo")
+              if contiene_algo_usado "$montaje"; then echo "hay Python en $montaje, que lleva algo que el job usa" >&2; exit 1; fi
+              echo "desmontado: $montaje"
+              sudo umount -l -- "$montaje"
+              continue
             fi
             echo "retirado: $objetivo"
             sudo rm -rf -- "$objetivo"
