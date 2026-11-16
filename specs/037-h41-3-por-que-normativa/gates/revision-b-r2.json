@@ -1,0 +1,91 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (fuera de git por .gitignore:25; escrito a las 16:52:15, el segundo del commit b0d7e159, y con gitleaks a las 4:52PM en sus líneas 87-88, así que es la ejecución sobre el árbol corregido): línea 5 «0 issues.», 63 líneas `ok`, ninguna con FAIL, línea 102 «ci: todos los controles en verde» y línea 104 «kitlegal-verificacion exit=0». Reproducido en esta sesión en un clon de b0d7e159 fuera del repositorio (/tmp/claude/juez-b-r2/base): `golangci-lint run ./...` da «0 issues.»; `golangci-lint fmt --diff ./...` no da nada; `go test -race -shuffle=on` de ./internal/evals/, ./internal/app/, ./cmd/laboratorio/, ./internal/skills/ y ./internal/ da 2233 tests en verde en 5 paquetes; `go vet -tags evals ./internal/evals/ ./cmd/laboratorio/` no da nada. No he ejecutado `make ci` entero (vuln, goreleaser, gitleaks, mod verify): de esos pasos la evidencia es ci.log. Árbol: `git status` solo da ficheros del workflow en gates/ (base-global-pendiente borrado, modelos.jsonl y revision-cambios.md modificados, revision-cambios-r2.diff sin seguir) y los marcadores del sandbox de esta sesión (.bashrc, .gitconfig, .claude/agents…), que no son del diff."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Los dos motivos [b] de la ronda 1, el mío y el del juez A, están corregidos: TestTablaConLaInstalacion (internal/evals/laboratorio_tabla_test.go:1002) gana «presupuestos-de-menor-a-mayor» (:1148), «solo-con-el-presupuesto» (:1167) y «solo-con-la-instalacion» (:1182). Seis mutantes en clones fuera del repositorio, cada uno con `go test ./internal/evals/ -run TestTabla`, todos en rojo: (1) laboratorio_tabla.go:431 sin `|| leido.Presupuesto != 0`: rojo en solo-con-el-presupuesto y presupuestos-de-menor-a-mayor; (2) la misma línea sin `leido.Instalacion != \"\" ||`: rojo en solo-con-la-instalacion; (3) :1004 con `cmp.Compare(b.presupuesto, a.presupuesto)`, el mutante del juez A: rojo en sondeos-fijos, solo-con-el-presupuesto, filas-por-instalacion-y-presupuesto y presupuestos-de-menor-a-mayor; (4) el orden invertido solo entre dos presupuestos con valor: rojo en presupuestos-de-menor-a-mayor y en ningún otro, que es la rama que nadie ejercitaba; (5) :691 con el presupuesto fuera de la clave: rojo en cuatro subtests; (6) el presupuesto comparado antes que la instalación: rojo en sondeos-fijos y filas-por-instalacion-y-presupuesto. Los dos últimos fijan que el paso de probarLasFilasConLaInstalacion a exigirLasFilasConLaInstalacion (:1199-1262) no lo debilitó: sigue comparando byte a byte (:1259) contra filas, instalación y presupuesto escritos a mano en cada subtest, con los directorios en el orden contrario al de las filas (b-presupuesto, bb-presupuesto-menor, c-producto). En el clon sin mutar los seis subtests pasan. Suite congelada: sha256 fbf8550c…f601e4 en specs/037-h41-3-por-que-normativa/aceptacion/laboratorio-tabla.txtar, en internal/app/testdata/script/h41-3-laboratorio-tabla.txtar y en gates/aceptacion-congelada.json; el rango no la toca y TestEntregaDelHito va en ./internal/app, en verde."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango a53bf9a..b0d7e159 solo toca internal/evals/laboratorio_tabla.go e internal/evals/laboratorio_tabla_test.go (`git diff --stat` fuera de gates/) y no cambia ningún import: `cmp` ya estaba en laboratorio_tabla.go:4. Ninguna línea añadida de gates/revision-cambios-r2.diff nombra net/http, os.Exit, fmt.Print ni panic (grep sin coincidencias). golangci-lint (depguard, forbidigo) da 0 issues en el clon de la cabeza y ./internal (arch_test) pasa. Lo demás del hito no cambia desde la ronda 1."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, internal/cli, internal/render ni schemas/ (`git diff --stat main...HEAD -- schemas` vacío), y el hito tampoco: lo que cambia es la salida de cmd/laboratorio tabla, que no es un applet ni lleva sobre y se compara byte a byte en TestTablaConLaInstalacion y en el guion congelado. ci.log:76-77, los esquemas publicados en verde."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El rango no toca ninguna ruta de error ni añade panic: cambia la comparación de dos enteros en compararClaves (internal/evals/laboratorio_tabla.go:1003-1005) y tests. presupuestoDelArgumento (internal/evals/laboratorio_sondeo.go:491-504) sigue rechazando como error de uso lo que no es un entero mayor que 0, y TestArnesConElPresupuesto está en verde entre los 2233 del clon. kitlegal no cambia de órdenes ni de códigos. No medido: la cadena real make → llavero → go test con un PRESUPUESTO que no vale, que pasa por la credencial y por sesiones con modelo."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Lo que la documentación promete del orden lo sostiene el código y ahora lo fija un test: specs/037-h41-3-por-que-normativa/contracts/tabla.md:30 y CONTRIBUTING.md:2030-2031 («el presupuesto vacío antes que cualquier valor y los valores de menor a mayor») son `cmp.Compare` sobre presupuestos que el arnés solo escribe mayores que 0 (laboratorio_sondeo.go:500), y el mutante que invierte dos valores sale en rojo. `git grep compararPresupuestos` fuera de gates/ no da nada: ningún artefacto nombra la función retirada, y el comentario de compararClaves (laboratorio_tabla.go:975-981) dice lo que hace. El rango no cambia CHANGELOG ni documentación, ni lo necesita: no cambia ninguna salida. Ninguna decisión ni fuente cambia (FR-031: el ADR lo escribe la persona)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade ninguna petición ni toca internal/httpx ni una fuente. Los tests nuevos montan en t.TempDir() copias de los sondeos fijos sintéticos de familias/activaciones y les añaden una clave a sondeo.json (conLaClaveAnadida, laboratorio_tabla_test.go:1278): ningún fixture versionado cambia (`git log main..HEAD -- internal/evals/testdata internal/app/testdata testdata schemas` solo da T010 y la activación de la suite), ningún dato externo, de persona ni secreto."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de gates/revision-cambios-r2.diff no hay nolint, t.Skip, TODO, FIXME ni errores descartados (grep sin coincidencias). El corrector no tocó ningún fixture ni el guion congelado, y no cambió ningún valor esperado: las cuatro filas de «filas-por-instalacion-y-presupuesto» son las de la ronda 1, ahora como datos del subtest (laboratorio_tabla_test.go:1131-1142)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango son los dos ficheros que nombraban los motivos de la ronda 1 y nada más: retira compararPresupuestos (mi motivo [k]) y añade los tres subtests (mi motivo [b] y el del juez A). `git diff --stat main...HEAD -- skills evals data .github go.mod go.sum tools schemas` sigue vacío (FR-032, FR-033). gates/supuestos.md no cambia en el rango: sus supuestos son los de la ronda 1, lecturas conservadoras coherentes con el spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna SKILL.md ni el binario que se distribuye consume nada del hito: 0 invocaciones por pregunta. El rango no cambia un byte de ninguna salida: la tabla de los cinco sondeos fijos sigue siendo familias/instalacion/tabla.md, 4808 bytes (`wc -c`), que «sondeos-fijos» compara byte a byte con la salida de la tabla y pasa en el clon. Su tamaño lo fijan las filas y las sesiones pedidas, no el uso del producto (no lee la caché: cientos de normas y miles de bloques no la cambian), y las dos columnas solo salen si algún sondeo lleva la constancia. No he ejecutado en esta sesión `go run ./cmd/laboratorio tabla` (el sandbox pidió aprobación): la medida es la del fichero fijo que el test compara."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Mi motivo [k] de la ronda 1 está corregido: compararPresupuestos ya no existe y compararClaves compara con `cmp.Compare(a.presupuesto, b.presupuesto)` (internal/evals/laboratorio_tabla.go:1003-1005), sin rama aparte para el presupuesto vacío; el comentario (:975-981) dice por qué basta el orden de los enteros (FR-013). Lo que añade el rango se traza: «presupuestos-de-menor-a-mayor» a contracts/tabla.md §3 y al motivo del juez A; «solo-con-el-presupuesto» y «solo-con-la-instalacion» a contracts/tabla.md §2 («alguno con instalacion o presupuesto») y a mi motivo [b]; el tipo filaConLaInstalacion y exigirLasFilasConLaInstalacion (laboratorio_tabla_test.go:1120-1123, :1199) son lo que comparten los cuatro subtests en lugar de cuatro copias del montaje. El resto del hito se trazó en la ronda 1 (gates/revision-b-r1.json) y el rango no lo toca."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "SC-001, repetido en esta sesión en clones de la cabeza: con maximoDeUnaDescripcionCorta a 451 (internal/evals/laboratorio_descripciones.go:32), TestDescripcionesCortas sale en rojo («una de 451 runas», «el ejemplo de cinco líneas»); con maximoDeLasDescripcionesCortas a 1701 (:33), en rojo («cuatro de 450, 450, 400 y 401»). SC-006 (0 diferencias en filas y orden): los seis mutantes del criterio b, en rojo. SC-002 a SC-005 y SC-007 son código que el rango no toca, con sus tests en verde entre los 2233 del clon y sus mutantes en la ronda 1 (gates/revision-b-r1.json, gates/revision-a-r1.json). SC-008 son los umbrales del job de evals, configuración que el hito no toca (.github/ y evals/ sin diff): a observaciones. SC-009 lo mide la persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "«solo-con-el-presupuesto» (internal/evals/laboratorio_tabla_test.go:1167) monta las dos primeras filas de «presupuestos-de-menor-a-mayor» (:1148) y el mutante que mata (laboratorio_tabla.go:431 sin `|| leido.Presupuesto != 0`) también lo mata ese otro: es redundante como detector. Lo pidió mi motivo [b] de la ronda 1 antes de existir el del juez A, y fija con nombre la cláusula de contracts/tabla.md §2; no llega a motivo.",
+    "Corrijo mi evidencia de la ronda 1: gates/ci.log no está versionado (.gitignore:25, `specs/*/gates/ci.log`); lo que lo ata a la cabeza es su hora, la del commit.",
+    "No ejecutado en esta sesión: `make ci` entero (vuln, goreleaser, gitleaks, mod verify), de lo que la evidencia es gates/ci.log, y `go run ./cmd/laboratorio tabla` a mano, que el sandbox no dejó correr sin aprobación; el programa lo ejecuta el guion congelado dentro de TestEntregaDelHito, en verde.",
+    "Siguen de la ronda 1, sin cambio en el rango: los tests de estados bajo el umbral de materialidad en internal/evals/laboratorio_descripciones_test.go:192-213 y :399-420 y en laboratorio_sondeo_test.go:2285, que fijan frases de contracts/variante.md §3; y la rama sin test de laboratorio_descripciones.go:189-193, que no se alcanza con una variante sin defectos.",
+    "Sigue de la ronda 1: FR-013 («nada más de su entorno cambia») solo se fija por nombres con PRESUPUESTO (exigirLosNombresDelControlYDelDiagnostico, laboratorio_sondeo_test.go:2038); un cambio de valor de otra variable no lo vería. Es código que habría que añadir a propósito, no una regresión del que hay.",
+    "Sigue de la ronda 1: la comprobación de la variante no caduca sola; mientras laboratorio/producto-descripciones-cortas/ exista, cada skill nueva en skills/ pone `make ci` en rojo hasta darle su texto (US1, escenario 4, lo pide así). El ADR que lea el sondeo debería decir cuándo se retira la variante con su test.",
+    "internal/evals/sesiones_test.go:113-123 (el test escucha SIGHUP) queda fuera del spec; está registrado en gates/supuestos.md con la pregunta pendiente para la persona.",
+    "plan.md y contracts/variante.md §5 dan «1732 bytes» para los cuatro textos: son los cuatro ficheros con su salto de línea; los textos miden 1728.",
+    "SC-008: los umbrales del job de evals son configuración que el hito no toca; su medición es la del cierre y no la he visto (no hay gates/cierre.json ni gates/evals/).",
+    "No medido, porque pide sesiones con modelo: que Claude Code lea como el texto exacto la description que el emisor de YAML deja entre comillas simples, y que SLASH_COMMAND_TOOL_CHAR_BUDGET=1000000 cambie el listado. Lo dirá el sondeo de la persona.",
+    "docs/ROADMAP.md da H41.3 por hecho y su fichero está en docs/roadmap/done/ con el sondeo y el ADR de la persona pendientes (FR-031): la propuesta no se fusiona sin la tabla y su lectura."
+  ]
+}
