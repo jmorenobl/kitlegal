@@ -18,7 +18,8 @@ go test -count=1 -run '^(TestDescripcionesCortas|TestConLaDescripcion)$' ./inter
 ```
 
 `awk`, en Linux con GNU awk, que en `C.UTF-8` cuenta caracteres (en macOS, el `awk` del sistema puede contar bytes, y
-la cifra que vale es la del test), solo lee: `consulta-juridica.txt 417`, `jurisprudencia.txt 420`,
+la cifra que vale es la del test), solo lee, y da cada fichero con su ruta `laboratorio/producto-descripciones-cortas/`
+delante: `consulta-juridica.txt 417`, `jurisprudencia.txt 420`,
 `normativa.txt 426`, `plazos-y-territorio.txt 427`, `total 1690` (contracts/variante.md §2). Verde: la variante del
 repositorio no tiene ningún defecto; cada caso roto de contracts/variante.md §3, su línea exacta; y cada `SKILL.md` de
 `skills/` compuesto con textos con `: `, comillas, `#` y `«»` da su texto exacto, pasa `skills.ValidarFrontmatter` y deja

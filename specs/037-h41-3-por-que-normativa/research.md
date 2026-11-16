@@ -134,7 +134,7 @@ error de la mezcla, sin nombrar `INSTALACION`; (b) aceptar cualquier variante de
 
 **Decisión**: décimo argumento de `make evals-laboratorio`, detrás de `EVAL`: la receta pasa `"$(PRESUPUESTO)"` detrás de
 `"$(EVAL)"`; `scripts/evals-laboratorio.sh` exige diez argumentos y lo da a `go test` como `-presupuesto` delante de
-`-temporal`; `scripts/evals-sondeo-llavero.sh` no cambia de código, porque pasa sus argumentos con `"$@"` (`:38`); y
+`-temporal`; `scripts/evals-sondeo-llavero.sh` no cambia de código, porque pasa sus argumentos con `"$@"` (`:73`); y
 `TestSondeoDelLaboratorio` (`internal/evals/job_test.go:96-106`) gana la bandera. La comprobación:
 
 - vacío: ningún error, sin presupuesto;

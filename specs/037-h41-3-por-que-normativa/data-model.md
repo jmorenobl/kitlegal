@@ -29,9 +29,9 @@ en el binario, salvo la función exportada de §1, en `internal/skills`. Ningún
     nil;
   - `presupuesto int`: el de `PRESUPUESTO`, o 0 sin él.
 - Reglas y mensajes: contracts/arnes.md §2. `comprobar` recibe además la raíz, para leer la variante solo con
-  `INSTALACION=producto-descripciones-cortas`; sus errores siguen juntos con `errors.Join` y envueltos en `errorDeUso` por
-  `comprobarElLaboratorio`, salvo el de una variante que no se puede leer, que no es un error de uso (como el de una
-  declaración que no se puede leer).
+  `INSTALACION=producto-descripciones-cortas`; sus errores siguen juntos con `errors.Join` y los envuelve en `errorDeUso` el
+  propio `comprobar` (`comprobarElLaboratorio` los devuelve tal cual), salvo el de una variante que no se puede leer,
+  que `comprobar` devuelve sin envolver porque no es un error de uso (como el de una declaración que no se puede leer).
 
 ## 3. La instalación compuesta
 

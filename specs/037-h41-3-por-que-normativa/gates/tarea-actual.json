@@ -1,20 +1,11 @@
 {
-  "id": "T011",
-  "texto": "T011 La documentación de lo que deja de ser cierto (FR-001, FR-010, FR-012, FR-013, FR-020; DoD §1; research D14): CHANGELOG.md, en *Unreleased*, la variante `producto-descripciones-cortas` en `laboratorio/` y su comprobación en `make ci`, `INSTALACION=producto-descripciones-cortas` y `PRESUPUESTO=<caracteres>` de `make evals-laboratorio`, `instalacion` y `presupuesto` en `sondeo.json` y las columnas «Instalación» y «Presupuesto» de la tabla de una familia del producto; CONTRIBUTING.md, en «El sondeo del laboratorio», la variante y su forma (un fichero `<skill>.txt` por skill de `skills/`, sus límites y que solo la lee el arnés), la sinopsis y la tabla de argumentos con el valor nuevo de `INSTALACION` (solo con `VARIANTES=normativa-producto`) y `PRESUPUESTO` (sus reglas y que pone `SLASH_COMMAND_TOOL_CHAR_BUDGET` solo en las sesiones del laboratorio), las claves `instalacion` y `presupuesto` y las dos columnas, con las órdenes de contracts/arnes.md §1, y la mención de `scripts/evals-laboratorio.sh` «con sus nueve» (`:1660`) → diez; sin cambiar código, órdenes ni recetas. Ningún ADR (el que lee el sondeo se escribe fuera del run: FR-031, research D15), ninguna fila nueva en docs/SOURCES.md (no hay fuente nueva) y ningún esquema. `make ci` en verde.",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "b9f3d81751d9e919588d35cd7bbdcf03eed050bd",
-  "rutas": [
-    "CHANGELOG.md",
-    "contracts/arnes.md",
-    "CONTRIBUTING.md",
-    "docs/SOURCES.md",
-    "laboratorio/",
-    "scripts/evals-laboratorio.sh",
-    "skills/",
-    "sondeo.json"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

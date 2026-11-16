@@ -113,9 +113,10 @@ laboratorio/producto-descripciones-cortas/jurisprudencia.txt        # NUEVO
 laboratorio/producto-descripciones-cortas/normativa.txt             # NUEVO
 laboratorio/producto-descripciones-cortas/plazos-y-territorio.txt   # NUEVO
 internal/skills/frontmatter.go                 # PrimeraEtiquetaXML, que defectosDeLaEtiqueta usa
+internal/skills/frontmatter_test.go            # TestPrimeraEtiquetaXML
 internal/evals/laboratorio_descripciones.go    # NUEVO: descripcionesCortas, skillConLaDescripcion, componerLasDescripciones, límites y carpeta
 internal/evals/laboratorio_descripciones_test.go # NUEVO: TestDescripcionesCortas, TestConLaDescripcion
-internal/evals/laboratorio.go                  # la clasificación de las líneas de descripcionYCuerpo, en una función iteradora que comparte con conLaDescripcion
+internal/evals/laboratorio.go                  # la clasificación de las líneas de descripcionYCuerpo, en una función iteradora (lineasDelSkill) que comparte con skillConLaDescripcion
 internal/evals/laboratorio_familias.go         # varianteDelProductoDeNormativa e instalacionConLasDescripcionesCortas, junto a la familia de normativa
 internal/evals/laboratorio_sondeo.go           # PRESUPUESTO; el valor nuevo de INSTALACION; comprobar con la raíz; la composición en preparar; el entorno; la constancia
 internal/evals/laboratorio_sondeo_test.go      # el sustituto vuelca su entorno; TestArnesConLasDescripcionesCortas, TestArnesConElPresupuesto; TestRecetasDelSondeo y TestGuionDelLaboratorio con diez argumentos
@@ -216,7 +217,8 @@ normas y miles de bloques consultados no cambian ninguna—, solo con las filas 
   comentario. `laboratorio-tabla`, sin cambios.
 - **Tests nuevos en `make ci`**: `TestDescripcionesCortas` y `TestConLaDescripcion` (`laboratorio_descripciones_test.go`);
   `TestArnesConLasDescripcionesCortas` y `TestArnesConElPresupuesto` (`laboratorio_sondeo_test.go`);
-  `TestTablaConLaInstalacion` (`laboratorio_tabla_test.go`).
+  `TestTablaConLaInstalacion` (`laboratorio_tabla_test.go`); y `TestPrimeraEtiquetaXML`
+  (`internal/skills/frontmatter_test.go`, T002).
 - **Tests que cambian**: `TestRecetasDelSondeo`, la orden del laboratorio con `PRESUPUESTO=1000000` y `"1000000"`
   detrás de `"04"`; `TestGuionDelLaboratorio`, diez argumentos en sus casos, `ordenDelLaboratorio` con `-presupuesto`
   delante de `-temporal`, y el caso de uso con nueve, que nombra `<presupuesto>` y no ejecuta go; el sustituto de `claude`
@@ -224,6 +226,9 @@ normas y miles de bloques consultados no cambian ninguna—, solo con las filas 
   `TestArnesDeNormativa`, `TestArnesDeLasFamilias`, `TestArnesConLaInstalacionDelProducto`, `TestArnesConUnaEval`,
   `TestTablaConLasActivaciones`, `TestTablaDeLasFamilias`, `TestTablaDeNormativa`, `TestTablaDelLaboratorio`,
   `TestLaboratorioFueraDelProducto`, los de `internal/skills` (frontmatter) y los de H39 que usan `descripcionYCuerpo`.
+  Fuera del plan, `TestTopeDeLaSesion` (`internal/evals/sesiones_test.go`) escucha SIGHUP en cada subtest antes de abrir
+  la sesión, sin cambiar sus valores esperados, para que `muere-por-otra-senal` no dependa de que el proceso de test la
+  herede ignorada (`gates/supuestos.md`, reparador T001).
 - **Suites congeladas**: la de H41.3 (contracts/aceptacion.md); las de H39 a H41.2, sin cambiar un fichero (FR-032).
 - **Fixtures** (tarea `[datos]`, sin red): `internal/evals/testdata/laboratorio/familias/instalacion/` (cinco sondeos y su
   `tabla.md`, contracts/tabla.md §6). Ninguna grabación; ningún fichero de `testdata/` existente cambia.
