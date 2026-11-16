@@ -1,0 +1,154 @@
+diff antes/contracts/arnes.md ahora/contracts/arnes.md
+--- antes/contracts/arnes.md	2026-11-16 12:11:10.643434010 +0100
++++ ahora/contracts/arnes.md	2026-11-16 12:16:40.730990110 +0100
+@@ -159,12 +159,22 @@
+ - con `PRESUPUESTO=1000000`: la petición del diagnóstico (`INSTALACION=producto`), la del remedio con presupuesto y
+   `jurisprudencia-control` sin `INSTALACION`; cada sesión tiene una sola línea `SLASH_COMMAND_TOOL_CHAR_BUDGET=1000000`;
+   `sondeo.json` lleva `"presupuesto":1000000` detrás de lo de §5;
+-- sin `PRESUPUESTO`, la petición del control: ninguna sesión tiene la variable, `sondeo.json` es el de control de §5, y
+-  los nombres de las variables de cada sesión son los de la misma sesión del diagnóstico menos
+-  `SLASH_COMMAND_TOOL_CHAR_BUDGET`.
++- sin `PRESUPUESTO`, la petición del control: ninguna sesión tiene la variable; el entorno que vuelca cada sesión es,
++  nombre a nombre y valor a valor, el que componen para su modo las funciones de hoy, que el hito no cambia —en modo
++  herramienta, el de `disponerElModo`: `sinElDirectorioEnElPATH(entornoDeLaSesion(entornoDelSondeo(<entorno del test>,
++  <temporal>), <sesión>, false), <temporal>/bin)`, con `<sesión>` el directorio que le da el arnés,
++  `DIRECTORIO/normativa-producto/herramienta/<nombre>` con ruta absoluta—, sin ninguna de más ni de menos salvo las que
++  añaden al arrancar `bash`, el guion de la sesión, y `sh`, el sustituto: `PWD`, `SHLVL` y `_` (research V17); como
++  conjunto, sin exigir el orden, que los intérpretes no tienen por qué conservar; `sondeo.json` es el de control de §5; y los nombres de las
++  variables de cada sesión son los de la misma sesión del diagnóstico menos `SLASH_COMMAND_TOOL_CHAR_BUDGET`. Este caso
++  se escribe y pasa con el arnés de hoy antes de añadir la opción (plan.md, «Diseño»): lo que fija «hoy» lo dan esas
++  funciones, no el código nuevo, y el caso sale en rojo si el cambio añade, quita o cambia una variable sin
++  `PRESUPUESTO`.
+ 
+ **Sin las dos opciones** (FR-015, SC-004): `TestArnesDelLaboratorio`, `TestArnesDeNormativa`, `TestArnesDeLasFamilias`,
+-`TestArnesConLaInstalacionDelProducto` y `TestArnesConUnaEval`, con sus valores esperados de hoy sin cambiar.
++`TestArnesConLaInstalacionDelProducto` y `TestArnesConUnaEval`, con sus valores esperados de hoy sin cambiar, para las
++skills, las sesiones, las invocaciones, `sondeo.json`, la salida y los mensajes; el entorno, que ninguno de ellos lee, lo
++fija el caso sin `PRESUPUESTO` de `TestArnesConElPresupuesto`.
+ 
+ **Las recetas y el guion**: `TestRecetasDelSondeo` espera en `make -n evals-laboratorio … PRESUPUESTO=1000000` la orden
+ del llavero con `"1000000"` detrás de `"04"`; `TestGuionDelLaboratorio` pasa diez argumentos a
+diff antes/contracts/variante.md ahora/contracts/variante.md
+--- antes/contracts/variante.md	2026-11-16 12:11:10.643412229 +0100
++++ ahora/contracts/variante.md	2026-11-16 12:14:48.583301890 +0100
+@@ -107,7 +107,7 @@
+ «Caracteres» son runas, como en los límites de la `description` del producto (ADR 0046, punto 2), y la etiqueta es la
+ primera que encuentra `skills.PrimeraEtiquetaXML`, la definición del punto 3 (research D4). Una entrada repetida no
+ tiene forma de darse: un directorio no tiene dos con el mismo nombre (research D1). Un directorio de la variante o de
+-`skills/` que existe y no se puede leer no es un defecto: es el error de la función, defecto `inesperado` (ADR 0023).
++`skills/` que no se puede leer no es un defecto: es el error de la función, defecto `inesperado` (ADR 0023).
+ 
+ Ejemplos, en un árbol con las cinco skills `consulta-juridica`, `jurisprudencia`, `normativa`, `plazos-y-territorio` y
+ `quinta`, y la variante de §2 sin `plazos-y-territorio.txt`, con `normativa.txt` de 451 runas que empieza por
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-11-16 12:11:10.643465443 +0100
++++ ahora/data-model.md	2026-11-16 12:14:50.362296739 +0100
+@@ -13,7 +13,7 @@
+   de hoy; `defectosDeLaEtiqueta` pasa a usarla).
+ - **Leída** por `descripcionesCortas(raiz) (map[string]string, []string, error)` (`laboratorio_descripciones.go`): el
+   texto de cada skill de `<raiz>/skills/` por su nombre, los defectos de contracts/variante.md §3 en su orden, y el error
+-  de un directorio que existe y no se puede leer.
++  de un directorio que no se puede leer (defecto `inesperado`, ADR 0023).
+ - Constantes, junto a la familia de `normativa` en `laboratorio_familias.go`: `varianteDelProductoDeNormativa =
+   "normativa-producto"`, que la declaración de la familia usa en sus dos sitios, e `instalacionConLasDescripcionesCortas
+   = "producto-descripciones-cortas"`, la única variante con la que vale; y en `laboratorio_descripciones.go`, los límites
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-16 12:11:10.643488101 +0100
++++ ahora/plan.md	2026-11-16 12:15:19.407533987 +0100
+@@ -142,9 +142,11 @@
+   definición de etiqueta XML de `internal/skills`.
+ - **El arnés** (contracts/arnes.md; data-model §2 a §5; research D5 a D9 y D13): el valor nuevo de `INSTALACION` y sus
+   reglas; `PRESUPUESTO`, décimo argumento; la composición tras la copia de `INSTALACION=producto`; la variable detrás del
+-  entorno cerrado de hoy; las dos claves de `sondeo.json`. Orden de trabajo: el sustituto que vuelca su entorno y la
+-  aserción de que, sin `PRESUPUESTO` y con la variable en el entorno de quien lanza, ninguna sesión la tiene, se escriben
+-  y pasan con el arnés de hoy, antes de añadir la opción; así lo que fija «hoy» no sale del código nuevo.
++  entorno cerrado de hoy; las dos claves de `sondeo.json`. Orden de trabajo: el sustituto que vuelca su entorno y el
++  caso sin `PRESUPUESTO`, con la variable en el entorno de quien lanza —ninguna sesión la tiene, y el entorno de cada
++  una es, valor a valor, el que componen `entornoDelSondeo`, `entornoDeLaSesion` y `sinElDirectorioEnElPATH`, que el hito
++  no cambia (contracts/arnes.md §6)—, se escriben y pasan con el arnés de hoy, antes de añadir la opción; así lo que fija
++  «hoy» no sale del código nuevo.
+ - **La tabla** (contracts/tabla.md; data-model §6; research D10 y D11): con la constancia, la instalación y el presupuesto
+   en la clave, en la cabecera y en cada fila, y en el orden de las filas delante de las skills instaladas; sin ella, la de
+   hoy.
+@@ -240,7 +242,7 @@
+ | SC-001, FR-001, FR-002 | 1 descripción por skill de `skills/` y 0 de más; cada una ≤ 450 runas; todas ≤ 1700; 0 etiquetas XML | La variante del repositorio, sin ningún defecto; cada caso roto (falta, sobra, 451, 1701, `<ejemplo>`, quinta skill), su línea exacta | ci:internal/evals/laboratorio_descripciones_test.go:TestDescripcionesCortas |
+ | SC-002, FR-010, FR-011, FR-018 | 4 skills por sesión, 0 repetidas; el 100 % de las `description` iguales a las de la variante; 0 bytes de diferencia con `skills/` en todo lo demás; 0 defectos de frontmatter en cada `SKILL.md` compuesto | El sustituto de `claude`: las skills de cada sesión, fichero a fichero; `skills.LeerFrontmatter` y `skills.ValidarFrontmatter` sobre cada `SKILL.md` compuesto, también con textos con `: `, comillas y `#` | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConLasDescripcionesCortas, ci:internal/evals/laboratorio_descripciones_test.go:TestConLaDescripcion |
+ | SC-003, FR-013, FR-014 | Con `PRESUPUESTO=N`, el 100 % de las sesiones con `SLASH_COMMAND_TOOL_CHAR_BUDGET=N` y los mismos nombres de variables que sin él más esa; sin él, 0 sesiones con la variable, aunque esté en el entorno de quien lanza | El entorno que vuelca el sustituto de cada sesión, con `=500` en el entorno de quien lanza | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConElPresupuesto |
+-| SC-004, FR-012, FR-015 | Sin las dos opciones, 0 bytes de diferencia con hoy en las skills, las sesiones, las invocaciones, el entorno, `sondeo.json`, la salida y los mensajes de una petición que no vale | Los tests del arnés de hoy con sus valores esperados sin cambiar, y el caso de control sin `PRESUPUESTO` | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDelLaboratorio, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeNormativa, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeLasFamilias, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConLaInstalacionDelProducto, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConUnaEval, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConElPresupuesto |
++| SC-004, FR-012, FR-015 | Sin las dos opciones, 0 bytes de diferencia con hoy en las skills, las sesiones, las invocaciones, el entorno, `sondeo.json`, la salida y los mensajes de una petición que no vale | Los tests del arnés de hoy con sus valores esperados sin cambiar, para todo salvo el entorno, que no leen; el entorno, en el caso sin `PRESUPUESTO` de `TestArnesConElPresupuesto`, escrito y en verde con el arnés de hoy: el que vuelca cada sesión es, nombre a nombre y valor a valor, el que componen `entornoDelSondeo`, `entornoDeLaSesion` y `sinElDirectorioEnElPATH` con el entorno del test, salvo `PWD`, `SHLVL` y `_` (contracts/arnes.md §6) | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDelLaboratorio, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeNormativa, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeLasFamilias, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConLaInstalacionDelProducto, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConUnaEval, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConElPresupuesto |
+ | SC-005, FR-016 | 0 sesiones abiertas, nada construido y `DIRECTORIO` sin crear con cada petición inválida de FR-016, con su mensaje | Las peticiones de contracts/arnes.md §6, y las de `INSTALACION` de hoy | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConLasDescripcionesCortas, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConElPresupuesto, ci:internal/evals/laboratorio_sondeo_test.go:TestArnesConLaInstalacionDelProducto |
+ | SC-006, FR-020, FR-021, FR-024 | 0 diferencias en filas, instalaciones, presupuestos, recuentos y extremos de Wilson con un decimal de los sondeos fijos; la instalación de una fila sin la constancia, en sus cuatro casos | La salida, byte a byte, contra `tabla.md`; los cuatro casos de `instalacionDeLaFila`; el guion congelado | ci:internal/evals/laboratorio_tabla_test.go:TestTablaConLaInstalacion, ci:internal/app/e2e_test.go:TestEntregaDelHito |
+ | SC-007, FR-022, FR-023, FR-032 | 0 bytes de diferencia en la tabla y el detalle de los sondeos fijos de H39 a H41.2; 0 fallos en sus suites congeladas, sin cambiar un fichero suyo | Sus tablas fijas; sus guiones activados | ci:internal/app/e2e_test.go:TestEntregaDelHito, ci:internal/evals/laboratorio_tabla_test.go:TestTablaConLasActivaciones, ci:internal/evals/laboratorio_tabla_test.go:TestTablaDeLasFamilias, ci:internal/evals/laboratorio_tabla_test.go:TestTablaDeNormativa, ci:internal/evals/laboratorio_tabla_test.go:TestTablaDelLaboratorio |
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-11-16 12:11:10.643476531 +0100
++++ ahora/quickstart.md	2026-11-16 12:15:41.051150253 +0100
+@@ -33,7 +33,8 @@
+ Verde: con `INSTALACION=producto-descripciones-cortas`, cada sesión tiene las cuatro skills de `skills/`, cada una con la
+ `description` de la variante y lo demás byte a byte, y `sondeo.json` lleva `instalacion`; con `PRESUPUESTO=1000000`, cada
+ sesión tiene `SLASH_COMMAND_TOOL_CHAR_BUDGET=1000000` y `sondeo.json` lleva `presupuesto`; sin `PRESUPUESTO`, ninguna
+-sesión tiene la variable aunque la tenga quien lanza; sin las dos opciones, lo de hoy; cada petición inválida, ninguna
++sesión tiene la variable aunque la tenga quien lanza, y el entorno de cada una es, valor a valor, el que componen las
++funciones de hoy, salvo `PWD`, `SHLVL` y `_`; sin las dos opciones, lo de hoy; cada petición inválida, ninguna
+ sesión y su mensaje; y la receta pasa diez argumentos y el guion los da a `go test`, con `-presupuesto` delante de
+ `-temporal` (contracts/arnes.md §6). `TestRecetasDelSondeo` ejecuta `make -n`, que solo imprime;
+ `TestGuionDelLaboratorio` ejecuta el guion con un sustituto de go delante en el `PATH`, que solo anota sus argumentos.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-16 12:11:10.643449870 +0100
++++ ahora/research.md	2026-11-16 12:16:42.304985888 +0100
+@@ -56,11 +56,11 @@
+ **Decisión**: `descripcionesCortas(raiz string) (map[string]string, []string, error)` en
+ `internal/evals/laboratorio_descripciones.go` lee `skills/` y la variante de la raíz y devuelve las descripciones por
+ skill, los defectos —uno por línea, con la forma de contracts/variante.md §3— y solo como error lo que no es un defecto
+-de la variante (un directorio que existe y no se puede leer: defecto `inesperado`, ADR 0023). Las skills de `skills/`
+-son sus subdirectorios, la regla con que `INSTALACION=producto` las copia hoy (`copiarLasDemasSkillsDelArbol`,
+-`laboratorio_sondeo.go:899-919`). Un directorio de la variante que no existe es la variante sin ninguna descripción:
+-falta una por skill. La usan `TestDescripcionesCortas` (`make ci`, FR-002, SC-001) y la comprobación de los argumentos del
+-arnés con `INSTALACION=producto-descripciones-cortas` (FR-016), que antepone `INSTALACION: ` a cada defecto.
++de la variante (un directorio que no se puede leer: defecto `inesperado`, ADR 0023). Las skills de `skills/` son sus
++subdirectorios, la regla con que `INSTALACION=producto` las copia hoy (`copiarLasDemasSkillsDelArbol`,
++`laboratorio_sondeo.go:899-919`). La usan `TestDescripcionesCortas` (`make ci`, FR-002, SC-001) y la comprobación de los
++argumentos del arnés con `INSTALACION=producto-descripciones-cortas` (FR-016), que antepone `INSTALACION: ` a cada
++defecto.
+ 
+ **Por qué**: una sola definición de lo que vale; el test de la variante del repositorio y el rechazo del arnés no pueden
+ divergir. Leer `skills/` del árbol en cada `make ci` hace que una quinta skill sin descripción salga en rojo con su nombre
+@@ -162,7 +162,8 @@
+ `:673-688`). Sin `PRESUPUESTO`, ningún cambio de código: el entorno de las sesiones es una lista cerrada —las de
+ `variablesQueVenLasSesionesDelSondeo`, más `PATH` y `HOME` (`internal/evals/sondeo.go:74-76` y `:1043-1061`)— y la
+ variable de quien lanza no llega (V7). `TestArnesConElPresupuesto` fija las dos cosas con la variable puesta en el
+-entorno de quien lanza.
++entorno de quien lanza, y, sin `PRESUPUESTO`, que el entorno de cada sesión es, valor a valor, el que componen esas
++funciones de hoy (contracts/arnes.md §6).
+ 
+ **Por qué**: FR-013 («nada más de su entorno cambia») y FR-014; el spec dice que hoy ya no llega y pide el control, no
+ otro mecanismo. Quitarla además explícitamente sería un segundo mecanismo para lo que ya hace la lista cerrada.
+@@ -250,9 +251,13 @@
+ 
+ **Por qué**: FR-018 pide el sustituto «que anota sus invocaciones y su entorno», y hoy no anota el entorno (V8). Las
+ anotaciones de hoy se leen por su prefijo (`sesion.`, `version.`; `anotadas`, `:105-120`), así que una más no cambia lo
+-que leen los tests de hoy ni sus valores esperados (FR-015). «Nada más de su entorno cambia» (FR-013) se comprueba por
+-nombres: los de cada sesión con `PRESUPUESTO` son los de la misma sesión sin él, más `SLASH_COMMAND_TOOL_CHAR_BUDGET`; los
+-valores de las demás dependen de rutas de cada ejecución.
++que leen los tests de hoy ni sus valores esperados (FR-015). Ninguno de esos tests lee el entorno (V8), así que el de
++hoy lo fija el caso sin `PRESUPUESTO`: el que vuelca cada sesión es, nombre a nombre y valor a valor, el que componen
++`entornoDelSondeo`, `entornoDeLaSesion` y, en modo herramienta, `sinElDirectorioEnElPATH` con el entorno, el temporal y
++el directorio de la sesión del test, salvo `PWD`, `SHLVL` y `_`, que añaden `bash` y `sh` al arrancar (V17), y como
++conjunto, sin exigir el orden, que los intérpretes no tienen por qué conservar (FR-015, SC-004). «Nada más de su entorno cambia» con `PRESUPUESTO` (FR-013) se
++comprueba por nombres: los de cada sesión con él son los de la misma sesión sin él, más `SLASH_COMMAND_TOOL_CHAR_BUDGET`;
++los valores con rutas cambian de un `DIRECTORIO` a otro.
+ 
+ **Alternativas**: anotar solo la variable: no deja comprobar que no cambia nada más; un test unitario de la función que
+ compone el entorno: no ve lo que llega de verdad a la sesión a través de `scripts/evals-sesion.sh`.
+@@ -333,6 +338,12 @@
+   los caracteres no ASCII, y `yaml.Unmarshal` de lo que da devuelve el texto exacto en los nueve casos.
+ - **V16**. `go list -deps ./cmd/kitlegal` no tiene `internal/evals` y sí `go.yaml.in/yaml/v3`, que ya llega por
+   `internal/skills`: importarlo desde `internal/evals` no cambia el cierre del binario.
++- **V17**. Lo que añaden los intérpretes al entorno que vuelca el sustituto, con un programa Go fuera del repositorio que
++  lanza, con `exec.Cmd.Env` dado y `Dir` en `trabajo/`, un guion `#!/usr/bin/env bash` que hace `exec` de un sustituto
++  `#!/bin/sh` (dash, `/bin/sh -> dash`) que ejecuta `env`, como `scripts/evals-sesion.sh:39` y el sustituto de hoy: cada
++  variable dada llega con su valor, y se añaden solo `PWD` y `SHLVL`. `_` no sale con dash; lo pone `bash` cuando es él
++  el `/bin/sh` (macOS), que no se ha medido aquí, y por eso va en la excepción. La sesión está en el directorio de
++  `exec.Cmd.Dir` y `evals-sesion.sh` no cambia de directorio, así que no hay `OLDPWD`.
+ 
+ ## Supuestos no verificados
+ 
