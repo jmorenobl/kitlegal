@@ -49,12 +49,13 @@ const (
 // zips (research.md D8).
 var fechaDeLasEntradas = time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
 
-// Los dos binarios de prueba: unos bytes cualesquiera, con un nulo, un salto
+// Los tres binarios de prueba: unos bytes cualesquiera, con un nulo, un salto
 // de línea de cada clase y bytes que no son UTF-8, que es lo que estropearía
 // quien los mirase como texto. El paso los copia sin mirarlos (FR-011).
 var (
 	binarioDeMacOS   = []byte("binario de macOS de prueba\x00\xca\xfe\xba\xbe\r\n\xff")
 	binarioDeWindows = []byte("binario de Windows de prueba\x00MZ\r\n\xfe\xff")
+	binarioDeLinux   = []byte("binario de Linux de prueba\x00\x7fELF\r\n\xfd\xff")
 )
 
 // manifiestoLeido es el manifiesto como lo fija data-model §3: sus campos, en
@@ -98,10 +99,12 @@ type configuracionLeida struct {
 	PorPlataforma plataformasLeidas `json:"platform_overrides"`
 }
 
-// plataformasLeidas es `platform_overrides`: solo Windows cambia la orden, y la
-// lectura estricta rechaza cualquier otra plataforma.
+// plataformasLeidas es `platform_overrides`: Windows y Linux cambian la orden,
+// y la lectura estricta rechaza cualquier otra plataforma (ADR 0035, enmienda
+// «Linux en la extensión»).
 type plataformasLeidas struct {
 	Win32 ordenLeida `json:"win32"`
+	Linux ordenLeida `json:"linux"`
 }
 
 // ordenLeida es lo que una plataforma cambia de `mcp_config`.
@@ -152,13 +155,16 @@ func manifiestoEsperado(version, descripcion string, herramientas []app.Herramie
 			Tipo:    "binary",
 			Entrada: "server/kitlegal",
 			Arranque: configuracionLeida{
-				Orden:         "${__dirname}/server/kitlegal",
-				Argumentos:    []string{"mcp", "serve"},
-				PorPlataforma: plataformasLeidas{Win32: ordenLeida{Orden: "${__dirname}/server/kitlegal.exe"}},
+				Orden:      "${__dirname}/server/kitlegal",
+				Argumentos: []string{"mcp", "serve"},
+				PorPlataforma: plataformasLeidas{
+					Win32: ordenLeida{Orden: "${__dirname}/server/kitlegal.exe"},
+					Linux: ordenLeida{Orden: "${__dirname}/server/kitlegal-linux"},
+				},
 			},
 		},
 		Herramientas:   herramientasLeidas(herramientas),
-		Compatibilidad: compatibilidadLeida{Plataformas: []string{"darwin", "win32"}},
+		Compatibilidad: compatibilidadLeida{Plataformas: []string{"darwin", "win32", "linux"}},
 	}
 }
 
@@ -377,6 +383,7 @@ func piezasDePrueba(t *testing.T) empaquetado.PiezasAEscribir {
 		Version:      versionDePrueba,
 		MacOS:        escribirFichero(t, "kitlegal", binarioDeMacOS),
 		Windows:      escribirFichero(t, "kitlegal.exe", binarioDeWindows),
+		Linux:        escribirFichero(t, "kitlegal-linux", binarioDeLinux),
 		Icono:        iconoDelArbol,
 		Salida:       t.TempDir(),
 		Descripcion:  empaquetado.Descripcion,
@@ -387,8 +394,8 @@ func piezasDePrueba(t *testing.T) empaquetado.PiezasAEscribir {
 
 // TestPiezas es el control en `make ci` de lo que la orden piezas escribe con
 // unas herramientas y unas skills dadas (contracts/paso.md §2, §3 y §7): la
-// extensión con exactamente sus cuatro entradas, en orden, con los bytes del
-// icono y de los dos binarios y sus modos; el manifiesto y plugin.json, leídos
+// extensión con exactamente sus cinco entradas, en orden, con los bytes del
+// icono y de los tres binarios y sus modos; el manifiesto y plugin.json, leídos
 // de forma estricta, con cada campo de data-model §3 y §4 y ninguno más; y el
 // plugin con cada fichero del árbol, byte a byte, y nada más. Con una
 // herramienta y una skill más en la entrada, aparecen sin tocar el paso (US5).
@@ -468,7 +475,7 @@ func comprobarLaSalida(t *testing.T, salida string) {
 }
 
 // comprobarLaExtension comprueba el `.mcpb` que el paso dejó con esas piezas:
-// sus cuatro entradas y sus modos, los bytes de lo que copia y el manifiesto.
+// sus cinco entradas y sus modos, los bytes de lo que copia y el manifiesto.
 func comprobarLaExtension(t *testing.T, piezas empaquetado.PiezasAEscribir) {
 	t.Helper()
 
@@ -479,8 +486,9 @@ func comprobarLaExtension(t *testing.T, piezas empaquetado.PiezasAEscribir) {
 		{Nombre: "icon.png", Modo: 0o644},
 		{Nombre: "server/kitlegal", Modo: 0o755},
 		{Nombre: "server/kitlegal.exe", Modo: 0o755},
+		{Nombre: "server/kitlegal-linux", Modo: 0o755},
 	}, formasDe(extension),
-		"la extensión lleva exactamente cuatro entradas, en este orden, con los dos binarios como ejecutables (FR-010)")
+		"la extensión lleva exactamente cinco entradas, en este orden, con los tres binarios como ejecutables (FR-010)")
 
 	assert.Equal(t, leerFichero(t, piezas.Icono), contenidoDe(t, extension, "icon.png"),
 		"icon.png es el icono que se le da, byte a byte (FR-016)")
@@ -488,6 +496,8 @@ func comprobarLaExtension(t *testing.T, piezas empaquetado.PiezasAEscribir) {
 		"server/kitlegal es el binario de macOS que se le da, sin cambiar un byte (FR-011)")
 	assert.Equal(t, binarioDeWindows, contenidoDe(t, extension, "server/kitlegal.exe"),
 		"server/kitlegal.exe es el binario de Windows que se le da, sin cambiar un byte (FR-011)")
+	assert.Equal(t, binarioDeLinux, contenidoDe(t, extension, "server/kitlegal-linux"),
+		"server/kitlegal-linux es el binario de Linux que se le da, sin cambiar un byte (FR-011)")
 
 	escrito := contenidoDe(t, extension, rutaDelManifiesto)
 	esperado := manifiestoEsperado(piezas.Version, piezas.Descripcion, piezas.Herramientas)
@@ -575,6 +585,7 @@ func TestPiezasReproducibles(t *testing.T) {
 	otraFecha := time.Date(2001, time.February, 3, 4, 5, 6, 0, time.UTC)
 	require.NoError(t, os.Chtimes(segundas.MacOS, otraFecha, otraFecha))
 	require.NoError(t, os.Chtimes(segundas.Windows, otraFecha, otraFecha))
+	require.NoError(t, os.Chtimes(segundas.Linux, otraFecha, otraFecha))
 
 	require.NoError(t, empaquetado.EscribirPiezas(segundas))
 
@@ -589,7 +600,7 @@ func TestPiezasReproducibles(t *testing.T) {
 }
 
 // TestPiezasSinEntrada es el control en `make ci` de FR-005 sobre la orden
-// piezas: sin el binario de macOS, sin el de Windows, sin el icono y con una
+// piezas: sin el binario de macOS, sin el de Windows, sin el de Linux, sin el icono y con una
 // salida que no se puede escribir —la carpeta no existe, o donde va uno de los
 // dos ficheros hay una carpeta—, el paso falla con un error que nombra lo que
 // falta o lo que falló, con su ruta una sola vez, y la causa del sistema
@@ -632,6 +643,17 @@ func TestPiezasSinEntrada(t *testing.T) {
 				piezas.Windows = noExiste(t)
 
 				return "falta el binario de Windows: open " + piezas.Windows + ": "
+			},
+			causa: syscall.ENOENT,
+		},
+		{
+			nombre: "sin el binario de Linux",
+			quitar: func(t *testing.T, piezas *empaquetado.PiezasAEscribir) string {
+				t.Helper()
+
+				piezas.Linux = noExiste(t)
+
+				return "falta el binario de Linux: open " + piezas.Linux + ": "
 			},
 			causa: syscall.ENOENT,
 		},

@@ -123,6 +123,16 @@ sustituyen a este fichero.
   las órdenes que pide la skill, ni sus otras referencias cambian. `make ci` comprueba que la skill es la forma que
   midió el laboratorio con ese movimiento y nada más, y la frase de cada una de sus remisiones.
 
+### Corregido
+
+- **El servidor del plugin arranca en Claude Code en Linux.** El plugin lleva la extensión `kitlegal.mcpb`, que solo
+  traía los binarios de macOS y de Windows; Claude Code en Linux, al que el plugin llega por la cuenta, lanzaba el de
+  macOS y el servidor fallaba con `ENOEXEC`. La extensión lleva ahora también `server/kitlegal-linux`, el binario
+  linux/amd64 de la release byte a byte, con su orden en `platform_overrides.linux` y `linux` en
+  `compatibility.platforms` (ADR 0035, «Linux en la extensión»). En linux/arm64 el servidor del plugin sigue sin
+  arrancar: ahí se usa el programa instalado. La extensión pasa de unos 43 a unos 58 MB. `humo` y `TestSnapshot`
+  arrancan el servidor de la extensión con la orden de Linux de su manifiesto, como Claude Code.
+
 ### Seguridad
 
 - **El binario se compila con go1.27.4.** go1.27.3 traía GO-2026-6859 (`net/http`: caída de un servidor HTTP/1 por una

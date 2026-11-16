@@ -237,10 +237,12 @@ const (
 
 	// ordenDelPaso es la del gancho del universal, carácter a carácter: el paso
 	// que empaqueta, con la versión y la ruta del universal que le da goreleaser,
-	// el binario de Windows amd64 de la construcción, el icono versionado y dist/
-	// como salida (H22 FR-001, FR-002; contracts/release.md §1 de H22).
+	// los binarios de Windows amd64 y de Linux amd64 de la construcción, el icono
+	// versionado y dist/ como salida (H22 FR-001, FR-002; contracts/release.md §1
+	// de H22; ADR 0035, enmienda «Linux en la extensión»).
 	ordenDelPaso = "go run ./cmd/empaquetar piezas -version {{ .Version }} -macos {{ .Path }} " +
-		"-windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -icono mcp/icon.png -salida dist"
+		"-windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -linux dist/kitlegal_linux_amd64_v1/kitlegal " +
+		"-icono mcp/icon.png -salida dist"
 
 	// herramientaGoreleaser es la invocación de goreleaser, como la de las demás
 	// herramientas: su versión la fija tools/goreleaser/go.mod (FR-096).
@@ -1289,15 +1291,15 @@ var comprobacionesDelHumo = []comprobacionDelHumo{
 	// ningún user_config (H22 FR-041).
 	{nombre: "manifiesto-de-la-extension", entero: true, ordenes: ordenesDelGuion(`
 		unzip -q kitlegal.mcpb -d extension
-		if ! jq -e --arg version "${GITHUB_REF_NAME#v}" '.manifest_version == "0.3" and .name == "kitlegal" and .version == $version and .homepage == "https://kitlegal.es" and .license == "EUPL-1.2" and .icon == "icon.png" and .server.type == "binary" and .server.entry_point == "server/kitlegal" and .server.mcp_config == {"command": "${__dirname}/server/kitlegal", "args": ["mcp", "serve"], "platform_overrides": {"win32": {"command": "${__dirname}/server/kitlegal.exe"}}} and .compatibility == {"platforms": ["darwin", "win32"]} and (has("user_config") | not)' extension/manifest.json > /dev/null; then
+		if ! jq -e --arg version "${GITHUB_REF_NAME#v}" '.manifest_version == "0.3" and .name == "kitlegal" and .version == $version and .homepage == "https://kitlegal.es" and .license == "EUPL-1.2" and .icon == "icon.png" and .server.type == "binary" and .server.entry_point == "server/kitlegal" and .server.mcp_config == {"command": "${__dirname}/server/kitlegal", "args": ["mcp", "serve"], "platform_overrides": {"win32": {"command": "${__dirname}/server/kitlegal.exe"}, "linux": {"command": "${__dirname}/server/kitlegal-linux"}}} and .compatibility == {"platforms": ["darwin", "win32", "linux"]} and (has("user_config") | not)' extension/manifest.json > /dev/null; then
 		  echo "el manifiesto de kitlegal.mcpb no lleva la versión ${GITHUB_REF_NAME#v} o sus campos fijos" >&2
 		  exit 1
 		fi
 	`)},
 
 	// Las dos arquitecturas del universal, leídas de su cabecera y reconocidas
-	// por su tipo de CPU, y el .exe, cada binario con la huella del de su
-	// archivo (H22 FR-041).
+	// por su tipo de CPU, el .exe y el de Linux, cada binario con la huella del
+	// de su archivo (H22 FR-041; ADR 0035, enmienda «Linux en la extensión»).
 	{nombre: "binarios-de-la-extension", entero: true, ordenes: ordenesDelGuion(`
 		campo() { od -An -tu1 -j "$1" -N 4 extension/server/kitlegal | awk 'NF == 4 { print (($1 * 256 + $2) * 256 + $3) * 256 + $4 }'; }
 		if [ "$(campo 0)" -ne 3405691582 ] || [ "$(campo 4)" -ne 2 ]; then
@@ -1330,15 +1332,24 @@ var comprobacionesDelHumo = []comprobacionDelHumo{
 		  echo "server/kitlegal.exe no es el binario de kitlegal_windows_amd64.zip" >&2
 		  exit 1
 		fi
+		de_la_extension=$(sha256sum < extension/server/kitlegal-linux | cut -d ' ' -f 1)
+		del_archivo=$(tar -xzOf kitlegal_linux_amd64.tar.gz kitlegal | sha256sum | cut -d ' ' -f 1)
+		if [ "$de_la_extension" != "$del_archivo" ]; then
+		  echo "server/kitlegal-linux no es el binario de kitlegal_linux_amd64.tar.gz" >&2
+		  exit 1
+		fi
 	`)},
 
-	// El servidor, arrancado desde el binario de Linux que extrajo el cuarto
-	// paso, con un cliente que lee cada respuesta de una tubería con nombre
-	// antes de enviar lo siguiente: los nombres que lista son los de tools del
-	// manifiesto (H22 FR-042; research.md D11 de H22).
+	// El servidor de la extensión, arrancado con la orden de Linux de su
+	// manifiesto, como lo arranca Claude Code en Linux, con un cliente que lee
+	// cada respuesta de una tubería con nombre antes de enviar lo siguiente: los
+	// nombres que lista son los de tools del manifiesto (H22 FR-042; research.md
+	// D11 de H22; ADR 0035, enmienda «Linux en la extensión»).
 	{nombre: "servidor", entero: true, ordenes: ordenesDelGuion(`
 		mkfifo respuestas
 		cache=$(mktemp -d)
+		servidor=$(jq -r '.server.mcp_config.platform_overrides.linux.command' extension/manifest.json)
+		servidor="${servidor/\$\{__dirname\}/$PWD/extension}"
 		{
 		  exec 4< respuestas
 		  printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"humo","version":"0"}}}'
@@ -1346,7 +1357,7 @@ var comprobacionesDelHumo = []comprobacionDelHumo{
 		  printf '%s\n' '{"jsonrpc":"2.0","method":"notifications/initialized"}' '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
 		  IFS= read -r lista <&4
 		  printf '%s\n' "$lista" > lista.json
-		} | KITLEGAL_CACHE_DIR="$cache" ./kitlegal mcp serve > respuestas
+		} | KITLEGAL_CACHE_DIR="$cache" "$servidor" mcp serve > respuestas
 		jq -r '.result.tools[].name' lista.json | sort > anunciadas.txt
 		jq -r '.tools[].name' extension/manifest.json | sort > del-manifiesto.txt
 		if [ ! -s anunciadas.txt ] || ! cmp anunciadas.txt del-manifiesto.txt; then

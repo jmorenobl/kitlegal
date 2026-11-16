@@ -369,9 +369,10 @@ Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el fl
   `kitlegal skills install` en un directorio vacío deja `.agents/skills/boe-legislacion/SKILL.md`. Desde H22, con
   seis pasos más: descarga la extensión, el plugin y los tres archivos que llevan sus binarios; comprueba la huella
   de los cinco contra `checksums.txt`; verifica la atestación de la extensión y del plugin; comprueba que el
-  manifiesto de la extensión lleva la versión de la etiqueta y sus campos fijos; que sus binarios son los de los
-  archivos publicados; y que el servidor, arrancado con el binario de Linux de la release, lista las herramientas de
-  `tools` del manifiesto.
+  manifiesto de la extensión lleva la versión de la etiqueta y sus campos fijos; que sus binarios —el universal de
+  macOS, el de Windows y, desde la enmienda «Linux en la extensión» del ADR 0035, el de Linux amd64— son los de los
+  archivos publicados; y que el servidor de la extensión, arrancado con la orden de Linux de su manifiesto, como lo
+  arranca Claude Code en Linux, lista las herramientas de `tools` del manifiesto.
 - **`catalogo`** solo corre si `humo` sale en verde. Descarga el `kitlegal-plugin.zip` de la release, lo comprueba
   contra la huella que le da el `checksums.txt` publicado y compone con `go run ./cmd/empaquetar catalogo` el catálogo
   de la etiqueta: `.claude-plugin/marketplace.json`, con la versión sin `v`, y el plugin dentro, en

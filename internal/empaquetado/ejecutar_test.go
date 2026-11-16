@@ -21,7 +21,7 @@ import (
 
 // lineaDeUso es la línea con la que el paso responde a una invocación que no
 // tiene la forma de ninguna de sus dos órdenes (contracts/paso.md §1).
-const lineaDeUso = "empaquetar: uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … | " +
+const lineaDeUso = "empaquetar: uso: empaquetar piezas -version … -macos … -windows … -linux … -icono … -salida … | " +
 	"empaquetar catalogo -version … -plugin … -salida …\n"
 
 // prefijoDeLaLinea es con lo que empieza la línea de todo fallo del paso.
@@ -101,6 +101,7 @@ func ordenDePiezas(t *testing.T) []string {
 		"-version", versionDePrueba,
 		"-macos", escribirFichero(t, "kitlegal", binarioDeMacOS),
 		"-windows", escribirFichero(t, "kitlegal.exe", binarioDeWindows),
+		"-linux", escribirFichero(t, "kitlegal-linux", binarioDeLinux),
 		"-icono", iconoDelArbol,
 		"-salida", t.TempDir(),
 	}
@@ -194,6 +195,7 @@ func comprobarLasPiezasDeProduccion(t *testing.T) {
 		Version:      valorDe(t, orden, "-version"),
 		MacOS:        valorDe(t, orden, "-macos"),
 		Windows:      valorDe(t, orden, "-windows"),
+		Linux:        valorDe(t, orden, "-linux"),
 		Icono:        valorDe(t, orden, "-icono"),
 		Salida:       valorDe(t, orden, "-salida"),
 		Descripcion:  empaquetado.Descripcion,
@@ -310,7 +312,7 @@ func fallosDeLaOrden() []falloDeLaOrden {
 			preparar: uso(func(t *testing.T) []string {
 				t.Helper()
 
-				return append(ordenDePiezas(t), "-linux", "kitlegal")
+				return append(ordenDePiezas(t), "-freebsd", "kitlegal")
 			}),
 		},
 		{
@@ -380,7 +382,7 @@ func fallosDeLaOrden() []falloDeLaOrden {
 		},
 	}
 
-	for _, bandera := range []string{"-version", "-macos", "-windows", "-icono", "-salida"} {
+	for _, bandera := range []string{"-version", "-macos", "-windows", "-linux", "-icono", "-salida"} {
 		fallos = append(fallos, falloDeLaOrden{
 			nombre: "piezas sin " + bandera,
 			preparar: func(t *testing.T) ([]string, string) {

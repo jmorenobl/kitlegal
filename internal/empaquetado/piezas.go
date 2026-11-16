@@ -33,13 +33,16 @@ const (
 	licenciaDelProyecto = "EUPL-1.2"
 )
 
-// Las cuatro entradas de la extensión, que son todas las que lleva (H22
-// FR-010; data-model §2).
+// Las cinco entradas de la extensión, que son todas las que lleva (H22
+// FR-010; data-model §2). La de Linux llega con la enmienda «Linux en la
+// extensión» del ADR 0035: Claude Code en Linux arranca el servidor del plugin
+// sin mirar `compatibility`, y sin ella lanzaba el binario de macOS.
 const (
 	rutaDelManifiesto        = "manifest.json"
 	rutaDelIcono             = "icon.png"
 	rutaDelServidor          = "server/kitlegal"
 	rutaDelServidorDeWindows = "server/kitlegal.exe"
+	rutaDelServidorDeLinux   = "server/kitlegal-linux"
 )
 
 // Lo fijo del manifiesto (H22 FR-012; data-model §3).
@@ -52,9 +55,10 @@ const (
 	// carpetaDeLaExtension es lo que la app sustituye por la carpeta en la que
 	// extrae la extensión: la orden del servidor cuelga de ella.
 	carpetaDeLaExtension = "${__dirname}/"
-	// Las dos plataformas de la extensión, como las nombra el manifiesto.
+	// Las tres plataformas de la extensión, como las nombra el manifiesto.
 	plataformaMacOS   = "darwin"
 	plataformaWindows = "win32"
+	plataformaLinux   = "linux"
 	// La orden y el verbo con los que el binario sirve por la entrada y la
 	// salida estándar: `kitlegal mcp serve` (H21).
 	appletDelServidor = "mcp"
@@ -101,10 +105,11 @@ type piezasAEscribir struct {
 	// Version es la del manifiesto y la de plugin.json, tal cual llega: quien
 	// llama la da sin `v` (H22 FR-013).
 	Version string
-	// MacOS y Windows son las rutas de los dos binarios, el universal de macOS y
-	// el de Windows amd64. El paso los copia sin mirarlos: que sean lo que su
-	// nombre dice lo comprueba el snapshot (H22 FR-011).
-	MacOS, Windows string
+	// MacOS, Windows y Linux son las rutas de los tres binarios: el universal de
+	// macOS, el de Windows amd64 y el de Linux amd64. El paso los copia sin
+	// mirarlos: que sean lo que su nombre dice lo comprueba el snapshot (H22
+	// FR-011).
+	MacOS, Windows, Linux string
 	// Icono es la ruta del icono, un PNG de ladoDelIcono píxeles de lado.
 	Icono string
 	// Salida es la carpeta en la que se escriben las dos piezas. Tiene que
@@ -147,9 +152,9 @@ func escribirPiezas(piezas piezasAEscribir) error {
 }
 
 // extensionDe compone kitlegal.mcpb: un zip con el manifiesto, el icono y los
-// dos binarios, en ese orden y con ninguna entrada más (H22 FR-010; data-model
+// tres binarios, en ese orden y con ninguna entrada más (H22 FR-010; data-model
 // §2). El icono va byte a byte, tras comprobar que es el PNG que la ficha pide,
-// y los dos binarios, sin mirarlos y marcados como ejecutables.
+// y los tres binarios, sin mirarlos y marcados como ejecutables.
 func extensionDe(piezas piezasAEscribir) ([]byte, error) {
 	macos, err := os.ReadFile(piezas.MacOS)
 	if err != nil {
@@ -159,6 +164,11 @@ func extensionDe(piezas piezasAEscribir) ([]byte, error) {
 	windows, err := os.ReadFile(piezas.Windows)
 	if err != nil {
 		return nil, fmt.Errorf("falta el binario de Windows: %w", err)
+	}
+
+	linux, err := os.ReadFile(piezas.Linux)
+	if err != nil {
+		return nil, fmt.Errorf("falta el binario de Linux: %w", err)
 	}
 
 	icono, err := os.ReadFile(piezas.Icono)
@@ -175,6 +185,7 @@ func extensionDe(piezas piezasAEscribir) ([]byte, error) {
 		{ruta: rutaDelIcono, modo: modoDeFichero, escribir: copia(icono)},
 		{ruta: rutaDelServidor, modo: modoDeEjecutable, escribir: copia(macos)},
 		{ruta: rutaDelServidorDeWindows, modo: modoDeEjecutable, escribir: copia(windows)},
+		{ruta: rutaDelServidorDeLinux, modo: modoDeEjecutable, escribir: copia(linux)},
 	})
 }
 
@@ -236,10 +247,13 @@ type configuracionDeLaApp struct {
 	PorPlataforma ordenesDistintas `json:"platform_overrides"`
 }
 
-// ordenesDistintas es `platform_overrides`: solo Windows cambia la orden, por
-// la de su ejecutable.
+// ordenesDistintas es `platform_overrides`: Windows y Linux cambian la orden,
+// cada uno por la de su ejecutable. La clave es el sistema y no la
+// arquitectura: por eso Linux lleva solo amd64 (ADR 0035, enmienda «Linux en
+// la extensión»).
 type ordenesDistintas struct {
 	Windows ordenDePlataforma `json:"win32"`
+	Linux   ordenDePlataforma `json:"linux"`
 }
 
 // ordenDePlataforma es lo que una plataforma cambia de `mcp_config`.
@@ -288,11 +302,12 @@ func manifiestoDe(piezas piezasAEscribir) manifiesto {
 				Argumentos: []string{appletDelServidor, verboDelServidor},
 				PorPlataforma: ordenesDistintas{
 					Windows: ordenDePlataforma{Orden: carpetaDeLaExtension + rutaDelServidorDeWindows},
+					Linux:   ordenDePlataforma{Orden: carpetaDeLaExtension + rutaDelServidorDeLinux},
 				},
 			},
 		},
 		Herramientas:   herramientas,
-		Compatibilidad: compatibilidad{Plataformas: []string{plataformaMacOS, plataformaWindows}},
+		Compatibilidad: compatibilidad{Plataformas: []string{plataformaMacOS, plataformaWindows, plataformaLinux}},
 	}
 }
 

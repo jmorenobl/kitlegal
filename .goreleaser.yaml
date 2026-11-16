@@ -54,14 +54,16 @@ universal_binaries:
   # gancho es el único sitio en el que goreleaser tiene ya todos los binarios y
   # todavía no ha calculado las huellas: ejecuta el paso que empaqueta, que deja
   # en dist/ kitlegal.mcpb y kitlegal-plugin.zip, y si el paso falla, falla la
-  # release (H22 FR-002, FR-005; research.md D6). La ruta del binario de Windows
-  # lleva el sufijo que goreleaser pone a su carpeta (research.md V7).
+  # release (H22 FR-002, FR-005; research.md D6). Las rutas de los binarios de
+  # Windows y de Linux amd64 llevan el sufijo que goreleaser pone a su carpeta
+  # (research.md V7); el de Linux va en la extensión desde la enmienda «Linux en
+  # la extensión» del ADR 0035.
   - id: kitlegal-universal
     ids: [kitlegal]
     replace: false
     hooks:
       post:
-        - cmd: go run ./cmd/empaquetar piezas -version {{ .Version }} -macos {{ .Path }} -windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -icono mcp/icon.png -salida dist
+        - cmd: go run ./cmd/empaquetar piezas -version {{ .Version }} -macos {{ .Path }} -windows dist/kitlegal_windows_amd64_v1/kitlegal.exe -linux dist/kitlegal_linux_amd64_v1/kitlegal -icono mcp/icon.png -salida dist
           output: true
 
 archives:

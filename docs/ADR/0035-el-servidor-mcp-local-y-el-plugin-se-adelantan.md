@@ -261,6 +261,36 @@ soportado. Siguen sin probar instalar desde cero en Windows (añadir el marketpl
 antivirus o la política de un equipo de empresa, con un `kitlegal.exe` sin firma de Windows, y Windows 11. El
 pendiente 4 queda resuelto en lo que pedía, que la app cargue en Windows el servidor del `.mcpb`.
 
+## Linux en la extensión (2026-11-15)
+
+H22 dejó Linux fuera de la extensión «porque no hay app de escritorio». La premisa cayó con «Prueba con un solo
+plugin»: el plugin lleva la extensión dentro y la cuenta lo sincroniza también con Claude Code, que en Linux arranca
+su servidor sin mirar `compatibility.platforms`. En el servidor Linux de Jorge (Claude Code 2.1.325, plugin 0.8.1),
+Claude Code lanzaba `server/kitlegal`, el universal de macOS, y el servidor quedaba en rojo con
+`ENOEXEC … posix_spawn`. Las skills seguían respondiendo con el binario instalado en el `PATH`; sin él, se quedaban
+sin consulta.
+
+Dos pruebas antes de cambiar nada:
+
+- **En Linux**: el `.mcpb` 0.8.1 retocado a mano, con `server/kitlegal-linux` (linux/amd64) y
+  `platform_overrides.linux`, dentro de una copia del plugin con otro nombre. Con `claude --plugin-dir`, el servidor
+  del plugin conectó con el binario de Linux. Claude Code aplica `platform_overrides` por sistema.
+- **En macOS**: ese mismo plugin, subido a la app de escritorio de Claude. Respondieron con la cita el chat,
+  Claude Code dentro de la app y Cowork, con las herramientas del plugin de prueba. La entrada de Linux no estorba a
+  la app.
+
+De ahí la enmienda: **la extensión lleva también `server/kitlegal-linux`**, el binario linux/amd64 de la release byte
+a byte, con `platform_overrides.linux` y `linux` en `compatibility.platforms`. Solo amd64: `platform_overrides`
+distingue el sistema y no la arquitectura (tabla del principio). Un arm64 pediría que la orden de Linux eligiera el
+binario por `uname -m`, un ejecutable más en la extensión y unos 14 MB más por release; queda pendiente hasta que
+alguien lo pida. En arm64, Claude Code sigue sin servidor del plugin, con el mismo error, y el binario del `PATH`
+sigue sirviendo. La extensión pasa de unos 43 a unos 58 MB, y el catálogo, que la guarda en git como un solo
+fichero, acumula ese peso por release: más cerca del tope de 100 MB por fichero de GitHub, que sigue lejos.
+
+Con ello, `humo` arranca ya el servidor de la extensión con la orden de Linux de su manifiesto, y no el binario
+suelto del archivo, y `TestSnapshot` hace lo mismo en el trabajo `snapshot` de la integración continua, antes de
+fusionar. Claude Code en Linux con el plugin pasa a soportado en linux/amd64.
+
 ## Pendiente de verificar (pasa a la aceptación humana de H22)
 
 1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si
