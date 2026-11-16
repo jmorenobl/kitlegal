@@ -12,6 +12,34 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **Una variante de instalación con las descripciones cortas de las cuatro skills del producto, para medir si
+  arreglan que `normativa` no se active con todas instaladas** (H41.3). Vive en
+  `laboratorio/producto-descripciones-cortas/`, **fuera del producto** como el resto del laboratorio: un fichero
+  `<skill>.txt` por skill de `skills/`, de una sola línea, con el texto de su `description` y nada más de la skill. El
+  binario no la empotra, `kitlegal skills install` no la instala, el job de evals no la mide y ninguna skill de
+  `skills/` cambia. `make ci` la comprueba sin modelo: sale en rojo, con una línea por defecto que dice la skill, la
+  medida o la etiqueta y el límite, si a una skill de `skills/` le falta su descripción, si sobra una entrada que no es
+  la de ninguna, si una pasa de 450 caracteres, si las cuatro suman más de 1700 o si una lleva una etiqueta XML.
+- **`make evals-laboratorio` acepta `INSTALACION=producto-descripciones-cortas` y `PRESUPUESTO=<caracteres>`** (H41.3),
+  con la misma orden y la misma credencial; `PRESUPUESTO` es el décimo argumento, detrás de `EVAL`. La instalación
+  nueva, que solo vale con `VARIANTES=normativa-producto`, es la de `INSTALACION=producto` con la `description` de cada
+  `SKILL.md` sustituida por la de la variante; cada otro byte de cada skill es el de `skills/`. `PRESUPUESTO`, un entero
+  mayor que 0 sin signo ni ceros delante, pone `SLASH_COMMAND_TOOL_CHAR_BUDGET` con ese valor en el entorno de cada
+  sesión del sondeo, y nada más de ese entorno cambia; solo lo ponen las sesiones del laboratorio, y sin él ninguna lo
+  tiene, aunque esté en el entorno de quien lanza el sondeo. Un valor que no vale, la instalación nueva con otra variante o con una variante de instalación con defectos,
+  o cualquiera de las dos con variantes del laboratorio de H39, es un error de uso más, con el nombre del argumento, y
+  no abre ninguna sesión. `sondeo.json` anota, detrás de `skills_instaladas`, `instalacion` con la instalación nueva y
+  `presupuesto` con `PRESUPUESTO`. Sin las dos opciones, las sesiones, su entorno, `sondeo.json`, la salida y los
+  mensajes de error son los de antes, byte a byte.
+- **`make laboratorio-tabla` da la instalación y el presupuesto de cada fila** (H41.3) si algún sondeo de la ruta
+  lleva `instalacion` o `presupuesto` en su `sondeo.json`: dos columnas más tras «Skills instaladas», «Instalación»
+  —`producto-descripciones-cortas`, `producto` con las cuatro skills o la skill de la familia sola— y «Presupuesto»,
+  el valor pedido o vacía, y una fila por variante, modo, modelo, versión de Claude Code, instalación, presupuesto y
+  skills instaladas. Los recuentos y el detalle no cambian. Sin ningún sondeo con una de las dos claves, la tabla y el
+  detalle son los de antes, byte a byte, y la del laboratorio de H39 no cambia.
+
 ### Cambiado
 
 - **Las sesiones del workflow `hito` no leen la sesión de la suscripción en Linux, y `scripts/hito.sh` comprueba que
