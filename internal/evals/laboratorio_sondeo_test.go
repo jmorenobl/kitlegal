@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -39,13 +40,16 @@ var evalsDelLaboratorioDelTest = []string{
 // digan, que de ordinario es la versión como la escribe Claude Code
 // (respuestaConLaVersion; research V22 y S1 de H39); y con cualquier otra cosa,
 // que es una sesión que abre el guion de la sesión en trabajo/, anota la ruta
-// física del directorio de la sesión y escribe el transcript que el test deja
+// física del directorio de la sesión y, aparte, esa ruta en la primera línea y
+// la salida de env detrás, que es el entorno que le llega a la sesión
+// (contracts/arnes.md §6; research D13), y escribe el transcript que el test deja
 // para ella, si lo hay, en <transcripts>/<variante>/<modo>/<sesión>.jsonl. Las
 // sesiones no ven las variables del test: las rutas van escritas en el guion, y
 // cada anotación es un fichero propio, de modo que dos sesiones a la vez no se
-// pisan. Los tres %s son las anotaciones, entre comillas simples, las órdenes de
-// sh de la respuesta a --version, que terminan con exit, y los transcripts,
-// entre comillas simples.
+// pisan; las variables del guion no son del entorno, porque no se exportan. Los
+// tres %s son las anotaciones, entre comillas simples, las órdenes de sh de la
+// respuesta a --version, que terminan con exit, y los transcripts, entre
+// comillas simples.
 const guionDelClaudeDelLaboratorio = `#!/bin/sh
 if [ "${` + variableDeCalentar + `:-}" = si ]; then exit 0; fi
 set -eu
@@ -56,6 +60,7 @@ if [ "$#" -eq 1 ] && [ "$1" = --version ]; then
 fi
 sesion=$(cd .. && pwd -P)
 printf '%%s\n' "$sesion" > "$(mktemp "$anotaciones/sesion.XXXXXX")"
+{ printf '%%s\n' "$sesion"; env; } > "$(mktemp "$anotaciones/entorno.XXXXXX")"
 relativa=$(printf '%%s\n' "$sesion" | awk -F/ '{ print $(NF-2) "/" $(NF-1) "/" $NF }')
 transcript=%s/"$relativa".jsonl
 if [ -f "$transcript" ]; then cat "$transcript"; fi
@@ -144,6 +149,40 @@ func (c claudeDelLaboratorio) versiones(t *testing.T) int {
 	t.Helper()
 
 	return len(c.anotadas(t, "version"))
+}
+
+// entornos son los entornos que anotó el sustituto en las sesiones que abrió,
+// por la ruta física de la carpeta de cada una: sus variables, valor por nombre.
+// Exige que cada línea del volcado sea nombre=valor, que ningún nombre se repita
+// en una sesión y que ninguna sesión vuelque dos veces, para no comparar con un
+// volcado que no se lee entero.
+func (c claudeDelLaboratorio) entornos(t *testing.T) map[string]map[string]string {
+	t.Helper()
+
+	entornos := map[string]map[string]string{}
+
+	for _, anotada := range c.anotadas(t, "entorno") {
+		contenido, err := leerFichero(anotada)
+		require.NoError(t, err)
+
+		sesion, volcado, esta := strings.Cut(string(contenido), "\n")
+		require.True(t, esta, "la anotación %s lleva la ruta de su sesión en su primera línea", anotada)
+		require.NotContains(t, entornos, sesion, "la sesión %s vuelca su entorno una vez", sesion)
+
+		variables := map[string]string{}
+
+		for linea := range strings.Lines(volcado) {
+			nombre, valor, esta := strings.Cut(strings.TrimSuffix(linea, "\n"), "=")
+			require.True(t, esta, "la línea %q del entorno de %s es nombre=valor", linea, sesion)
+			require.NotContains(t, variables, nombre, "la sesión %s tiene %s una vez", sesion, nombre)
+
+			variables[nombre] = valor
+		}
+
+		entornos[sesion] = variables
+	}
+
+	return entornos
 }
 
 // escribirTranscript deja el transcript que el sustituto escribe en la sesión de
@@ -377,13 +416,15 @@ func todosLosArgumentosMal(t *testing.T, a *ArgumentosDelLaboratorio) {
 // las que quedan sin abrir tras el límite de uso; los transcripts que escribe
 // el sustituto, por sesión <variante>/<modo>/<sesión>; y la skill de la
 // variante <skill>-producto que pide, cuyas referencias de skills/<skill> lista
-// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4).
+// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4); y el
+// ajuste de su sondeo, como el de entorno de quien lanza el arnés, si lo hay.
 type casoValidoDelArnes struct {
 	nombre      string
 	argumentos  func(a *ArgumentosDelLaboratorio)
 	repartos    []repartoEsperado
 	transcripts func(t *testing.T) map[string]string
 	producto    string
+	sondeo      func(t *testing.T, s *SondeoDelLaboratorio)
 }
 
 // repartoEsperado es lo que se espera de un reparto: su variante y su modo, las
@@ -576,6 +617,10 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instal
 	t.Helper()
 
 	arnes := nuevoArnesDelTest(t, caso.argumentos, "")
+
+	if caso.sondeo != nil {
+		caso.sondeo(t, &arnes.sondeo)
+	}
 
 	if caso.transcripts != nil {
 		for sesion, transcript := range caso.transcripts(t) {
@@ -1685,6 +1730,132 @@ func TestArnesConUnaEval(t *testing.T) {
 				deUnaEval.exigirLaSesion)
 		})
 	}
+}
+
+// Lo que pone cada caso de TestArnesConElPresupuesto en el entorno de quien
+// lanza el arnés (contracts/arnes.md §6): la variable del presupuesto del
+// listado de skills de Claude Code, con un valor que ningún caso pide.
+const (
+	variableDelPresupuestoDelTest  = "SLASH_COMMAND_TOOL_CHAR_BUDGET"
+	presupuestoDeQuienLanzaDelTest = "500"
+)
+
+// variablesDeLosInterpretes son las que añaden al entorno de una sesión, al
+// arrancar, bash, el guion de la sesión, y sh, el sustituto de claude: no son
+// del arnés (research V17).
+var variablesDeLosInterpretes = []string{"PWD", "SHLVL", "_"}
+
+// conElPresupuestoDeQuienLanza pone la variable del presupuesto en el entorno
+// de quien lanza el arnés, encima del de nuevoArnesDelTest.
+func conElPresupuestoDeQuienLanza(_ *testing.T, s *SondeoDelLaboratorio) {
+	s.Entorno = sobreLaBase(s.Entorno, []string{variableDelPresupuestoDelTest + "=" + presupuestoDeQuienLanzaDelTest})
+}
+
+// TestArnesConElPresupuesto fija el entorno de las sesiones del sondeo del
+// laboratorio, sin modelo (contracts/arnes.md §4 y §6; research D8 y D13;
+// FR-014, FR-015, FR-018; SC-003, SC-004), con la construcción sustituida, el
+// sustituto de claude de TestArnesDelLaboratorio, que vuelca el entorno de cada
+// sesión, y SLASH_COMMAND_TOOL_CHAR_BUDGET=500 en el entorno de quien lanza el
+// arnés.
+//
+// Sin PRESUPUESTO, con la petición del control, VARIANTES=normativa-producto
+// MODOS=herramienta SESIONES=2 EVAL=04 INSTALACION=producto, ninguna sesión
+// tiene la variable, el entorno de cada una es el que componen las funciones de
+// hoy (exigirElEntornoDeHoy), y las sesiones, lo que ve cada una y sondeo.json,
+// el de control de §5, son los de TestArnesConUnaEval con esa petición
+// (exigirElSondeoDelArnes).
+func TestArnesConElPresupuesto(t *testing.T) {
+	t.Parallel()
+
+	control := invocacionDeUnaEval("el-control-sin-presupuesto", "normativa-producto", skillDeNormativaDelTest,
+		"04-lgt-prescripcion.yaml", 2, "producto")
+	control.caso.sondeo = conElPresupuestoDeQuienLanza
+
+	t.Run(control.caso.nombre, func(t *testing.T) {
+		t.Parallel()
+
+		exigirElSondeoDelArnes(t, control.caso, []string{control.eval}, control.instaladas,
+			func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+				t.Helper()
+
+				control.exigirLaSesion(t, arnes, reparto, sesion)
+				exigirElEntornoDeHoy(t, arnes, reparto, sesion)
+			})
+	})
+}
+
+// exigirElEntornoDeHoy exige que la sesión de ese directorio, del modo
+// herramienta y sin PRESUPUESTO, no tenga la variable del presupuesto, aunque la
+// tenga quien lanza el arnés (contracts/arnes.md §4); que el entorno que vuelca,
+// salvo las variables de los intérpretes, sea, como conjunto, nombre a nombre y
+// valor a valor, el que componen para el modo herramienta las funciones de hoy
+// (disponerElModo) con el entorno de quien lanza, el temporal y la ruta
+// absoluta de la sesión, sin ninguna de más ni de menos; y que sus nombres sean
+// los de §4 (nombresDelEntornoDeHoy), que no salen de entornoDelSondeo, para que
+// una variable de más o de menos dentro de ella también se vea (contracts/arnes.md
+// §6; research D8 y D13; FR-014, FR-015).
+func exigirElEntornoDeHoy(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+	t.Helper()
+
+	require.Equal(t, ModoHerramienta, reparto.modo, "el entorno de hoy se compone aquí para el modo herramienta")
+
+	absoluta, err := filepath.Abs(sesion)
+	require.NoError(t, err)
+
+	fisica, err := filepath.EvalSymlinks(absoluta)
+	require.NoError(t, err)
+
+	volcado, esta := arnes.claude.entornos(t)[fisica]
+	require.True(t, esta, "la sesión %s vuelca su entorno", sesion)
+
+	assert.NotContains(t, volcado, variableDelPresupuestoDelTest, "la sesión %s no tiene %s sin PRESUPUESTO", sesion,
+		variableDelPresupuestoDelTest)
+
+	for _, nombre := range variablesDeLosInterpretes {
+		delete(volcado, nombre)
+	}
+
+	temporal, err := filepath.Abs(arnes.sondeo.Temporal)
+	require.NoError(t, err)
+
+	compuesto := sinElDirectorioEnElPATH(entornoDeLaSesion(entornoDelSondeo(arnes.sondeo.Entorno, temporal), absoluta,
+		false), filepath.Join(temporal, carpetaDeBinarios))
+
+	// Con un nombre repetido, vale el último, como en exec.Cmd.Env.
+	esperado := make(map[string]string, len(compuesto))
+	for _, variable := range compuesto {
+		nombre, valor, _ := strings.Cut(variable, "=")
+		esperado[nombre] = valor
+	}
+
+	assert.Equal(t, esperado, volcado, "el entorno de la sesión %s es el que componen las funciones de hoy", sesion)
+	assert.Equal(t, nombresDelEntornoDeHoy(arnes.sondeo.Entorno, absoluta), slices.Sorted(maps.Keys(volcado)),
+		"las variables de la sesión %s son las de la lista cerrada que tiene quien lanza, PATH, HOME y las de la "+
+			"sesión", sesion)
+}
+
+// nombresDelEntornoDeHoy son, en orden de nombre y sin repetir, los de las
+// variables del entorno de una sesión del sondeo del laboratorio sin
+// PRESUPUESTO, como los da contracts/arnes.md §4: los de la lista cerrada que
+// tiene quien lanza el arnés, PATH, HOME y los de lo de la sesión de ese
+// directorio (entornoDeLaSesion sin base).
+func nombresDelEntornoDeHoy(deQuienLanza []string, sesion string) []string {
+	nombres := []string{variableDelPATH, "HOME"}
+
+	for _, variable := range deQuienLanza {
+		if nombre, _, _ := strings.Cut(variable, "="); slices.Contains(variablesQueVenLasSesionesDelSondeo, nombre) {
+			nombres = append(nombres, nombre)
+		}
+	}
+
+	for _, variable := range entornoDeLaSesion(nil, sesion, false) {
+		nombre, _, _ := strings.Cut(variable, "=")
+		nombres = append(nombres, nombre)
+	}
+
+	slices.Sort(nombres)
+
+	return slices.Compact(nombres)
 }
 
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y
