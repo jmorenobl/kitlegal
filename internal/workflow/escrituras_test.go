@@ -66,6 +66,7 @@ func TestLaSesionDeUnPasoSoloEscribeDondeDebe(t *testing.T) {
 		Sandbox struct {
 			Filesystem struct {
 				DenyWrite []string `json:"denyWrite"`
+				DenyRead  []string `json:"denyRead"`
 			} `json:"filesystem"`
 		} `json:"sandbox"`
 	}
@@ -76,6 +77,10 @@ func TestLaSesionDeUnPasoSoloEscribeDondeDebe(t *testing.T) {
 	assert.True(t, *ajustes.Permissions.BlockWritesOutsideWorkingDirectories, "Write, Edit y NotebookEdit no salen de los directorios de trabajo")
 	assert.Contains(t, ajustes.Permissions.Deny, "Edit(/"+a.config+"/**)", "el directorio de Claude Code, vedado a Write y Edit")
 	assert.Contains(t, ajustes.Sandbox.Filesystem.DenyWrite, a.config+"/projects", "el de sus proyectos, vedado a toda orden de Bash")
+	// Donde no hay llavero, como en Linux, Claude Code guarda el token de la
+	// suscripción en un fichero de su directorio: ni una orden de Bash ni Read lo leen.
+	assert.Contains(t, ajustes.Sandbox.Filesystem.DenyRead, a.config+"/.credentials.json", "la sesión de la suscripción, vedada a toda orden de Bash")
+	assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+a.config+"/.credentials.json)", "y a Read")
 
 	delSandboxReal, err := filepath.EvalSymlinks(delSandbox)
 	require.NoError(t, err, "el wrapper crea el temporal del sandbox si no existe")
@@ -216,4 +221,89 @@ func valoresDe(argumentos []string, bandera string) []string {
 	}
 
 	return valores
+}
+
+// TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza: en
+// delorean (2026-11-16) una sesión del run podía leer ~/.secrets y otras
+// credenciales que el wrapper no conocía, y KITLEGAL_SECRETOS, pasada a mano,
+// se pierde al reanudar. El wrapper lee en cada sesión el fichero de secretos
+// del equipo, fuera del repositorio: una ruta por línea, absoluta o con «~/»,
+// sin las vacías, los comentarios ni las relativas. Y la sesión no hereda las
+// variables con que Claude Code marca las órdenes de la sesión que lanzó el run.
+// Recibe siempre CLAUDE_CODE_TMPDIR, aunque quien la lanza no lo traiga: sin él,
+// Claude Code 2.1.325 daba a las órdenes /tmp/claude-<uid>, el temporal de todas
+// las sesiones del usuario. Y en Linux sus órdenes corren con bash: con zsh, el
+// `exec 3<&- || exit 126` que Claude Code les antepone sale con 126 si la última
+// sustitución de órdenes de ~/.zshenv falla dentro del sandbox.
+func TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza(t *testing.T) {
+	t.Parallel()
+
+	a := nuevoArbol(t)
+	entorno := filepath.Join(a.fuera, "entorno")
+	fichero := filepath.Join(a.fuera, "secretos")
+	temporal := filepath.Join(a.fuera, "temporal-de-claude")
+	require.NoError(t, os.WriteFile(fichero, []byte("# del equipo\n\n/srv/claves\n~/.secretos-del-test\nrelativa\n"), 0o600))
+
+	heredadas := []string{
+		"CLAUDECODE=1", "CLAUDE_CODE_CHILD_SESSION=1", "CLAUDE_CODE_EXECPATH=/x/claude",
+		"CLAUDE_CODE_MESSAGING_SOCKET=/x/socket", "CLAUDE_CODE_MESSAGING_TOKEN=testigo",
+		"CLAUDE_CODE_SESSION_ATTENDED=1", "CLAUDE_CODE_SESSION_ID=interactiva", "CLAUDE_EFFORT=max", "CLAUDE_PID=1",
+	}
+
+	salida, argumentos := a.abrirSesion(sesionDelTest{
+		modelo: modeloDelJuezA + "#juez_spec:modelo_juez",
+		variables: append([]string{
+			"KITLEGAL_TEST_ENTORNO=" + entorno,
+			"KITLEGAL_FICHERO_SECRETOS=" + fichero,
+			"KITLEGAL_SECRETOS=/srv/de-la-variable",
+			// Quien lanza no trae CLAUDE_CODE_TMPDIR; sí la variable antigua.
+			"CLAUDE_CODE_TMPDIR=", "CLAUDE_TMPDIR=" + temporal,
+		}, heredadas...),
+	})
+	require.Zero(t, salida.codigo, "la sesión se abre: %s", salida.errores)
+
+	var ajustes struct {
+		Permissions struct {
+			Deny []string `json:"deny"`
+		} `json:"permissions"`
+		Sandbox struct {
+			Filesystem struct {
+				DenyRead []string `json:"denyRead"`
+			} `json:"filesystem"`
+		} `json:"sandbox"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(valorDe(argumentos, "--settings")), &ajustes))
+
+	casa := os.Getenv("HOME")
+	for _, vedado := range []string{"/srv/de-la-variable", "/srv/claves", casa + "/.secretos-del-test"} {
+		assert.Contains(t, ajustes.Sandbox.Filesystem.DenyRead, vedado, "vedado a toda orden de Bash")
+		assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+vedado+"/**)", "y a Read, si es un directorio")
+		assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+vedado+")", "y si es un fichero")
+	}
+
+	for _, vedado := range ajustes.Sandbox.Filesystem.DenyRead {
+		assert.NotContains(t, vedado, "relativa", "una ruta relativa no se veda: no se sabe de dónde")
+		assert.NotContains(t, vedado, "#", "un comentario no es una ruta")
+	}
+
+	recibido, err := os.ReadFile(entorno) //nolint:gosec // el fichero que el claude sustituto del test escribe en su temporal.
+	require.NoError(t, err)
+
+	recibidas := map[string]string{}
+
+	for variable := range strings.Lines(string(recibido)) {
+		nombre, valor, _ := strings.Cut(strings.TrimSuffix(variable, "\n"), "=")
+		recibidas[nombre] = valor
+		for _, heredada := range heredadas {
+			de, _, _ := strings.Cut(heredada, "=")
+			assert.NotEqual(t, de, nombre, "la sesión del paso no hereda %s de la sesión que lanza el run", de)
+		}
+	}
+
+	assert.Equal(t, temporal, recibidas["CLAUDE_CODE_TMPDIR"], "la sesión recibe el temporal que el wrapper le abre con --add-dir")
+
+	if runtime.GOOS == "linux" {
+		assert.Equal(t, "bash", filepath.Base(recibidas["CLAUDE_CODE_SHELL"]), "en Linux, las órdenes corren con bash")
+	}
 }
