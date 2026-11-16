@@ -17,8 +17,8 @@ import (
 )
 
 // Los argumentos de make evals-laboratorio que no tiene el sondeo de una skill,
-// con el nombre con que los nombran sus errores (contracts/arnes.md §2 de H39 y
-// de H41.2). MODELO y CONCURRENCIA son los del sondeo.
+// con el nombre con que los nombran sus errores (contracts/arnes.md §2 de H39, de
+// H41.2 y de H41.3). MODELO y CONCURRENCIA son los del sondeo.
 const (
 	argumentoVariantes   = "VARIANTES"
 	argumentoModos       = "MODOS"
@@ -27,7 +27,15 @@ const (
 	argumentoDirectorio  = "DIRECTORIO"
 	argumentoInstalacion = "INSTALACION"
 	argumentoEval        = "EVAL"
+	argumentoPresupuesto = "PRESUPUESTO"
 )
+
+// variableDelPresupuesto es la variable de Claude Code con el presupuesto, en
+// caracteres, del listado de skills de cada sesión: la que pone PRESUPUESTO en
+// el entorno de cada sesión, y que sin él ninguna sesión tiene, porque no es de
+// las que ven las sesiones del sondeo (contracts/arnes.md §4 de H41.3; research
+// D8 de H41.3; FR-013, FR-014).
+const variableDelPresupuesto = "SLASH_COMMAND_TOOL_CHAR_BUDGET"
 
 // instalacionDelProducto es el único valor de INSTALACION, el que instala en
 // cada sesión las cuatro skills del producto (contracts/arnes.md §2 y §3.1 de
@@ -75,10 +83,10 @@ const (
 	banderaDeLaVersion   = "--version"
 )
 
-// ArgumentosDelLaboratorio son los nueve argumentos de make evals-laboratorio,
-// tal como llegan, sin interpretar (contracts/arnes.md §1 y §2 de H39 y de
-// H41.2; data-model §3 de H41.2): los siete de H39 e INSTALACION y EVAL,
-// detrás.
+// ArgumentosDelLaboratorio son los diez argumentos de make evals-laboratorio,
+// tal como llegan, sin interpretar (contracts/arnes.md §1 y §2 de H39, de H41.2
+// y de H41.3; data-model §3 de H41.2 y §2 de H41.3): los siete de H39 e
+// INSTALACION, EVAL y PRESUPUESTO, detrás.
 type ArgumentosDelLaboratorio struct {
 	Variantes    string
 	Modos        string
@@ -89,6 +97,7 @@ type ArgumentosDelLaboratorio struct {
 	Directorio   string
 	Instalacion  string
 	Eval         string
+	Presupuesto  string
 }
 
 // SondeoDelLaboratorio es lo que sondearElLaboratorio necesita para abrir las
@@ -157,6 +166,10 @@ type laboratorioComprobado struct {
 	// (FR-013 de H41.2; data-model §3 de H41.2).
 	eval string
 
+	// presupuesto es PRESUPUESTO, comprobado, o 0 sin él (data-model §2 de
+	// H41.3).
+	presupuesto int
+
 	modelo       string
 	claudeCode   string
 	concurrencia int
@@ -181,6 +194,20 @@ func (c laboratorioComprobado) instalacionDelSondeo() string {
 	}
 
 	return c.instalacion
+}
+
+// entornoDeLasSesiones es el entorno base de las sesiones del sondeo, el que
+// recibe cada reparto: el del sondeo de una skill (entornoDelSondeo) y, con
+// PRESUPUESTO, detrás, la variable del presupuesto con el valor pedido; lo de
+// cada sesión va encima, sin cambios (entornoDeLaSesion; contracts/arnes.md §4
+// de H41.3; data-model §4 de H41.3; research D8 de H41.3; FR-013, FR-014).
+func (c laboratorioComprobado) entornoDeLasSesiones(base []string, temporal string) []string {
+	entorno := entornoDelSondeo(base, temporal)
+	if c.presupuesto == 0 {
+		return entorno
+	}
+
+	return append(entorno, variableDelPresupuesto+"="+strconv.Itoa(c.presupuesto))
 }
 
 // resumenDelPar es lo que la salida dice de un par: cuántas sesiones abrió y
@@ -209,14 +236,17 @@ type resumenDelPar struct {
 //     árbol (FR-010 de H41.2);
 //  3. crea DIRECTORIO y su sondeo.json, con el modelo, la versión, si se
 //     pidió la variante del producto, las referencias de su copia y, en una
-//     familia del producto, las skills instaladas (skillsInstaladasDelSondeo);
+//     familia del producto, las skills instaladas (skillsInstaladasDelSondeo),
+//     y, si se pidieron, la instalación con las descripciones cortas y el
+//     presupuesto;
 //  4. por cada par, en su orden, abre con el repartidor, en
 //     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
 //     sondeo de la familia o, con EVAL, SESIONES de la pedida, en su orden y
 //     de nombre <eval>-<nn>, con el modelo
 //     pedido y el modo del par: preparadas con el directorio de evals de la
 //     familia, sin traza, con la copia de las skills de la variante, el entorno
-//     del sondeo de una skill (entornoDelSondeo) y el tope de 240 s con su
+//     del sondeo de una skill con, si se pidió, el presupuesto
+//     (entornoDeLasSesiones) y el tope de 240 s con su
 //     margen de 10 s; en el modo herramienta, con el servidor de la variante
 //     (servidorDelPar). Tras un reparto que vuelve con sesiones sin abrir por el
 //     límite de uso, no abre ninguna más;
@@ -277,7 +307,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 	}
 
 	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode,
-		referencias, instaladas, comprobado.instalacionDelSondeo()); err != nil {
+		referencias, instaladas, comprobado.instalacionDelSondeo(), comprobado.presupuesto); err != nil {
 		return "", err
 	}
 
@@ -302,7 +332,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 			Guion:         s.Guion,
 			Binario:       filepath.Join(temporal, carpetaDeBinarios, programaDeLasConsultas),
 			Servidor:      servidores[posicion],
-			Entorno:       entornoDelSondeo(s.Entorno, temporal),
+			Entorno:       comprobado.entornoDeLasSesiones(s.Entorno, temporal),
 			Traza:         false,
 			Tope:          topeDeUnaSesion,
 			MargenDelTope: margenDelTopeDeUnaSesion,
@@ -383,9 +413,11 @@ const variantesDeLaFamiliaDeH39 = "variantes del laboratorio de H39"
 // producto-descripciones-cortas, las dos solo con variantes de una familia del
 // producto y la segunda, solo con normativa-producto (errorDeLaInstalacion) y
 // con la variante de la raíz sin defectos (descripcionesDeLaInstalacion;
-// contracts/arnes.md §2 de H41.3; research D6 de H41.3); y EVAL, vacío o el
+// contracts/arnes.md §2 de H41.3; research D6 de H41.3); EVAL, vacío o el
 // número de una eval del plan de la familia, que tiene que ser del producto
-// (evalDelArgumento; contracts/arnes.md §2 de H41.2). Los errores de todos van
+// (evalDelArgumento; contracts/arnes.md §2 de H41.2); y PRESUPUESTO, vacío o un
+// entero mayor que 0 que cabe en un int, solo con variantes de una familia del
+// producto (presupuestoDelArgumento; research D7 de H41.3). Los errores de todos van
 // juntos, uno por línea y en ese orden, para que quien lanza la orden los corrija
 // de una vez, envueltos en errorDeUso. Una variante que no se puede leer, que
 // solo se lee con producto-descripciones-cortas, es el error, sin envolver: no es
@@ -430,21 +462,60 @@ func (a ArgumentosDelLaboratorio) comprobar(raiz string, declarada declaracionDe
 	}
 
 	eval, errDeLaEval := evalDelArgumento(a.Eval, familia)
+	presupuesto, errDelPresupuesto := presupuestoDelArgumento(a.Presupuesto, familia)
 
 	err = errors.Join(slices.Concat(errDeLasVariantes, []error{errDeLaMezcla}, errDeLosModos, errDeLosPares,
 		[]error{
 			errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
 			comprobarElDirectorioDelSondeo(a.Directorio), errorDeLaInstalacion(a.Instalacion, familia, variantes),
-		}, errDeLaVariante, []error{errDeLaEval})...)
+		}, errDeLaVariante, []error{errDeLaEval, errDelPresupuesto})...)
 	if err != nil {
 		return laboratorioComprobado{}, &errorDeUso{causa: err}
 	}
 
 	return laboratorioComprobado{
 		declarada: declarada, familia: familia, pares: pares, porEval: porEval, instalacion: a.Instalacion,
-		descripciones: descripciones, eval: eval, modelo: a.Modelo, claudeCode: a.ClaudeCode,
-		concurrencia: concurrencia, directorio: a.Directorio,
+		descripciones: descripciones, eval: eval, presupuesto: presupuesto, modelo: a.Modelo,
+		claudeCode: a.ClaudeCode, concurrencia: concurrencia, directorio: a.Directorio,
 	}, nil
+}
+
+// presupuestoDelArgumento es el presupuesto de PRESUPUESTO con la familia de las
+// variantes pedidas que valen, y su error, una sola línea (contracts/arnes.md §2
+// de H41.3; research D7 de H41.3; FR-013, FR-016): 0 y ninguno vacío, que es sin
+// presupuesto; el de la forma, si no es un entero mayor que 0 escrito solo con
+// cifras, sin signo ni ceros delante, o no cabe en un int, como SESIONES con
+// EVAL; y, si la tiene, el de la familia de H39, la única que no es del producto
+// (esLaDeH39). Sin familia, no da el de la familia: ya lo dan el de VARIANTES o el
+// de la mezcla.
+func presupuestoDelArgumento(valor string, familia familiaDelLaboratorio) (int, error) {
+	if valor == "" {
+		return 0, nil
+	}
+
+	presupuesto, err := strconv.Atoi(valor)
+
+	switch {
+	case err != nil || !formaDeUnEnteroPositivo.MatchString(valor):
+		return 0, fmt.Errorf("%s: «%s» no es un entero mayor que 0", argumentoPresupuesto, valor)
+	case familia.esLaDeH39():
+		return 0, errorDeLaFamiliaDeH39(argumentoPresupuesto)
+	default:
+		return presupuesto, nil
+	}
+}
+
+// esLaDeH39 dice si es la familia de las variantes de la declaración de H39, la
+// única con variantes que no es del producto; la vacía, sin variantes, no lo es.
+func (f familiaDelLaboratorio) esLaDeH39() bool {
+	return len(f.variantes) > 0 && f.producto == ""
+}
+
+// errorDeLaFamiliaDeH39 es el error de una opción del producto, INSTALACION o
+// PRESUPUESTO, con las variantes de la familia de H39 (contracts/arnes.md §2 de
+// H41.2 y de H41.3).
+func errorDeLaFamiliaDeH39(argumento string) error {
+	return fmt.Errorf("%s: las %s no son de ninguna familia del producto", argumento, variantesDeLaFamiliaDeH39)
 }
 
 // evalDelArgumento es el fichero de la eval de EVAL en el plan de la familia de
@@ -496,9 +567,8 @@ func errorDeLaInstalacion(instalacion string, familia familiaDelLaboratorio, var
 		return nil
 	case instalacion != instalacionDelProducto && instalacion != instalacionConLasDescripcionesCortas:
 		return fmt.Errorf("%s: «%s» no es %s", argumentoInstalacion, instalacion, instalacionDelProducto)
-	case len(familia.variantes) > 0 && familia.producto == "":
-		return fmt.Errorf("%s: las %s no son de ninguna familia del producto", argumentoInstalacion,
-			variantesDeLaFamiliaDeH39)
+	case familia.esLaDeH39():
+		return errorDeLaFamiliaDeH39(argumentoInstalacion)
 	case instalacion == instalacionConLasDescripcionesCortas && slices.ContainsFunc(variantes,
 		func(variante string) bool { return variante != varianteDelProductoDeNormativa }):
 		return fmt.Errorf("%s: %s solo vale con %s=%s", argumentoInstalacion, instalacionConLasDescripcionesCortas,
@@ -1105,13 +1175,13 @@ func ordenDeConstruirElLaboratorio(raiz string) *exec.Cmd {
 // producto y, si las hay, las skills instaladas de un sondeo de una familia del
 // producto (contracts/arnes.md §3.2 de H39, §3.4 de H41 y §3.3 de H41.2;
 // data-model §6 de H39, §4 de H41 y §3 de H41.2; FR-032 de H41; FR-012 de
-// H41.2), y, si no está vacía, la instalación (instalacionDelSondeo;
-// contracts/arnes.md §5 de H41.3; data-model §5 de H41.3): sin ninguna, el de H39
-// byte a byte. Solo los nombres: ni la copia ni su huella se guardan en
-// DIRECTORIO. DIRECTORIO se crea él solo, así que uno que ya existe es un error:
-// ningún sondeo escribe donde escribe otro.
+// H41.2), y, si no está vacía, la instalación (instalacionDelSondeo) y, si no es
+// 0, el presupuesto (contracts/arnes.md §5 de H41.3; data-model §5 de H41.3): sin
+// ninguno, el de H39 byte a byte. Solo los nombres: ni la copia ni su huella se
+// guardan en DIRECTORIO. DIRECTORIO se crea él solo, así que uno que ya existe es
+// un error: ningún sondeo escribe donde escribe otro.
 func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias, instaladas []string,
-	instalacion string,
+	instalacion string, presupuesto int,
 ) error {
 	limpio := filepath.Clean(directorio)
 
@@ -1127,11 +1197,11 @@ func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias
 	// sus claves van en el orden de contracts/arnes.md §3.2 de H39, con
 	// referencias_del_producto detrás, solo si hay referencias (data-model §4),
 	// skills_instaladas detrás, solo si hay skills instaladas (data-model §3 de
-	// H41.2), e instalacion detrás de todo, solo si la hay (data-model §5 de
-	// H41.3).
+	// H41.2), instalacion detrás, solo si la hay, y presupuesto detrás de todo,
+	// solo si lo hay (data-model §5 de H41.3).
 	contenido, err := json.Marshal(sondeoLeido{
 		Modelo: modelo, ClaudeCode: version, ReferenciasDelProducto: referencias, SkillsInstaladas: instaladas,
-		Instalacion: instalacion,
+		Instalacion: instalacion, Presupuesto: presupuesto,
 	})
 	if err != nil {
 		return fmt.Errorf("%s no se puede codificar: %w", ficheroDelSondeo, err)

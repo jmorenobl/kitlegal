@@ -13,7 +13,9 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -421,8 +423,8 @@ func todosLosArgumentosMal(t *testing.T, a *ArgumentosDelLaboratorio) {
 // variante <skill>-producto que pide, cuyas referencias de skills/<skill> lista
 // su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4); el
 // ajuste de su sondeo, como el de entorno de quien lanza el arnés, si lo hay; y
-// la instalación que anota su sondeo.json, vacía si no anota ninguna
-// (contracts/arnes.md §5).
+// la instalación y el presupuesto que anota su sondeo.json, vacía y 0 si no
+// anota ninguno (contracts/arnes.md §5).
 type casoValidoDelArnes struct {
 	nombre      string
 	argumentos  func(a *ArgumentosDelLaboratorio)
@@ -431,6 +433,7 @@ type casoValidoDelArnes struct {
 	producto    string
 	sondeo      func(t *testing.T, s *SondeoDelLaboratorio)
 	instalacion string
+	presupuesto int
 }
 
 // repartoEsperado es lo que se espera de un reparto: su variante y su modo, las
@@ -664,14 +667,14 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instal
 
 	contenido, err := leerFichero(filepath.Join(directorio, ficheroDelSondeo))
 	require.NoError(t, err)
-	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas, caso.instalacion), string(contenido),
-		"sondeo.json, byte a byte")
+	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas, caso.instalacion, caso.presupuesto),
+		string(contenido), "sondeo.json, byte a byte")
 
 	leido, err := leerElSondeo(directorio)
 	require.NoError(t, err, "el guion que cuenta el sondeo lee su sondeo.json")
 	assert.Equal(t, sondeoLeido{
 		Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio, ReferenciasDelProducto: referencias,
-		SkillsInstaladas: instaladas, Instalacion: caso.instalacion,
+		SkillsInstaladas: instaladas, Instalacion: caso.instalacion, Presupuesto: caso.presupuesto,
 	}, leido)
 
 	fisico, err := filepath.EvalSymlinks(directorio)
@@ -731,9 +734,11 @@ func referenciasDelProductoDelTest(t *testing.T, skill string) []string {
 // línea final: el de H39 y H40 sin referencias del producto ni skills
 // instaladas; con referencias, el mismo con referencias_del_producto detrás
 // (data-model §4); con skills instaladas, con skills_instaladas detrás (data-model
-// §3 de H41.2); y con una instalación, con instalacion detrás de todo (data-model
-// §5; contracts/arnes.md §5).
-func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string, instalacion string) string {
+// §3 de H41.2); con una instalación, con instalacion detrás; y con un
+// presupuesto, con presupuesto, un número, detrás de todo (data-model §5;
+// contracts/arnes.md §5).
+func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string, instalacion string, presupuesto int,
+) string {
 	t.Helper()
 
 	escrito := strings.TrimSuffix(sondeoSinElProductoDelTest, "}")
@@ -760,6 +765,10 @@ func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string, instal
 		require.NoError(t, err)
 
 		escrito += `,"instalacion":` + string(valor)
+	}
+
+	if presupuesto > 0 {
+		escrito += `,"presupuesto":` + strconv.Itoa(presupuesto)
 	}
 
 	return escrito + "}\n"
@@ -1766,11 +1775,25 @@ func TestArnesConUnaEval(t *testing.T) {
 
 // Lo que pone cada caso de TestArnesConElPresupuesto en el entorno de quien
 // lanza el arnés (contracts/arnes.md §6): la variable del presupuesto del
-// listado de skills de Claude Code, con un valor que ningún caso pide.
+// listado de skills de Claude Code, con un valor que ningún caso pide; y el
+// PRESUPUESTO que piden los casos que piden uno que vale.
 const (
 	variableDelPresupuestoDelTest  = "SLASH_COMMAND_TOOL_CHAR_BUDGET"
 	presupuestoDeQuienLanzaDelTest = "500"
+	presupuestoPedidoDelTest       = 1000000
 )
+
+// errorDelPresupuestoConLaDeH39 es la línea de PRESUPUESTO con un valor que vale
+// y las variantes de la familia de H39 (contracts/arnes.md §2; research D7).
+const errorDelPresupuestoConLaDeH39 = "PRESUPUESTO: las variantes del laboratorio de H39 no son de ninguna familia " +
+	"del producto"
+
+// errorDeLaFormaDelPresupuestoDelTest es la línea de PRESUPUESTO con un valor
+// que no es un entero mayor que 0 escrito solo con cifras y sin ceros delante, o
+// que no cabe en un int (contracts/arnes.md §2; research D7).
+func errorDeLaFormaDelPresupuestoDelTest(valor string) string {
+	return "PRESUPUESTO: «" + valor + "» no es un entero mayor que 0"
+}
 
 // variablesDeLosInterpretes son las que añaden al entorno de una sesión, al
 // arrancar, bash, el guion de la sesión, y sh, el sustituto de claude: no son
@@ -1783,12 +1806,116 @@ func conElPresupuestoDeQuienLanza(_ *testing.T, s *SondeoDelLaboratorio) {
 	s.Entorno = sobreLaBase(s.Entorno, []string{variableDelPresupuestoDelTest + "=" + presupuestoDeQuienLanzaDelTest})
 }
 
-// TestArnesConElPresupuesto fija el entorno de las sesiones del sondeo del
-// laboratorio, sin modelo (contracts/arnes.md §4 y §6; research D8 y D13;
-// FR-014, FR-015, FR-018; SC-003, SC-004), con la construcción sustituida, el
-// sustituto de claude de TestArnesDelLaboratorio, que vuelca el entorno de cada
-// sesión, y SLASH_COMMAND_TOOL_CHAR_BUDGET=500 en el entorno de quien lanza el
-// arnés.
+// casosDeUsoDelPresupuesto son los casos de TestArnesConElPresupuesto que son un
+// error de uso (contracts/arnes.md §2 y §6; research D7; FR-013, FR-016), todos
+// con la variable del presupuesto en el entorno de quien lanza el arnés: un
+// PRESUPUESTO que no es un entero mayor que 0 escrito solo con cifras, sin signo
+// ni ceros delante, o que no cabe en un int, con la familia de H39 de
+// argumentosValidos, para que se vea que da solo la línea de la forma; uno que
+// vale con la de H39; uno que no vale detrás de un EVAL que no vale, para que se
+// vea que su línea va la última; y los dos ejemplos de §2, con sus dos líneas en
+// su orden. Cada uno, con su mensaje y nada hecho.
+func casosDeUsoDelPresupuesto() []casoDeUsoDelArnes {
+	pedido := strconv.Itoa(presupuestoPedidoDelTest)
+
+	var casos []casoDeUsoDelArnes
+
+	for _, valor := range []string{"0", "0100", "+1000000", "99999999999999999999"} {
+		casos = append(casos, casoDeUsoDelArnes{
+			nombre:     "con-presupuesto-" + valor,
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Presupuesto = valor },
+			error:      mensajeFijo(errorDeLaFormaDelPresupuestoDelTest(valor)),
+		})
+	}
+
+	casos = append(casos,
+		casoDeUsoDelArnes{
+			nombre:     "con-presupuesto-y-la-de-h39",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Presupuesto = pedido },
+			error:      mensajeFijo(errorDelPresupuestoConLaDeH39),
+		},
+		casoDeUsoDelArnes{
+			nombre: "con-eval-y-presupuesto-que-no-valen",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval, a.Presupuesto = "normativa-producto", "herramienta", "07", "0"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"EVAL: «07» no es el número de ninguna eval del plan de normativa",
+				errorDeLaFormaDelPresupuestoDelTest("0"),
+			}, "\n")),
+		},
+		casoDeUsoDelArnes{
+			// El primer ejemplo de contracts/arnes.md §2: SESIONES=4 y MODELO, los de
+			// argumentosValidos.
+			nombre: "el-primer-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.ClaudeCode, a.Concurrencia = "normativa-control", "herramienta", "2.1.284", "1"
+				a.Instalacion, a.Presupuesto = instalacionConLasDescripcionesCortasDelTest, "0100"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				soloValeConNormativaProductoDelTest,
+				errorDeLaFormaDelPresupuestoDelTest("0100"),
+			}, "\n")),
+		},
+		casoDeUsoDelArnes{
+			// El segundo, con la de H39: VARIANTES=control, MODOS=orden, SESIONES=4 y
+			// MODELO, los de argumentosValidos.
+			nombre: "el-segundo-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.ClaudeCode, a.Concurrencia = "2.1.284", "1"
+				a.Instalacion, a.Presupuesto = instalacionConLasDescripcionesCortasDelTest, pedido
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia del producto",
+				errorDelPresupuestoConLaDeH39,
+			}, "\n")),
+		},
+	)
+
+	for posicion := range casos {
+		casos[posicion].sondeo = conElPresupuestoDeQuienLanza
+	}
+
+	return casos
+}
+
+// conElPresupuestoPedido es el caso de esa invocación con PRESUPUESTO=1000000 y
+// la variable del presupuesto a 500 en el entorno de quien lanza el arnés: su
+// sondeo.json anota el presupuesto detrás de lo de §5, y cada una de sus sesiones
+// ve, además de lo que ve en la invocación, la variable con el valor pedido
+// (exigirElPresupuestoPedido; contracts/arnes.md §4, §5 y §6; FR-012, FR-013,
+// FR-014).
+func conElPresupuestoPedido(deUnaEval casoDeUnaEval) casoDeUnaEval {
+	argumentos, exigirLaSesion := deUnaEval.caso.argumentos, deUnaEval.exigirLaSesion
+
+	deUnaEval.caso.argumentos = func(a *ArgumentosDelLaboratorio) {
+		argumentos(a)
+		a.Presupuesto = strconv.Itoa(presupuestoPedidoDelTest)
+	}
+	deUnaEval.caso.sondeo = conElPresupuestoDeQuienLanza
+	deUnaEval.caso.presupuesto = presupuestoPedidoDelTest
+	deUnaEval.exigirLaSesion = func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+		t.Helper()
+
+		exigirLaSesion(t, arnes, reparto, sesion)
+		exigirElPresupuestoPedido(t, arnes, sesion)
+	}
+
+	return deUnaEval
+}
+
+// TestArnesConElPresupuesto fija PRESUPUESTO y el entorno de las sesiones del
+// sondeo del laboratorio, sin modelo (contracts/arnes.md §2, §4, §5 y §6;
+// data-model §2, §4 y §5; research D7, D8, D9 y D13; FR-012, FR-013, FR-014,
+// FR-015, FR-016, FR-018; SC-003, SC-004, SC-005), con la construcción
+// sustituida, el sustituto de claude de TestArnesDelLaboratorio, que vuelca el
+// entorno de cada sesión, y SLASH_COMMAND_TOOL_CHAR_BUDGET=500 en el entorno de
+// quien lanza el arnés.
+//
+// Con un PRESUPUESTO que no es un entero mayor que 0 o con la de H39, devuelve
+// un error de uso con los mensajes de §2, no construye nada, no abre ninguna
+// sesión, no escribe nada en el temporal y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes).
 //
 // Sin PRESUPUESTO, con la petición del control, VARIANTES=normativa-producto
 // MODOS=herramienta SESIONES=2 EVAL=04 INSTALACION=producto, ninguna sesión
@@ -1796,8 +1923,27 @@ func conElPresupuestoDeQuienLanza(_ *testing.T, s *SondeoDelLaboratorio) {
 // hoy (exigirElEntornoDeHoy), y las sesiones, lo que ve cada una y sondeo.json,
 // el de control de §5, son los de TestArnesConUnaEval con esa petición
 // (exigirElSondeoDelArnes).
+//
+// Con PRESUPUESTO=1000000 —la petición del diagnóstico, la del control con él;
+// la del remedio con él; y jurisprudencia-control sin INSTALACION—, las
+// sesiones, lo que ve cada una y sondeo.json son los de esa petición sin él, con
+// presupuesto detrás en sondeo.json, y cada sesión tiene la variable con el
+// valor pedido, en una sola línea (conElPresupuestoPedido). Y los nombres de las
+// variables de cada sesión del control son los de la misma sesión del
+// diagnóstico menos la del presupuesto
+// (exigirLosNombresDelControlYDelDiagnostico), cuando terminan los dos.
 func TestArnesConElPresupuesto(t *testing.T) {
 	t.Parallel()
+
+	for _, caso := range casosDeUsoDelPresupuesto() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	var delControl, delDiagnostico nombresDelEntorno
 
 	control := invocacionDeUnaEval("el-control-sin-presupuesto", "normativa-producto", skillDeNormativaDelTest,
 		"04-lgt-prescripcion.yaml", 2, "producto")
@@ -1807,13 +1953,137 @@ func TestArnesConElPresupuesto(t *testing.T) {
 		t.Parallel()
 
 		exigirElSondeoDelArnes(t, control.caso, []string{control.eval}, control.instaladas,
-			func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+			delControl.anotando(func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
 				t.Helper()
 
 				control.exigirLaSesion(t, arnes, reparto, sesion)
 				exigirElEntornoDeHoy(t, arnes, reparto, sesion)
-			})
+			}))
 	})
+
+	diagnostico := conElPresupuestoPedido(invocacionDeUnaEval("el-diagnostico", "normativa-producto",
+		skillDeNormativaDelTest, "04-lgt-prescripcion.yaml", 2, "producto"))
+	diagnostico.exigirLaSesion = delDiagnostico.anotando(diagnostico.exigirLaSesion)
+
+	for _, conPresupuesto := range []casoDeUnaEval{
+		diagnostico,
+		conElPresupuestoPedido(invocacionDeUnaEval("el-remedio-con-presupuesto", "normativa-producto",
+			skillDeNormativaDelTest, "04-lgt-prescripcion.yaml", 2, instalacionConLasDescripcionesCortasDelTest)),
+		conElPresupuestoPedido(invocacionDeUnaEval("jurisprudencia-control-sin-instalacion", "jurisprudencia-control",
+			skillDeJurisprudenciaDelTest, "03-por-materia.yaml", 2, "")),
+	} {
+		t.Run(conPresupuesto.caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElSondeoDelArnes(t, conPresupuesto.caso, []string{conPresupuesto.eval}, conPresupuesto.instaladas,
+				conPresupuesto.exigirLaSesion)
+		})
+	}
+
+	// Las limpiezas de un test corren cuando terminan él y todos sus subtests,
+	// también los que corren en paralelo: el control y el diagnóstico ya han
+	// anotado.
+	t.Cleanup(func() {
+		exigirLosNombresDelControlYDelDiagnostico(t, delControl.anotados(), delDiagnostico.anotados())
+	})
+}
+
+// nombresDelEntorno son los nombres de las variables del entorno que vuelca cada
+// sesión de un sondeo del test, en orden de nombre, por la ruta de la sesión
+// relativa a DIRECTORIO, con barras; los anotan las sesiones de un caso que corre
+// en paralelo con el que los compara.
+type nombresDelEntorno struct {
+	mutex     sync.Mutex
+	porSesion map[string][]string
+}
+
+// anotando es esa exigencia de cada sesión, que además anota los nombres de las
+// variables de su entorno si se cumple.
+func (n *nombresDelEntorno) anotando(exigirLaSesion exigirLaSesionDelReparto) exigirLaSesionDelReparto {
+	return func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+		t.Helper()
+
+		exigirLaSesion(t, arnes, reparto, sesion)
+
+		nombres := slices.Sorted(maps.Keys(volcadoDeLaSesion(t, arnes, sesion)))
+
+		relativa, err := filepath.Rel(arnes.sondeo.Argumentos.Directorio, sesion)
+		require.NoError(t, err)
+
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
+
+		if n.porSesion == nil {
+			n.porSesion = map[string][]string{}
+		}
+
+		n.porSesion[filepath.ToSlash(relativa)] = nombres
+	}
+}
+
+// anotados son los nombres anotados hasta ahora, por sesión.
+func (n *nombresDelEntorno) anotados() map[string][]string {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
+	return maps.Clone(n.porSesion)
+}
+
+// exigirLosNombresDelControlYDelDiagnostico exige que los nombres de las
+// variables de cada sesión del control sean los de la misma sesión del
+// diagnóstico menos la del presupuesto: PRESUPUESTO añade esa y nada más
+// (contracts/arnes.md §4 y §6; FR-013). Sin los de alguno de los dos, porque
+// -run no lo corrió o porque ya falló antes de anotarlos, no compara nada: ese
+// caso ya está en rojo o no se pidió.
+func exigirLosNombresDelControlYDelDiagnostico(t *testing.T, delControl, delDiagnostico map[string][]string) {
+	t.Helper()
+
+	if len(delControl) == 0 || len(delDiagnostico) == 0 {
+		return
+	}
+
+	esperados := make(map[string][]string, len(delDiagnostico))
+
+	for sesion, nombres := range delDiagnostico {
+		esperados[sesion] = slices.DeleteFunc(slices.Clone(nombres), func(nombre string) bool {
+			return nombre == variableDelPresupuestoDelTest
+		})
+	}
+
+	assert.Equal(t, esperados, delControl, "las variables de cada sesión del control son las de la misma sesión del "+
+		"diagnóstico menos %s", variableDelPresupuestoDelTest)
+}
+
+// volcadoDeLaSesion es el entorno que vuelca la sesión de ese directorio, por
+// nombre, con la ruta física de su directorio, la que anota el sustituto de
+// claude.
+func volcadoDeLaSesion(t *testing.T, arnes arnesDelTest, sesion string) map[string]string {
+	t.Helper()
+
+	absoluta, err := filepath.Abs(sesion)
+	require.NoError(t, err)
+
+	fisica, err := filepath.EvalSymlinks(absoluta)
+	require.NoError(t, err)
+
+	volcado, esta := arnes.claude.entornos(t)[fisica]
+	require.True(t, esta, "la sesión %s vuelca su entorno", sesion)
+
+	return volcado
+}
+
+// exigirElPresupuestoPedido exige que la sesión de ese directorio, de un sondeo
+// con PRESUPUESTO=1000000, tenga la variable del presupuesto con el valor
+// pedido y no con el de quien lanza el arnés, en una sola línea de las que
+// vuelca, porque entornos no deja pasar un nombre repetido (contracts/arnes.md
+// §4; FR-013, FR-014).
+func exigirElPresupuestoPedido(t *testing.T, arnes arnesDelTest, sesion string) {
+	t.Helper()
+
+	valor, esta := volcadoDeLaSesion(t, arnes, sesion)[variableDelPresupuestoDelTest]
+	require.True(t, esta, "la sesión %s tiene %s con PRESUPUESTO", sesion, variableDelPresupuestoDelTest)
+	assert.Equal(t, strconv.Itoa(presupuestoPedidoDelTest), valor, "la sesión %s tiene %s con el valor pedido", sesion,
+		variableDelPresupuestoDelTest)
 }
 
 // exigirElEntornoDeHoy exige que la sesión de ese directorio, del modo
@@ -1831,14 +2101,7 @@ func exigirElEntornoDeHoy(t *testing.T, arnes arnesDelTest, reparto repartoEsper
 
 	require.Equal(t, ModoHerramienta, reparto.modo, "el entorno de hoy se compone aquí para el modo herramienta")
 
-	absoluta, err := filepath.Abs(sesion)
-	require.NoError(t, err)
-
-	fisica, err := filepath.EvalSymlinks(absoluta)
-	require.NoError(t, err)
-
-	volcado, esta := arnes.claude.entornos(t)[fisica]
-	require.True(t, esta, "la sesión %s vuelca su entorno", sesion)
+	volcado := volcadoDeLaSesion(t, arnes, sesion)
 
 	assert.NotContains(t, volcado, variableDelPresupuestoDelTest, "la sesión %s no tiene %s sin PRESUPUESTO", sesion,
 		variableDelPresupuestoDelTest)
@@ -1846,6 +2109,9 @@ func exigirElEntornoDeHoy(t *testing.T, arnes arnesDelTest, reparto repartoEsper
 	for _, nombre := range variablesDeLosInterpretes {
 		delete(volcado, nombre)
 	}
+
+	absoluta, err := filepath.Abs(sesion)
+	require.NoError(t, err)
 
 	temporal, err := filepath.Abs(arnes.sondeo.Temporal)
 	require.NoError(t, err)
