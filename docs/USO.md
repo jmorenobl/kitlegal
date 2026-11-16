@@ -10,6 +10,21 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-11-16 · El job de evals mide con Claude Code 2.1.284 y el uso real va por 2.1.326
+
+- **Qué se vio.** Para lanzar el sondeo de H41.3 (640 sesiones, #270), la entrada fija Claude Code 2.1.284, la
+  versión del job (ADR 0031), que es de finales de septiembre. El uso real ya va por 2.1.326. El listado de skills
+  cambia de una versión a otra (20 skills con 2.1.284 y 21 con 2.1.322 en las sesiones de H41.2; ADR 0054), así que
+  un sondeo con la versión antigua explica el job, pero no lo que pasa a quien usa el kit hoy.
+- **Qué se comprobó.** Con 2.1.326, `claude -p --model sonnet --output-format json 'Responde solo: ok'` da
+  `claude-sonnet-5-5` en `modelUsage`: el alias sigue resolviendo a `MODELO_DE_EVALS`, así que el par del ADR 0031
+  se mantiene y solo cambia la versión. El binario de 2.1.326 sigue leyendo `SLASH_COMMAND_TOOL_CHAR_BUDGET`, la
+  variable de la fila de diagnóstico.
+- **Qué se hizo.** Decisión de Jorge: el job sube a 2.1.326 (`VERSION_DE_CLAUDE_CODE` en `evals.yml` y `ci.yml`), y
+  el sondeo de H41.3 se lanza con esa versión, para que el sondeo y el job midan la misma. La medición del job de
+  esa propuesta, con las cuatro skills, dice si la caída de `normativa` del ADR 0054 sigue con la versión nueva. La
+  versión de los votos del juez (2.1.289) no cambia (ADR 0037).
+
 ### 2026-11-15 · El plugin en Claude Code en Linux no arranca su servidor
 
 - **Qué se pidió.** Usar kitlegal con Claude Code en un servidor Linux nuevo, con el plugin que la cuenta ya tenía

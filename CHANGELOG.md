@@ -14,6 +14,8 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El job de evals mide con Claude Code 2.1.326** en lugar de 2.1.284 (ADR 0031): la versión del uso real, en la
+  que el alias `sonnet` sigue resolviendo a `claude-sonnet-5-5`. La versión de los votos del juez no cambia.
 - **Las sesiones del workflow `hito` no leen la sesión de la suscripción en Linux, y `scripts/hito.sh` comprueba que
   su sandbox arranca** (workflow `hito` 2.12.2; ADR 0032). En Linux Claude Code guarda el token OAuth de la
   suscripción en `.credentials.json`, dentro de su directorio, y no en un llavero como en macOS: el wrapper lo veda a

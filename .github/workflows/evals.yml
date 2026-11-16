@@ -309,9 +309,10 @@ jobs:
       # de H7.3).
       CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
       OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}
-      # La versión de Claude Code de las sesiones: la primera en la que el alias sonnet resuelve a MODELO_DE_EVALS, que
-      # la anterior del job, 2.1.270, no reconoce (ADR 0031); su comportamiento es el de research.md de H5, V1-V13.
-      VERSION_DE_CLAUDE_CODE: 2.1.284
+      # La versión de Claude Code de las sesiones, en la que el alias sonnet resuelve a MODELO_DE_EVALS (ADR 0031). Sigue
+      # a la del uso real: la anterior, 2.1.284, era la primera que resolvía a ese id; esta es la del día en que se subió
+      # (2026-11-16), para que los sondeos del laboratorio y el job midan la misma versión.
+      VERSION_DE_CLAUDE_CODE: 2.1.326
       # La versión de Claude Code de los votos del juez: la de la medida versionada del juez, que va aparte de la de las
       # sesiones. Subir una no obliga a repetir la medida de la otra: la de las sesiones cambia sin volver a medir al
       # juez, y con otra aquí make ci falla hasta que una persona versiona la medida de esa (ADR 0037).
