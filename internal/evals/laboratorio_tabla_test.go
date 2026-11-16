@@ -991,9 +991,10 @@ func probarElOrdenConLasActivaciones(t *testing.T) {
 }
 
 // TestTablaConLaInstalacion fija la tabla de una familia del producto con la
-// constancia de la instalación o del presupuesto (FR-020 a FR-022; SC-006;
-// contracts/tabla.md §2 a §4; data-model §6; research D10 y D11): la
-// instalación de la fila de un sondeo, en sus casos, y, sobre sondeos que el
+// constancia de la instalación o del presupuesto (FR-020 a FR-022 y FR-024;
+// SC-006; contracts/tabla.md §2 a §4 y §6; data-model §6; research D10 a D12):
+// sobre las sesiones fijas de la instalación, la tabla de su tabla.md; la
+// instalación de la fila de un sondeo, en sus casos; y, sobre sondeos que el
 // test monta con los fijos de las activaciones, «Instalación» y «Presupuesto»
 // detrás de «Skills instaladas», una fila por instalación y presupuesto en el
 // orden del contrato y, en cada una, los recuentos y el detalle que da hoy su
@@ -1001,8 +1002,37 @@ func probarElOrdenConLasActivaciones(t *testing.T) {
 func TestTablaConLaInstalacion(t *testing.T) {
 	t.Parallel()
 
+	t.Run("sondeos-fijos", probarLosSondeosFijosConLaInstalacion)
 	t.Run("instalacion-de-la-fila", probarLaInstalacionDeLaFila)
 	t.Run("filas-por-instalacion-y-presupuesto", probarLasFilasConLaInstalacion)
+}
+
+// Las sesiones fijas de familias/instalacion/sondeo/, cinco sondeos de
+// normativa-producto en modo herramienta con claude-sonnet-5-5 —los cuatro de
+// H41.3 con 2.1.284, h41-3-sola (normativa sola), h41-3-control (las cuatro
+// skills del producto), h41-3-diagnostico (las cuatro, con el presupuesto
+// 1000000) y h41-3-remedio (las cuatro, con la instalación
+// producto-descripciones-cortas), y h41-2, de H41.2 con 2.1.322, sin la
+// constancia—, y la tabla que el guion da de ellas, familias/instalacion/tabla.md:
+// copias byte a byte de los ficheros bajo instalacion/ del guion de aceptación
+// de H41.3 y de su tabla esperada, la de contracts/tabla.md §4 (FR-020 a FR-022
+// y FR-024; contracts/tabla.md §6).
+const familiaFijaDeLaInstalacion = "instalacion"
+
+// probarLosSondeosFijosConLaInstalacion fija la salida del guion sobre las
+// sesiones fijas de la instalación: la de su tabla.md, byte a byte, con el
+// código 0 y nada en la salida de error.
+func probarLosSondeosFijosConLaInstalacion(t *testing.T) {
+	t.Parallel()
+
+	esperada, err := os.ReadFile(filepath.Join(familiasFijas, familiaFijaDeLaInstalacion, tablaDeLaFamiliaFija))
+	require.NoError(t, err)
+
+	tabla := contarElSondeo(t, filepath.Join(familiasFijas, familiaFijaDeLaInstalacion, sondeosDeLaFamilia))
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de la instalación, byte a byte")
+	assert.Empty(t, tabla.errores)
 }
 
 // probarLaInstalacionDeLaFila fija la instalación de la fila de un sondeo de
