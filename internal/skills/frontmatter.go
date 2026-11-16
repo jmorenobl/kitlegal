@@ -70,6 +70,15 @@ var palabrasReservadas = []string{"anthropic", "claude"}
 // así, como el de «< 5000» o el de «a<b».
 var etiquetaXML = regexp.MustCompile(`</?\p{L}[^<>]*>`)
 
+// PrimeraEtiquetaXML es la primera etiqueta XML del texto, con la definición
+// con que se valida name y description de un SKILL.md (ADR 0046, punto 3), como
+// «<ejemplo>» o «</b>»; "" si no tiene ninguna, como «a < b» o «<1>». La
+// exporta para que quien compruebe un texto fuera de un SKILL.md use esta misma
+// definición y no una copia (research.md D4 de H41.3).
+func PrimeraEtiquetaXML(texto string) string {
+	return etiquetaXML.FindString(texto)
+}
+
 // carpetaDeLosDatos es el directorio de los YAML de datos, relativo a la raíz
 // del repositorio: donde la validación de las referencias busca el que la tabla
 // de generadores declara para cada una (data-model §1.3; research.md D20).
@@ -479,7 +488,7 @@ func defectosDeLaDescripcion(frontmatter Frontmatter) []string {
 // etiqueta XML, que cita la primera, como «description con la etiqueta XML
 // «<ejemplo>»».
 func defectosDeLaEtiqueta(clave, valor string) []string {
-	etiqueta := etiquetaXML.FindString(valor)
+	etiqueta := PrimeraEtiquetaXML(valor)
 	if etiqueta == "" {
 		return nil
 	}

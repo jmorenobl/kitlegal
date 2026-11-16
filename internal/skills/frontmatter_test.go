@@ -653,6 +653,35 @@ func TestEtiquetaXML(t *testing.T) {
 	}
 }
 
+// TestPrimeraEtiquetaXML fija la etiqueta XML que se exporta para quien
+// comprueba un texto fuera de un SKILL.md (FR-002 de H41.3; research.md D4): la
+// primera que hay en el texto, de apertura o de cierre, o "" si no hay ninguna,
+// también cuando un < no abre una etiqueta.
+func TestPrimeraEtiquetaXML(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		texto    string
+		etiqueta string
+	}{
+		{nombre: "en-medio-de-un-texto", texto: "Un <ejemplo> en medio.", etiqueta: "<ejemplo>"},
+		{nombre: "la-primera-de-dos", texto: "Dos etiquetas, <primera> y <segunda>.", etiqueta: "<primera>"},
+		{nombre: "de-cierre", texto: "Cierra con </b>.", etiqueta: "</b>"},
+		{nombre: "sin-menor-que", texto: "Consulta y cita normativa consolidada del BOE."},
+		{nombre: "menor-que-con-espacios", texto: "a < b"},
+		{nombre: "nombre-que-empieza-por-cifra", texto: "<1>"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.etiqueta, skills.PrimeraEtiquetaXML(caso.texto))
+		})
+	}
+}
+
 // frontmatterValido es un Frontmatter nuevo, con su propio mapa de metadata, que
 // cumple todas las reglas en el repositorio con datos de TestValidarFrontmatter.
 func frontmatterValido() skills.Frontmatter {
