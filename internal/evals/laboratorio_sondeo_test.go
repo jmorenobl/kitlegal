@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"os/exec"
@@ -17,6 +18,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // Lo que fijan los casos de TestArnesDelLaboratorio: la versión que contesta el
@@ -416,8 +419,10 @@ func todosLosArgumentosMal(t *testing.T, a *ArgumentosDelLaboratorio) {
 // las que quedan sin abrir tras el límite de uso; los transcripts que escribe
 // el sustituto, por sesión <variante>/<modo>/<sesión>; y la skill de la
 // variante <skill>-producto que pide, cuyas referencias de skills/<skill> lista
-// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4); y el
-// ajuste de su sondeo, como el de entorno de quien lanza el arnés, si lo hay.
+// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4); el
+// ajuste de su sondeo, como el de entorno de quien lanza el arnés, si lo hay; y
+// la instalación que anota su sondeo.json, vacía si no anota ninguna
+// (contracts/arnes.md §5).
 type casoValidoDelArnes struct {
 	nombre      string
 	argumentos  func(a *ArgumentosDelLaboratorio)
@@ -425,6 +430,7 @@ type casoValidoDelArnes struct {
 	transcripts func(t *testing.T) map[string]string
 	producto    string
 	sondeo      func(t *testing.T, s *SondeoDelLaboratorio)
+	instalacion string
 }
 
 // repartoEsperado es lo que se espera de un reparto: su variante y su modo, las
@@ -580,8 +586,18 @@ func exigirElErrorDeUsoDelArnes(t *testing.T, caso casoDeUsoDelArnes) {
 	var uso *errorDeUso
 	require.ErrorAs(t, err, &uso, "el error del caso es un error de uso")
 
+	exigirQueElArnesNoHizoNada(t, arnes, caso.version, directorioExistia)
+}
+
+// exigirQueElArnesNoHizoNada exige que el arnés que terminó con un error no haya
+// abierto ninguna sesión, haya preguntado la versión de Claude Code una vez solo
+// si se dice, no haya construido nada ni escrito nada en el temporal y no haya
+// creado DIRECTORIO ni su padre o, si ya existía, no haya escrito nada en él.
+func exigirQueElArnesNoHizoNada(t *testing.T, arnes arnesDelTest, version, directorioExistia bool) {
+	t.Helper()
+
 	assert.Empty(t, arnes.claude.sesiones(t), "no se abre ninguna sesión")
-	assert.Equal(t, caso.version, arnes.claude.versiones(t) == 1, "la versión se pregunta solo tras los argumentos y la "+
+	assert.Equal(t, version, arnes.claude.versiones(t) == 1, "la versión se pregunta solo tras los argumentos y la "+
 		"credencial, y una vez")
 	assert.False(t, *arnes.construido, "no se construye nada")
 
@@ -648,13 +664,14 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instal
 
 	contenido, err := leerFichero(filepath.Join(directorio, ficheroDelSondeo))
 	require.NoError(t, err)
-	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas), string(contenido), "sondeo.json, byte a byte")
+	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas, caso.instalacion), string(contenido),
+		"sondeo.json, byte a byte")
 
 	leido, err := leerElSondeo(directorio)
 	require.NoError(t, err, "el guion que cuenta el sondeo lee su sondeo.json")
 	assert.Equal(t, sondeoLeido{
 		Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio, ReferenciasDelProducto: referencias,
-		SkillsInstaladas: instaladas,
+		SkillsInstaladas: instaladas, Instalacion: caso.instalacion,
 	}, leido)
 
 	fisico, err := filepath.EvalSymlinks(directorio)
@@ -713,9 +730,10 @@ func referenciasDelProductoDelTest(t *testing.T, skill string) []string {
 // sondeoEscritoDelTest es el sondeo.json que deja el arnés, con su salto de
 // línea final: el de H39 y H40 sin referencias del producto ni skills
 // instaladas; con referencias, el mismo con referencias_del_producto detrás
-// (data-model §4); y con skills instaladas, con skills_instaladas detrás de
-// todo (data-model §3 de H41.2).
-func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string) string {
+// (data-model §4); con skills instaladas, con skills_instaladas detrás (data-model
+// §3 de H41.2); y con una instalación, con instalacion detrás de todo (data-model
+// §5; contracts/arnes.md §5).
+func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string, instalacion string) string {
 	t.Helper()
 
 	escrito := strings.TrimSuffix(sondeoSinElProductoDelTest, "}")
@@ -735,6 +753,13 @@ func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string) string
 		require.NoError(t, err)
 
 		escrito += `,"` + clave.nombre + `":` + string(lista)
+	}
+
+	if instalacion != "" {
+		valor, err := json.Marshal(instalacion)
+		require.NoError(t, err)
+
+		escrito += `,"instalacion":` + string(valor)
 	}
 
 	return escrito + "}\n"
@@ -1645,7 +1670,10 @@ type casoDeUnaEval struct {
 // de esa eval, el comienzo de su nombre, esas SESIONES y esa INSTALACION: un
 // reparto que abre sesiones sesiones de la eval, <eval>-01 a <eval>-<sesiones>,
 // y ninguna más; cada una con las skills de hoy o, con INSTALACION=producto, con
-// las cuatro del producto (contracts/arnes.md §3 y §5; FR-013).
+// las cuatro del producto (contracts/arnes.md §3 y §5; FR-013); y con
+// INSTALACION=producto-descripciones-cortas, con las cuatro del producto con la
+// description de la variante, y la instalación en su sondeo.json
+// (contracts/arnes.md §3 y §5 de H41.3).
 func invocacionDeUnaEval(nombre, variante, skill, eval string, sesiones int, instalacion string) casoDeUnaEval {
 	producto := ""
 	if variante == skill+sufijoDelProductoDelTest {
@@ -1670,8 +1698,12 @@ func invocacionDeUnaEval(nombre, variante, skill, eval string, sesiones int, ins
 		exigirLaSesion: exigirLaSesionDeLaFamilia(skill),
 	}
 
-	if instalacion == "producto" {
+	switch instalacion {
+	case "producto":
 		deUnaEval.instaladas, deUnaEval.exigirLaSesion = skillsDelProductoDelTest, exigirLaSesionConElProducto(skill)
+	case instalacionConLasDescripcionesCortasDelTest:
+		deUnaEval.instaladas, deUnaEval.exigirLaSesion = skillsDelProductoDelTest, exigirLaSesionConLasDescripcionesCortas
+		deUnaEval.caso.instalacion = instalacion
 	}
 
 	return deUnaEval
@@ -1856,6 +1888,246 @@ func nombresDelEntornoDeHoy(deQuienLanza []string, sesion string) []string {
 	slices.Sort(nombres)
 
 	return slices.Compact(nombres)
+}
+
+// Lo que fijan los casos de TestArnesConLasDescripcionesCortas (contracts/arnes.md
+// §2 y §5; research D6): el valor de INSTALACION, la línea de su error con una
+// variante que vale y no es normativa-producto, y la variante del repositorio,
+// desde la raíz.
+const (
+	instalacionConLasDescripcionesCortasDelTest = "producto-descripciones-cortas"
+	soloValeConNormativaProductoDelTest         = "INSTALACION: producto-descripciones-cortas solo vale con " +
+		"VARIANTES=normativa-producto"
+	varianteDeLasDescripcionesCortasDelTest = "laboratorio/producto-descripciones-cortas"
+)
+
+// conLasDescripcionesCortas es el ajuste de los argumentos de un caso de uso con
+// esas VARIANTES, esos MODOS e INSTALACION=producto-descripciones-cortas.
+func conLasDescripcionesCortas(variantes, modos string) func(*testing.T, *ArgumentosDelLaboratorio) {
+	return func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+		a.Variantes, a.Modos, a.Instalacion = variantes, modos, instalacionConLasDescripcionesCortasDelTest
+	}
+}
+
+// casosDeUsoDeLasDescripcionesCortas son los casos de
+// TestArnesConLasDescripcionesCortas que son un error de uso (contracts/arnes.md
+// §2 y §6; research D6; FR-010, FR-016): con una variante que vale y no es
+// normativa-producto, de normativa, de otra familia del producto, junto a
+// normativa-producto en la misma familia y en una mezcla, detrás del error de la
+// mezcla, la línea de «solo vale con»; con la de H39, solo el error de hoy; y con
+// una variante a la que le falta una descripción, la línea de su defecto. Cada
+// uno, con su mensaje y nada hecho.
+func casosDeUsoDeLasDescripcionesCortas() []casoDeUsoDelArnes {
+	return []casoDeUsoDelArnes{
+		{
+			nombre:     "con-normativa-control",
+			argumentos: conLasDescripcionesCortas("normativa-control", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			nombre:     "con-jurisprudencia-producto",
+			argumentos: conLasDescripcionesCortas("jurisprudencia-producto", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			nombre:     "con-la-de-h39",
+			argumentos: conLasDescripcionesCortas("control", "orden"),
+			error: mensajeFijo("INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia " +
+				"del producto"),
+		},
+		{
+			nombre:     "con-normativa-producto-y-normativa-control",
+			argumentos: conLasDescripcionesCortas("normativa-producto,normativa-control", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			// Sin familia, porque las que valen se mezclan, también.
+			nombre:     "con-la-mezcla-con-jurisprudencia-producto",
+			argumentos: conLasDescripcionesCortas("normativa-producto,jurisprudencia-producto", "herramienta"),
+			error: mensajeFijo(strings.Join([]string{
+				"VARIANTES: se mezclan variantes de normativa y variantes de jurisprudencia",
+				soloValeConNormativaProductoDelTest,
+			}, "\n")),
+		},
+		{
+			nombre:     "con-la-variante-sin-plazos-y-territorio",
+			argumentos: conLasDescripcionesCortas("normativa-producto", "herramienta"),
+			sondeo: func(t *testing.T, s *SondeoDelLaboratorio) {
+				t.Helper()
+
+				s.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+				require.NoError(t, os.Remove(filepath.Join(s.Raiz, filepath.FromSlash(
+					varianteDeLasDescripcionesCortasDelTest), "plazos-y-territorio.txt")))
+			},
+			error: mensajeFijo("INSTALACION: laboratorio/producto-descripciones-cortas: falta la descripción de " +
+				"plazos-y-territorio"),
+		},
+	}
+}
+
+// raizDePruebaDeLasDescripcionesCortas monta en un temporal del test una raíz de
+// prueba con copias de laboratorio/variantes.yaml, de skills/ y de la variante
+// producto-descripciones-cortas del repositorio (contracts/arnes.md §6), y
+// devuelve su ruta.
+func raizDePruebaDeLasDescripcionesCortas(t *testing.T) string {
+	t.Helper()
+
+	raiz := t.TempDir()
+
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, "skills"), os.DirFS(filepath.Join(raizDelRepositorio, "skills"))))
+
+	variante := filepath.FromSlash(varianteDeLasDescripcionesCortasDelTest)
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, variante), os.DirFS(filepath.Join(raizDelRepositorio, variante))))
+
+	declarada, err := leerFichero(filepath.Join(raizDelRepositorio, "laboratorio", "variantes.yaml"))
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(raiz, "laboratorio", "variantes.yaml"), declarada, 0o600))
+
+	return raiz
+}
+
+// TestArnesConLasDescripcionesCortas fija INSTALACION=producto-descripciones-cortas
+// en el arnés del sondeo del laboratorio, sin modelo (contracts/arnes.md §2, §3,
+// §5 y §6; data-model §2, §3 y §5; research D3, D5, D6 y D9; FR-010, FR-011,
+// FR-012, FR-015, FR-016, FR-018; SC-002, SC-004, SC-005), con la construcción
+// sustituida y el sustituto de claude de TestArnesDelLaboratorio, que anota sus
+// invocaciones.
+//
+// Con una variante que no es normativa-producto, con la de H39, con una mezcla o
+// con una variante con un defecto, devuelve un error de uso con los mensajes de
+// §2, no construye nada, no abre ninguna sesión y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes). Una variante que no se puede leer es un error
+// que no es de uso, sin nada hecho tampoco.
+//
+// Con la petición del remedio, VARIANTES=normativa-producto MODOS=herramienta
+// SESIONES=2 EVAL=04 INSTALACION=producto-descripciones-cortas, abre dos sesiones;
+// cada una ve las cuatro skills del producto, cada una con la description de su
+// fichero de la variante y todo lo demás de skills/ del árbol
+// (exigirLaSesionConLasDescripcionesCortas); y sondeo.json, el de remedio de §5,
+// anota las cuatro y la instalación (exigirElSondeoDelArnes).
+func TestArnesConLasDescripcionesCortas(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDeLasDescripcionesCortas() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	t.Run("con-la-variante-que-no-se-puede-leer", func(t *testing.T) {
+		t.Parallel()
+
+		arnes := nuevoArnesDelTest(t, nil, "")
+		conLasDescripcionesCortas("normativa-producto", "herramienta")(t, &arnes.sondeo.Argumentos)
+
+		arnes.sondeo.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+		require.NoError(t, os.RemoveAll(filepath.Join(arnes.sondeo.Raiz,
+			filepath.FromSlash(varianteDeLasDescripcionesCortasDelTest))))
+
+		salida, err := sondearElLaboratorio(t.Context().Done(), arnes.sondeo)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		assert.Empty(t, salida)
+
+		var uso *errorDeUso
+		assert.NotErrorAs(t, err, &uso, "una variante que no se puede leer no es un error de uso")
+
+		exigirQueElArnesNoHizoNada(t, arnes, false, false)
+	})
+
+	remedio := invocacionDeUnaEval("el-remedio", "normativa-producto", skillDeNormativaDelTest,
+		"04-lgt-prescripcion.yaml", 2, instalacionConLasDescripcionesCortasDelTest)
+
+	t.Run(remedio.caso.nombre, func(t *testing.T) {
+		t.Parallel()
+
+		exigirElSondeoDelArnes(t, remedio.caso, []string{remedio.eval}, remedio.instaladas, remedio.exigirLaSesion)
+	})
+}
+
+// exigirLaSesionConLasDescripcionesCortas exige que una sesión de
+// normativa-producto con INSTALACION=producto-descripciones-cortas vea
+// exactamente las cuatro skills del producto, en orden de nombre y sin repetir,
+// cada una enlazada a la copia de su variante en el temporal; que en cada una la
+// description de su SKILL.md, leída con skills.LeerFrontmatter, sea el texto de
+// su fichero de la variante, que el frontmatter pase skills.ValidarFrontmatter
+// sin ningún defecto, que el cuerpo de descripcionYCuerpo de ese SKILL.md sea el
+// de skills/ del árbol y cada otro fichero, ruta a ruta y byte a byte, el de
+// skills/; su servidor, el de la familia (exigirElServidorDeLaFamilia); y que en
+// DIRECTORIO no haya ningún SKILL.md. Falla con la primera sesión cuyas skills,
+// descripción o bytes difieren (contracts/arnes.md §3 y §6; FR-011; SC-002).
+func exigirLaSesionConLasDescripcionesCortas(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+	t.Helper()
+
+	deLaSesion := filepath.Join(sesion, directorioDeClaude, directorioDeSkills)
+
+	enlazadas, err := os.ReadDir(deLaSesion)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(enlazadas))
+	for _, enlazada := range enlazadas {
+		nombres = append(nombres, enlazada.Name())
+	}
+
+	require.Equal(t, skillsDelProductoDelTest, nombres, "la sesión %s ve las cuatro skills del producto", sesion)
+
+	copia := filepath.Join(arnes.sondeo.Temporal, carpetaDeLasSkillsDelSondeo, reparto.variante)
+	arbol := filepath.Join(raizDelRepositorio, "skills")
+
+	for _, nombre := range nombres {
+		destino, err := os.Readlink(filepath.Join(deLaSesion, nombre))
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(copia, nombre), destino, "la sesión %s enlaza la copia de su variante", sesion)
+
+		instalada := ficherosDeLaSkillDelTest(t, deLaSesion, nombre)
+		original := ficherosDeLaSkillDelTest(t, arbol, nombre)
+
+		compuesto, esta := instalada[ficheroDeLaSkillDeLaVariante]
+		require.True(t, esta, "la skill %s de la sesión %s tiene su %s", nombre, sesion, ficheroDeLaSkillDeLaVariante)
+
+		texto, err := leerFichero(filepath.Join(raizDelRepositorio, filepath.FromSlash(
+			varianteDeLasDescripcionesCortasDelTest), nombre+".txt"))
+		require.NoError(t, err)
+
+		frontmatter, err := skills.LeerFrontmatter([]byte(compuesto))
+		require.NoError(t, err, "el %s de %s en la sesión %s:\n%s", ficheroDeLaSkillDeLaVariante, nombre, sesion,
+			compuesto)
+		require.Equal(t, strings.TrimSuffix(string(texto), "\n"), frontmatter.Description,
+			"la description de %s en la sesión %s es la de su fichero de la variante", nombre, sesion)
+
+		defectos, err := skills.ValidarFrontmatter(raizDelRepositorio, nombre, frontmatter,
+			frontmatter.DeclaracionDeKitlegal().Applets)
+		require.NoError(t, err)
+		require.Empty(t, defectos, "el %s de %s en la sesión %s pasa la validación de su frontmatter",
+			ficheroDeLaSkillDeLaVariante, nombre, sesion)
+
+		_, delOriginal := descripcionYCuerpo(original[ficheroDeLaSkillDeLaVariante])
+		_, delCompuesto := descripcionYCuerpo(compuesto)
+		require.Equal(t, delOriginal, delCompuesto, "lo que no es la description del %s de %s en la sesión %s es "+
+			"lo de skills/", ficheroDeLaSkillDeLaVariante, nombre, sesion)
+
+		delete(instalada, ficheroDeLaSkillDeLaVariante)
+		delete(original, ficheroDeLaSkillDeLaVariante)
+		require.Equal(t, original, instalada, "cada otro fichero de %s en la sesión %s es, ruta a ruta y byte a "+
+			"byte, el de skills/", nombre, sesion)
+	}
+
+	exigirElServidorDeLaFamilia(t, arnes, reparto, sesion)
+
+	// WalkDir no sigue los enlaces de las skills de cada sesión: lo que visita es
+	// lo que guarda DIRECTORIO.
+	require.NoError(t, filepath.WalkDir(arnes.sondeo.Argumentos.Directorio,
+		func(ruta string, entrada fs.DirEntry, delPaso error) error {
+			if delPaso != nil {
+				return delPaso
+			}
+
+			assert.NotEqual(t, ficheroDeLaSkillDeLaVariante, entrada.Name(), "DIRECTORIO no guarda ningún %s: %s",
+				ficheroDeLaSkillDeLaVariante, ruta)
+
+			return nil
+		}))
 }
 
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y

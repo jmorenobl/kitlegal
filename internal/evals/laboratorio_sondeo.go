@@ -145,9 +145,12 @@ type laboratorioComprobado struct {
 	// SESIONES/4 sin él.
 	porEval int
 
-	// conElProducto es INSTALACION=producto: cada sesión ve, además de la
-	// skill de su variante, las demás de skills/ del árbol (FR-010 de H41.2).
-	conElProducto bool
+	// instalacion es INSTALACION, comprobada: vacía, producto o
+	// producto-descripciones-cortas (conElProducto); y descripciones, con
+	// producto-descripciones-cortas, el texto de la description de cada skill de
+	// skills/ en su variante, y nil sin ella (data-model §2 de H41.3).
+	instalacion   string
+	descripciones map[string]string
 
 	// eval es el fichero de la eval de EVAL, la única que planifica cada par, o
 	// vacío sin EVAL: cada par planifica las cuatro del sondeo de la familia
@@ -158,6 +161,26 @@ type laboratorioComprobado struct {
 	claudeCode   string
 	concurrencia int
 	directorio   string
+}
+
+// conElProducto dice si INSTALACION no está vacía, producto o
+// producto-descripciones-cortas: cada sesión ve, además de la skill de su
+// variante, las demás de skills/ del árbol (FR-010 de H41.2; data-model §2 de
+// H41.3).
+func (c laboratorioComprobado) conElProducto() bool {
+	return c.instalacion != ""
+}
+
+// instalacionDelSondeo es la instalación que anota sondeo.json:
+// producto-descripciones-cortas, la única que consta, y vacía con cualquier otra
+// INSTALACION, con la que sondeo.json es el de hoy (FR-012; research D9 de
+// H41.3).
+func (c laboratorioComprobado) instalacionDelSondeo() string {
+	if c.instalacion != instalacionConLasDescripcionesCortas {
+		return ""
+	}
+
+	return c.instalacion
 }
 
 // resumenDelPar es lo que la salida dice de un par: cuántas sesiones abrió y
@@ -254,7 +277,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 	}
 
 	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode,
-		referencias, instaladas); err != nil {
+		referencias, instaladas, comprobado.instalacionDelSondeo()); err != nil {
 		return "", err
 	}
 
@@ -302,18 +325,19 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 // declaración del laboratorio; comprueba sus argumentos, con todos sus errores
 // juntos; y, solo si valen, la credencial y, solo si está, que el primer campo
 // de claude --version, con el PATH de quien lo lanza, sea CLAUDE_CODE. Los
-// errores de los argumentos, el de la credencial y el de la versión van
-// envueltos en errorDeUso, con su mismo texto; el de una declaración que no se
-// puede leer, no.
+// errores de los argumentos (comprobar, con la raíz, de la que lee la variante
+// de INSTALACION=producto-descripciones-cortas), el de la credencial y el de la
+// versión van envueltos en errorDeUso, con su mismo texto; el de una declaración
+// o una variante que no se puede leer, no.
 func comprobarElLaboratorio(s SondeoDelLaboratorio) (laboratorioComprobado, error) {
 	declarada, err := leerLaDeclaracionDelRepositorio(s.Raiz)
 	if err != nil {
 		return laboratorioComprobado{}, err
 	}
 
-	comprobado, err := s.Argumentos.comprobar(declarada)
+	comprobado, err := s.Argumentos.comprobar(s.Raiz, declarada)
 	if err != nil {
-		return laboratorioComprobado{}, &errorDeUso{causa: err}
+		return laboratorioComprobado{}, err
 	}
 
 	if valorEnElEntorno(s.Entorno, variableDeLaSuscripcion) == "" {
@@ -355,13 +379,24 @@ const variantesDeLaFamiliaDeH39 = "variantes del laboratorio de H39"
 // variante, en el orden de las familias; SESIONES, un entero mayor que 0 y, sin
 // EVAL, múltiplo de 4 (sesionesDeCadaEval); MODELO, un identificador completo;
 // CLAUDE_CODE, no vacía; CONCURRENCIA, un entero mayor o igual que 1;
-// DIRECTORIO, no vacío y que no existe; INSTALACION, vacía o producto, y
-// producto solo con variantes de una familia del producto
-// (errorDeLaInstalacion); y EVAL, vacío o el número de una eval del plan de la
-// familia, que tiene que ser del producto (evalDelArgumento; contracts/arnes.md
-// §2 de H41.2). Los errores de todos van juntos, uno por línea y en ese orden,
-// para que quien lanza la orden los corrija de una vez.
-func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio) (laboratorioComprobado, error) {
+// DIRECTORIO, no vacío y que no existe; INSTALACION, vacía, producto o
+// producto-descripciones-cortas, las dos solo con variantes de una familia del
+// producto y la segunda, solo con normativa-producto (errorDeLaInstalacion) y
+// con la variante de la raíz sin defectos (descripcionesDeLaInstalacion;
+// contracts/arnes.md §2 de H41.3; research D6 de H41.3); y EVAL, vacío o el
+// número de una eval del plan de la familia, que tiene que ser del producto
+// (evalDelArgumento; contracts/arnes.md §2 de H41.2). Los errores de todos van
+// juntos, uno por línea y en ese orden, para que quien lanza la orden los corrija
+// de una vez, envueltos en errorDeUso. Una variante que no se puede leer, que
+// solo se lee con producto-descripciones-cortas, es el error, sin envolver: no es
+// un error de uso.
+func (a ArgumentosDelLaboratorio) comprobar(raiz string, declarada declaracionDelLaboratorio,
+) (laboratorioComprobado, error) {
+	descripciones, errDeLaVariante, err := descripcionesDeLaInstalacion(raiz, a.Instalacion)
+	if err != nil {
+		return laboratorioComprobado{}, err
+	}
+
 	familias := slices.Concat([]familiaDelLaboratorio{declarada.familia()}, familiasDelProducto)
 
 	variantes, errDeLasVariantes := listaDelArgumento(argumentoVariantes, a.Variantes,
@@ -396,19 +431,19 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 
 	eval, errDeLaEval := evalDelArgumento(a.Eval, familia)
 
-	err := errors.Join(slices.Concat(errDeLasVariantes, []error{errDeLaMezcla}, errDeLosModos, errDeLosPares,
+	err = errors.Join(slices.Concat(errDeLasVariantes, []error{errDeLaMezcla}, errDeLosModos, errDeLosPares,
 		[]error{
 			errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
-			comprobarElDirectorioDelSondeo(a.Directorio), errorDeLaInstalacion(a.Instalacion, familia), errDeLaEval,
-		})...)
+			comprobarElDirectorioDelSondeo(a.Directorio), errorDeLaInstalacion(a.Instalacion, familia, variantes),
+		}, errDeLaVariante, []error{errDeLaEval})...)
 	if err != nil {
-		return laboratorioComprobado{}, err
+		return laboratorioComprobado{}, &errorDeUso{causa: err}
 	}
 
 	return laboratorioComprobado{
-		declarada: declarada, familia: familia, pares: pares, porEval: porEval,
-		conElProducto: a.Instalacion == instalacionDelProducto, eval: eval, modelo: a.Modelo,
-		claudeCode: a.ClaudeCode, concurrencia: concurrencia, directorio: a.Directorio,
+		declarada: declarada, familia: familia, pares: pares, porEval: porEval, instalacion: a.Instalacion,
+		descripciones: descripciones, eval: eval, modelo: a.Modelo, claudeCode: a.ClaudeCode,
+		concurrencia: concurrencia, directorio: a.Directorio,
 	}, nil
 }
 
@@ -443,25 +478,59 @@ func evalDelArgumento(eval string, familia familiaDelLaboratorio) (string, error
 }
 
 // errorDeLaInstalacion es el error de INSTALACION con la familia de las
-// variantes pedidas que valen (contracts/arnes.md §2 de H41.2; research D7 de
-// H41.2): ninguno vacía; «no es producto» con cualquier otro valor que no sea
-// producto, haya familia o no; y con producto, el de la familia de H39, la única
-// que no es del producto, porque la instalación del producto es la de las skills
-// de skills/ junto a la de una familia suya. Sin familia —la vacía, sin
+// variantes pedidas que valen y esas variantes, de las reglas 1 a 4 de research
+// D6 de H41.3 el de la primera que se da (contracts/arnes.md §2 de H41.2 y de
+// H41.3; research D7 de H41.2): ninguno vacía; «no es producto» con cualquier
+// otro valor que no sea producto ni producto-descripciones-cortas, haya familia o
+// no; con cualquiera de los dos, el de la familia de H39, la única que no es del
+// producto, porque la instalación del producto es la de las skills de skills/
+// junto a la de una familia suya; y con producto-descripciones-cortas, el de que
+// solo vale con normativa-producto si alguna de las variantes no lo es, mire o
+// no la familia, también en una mezcla (FR-010). Sin familia —la vacía, sin
 // variantes, porque ninguna vale o porque las que valen se mezclan—, producto
-// no da error: ya lo dan el de VARIANTES o el de la mezcla.
-func errorDeLaInstalacion(instalacion string, familia familiaDelLaboratorio) error {
+// no da error: ya lo dan el de VARIANTES o el de la mezcla. Los defectos de la
+// variante, la regla 5, se suman aparte (descripcionesDeLaInstalacion).
+func errorDeLaInstalacion(instalacion string, familia familiaDelLaboratorio, variantes []string) error {
 	switch {
 	case instalacion == "":
 		return nil
-	case instalacion != instalacionDelProducto:
+	case instalacion != instalacionDelProducto && instalacion != instalacionConLasDescripcionesCortas:
 		return fmt.Errorf("%s: «%s» no es %s", argumentoInstalacion, instalacion, instalacionDelProducto)
 	case len(familia.variantes) > 0 && familia.producto == "":
 		return fmt.Errorf("%s: las %s no son de ninguna familia del producto", argumentoInstalacion,
 			variantesDeLaFamiliaDeH39)
+	case instalacion == instalacionConLasDescripcionesCortas && slices.ContainsFunc(variantes,
+		func(variante string) bool { return variante != varianteDelProductoDeNormativa }):
+		return fmt.Errorf("%s: %s solo vale con %s=%s", argumentoInstalacion, instalacionConLasDescripcionesCortas,
+			argumentoVariantes, varianteDelProductoDeNormativa)
 	default:
 		return nil
 	}
+}
+
+// descripcionesDeLaInstalacion son, con INSTALACION=producto-descripciones-cortas,
+// los textos de la variante de la raíz por skill y un error de INSTALACION por
+// cada defecto suyo, «INSTALACION: <defecto>», en su orden (regla 5 de research D6
+// de H41.3; descripcionesCortas, research D3 de H41.3); con cualquier otro valor,
+// ni textos ni errores: la variante no se lee y una rota no cambia nada (FR-015).
+// El error, sin textos ni defectos, es el de una variante que no se puede leer,
+// que no es un error de uso (ADR 0023).
+func descripcionesDeLaInstalacion(raiz, instalacion string) (map[string]string, []error, error) {
+	if instalacion != instalacionConLasDescripcionesCortas {
+		return nil, nil, nil
+	}
+
+	textos, defectos, err := descripcionesCortas(raiz)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	errores := make([]error, 0, len(defectos))
+	for _, defecto := range defectos {
+		errores = append(errores, fmt.Errorf("%s: %s", argumentoInstalacion, defecto))
+	}
+
+	return textos, errores, nil
 }
 
 // familiaDeLasVariantes es la familia de las variantes pedidas que valen, y
@@ -799,8 +868,11 @@ func textoDeLaVariante(directorio, fichero string) (string, error) {
 // el HOME de las sesiones; y en skills/<variante>/, una vez por variante y antes
 // de abrir ninguna sesión, la copia de las skills de cada variante de los pares
 // de la familia del sondeo comprobado, con las demás del producto si se pidió
-// INSTALACION=producto, el directorio de skills de sus repartos
-// (copiarLasSkillsDeLaVariante; contracts/arnes.md §3.1 de H41.2). Devuelve las
+// INSTALACION=producto o producto-descripciones-cortas, el directorio de skills
+// de sus repartos (copiarLasSkillsDeLaVariante; contracts/arnes.md §3.1 de
+// H41.2); y con producto-descripciones-cortas, en esa copia, cada SKILL.md con la
+// description de su skill en la variante (componerLasDescripciones;
+// contracts/arnes.md §3 de H41.3), que no se guarda en DIRECTORIO. Devuelve las
 // referencias de la copia de la variante del producto, si alguno de los pares es
 // suyo, y si no, ninguna. El error nombra lo que no se pudo hacer.
 func (s SondeoDelLaboratorio) preparar(temporal string, comprobado laboratorioComprobado) ([]string, error) {
@@ -824,9 +896,16 @@ func (s SondeoDelLaboratorio) preparar(temporal string, comprobado laboratorioCo
 		}
 
 		deLaCopia, err := s.copiarLasSkillsDeLaVariante(temporal, comprobado.familia, par.variante.Nombre,
-			comprobado.conElProducto)
+			comprobado.conElProducto())
 		if err != nil {
 			return nil, err
+		}
+
+		if comprobado.instalacion == instalacionConLasDescripcionesCortas {
+			if err := componerLasDescripciones(filepath.Join(temporal, carpetaDeLasSkillsDelSondeo,
+				par.variante.Nombre), comprobado.descripciones); err != nil {
+				return nil, err
+			}
 		}
 
 		copiadas = append(copiadas, par.variante.Nombre)
@@ -840,8 +919,9 @@ func (s SondeoDelLaboratorio) preparar(temporal string, comprobado laboratorioCo
 // de las skills de la variante de ese nombre de la familia (contracts/arnes.md
 // §3.1; data-model §3): la de su directorio en la familia, si es versionada; y
 // si es la del producto, la de skills/<skill> del árbol, en
-// skills/<variante>/<skill>/ (FR-022). Con conElProducto, INSTALACION=producto,
-// deja además a su lado la de cada otra skill de skills/ del árbol
+// skills/<variante>/<skill>/ (FR-022). Con conElProducto, INSTALACION=producto o
+// producto-descripciones-cortas, deja además a su lado la de cada otra skill de
+// skills/ del árbol
 // (copiarLasDemasSkillsDelArbol; FR-010 de H41.2), así que en la del producto la
 // copia es skills/ entera. De la del producto devuelve los nombres de los
 // ficheros de references/ de la copia de su skill, en orden de nombre (FR-032);
@@ -1025,10 +1105,14 @@ func ordenDeConstruirElLaboratorio(raiz string) *exec.Cmd {
 // producto y, si las hay, las skills instaladas de un sondeo de una familia del
 // producto (contracts/arnes.md §3.2 de H39, §3.4 de H41 y §3.3 de H41.2;
 // data-model §6 de H39, §4 de H41 y §3 de H41.2; FR-032 de H41; FR-012 de
-// H41.2): sin ninguna de las dos, el de H39 byte a byte. Solo los nombres: ni la
-// copia ni su huella se guardan en DIRECTORIO. DIRECTORIO se crea él solo, así
-// que uno que ya existe es un error: ningún sondeo escribe donde escribe otro.
-func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias, instaladas []string) error {
+// H41.2), y, si no está vacía, la instalación (instalacionDelSondeo;
+// contracts/arnes.md §5 de H41.3; data-model §5 de H41.3): sin ninguna, el de H39
+// byte a byte. Solo los nombres: ni la copia ni su huella se guardan en
+// DIRECTORIO. DIRECTORIO se crea él solo, así que uno que ya existe es un error:
+// ningún sondeo escribe donde escribe otro.
+func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias, instaladas []string,
+	instalacion string,
+) error {
 	limpio := filepath.Clean(directorio)
 
 	if err := os.MkdirAll(filepath.Dir(limpio), permisosDeLaSesion); err != nil {
@@ -1041,11 +1125,13 @@ func crearElSondeoDelLaboratorio(directorio, modelo, version string, referencias
 
 	// sondeoLeido es lo que lee de sondeo.json el guion que cuenta el sondeo, y
 	// sus claves van en el orden de contracts/arnes.md §3.2 de H39, con
-	// referencias_del_producto detrás, solo si hay referencias (data-model §4), y
-	// skills_instaladas detrás de todo, solo si hay skills instaladas
-	// (data-model §3 de H41.2).
+	// referencias_del_producto detrás, solo si hay referencias (data-model §4),
+	// skills_instaladas detrás, solo si hay skills instaladas (data-model §3 de
+	// H41.2), e instalacion detrás de todo, solo si la hay (data-model §5 de
+	// H41.3).
 	contenido, err := json.Marshal(sondeoLeido{
 		Modelo: modelo, ClaudeCode: version, ReferenciasDelProducto: referencias, SkillsInstaladas: instaladas,
+		Instalacion: instalacion,
 	})
 	if err != nil {
 		return fmt.Errorf("%s no se puede codificar: %w", ficheroDelSondeo, err)

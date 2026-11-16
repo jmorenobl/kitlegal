@@ -170,6 +170,48 @@ func skillConLaDescripcion(contenido []byte, texto string) ([]byte, error) {
 	return compuesto.Bytes(), nil
 }
 
+// componerLasDescripciones reescribe, en la copia de las skills de una variante
+// en el temporal, la de normativa-producto con INSTALACION=producto-descripciones-cortas,
+// el SKILL.md de cada skill con la description de su texto de la variante,
+// por su nombre (skillConLaDescripcion; FR-011; contracts/arnes.md §3; data-model
+// §3; research D5): lo demás de la copia queda como lo dejó os.CopyFS, byte a
+// byte, y la copia no se guarda en DIRECTORIO. Cada skill de la copia, una de
+// skills/, tiene su texto, porque la variante que se compone no tiene ningún
+// defecto; una sin él es un error, como el de un SKILL.md que no se puede leer,
+// componer o escribir (defecto inesperado, ADR 0023).
+func componerLasDescripciones(copia string, descripciones map[string]string) error {
+	entradas, err := os.ReadDir(copia)
+	if err != nil {
+		return fmt.Errorf("las skills de la copia %s no se pueden leer: %w", copia, err)
+	}
+
+	for _, entrada := range entradas {
+		texto, esta := descripciones[entrada.Name()]
+		if !esta {
+			return fmt.Errorf("la skill %s de la copia %s no tiene descripción en %s", entrada.Name(), copia,
+				carpetaDeLasDescripcionesCortas)
+		}
+
+		ruta := filepath.Join(copia, entrada.Name(), ficheroDeLaSkillDeLaVariante)
+
+		contenido, err := leerFichero(ruta)
+		if err != nil {
+			return fmt.Errorf("el %s %s no se puede leer: %w", ficheroDeLaSkillDeLaVariante, ruta, err)
+		}
+
+		compuesto, err := skillConLaDescripcion(contenido, texto)
+		if err != nil {
+			return fmt.Errorf("el %s %s no se puede componer: %w", ficheroDeLaSkillDeLaVariante, ruta, err)
+		}
+
+		if err := escribirFichero(ruta, compuesto); err != nil {
+			return fmt.Errorf("el %s %s no se puede escribir: %w", ficheroDeLaSkillDeLaVariante, ruta, err)
+		}
+	}
+
+	return nil
+}
+
 // defectoDeLasDescripcionesCortas es la línea de un defecto de la variante: su
 // ruta, «: » y el texto del defecto con esos argumentos.
 func defectoDeLasDescripcionesCortas(formato string, argumentos ...any) string {
