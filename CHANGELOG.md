@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-16
+
 ### Añadido
 
 - **Cuatro variantes de `normativa` para medir por qué no lee sus referencias en modo herramienta** (H40). Viven en
