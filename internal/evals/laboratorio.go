@@ -3,6 +3,7 @@ package evals
 import (
 	"fmt"
 	"io/fs"
+	"iter"
 	"os"
 	"path"
 	"path/filepath"
@@ -301,41 +302,58 @@ func parteDelFichero(ruta string, declarada declaracionDelLaboratorio) (parteDeU
 }
 
 // delimitadorDelFrontmatterDeLaVariante es la línea que abre y cierra el
-// frontmatter de un SKILL.md, y claveDeLaDescripcion, el principio de la línea de
-// la clave description en él.
+// frontmatter de un SKILL.md; nombreDeLaClaveDeLaDescripcion, el de la clave
+// description en él; y claveDeLaDescripcion, el principio de su línea.
 const (
 	delimitadorDelFrontmatterDeLaVariante = "---"
-	claveDeLaDescripcion                  = "description:"
+	nombreDeLaClaveDeLaDescripcion        = "description"
+	claveDeLaDescripcion                  = nombreDeLaClaveDeLaDescripcion + ":"
 )
 
+// lineasDelSkill da, una a una, las líneas del contenido de un SKILL.md, en su
+// orden y cada una con su salto de línea, con si es de la clave description del
+// frontmatter (data-model §3 de H39; research D5): la que empieza por la clave y
+// las sangradas, con un espacio o un tabulador, que la siguen. El frontmatter son
+// las líneas que siguen a la primera, si es el delimitador, hasta la siguiente
+// que lo es. Es la clasificación que comparten descripcionYCuerpo y
+// skillConLaDescripcion, para que lo que no es la description sea lo mismo en el
+// reparto y en la composición.
+func lineasDelSkill(contenido string) iter.Seq2[string, bool] {
+	return func(yield func(string, bool) bool) {
+		primera, enElFrontmatter, enLaDescripcion := true, false, false
+
+		for linea := range strings.Lines(contenido) {
+			esDelimitador := strings.TrimSuffix(linea, "\n") == delimitadorDelFrontmatterDeLaVariante
+
+			switch {
+			case primera:
+				primera, enElFrontmatter = false, esDelimitador
+			case enElFrontmatter && esDelimitador:
+				enElFrontmatter, enLaDescripcion = false, false
+			case enElFrontmatter && strings.HasPrefix(linea, claveDeLaDescripcion):
+				enLaDescripcion = true
+			case enLaDescripcion && !strings.HasPrefix(linea, " ") && !strings.HasPrefix(linea, "\t"):
+				enLaDescripcion = false
+			}
+
+			if !yield(linea, enLaDescripcion) {
+				return
+			}
+		}
+	}
+}
+
 // descripcionYCuerpo parte el contenido de un SKILL.md en sus dos partes
-// (data-model §3 de H39): la descripción, las líneas de la clave description del
-// frontmatter —la que empieza por la clave y las sangradas que la siguen—, y el
-// cuerpo, todas las demás, en su orden. El frontmatter son las líneas que siguen a
-// la primera, si es el delimitador, hasta la siguiente que lo es. Sin frontmatter,
-// o sin la clave en él, la descripción queda vacía y todo es cuerpo: lo que le
-// falte a ese SKILL.md lo dice la comprobación de la forma de las skills
-// (skills.Regenerar), que no es de este reparto.
+// (data-model §3 de H39): la descripción, las líneas que lineasDelSkill da como
+// de la clave description del frontmatter, y el cuerpo, todas las demás, en su
+// orden. Sin frontmatter, o sin la clave en él, la descripción queda vacía y todo
+// es cuerpo: lo que le falte a ese SKILL.md lo dice la comprobación de la forma
+// de las skills (skills.Regenerar), que no es de este reparto.
 func descripcionYCuerpo(contenido string) (string, string) {
 	var descripcion, cuerpo strings.Builder
 
-	primera, enElFrontmatter, enLaDescripcion := true, false, false
-
-	for linea := range strings.Lines(contenido) {
-		esDelimitador := strings.TrimSuffix(linea, "\n") == delimitadorDelFrontmatterDeLaVariante
-
-		switch {
-		case primera:
-			primera, enElFrontmatter = false, esDelimitador
-		case enElFrontmatter && esDelimitador:
-			enElFrontmatter, enLaDescripcion = false, false
-		case enElFrontmatter && strings.HasPrefix(linea, claveDeLaDescripcion):
-			enLaDescripcion = true
-		case enLaDescripcion && !strings.HasPrefix(linea, " ") && !strings.HasPrefix(linea, "\t"):
-			enLaDescripcion = false
-		}
-
-		if enLaDescripcion {
+	for linea, deLaDescripcion := range lineasDelSkill(contenido) {
+		if deLaDescripcion {
 			descripcion.WriteString(linea)
 		} else {
 			cuerpo.WriteString(linea)

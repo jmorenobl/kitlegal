@@ -84,7 +84,7 @@ mensaje de un `SKILL.md`, no el de la variante.
 
 ### D5. La composición: `yaml.Marshal` de la clave `description` en el lugar de sus líneas
 
-**Decisión**: `conLaDescripcion(contenido []byte, texto string) ([]byte, error)` sustituye, en el `SKILL.md`, las líneas de
+**Decisión**: `skillConLaDescripcion(contenido []byte, texto string) ([]byte, error)` sustituye, en el `SKILL.md`, las líneas de
 la clave `description` del frontmatter —la de la clave y las sangradas que la siguen— por las que da
 `yaml.Marshal(map[string]string{"description": texto})` de `go.yaml.in/yaml/v3`; todas las demás líneas quedan tal cual
 y en su sitio. Qué líneas son de la clave lo decide la misma clasificación que `descripcionYCuerpo`

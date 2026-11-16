@@ -36,9 +36,9 @@ en el binario, salvo la función exportada de §1, en `internal/skills`. Ningún
 ## 3. La instalación compuesta
 
 `skills/normativa-producto/` del temporal: la copia de `INSTALACION=producto` (todas las de `skills/`, cada una en su
-directorio) con la `description` de cada `SKILL.md` sustituida por `conLaDescripcion(contenido, texto)`
+directorio) con la `description` de cada `SKILL.md` sustituida por `skillConLaDescripcion(contenido, texto)`
 (`laboratorio_descripciones.go`; research D5). Qué líneas son de la `description` lo dice la clasificación que comparten
-`conLaDescripcion` y `descripcionYCuerpo` (`laboratorio.go`). No se guarda en `DIRECTORIO`.
+`skillConLaDescripcion` y `descripcionYCuerpo` (`laboratorio.go`). No se guarda en `DIRECTORIO`.
 
 ## 4. El entorno de cada sesión
 

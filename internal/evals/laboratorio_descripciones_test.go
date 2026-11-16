@@ -1,8 +1,10 @@
 package evals
 
 import (
+	"io/fs"
 	"maps"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -10,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // Las cuatro descripciones de la variante del repositorio, cada una la línea de
@@ -299,4 +303,141 @@ func sinLaEntrada(variante map[string]string, nombre string) map[string]string {
 	delete(copia, nombre)
 
 	return copia
+}
+
+// textoDeLaComposicion es un texto con que se compone un SKILL.md en
+// TestConLaDescripcion, con el nombre de su caso.
+type textoDeLaComposicion struct {
+	nombre string
+	texto  string
+}
+
+// textosQueYAMLCitaOCorta son los textos de TestConLaDescripcion además del de
+// cada skill en la variante (FR-011, caso límite; research D12): cada uno con lo
+// que YAML no lee como el texto si se escribe sin codificar detrás de la clave
+// —«: » abre otro mapa, « #» abre un comentario, una comilla al principio abre
+// un escalar entrecomillado— o lo que el emisor no puede cambiar, «»; y todos
+// juntos.
+var textosQueYAMLCitaOCorta = []textoDeLaComposicion{
+	{"con dos puntos", "Plazos del procedimiento común: los de la LPAC, art. 30: días hábiles."},
+	{"con comillas simples", "'Vigente' es la versión de hoy del BOE, y la 'anterior', la de otra fecha."},
+	{"con comillas dobles", `"LPAC" es la Ley 39/2015 y "LRJSP", la Ley 40/2015.`},
+	{"con almohadilla", "Cita el artículo 21 #2 de la norma y su bloque #a21."},
+	{"con comillas angulares", "La «norma» consolidada se cita con su «bloque» y su «versión»."},
+	{"con todo", `'Art. 21': el bloque #a21 de la «LPAC», "consolidada" y 'vigente'.`},
+}
+
+// TestConLaDescripcion comprueba la composición de un SKILL.md con otra
+// description (FR-011; SC-002; contracts/arnes.md §3; research D5 y D12): con
+// cada SKILL.md de skills/ del repositorio —tal cual y con las líneas sangradas
+// de su description empezando por un tabulador— y, por cada uno, el texto de su
+// skill en la variante producto-descripciones-cortas y los de
+// textosQueYAMLCitaOCorta, la description que lee skills.LeerFrontmatter del
+// compuesto es el texto exacto; skills.ValidarFrontmatter, con la raíz del
+// repositorio y los applets que declara el propio frontmatter como registrados,
+// no le da ningún defecto; y el cuerpo de descripcionYCuerpo del compuesto es,
+// byte a byte, el del original. Un SKILL.md sin frontmatter, o sin la clave
+// description en él, es el error de la función, sin contenido.
+func TestConLaDescripcion(t *testing.T) {
+	t.Parallel()
+
+	variante, defectos, err := descripcionesCortas(raizDelRepositorio)
+	require.NoError(t, err)
+	compararLasLineasDeLosDefectos(t, nil, defectos)
+
+	arbol := os.DirFS(filepath.Join(raizDelRepositorio, directorioDeLasSkills))
+
+	for _, skill := range skillsDelArbol(t, raizDelRepositorio) {
+		contenido, err := fs.ReadFile(arbol, path.Join(skill, ficheroDeLaSkillDeLaVariante))
+		require.NoError(t, err)
+
+		// Cada SKILL.md se compone tal cual y con su description sangrada con
+		// tabuladores, que la clasificación también cuenta como de la clave.
+		deLaSkill := []struct {
+			nombre    string
+			contenido string
+		}{
+			{"tal cual", string(contenido)},
+			{"sangrada con tabuladores", conLaDescripcionSangradaConTabuladores(t, string(contenido))},
+		}
+
+		textos := slices.Concat([]textoDeLaComposicion{{"la de la variante", variante[skill]}}, textosQueYAMLCitaOCorta)
+
+		for _, original := range deLaSkill {
+			for _, caso := range textos {
+				t.Run(skill+"/"+original.nombre+"/"+caso.nombre, func(t *testing.T) {
+					t.Parallel()
+
+					require.NotEmpty(t, caso.texto, "el texto de la composición")
+
+					compuesto, err := skillConLaDescripcion([]byte(original.contenido), caso.texto)
+					require.NoError(t, err)
+
+					frontmatter, err := skills.LeerFrontmatter(compuesto)
+					require.NoError(t, err, "el compuesto:\n%s", compuesto)
+					assert.Equal(t, caso.texto, frontmatter.Description, "la description del compuesto:\n%s", compuesto)
+
+					deLaValidacion, err := skills.ValidarFrontmatter(raizDelRepositorio, skill, frontmatter,
+						frontmatter.DeclaracionDeKitlegal().Applets)
+					require.NoError(t, err)
+
+					var lineas []string
+					for _, defecto := range deLaValidacion {
+						lineas = append(lineas, defecto.Error())
+					}
+
+					compararLasLineasDeLosDefectos(t, nil, lineas)
+
+					_, delOriginal := descripcionYCuerpo(original.contenido)
+					_, delCompuesto := descripcionYCuerpo(string(compuesto))
+					assert.Equal(t, delOriginal, delCompuesto, "el cuerpo del compuesto")
+				})
+			}
+		}
+	}
+
+	sinLaClave := []struct {
+		nombre    string
+		contenido string
+	}{
+		{"vacío", ""},
+		{"sin frontmatter", "# Normativa\n\nEl cuerpo.\n"},
+		{"la clave fuera del frontmatter", "name: normativa\ndescription: Consulta el BOE.\n\n# Normativa\n"},
+		{"un frontmatter sin la clave", "---\nname: normativa\n---\n\n# Normativa\n"},
+		{"la clave dentro de metadata", "---\nname: normativa\nmetadata:\n  description: Consulta el BOE.\n---\n"},
+		{"la clave en el cuerpo", "---\nname: normativa\n---\n\ndescription: Consulta el BOE.\n"},
+	}
+
+	for _, caso := range sinLaClave {
+		t.Run("sin la clave/"+caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			compuesto, err := skillConLaDescripcion([]byte(caso.contenido), descripcionCortaDeNormativa)
+			require.ErrorIs(t, err, errSinLaClaveDeLaDescripcion)
+			assert.Nil(t, compuesto)
+		})
+	}
+}
+
+// conLaDescripcionSangradaConTabuladores es el contenido de un SKILL.md con cada
+// línea sangrada de su description, las que siguen a la de la clave, empezando
+// por un tabulador en lugar de por sus espacios.
+func conLaDescripcionSangradaConTabuladores(t *testing.T, contenido string) string {
+	t.Helper()
+
+	descripcion, _ := descripcionYCuerpo(contenido)
+
+	var tabulada strings.Builder
+
+	for linea := range strings.Lines(descripcion) {
+		if strings.HasPrefix(linea, " ") {
+			linea = "\t" + strings.TrimLeft(linea, " ")
+		}
+
+		tabulada.WriteString(linea)
+	}
+
+	require.NotEqual(t, descripcion, tabulada.String(), "la description tiene líneas sangradas")
+
+	return strings.Replace(contenido, descripcion, tabulada.String(), 1)
 }

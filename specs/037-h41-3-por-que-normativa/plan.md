@@ -113,7 +113,7 @@ laboratorio/producto-descripciones-cortas/jurisprudencia.txt        # NUEVO
 laboratorio/producto-descripciones-cortas/normativa.txt             # NUEVO
 laboratorio/producto-descripciones-cortas/plazos-y-territorio.txt   # NUEVO
 internal/skills/frontmatter.go                 # PrimeraEtiquetaXML, que defectosDeLaEtiqueta usa
-internal/evals/laboratorio_descripciones.go    # NUEVO: descripcionesCortas, conLaDescripcion, componerLasDescripciones, límites y carpeta
+internal/evals/laboratorio_descripciones.go    # NUEVO: descripcionesCortas, skillConLaDescripcion, componerLasDescripciones, límites y carpeta
 internal/evals/laboratorio_descripciones_test.go # NUEVO: TestDescripcionesCortas, TestConLaDescripcion
 internal/evals/laboratorio.go                  # la clasificación de las líneas de descripcionYCuerpo, en una función iteradora que comparte con conLaDescripcion
 internal/evals/laboratorio_familias.go         # varianteDelProductoDeNormativa e instalacionConLasDescripcionesCortas, junto a la familia de normativa
@@ -188,8 +188,8 @@ normas y miles de bloques consultados no cambian ninguna—, solo con las filas 
 | `descripcionesCortas` y sus defectos | FR-002, FR-016, SC-001 |
 | `skills.PrimeraEtiquetaXML`, que usa `defectosDeLaEtiqueta` | FR-002 («la definición de ADR 0046, punto 3») |
 | `TestDescripcionesCortas` | FR-002, SC-001 |
-| La clasificación de líneas compartida por `descripcionYCuerpo` y `conLaDescripcion` | FR-011 («cada otro byte») |
-| `conLaDescripcion` con `yaml.Marshal`; `componerLasDescripciones` en `preparar` | FR-010, FR-011 |
+| La clasificación de líneas compartida por `descripcionYCuerpo` y `skillConLaDescripcion` | FR-011 («cada otro byte») |
+| `skillConLaDescripcion` con `yaml.Marshal`; `componerLasDescripciones` en `preparar` | FR-010, FR-011 |
 | `TestConLaDescripcion` | FR-011 (caso límite de los caracteres que YAML cita), SC-002 |
 | `varianteDelProductoDeNormativa`, `instalacionConLasDescripcionesCortas` y sus reglas en `errorDeLaInstalacion` | FR-010, FR-016 |
 | `comprobar` con la raíz; la variante, solo leída con el valor nuevo | FR-015, FR-016 |
@@ -270,7 +270,7 @@ cambia; su veredicto lo deciden sus series (ADR 0016), configuración que el hit
 | Desviación | Por qué hace falta | Alternativa más simple rechazada y por qué |
 |---|---|---|
 | `internal/skills` exporta `PrimeraEtiquetaXML` para un uso del laboratorio | FR-002 pide la definición de etiqueta XML de ADR 0046, punto 3, que es una sola expresión en `internal/skills` (research D4) | Copiarla en `internal/evals`: dos definiciones que pueden divergir |
-| `descripcionYCuerpo` pasa a usar una clasificación de líneas compartida | FR-011: lo que no es la `description` tiene que ser lo mismo para la composición y para el test que la compara; los tests de H39 que la usan siguen en verde sin cambiar (research D5) | Una segunda clasificación en `conLaDescripcion`: puede divergir de la que mide el test |
+| `descripcionYCuerpo` pasa a usar una clasificación de líneas compartida | FR-011: lo que no es la `description` tiene que ser lo mismo para la composición y para el test que la compara; los tests de H39 que la usan siguen en verde sin cambiar (research D5) | Una segunda clasificación en `skillConLaDescripcion`: puede divergir de la que mide el test |
 | `TestRecetasDelSondeo` y `TestGuionDelLaboratorio` cambian sus valores esperados | FR-013 pide un argumento más, que cambia la orden de la receta y el número de argumentos del guion (research D7) | Tomar el presupuesto del entorno de quien lanza: es lo que FR-014 prohíbe |
 | El sustituto de `claude` anota también su entorno | FR-018 pide el sustituto «que anota sus invocaciones y su entorno»; las anotaciones de hoy se leen por su prefijo y no cambian (research D13) | Un test unitario de la función del entorno: no ve lo que llega a la sesión |
 | La instalación y el presupuesto solo entran en la clave de la fila con la constancia | FR-022 (la tabla de hoy byte a byte) con FR-021 y US3 (el orden `sola`, `control`, `diagnóstico`, `remedio`) (research D10) | Llenarlos siempre: la instalación deducida pondría `normativa` antes que las cuatro y cambiaría la tabla congelada de H41.2 |

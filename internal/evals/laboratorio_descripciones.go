@@ -1,11 +1,15 @@
 package evals
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"unicode/utf8"
+
+	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
@@ -121,6 +125,49 @@ func descripcionesCortas(raiz string) (map[string]string, []string, error) {
 	}
 
 	return textos, defectos, nil
+}
+
+// errSinLaClaveDeLaDescripcion es el error de componer un SKILL.md sin
+// frontmatter, o sin la clave description en él: no hay líneas en cuyo sitio
+// poner el texto. Es un defecto inesperado (ADR 0023), porque las skills de
+// skills/ pasan la comprobación de su forma.
+var errSinLaClaveDeLaDescripcion = errors.New("el SKILL.md no tiene frontmatter o no tiene en él la clave " +
+	nombreDeLaClaveDeLaDescripcion)
+
+// skillConLaDescripcion es el contenido de un SKILL.md con el texto como
+// description de su frontmatter (FR-011; contracts/arnes.md §3; data-model §3;
+// research D5): las líneas de la clave, las que lineasDelSkill da como de la
+// description, dejan su sitio a las que da el emisor de YAML para la clave con
+// ese valor, que elige la forma del escalar —plano si puede, entrecomillado si
+// no— con que se lee el texto exacto; todas las demás quedan tal cual y en su
+// orden. El error, sin contenido, es errSinLaClaveDeLaDescripcion o el del
+// emisor.
+func skillConLaDescripcion(contenido []byte, texto string) ([]byte, error) {
+	deLaClave, err := yaml.Marshal(map[string]string{nombreDeLaClaveDeLaDescripcion: texto})
+	if err != nil {
+		return nil, fmt.Errorf("la %s «%s» no se puede escribir en YAML: %w", nombreDeLaClaveDeLaDescripcion, texto, err)
+	}
+
+	var compuesto bytes.Buffer
+
+	sustituida := false
+
+	for linea, deLaDescripcion := range lineasDelSkill(string(contenido)) {
+		switch {
+		case !deLaDescripcion:
+			compuesto.WriteString(linea)
+		case !sustituida:
+			compuesto.Write(deLaClave)
+
+			sustituida = true
+		}
+	}
+
+	if !sustituida {
+		return nil, errSinLaClaveDeLaDescripcion
+	}
+
+	return compuesto.Bytes(), nil
 }
 
 // defectoDeLasDescripcionesCortas es la línea de un defecto de la variante: su
