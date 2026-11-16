@@ -24,7 +24,11 @@ sustituyen a este fichero.
   secretos del equipo (`KITLEGAL_FICHERO_SECRETOS`, por defecto `~/.config/kitlegal/secretos`, fuera del repositorio),
   que lee en cada sesión y vale también al reanudar; las sesiones no heredan las variables con que Claude Code marca
   las órdenes de una sesión que lance el run; y `hito.sh` no arranca si el gancho de pre-commit está instalado y
-  `lefthook` no está en el `PATH`, porque el gancho dejaría pasar los commits sin controles.
+  `lefthook` no está en el `PATH`, porque el gancho dejaría pasar los commits sin controles. El wrapper fija también
+  `CLAUDE_CODE_TMPDIR`: sin él, Claude Code 2.1.325 daba a las órdenes `/tmp/claude-<uid>`, el temporal de todas las
+  sesiones del usuario, y les dejaba escribir en él. Y en Linux las órdenes corren con bash (`CLAUDE_CODE_SHELL`): con
+  zsh, el `exec 3<&- || exit 126` que Claude Code antepone a cada orden sale con 126 si la última sustitución de órdenes
+  de `~/.zshenv` falla dentro del sandbox, y ninguna orden llegaba a ejecutarse.
 
 ## [0.10.0] - 2026-11-16
 

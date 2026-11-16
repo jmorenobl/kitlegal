@@ -180,7 +180,12 @@ esac
 # y los prototipos. El sandbox ya deja escribir en los dos a las órdenes de Bash, así que
 # --add-dir no le abre nada más; el temporal de Claude Code de cada usuario
 # (/tmp/claude-<uid>, con los scratchpads de las demás sesiones) no va, porque sí lo haría.
+# Claude Code 2.1.325 no pone a las órdenes /tmp/claude sino <CLAUDE_CODE_TMPDIR o /tmp>/
+# claude-<uid>, y lo deja escribir: sin CLAUDE_CODE_TMPDIR, el $TMPDIR de una sesión del run
+# era ese /tmp/claude-<uid> de las demás sesiones (delorean, 2026-11-16). Se fija aquí, y el
+# $TMPDIR de las órdenes queda dentro de él.
 del_sandbox="${CLAUDE_CODE_TMPDIR:-${CLAUDE_TMPDIR:-/tmp/claude}}"
+export CLAUDE_CODE_TMPDIR="$del_sandbox"
 mkdir -p "$del_sandbox" 2>/dev/null || true
 temporales=()
 for d in "$temporal" "$del_sandbox"; do
@@ -293,6 +298,17 @@ fi
 "$raiz/scripts/workflow/marcas.sh" </dev/null
 
 export KITLEGAL_PASO_DE_WORKFLOW=1
+# En Linux, las órdenes de Bash corren con bash y no con el shell de quien lanza el run. Allí
+# Claude Code antepone a cada orden `exec 3<&- || exit 126`, para cerrar el descriptor de su
+# ayudante seccomp, y en zsh una orden con solo redirecciones devuelve el estado de la última
+# sustitución de órdenes: si la última `$(…)` de ~/.zshenv falla dentro del sandbox, toda
+# orden sale con 126 sin ejecutarse (delorean, 2026-11-16: `fnm env` no puede escribir en
+# /run/user/<uid>). `bash -c` no lee ficheros de arranque. En macOS no hace falta (Seatbelt
+# no antepone nada) y /bin/bash es la 3.2, que Claude Code rechaza.
+case "$(uname -s)" in
+  Darwin) ;;
+  *) CLAUDE_CODE_SHELL="$(command -v bash)"; export CLAUDE_CODE_SHELL;;
+esac
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
 export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1
 export PATH="$raiz/scripts/workflow/sin-modelo:$PATH"

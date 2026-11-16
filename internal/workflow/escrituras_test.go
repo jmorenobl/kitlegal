@@ -230,12 +230,18 @@ func valoresDe(argumentos []string, bandera string) []string {
 // del equipo, fuera del repositorio: una ruta por línea, absoluta o con «~/»,
 // sin las vacías, los comentarios ni las relativas. Y la sesión no hereda las
 // variables con que Claude Code marca las órdenes de la sesión que lanzó el run.
+// Recibe siempre CLAUDE_CODE_TMPDIR, aunque quien la lanza no lo traiga: sin él,
+// Claude Code 2.1.325 daba a las órdenes /tmp/claude-<uid>, el temporal de todas
+// las sesiones del usuario. Y en Linux sus órdenes corren con bash: con zsh, el
+// `exec 3<&- || exit 126` que Claude Code les antepone sale con 126 si la última
+// sustitución de órdenes de ~/.zshenv falla dentro del sandbox.
 func TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza(t *testing.T) {
 	t.Parallel()
 
 	a := nuevoArbol(t)
 	entorno := filepath.Join(a.fuera, "entorno")
 	fichero := filepath.Join(a.fuera, "secretos")
+	temporal := filepath.Join(a.fuera, "temporal-de-claude")
 	require.NoError(t, os.WriteFile(fichero, []byte("# del equipo\n\n/srv/claves\n~/.secretos-del-test\nrelativa\n"), 0o600))
 
 	heredadas := []string{
@@ -250,6 +256,8 @@ func TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza(t *testin
 			"KITLEGAL_TEST_ENTORNO=" + entorno,
 			"KITLEGAL_FICHERO_SECRETOS=" + fichero,
 			"KITLEGAL_SECRETOS=/srv/de-la-variable",
+			// Quien lanza no trae CLAUDE_CODE_TMPDIR; sí la variable antigua.
+			"CLAUDE_CODE_TMPDIR=", "CLAUDE_TMPDIR=" + temporal,
 		}, heredadas...),
 	})
 	require.Zero(t, salida.codigo, "la sesión se abre: %s", salida.errores)
@@ -282,11 +290,20 @@ func TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza(t *testin
 	recibido, err := os.ReadFile(entorno) //nolint:gosec // el fichero que el claude sustituto del test escribe en su temporal.
 	require.NoError(t, err)
 
+	recibidas := map[string]string{}
+
 	for variable := range strings.Lines(string(recibido)) {
-		nombre, _, _ := strings.Cut(strings.TrimSuffix(variable, "\n"), "=")
+		nombre, valor, _ := strings.Cut(strings.TrimSuffix(variable, "\n"), "=")
+		recibidas[nombre] = valor
 		for _, heredada := range heredadas {
 			de, _, _ := strings.Cut(heredada, "=")
 			assert.NotEqual(t, de, nombre, "la sesión del paso no hereda %s de la sesión que lanza el run", de)
 		}
+	}
+
+	assert.Equal(t, temporal, recibidas["CLAUDE_CODE_TMPDIR"], "la sesión recibe el temporal que el wrapper le abre con --add-dir")
+
+	if runtime.GOOS == "linux" {
+		assert.Equal(t, "bash", filepath.Base(recibidas["CLAUDE_CODE_SHELL"]), "en Linux, las órdenes corren con bash")
 	}
 }
