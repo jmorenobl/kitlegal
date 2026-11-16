@@ -2305,6 +2305,30 @@ func TestArnesConLasDescripcionesCortas(t *testing.T) {
 	remedio := invocacionDeUnaEval("el-remedio", "normativa-producto", skillDeNormativaDelTest,
 		"04-lgt-prescripcion.yaml", 2, instalacionConLasDescripcionesCortasDelTest)
 
+	t.Run("con-una-skill-que-no-se-puede-componer", func(t *testing.T) {
+		t.Parallel()
+
+		arnes := nuevoArnesDelTest(t, remedio.caso.argumentos, "")
+
+		// La raíz de prueba lleva además las evals del repositorio, que el arnés
+		// lee antes de preparar las copias.
+		arnes.sondeo.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+		require.NoError(t, os.CopyFS(filepath.Join(arnes.sondeo.Raiz, "evals"),
+			os.DirFS(filepath.Join(raizDelRepositorio, "evals"))))
+		require.NoError(t, os.WriteFile(filepath.Join(arnes.sondeo.Raiz, "skills", skillDeJurisprudenciaDelTest,
+			"SKILL.md"), []byte("---\nname: "+skillDeJurisprudenciaDelTest+"\n---\n\n# Sin la clave\n"), 0o600))
+
+		salida, err := sondearElLaboratorio(t.Context().Done(), arnes.sondeo)
+		require.ErrorIs(t, err, errSinLaClaveDeLaDescripcion)
+		require.ErrorContains(t, err, filepath.Join(skillDeJurisprudenciaDelTest, "SKILL.md")+" no se puede componer")
+		assert.Empty(t, salida)
+
+		var uso *errorDeUso
+		assert.NotErrorAs(t, err, &uso, "una skill que no se puede componer no es un error de uso")
+
+		assert.Empty(t, arnes.claude.sesiones(t), "no se abre ninguna sesión")
+	})
+
 	t.Run(remedio.caso.nombre, func(t *testing.T) {
 		t.Parallel()
 

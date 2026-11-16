@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -210,6 +211,181 @@ func TestDescripcionesCortas(t *testing.T) {
 			assert.Nil(t, defectos)
 		})
 	}
+}
+
+// TestDescripcionesCortasPorLaEstructura comprueba lo que descripcionesCortas
+// hace con una entrada que no es lo que su nombre dice (contracts/variante.md
+// §3; research D3): un fichero suelto en skills/ no es una skill, así que ni se
+// le exige descripción ni da texto; y un <skill>.txt que es una carpeta no se
+// puede leer, que es el error de la función, sin textos ni defectos, y no un
+// defecto de la variante (ADR 0023).
+func TestDescripcionesCortasPorLaEstructura(t *testing.T) {
+	t.Parallel()
+
+	t.Run("un fichero suelto en skills/", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := montarElArbolDeLasDescripciones(t, lasCuatroSkills, cuatroDe(1, 2, 3, 4))
+		require.NoError(t, os.WriteFile(filepath.Join(raiz, directorioDeLasSkills, "LEEME.md"), []byte("# Skills\n"), 0o600))
+
+		textos, defectos, err := descripcionesCortas(raiz)
+		require.NoError(t, err)
+
+		compararLasLineasDeLosDefectos(t, nil, defectos)
+		assert.Equal(t, lasCuatroSkills, slices.Sorted(maps.Keys(textos)), "solo las carpetas de skills/ son skills")
+	})
+
+	t.Run("un txt que es una carpeta", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := montarElArbolDeLasDescripciones(t, lasCuatroSkills, sinLaEntrada(cuatroDe(1, 2, 3, 4), "normativa.txt"))
+		require.NoError(t, os.Mkdir(filepath.Join(raiz, filepath.FromSlash(carpetaDeLasDescripcionesCortas),
+			"normativa.txt"), 0o750))
+
+		textos, defectos, err := descripcionesCortas(raiz)
+		require.ErrorIs(t, err, syscall.EISDIR)
+		require.ErrorContains(t, err, "el texto de la variante producto-descripciones-cortas no se puede leer")
+		assert.Nil(t, textos)
+		assert.Nil(t, defectos)
+	})
+}
+
+// skillDePruebaDeLaComposicion es un SKILL.md mínimo con la clave description
+// en su frontmatter, el de las copias de TestComponerLasDescripciones.
+const skillDePruebaDeLaComposicion = "---\nname: prueba\ndescription: La de antes.\n---\n\n# Prueba\n"
+
+// TestComponerLasDescripciones comprueba la composición de la copia de las
+// skills de una variante (FR-011; contracts/arnes.md §3; research D5), sobre
+// copias montadas en un temporal: con un texto por skill, cada SKILL.md queda
+// con el suyo como description y con su cuerpo; y una copia que no existe, una
+// skill sin texto, una sin SKILL.md y un SKILL.md sin la clave description son
+// el error de la función, que nombra lo que no se pudo hacer, y el SKILL.md que
+// no se pudo componer queda como estaba.
+func TestComponerLasDescripciones(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre    string
+		comprobar func(t *testing.T)
+	}{
+		{"con un texto por skill", componerConUnTextoPorSkill},
+		{"una copia que no existe", componerUnaCopiaQueNoExiste},
+		{"una skill sin texto", componerUnaSkillSinTexto},
+		{"una skill sin SKILL.md", componerUnaSkillSinFichero},
+		{"un SKILL.md sin la clave", componerUnSkillSinLaClave},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.comprobar(t)
+		})
+	}
+}
+
+// montarLaCopiaDeLaComposicion monta en un temporal la copia de las skills de
+// una variante, con una carpeta por nombre y en cada una el SKILL.md de ese
+// contenido, o ninguno si el contenido es vacío; devuelve su ruta.
+func montarLaCopiaDeLaComposicion(t *testing.T, contenidos map[string]string) string {
+	t.Helper()
+
+	copia := t.TempDir()
+
+	for skill, contenido := range contenidos {
+		require.NoError(t, os.Mkdir(filepath.Join(copia, skill), 0o750))
+
+		if contenido != "" {
+			require.NoError(t, os.WriteFile(filepath.Join(copia, skill, ficheroDeLaSkillDeLaVariante),
+				[]byte(contenido), 0o600))
+		}
+	}
+
+	return copia
+}
+
+// skillDeLaCopia es el contenido del SKILL.md de esa skill de la copia.
+func skillDeLaCopia(t *testing.T, copia, skill string) string {
+	t.Helper()
+
+	contenido, err := leerFichero(filepath.Join(copia, skill, ficheroDeLaSkillDeLaVariante))
+	require.NoError(t, err)
+
+	return string(contenido)
+}
+
+func componerConUnTextoPorSkill(t *testing.T) {
+	t.Helper()
+
+	copia := montarLaCopiaDeLaComposicion(t, map[string]string{
+		"primera": skillDePruebaDeLaComposicion, "segunda": skillDePruebaDeLaComposicion,
+	})
+	textos := map[string]string{"primera": "La primera: con dos puntos.", "segunda": "La segunda."}
+
+	require.NoError(t, componerLasDescripciones(copia, textos))
+
+	_, cuerpo := descripcionYCuerpo(skillDePruebaDeLaComposicion)
+
+	for skill, texto := range textos {
+		compuesto := skillDeLaCopia(t, copia, skill)
+
+		frontmatter, err := skills.LeerFrontmatter([]byte(compuesto))
+		require.NoError(t, err, "el compuesto de %s:\n%s", skill, compuesto)
+		assert.Equal(t, texto, frontmatter.Description, "la description de %s", skill)
+
+		_, delCompuesto := descripcionYCuerpo(compuesto)
+		assert.Equal(t, cuerpo, delCompuesto, "el cuerpo de %s", skill)
+	}
+}
+
+func componerUnaCopiaQueNoExiste(t *testing.T) {
+	t.Helper()
+
+	copia := filepath.Join(t.TempDir(), "sin-copiar")
+
+	err := componerLasDescripciones(copia, map[string]string{"primera": "La primera."})
+	require.ErrorIs(t, err, fs.ErrNotExist)
+	require.ErrorContains(t, err, "las skills de la copia "+copia+" no se pueden leer")
+}
+
+func componerUnaSkillSinTexto(t *testing.T) {
+	t.Helper()
+
+	copia := montarLaCopiaDeLaComposicion(t, map[string]string{
+		"primera": skillDePruebaDeLaComposicion, "segunda": skillDePruebaDeLaComposicion,
+	})
+
+	err := componerLasDescripciones(copia, map[string]string{"primera": "La primera."})
+	require.EqualError(t, err, "la skill segunda de la copia "+copia+" no tiene descripción en "+
+		"laboratorio/producto-descripciones-cortas")
+	assert.Equal(t, skillDePruebaDeLaComposicion, skillDeLaCopia(t, copia, "segunda"),
+		"el SKILL.md de la skill sin texto queda como estaba")
+}
+
+func componerUnaSkillSinFichero(t *testing.T) {
+	t.Helper()
+
+	copia := montarLaCopiaDeLaComposicion(t, map[string]string{"primera": ""})
+
+	err := componerLasDescripciones(copia, map[string]string{"primera": "La primera."})
+	require.ErrorIs(t, err, fs.ErrNotExist)
+	require.ErrorContains(t, err, "el SKILL.md "+filepath.Join(copia, "primera", ficheroDeLaSkillDeLaVariante)+
+		" no se puede leer")
+	assert.NoFileExists(t, filepath.Join(copia, "primera", ficheroDeLaSkillDeLaVariante), "no se escribe el que no había")
+}
+
+func componerUnSkillSinLaClave(t *testing.T) {
+	t.Helper()
+
+	const sinLaClave = "---\nname: prueba\n---\n\n# Prueba\n"
+
+	copia := montarLaCopiaDeLaComposicion(t, map[string]string{"primera": sinLaClave})
+
+	err := componerLasDescripciones(copia, map[string]string{"primera": "La primera."})
+	require.ErrorIs(t, err, errSinLaClaveDeLaDescripcion)
+	require.ErrorContains(t, err, "el SKILL.md "+filepath.Join(copia, "primera", ficheroDeLaSkillDeLaVariante)+
+		" no se puede componer")
+	assert.Equal(t, sinLaClave, skillDeLaCopia(t, copia, "primera"), "el SKILL.md que no se compone queda como estaba")
 }
 
 // compararLasLineasDeLosDefectos falla con la primera línea de los defectos
