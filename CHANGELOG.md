@@ -12,6 +12,16 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Las sesiones del workflow `hito` no leen la sesión de la suscripción en Linux, y `scripts/hito.sh` comprueba que
+  su sandbox arranca** (workflow `hito` 2.12.2; ADR 0032). En Linux Claude Code guarda el token OAuth de la
+  suscripción en `.credentials.json`, dentro de su directorio, y no en un llavero como en macOS: el wrapper lo veda a
+  toda orden de Bash del sandbox y a `Read`. Y en Ubuntu 24.04 y posteriores el perfil de AppArmor
+  `bwrap-userns-restrict` niega toda capacidad a lo que ejecuta bubblewrap, y el filtro seccomp del sandbox, que crea
+  un user namespace anidado, hacía fallar cada orden de Bash de una sesión ya abierta: `hito.sh` lo prueba antes de
+  tomar el candado, sin modelo y sin red, y no arranca si falla.
+
 ## [0.10.0] - 2026-11-16
 
 ### Añadido

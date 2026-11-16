@@ -245,3 +245,15 @@ esperar_indice() { # $1 = segundos
     restante=$((restante - 1))
   done
 }
+
+# ¿Arranca en este equipo el sandbox de Claude Code en Linux? Toda orden de Bash de una
+# sesión corre en bubblewrap, y dentro de él Claude Code aplica su filtro seccomp con un
+# user namespace anidado que necesita CAP_SYS_ADMIN. En Ubuntu 24.04 y posteriores el
+# perfil de AppArmor `bwrap-userns-restrict` pasa lo que bwrap ejecuta a `unpriv_bwrap`,
+# que niega toda capacidad: tener bwrap y socat no basta, la sesión se abre y cada orden
+# sale con «apply-seccomp: write /proc/self/setgroups … Permission denied» (delorean,
+# 2026-11-16). La sonda hace lo mismo sin modelo: un namespace de usuario dentro de bwrap,
+# sin red, que se hace root en él.
+sandbox_anidado_disponible() {
+  bwrap --ro-bind / / --dev /dev --proc /proc --unshare-user --unshare-net -- unshare -U -r true >/dev/null 2>&1
+}

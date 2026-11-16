@@ -66,6 +66,7 @@ func TestLaSesionDeUnPasoSoloEscribeDondeDebe(t *testing.T) {
 		Sandbox struct {
 			Filesystem struct {
 				DenyWrite []string `json:"denyWrite"`
+				DenyRead  []string `json:"denyRead"`
 			} `json:"filesystem"`
 		} `json:"sandbox"`
 	}
@@ -76,6 +77,10 @@ func TestLaSesionDeUnPasoSoloEscribeDondeDebe(t *testing.T) {
 	assert.True(t, *ajustes.Permissions.BlockWritesOutsideWorkingDirectories, "Write, Edit y NotebookEdit no salen de los directorios de trabajo")
 	assert.Contains(t, ajustes.Permissions.Deny, "Edit(/"+a.config+"/**)", "el directorio de Claude Code, vedado a Write y Edit")
 	assert.Contains(t, ajustes.Sandbox.Filesystem.DenyWrite, a.config+"/projects", "el de sus proyectos, vedado a toda orden de Bash")
+	// Donde no hay llavero, como en Linux, Claude Code guarda el token de la
+	// suscripción en un fichero de su directorio: ni una orden de Bash ni Read lo leen.
+	assert.Contains(t, ajustes.Sandbox.Filesystem.DenyRead, a.config+"/.credentials.json", "la sesión de la suscripción, vedada a toda orden de Bash")
+	assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+a.config+"/.credentials.json)", "y a Read")
 
 	delSandboxReal, err := filepath.EvalSymlinks(delSandbox)
 	require.NoError(t, err, "el wrapper crea el temporal del sandbox si no existe")

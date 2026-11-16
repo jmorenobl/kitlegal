@@ -314,8 +314,9 @@ comprobar_credenciales() {
 #   · ningún directorio adicional en los settings que leen las sesiones del run
 #     (el del proyecto y el de la cuenta; .claude/settings.local.json no lo leen):
 #     el sandbox de las sesiones los abriría a la escritura;
-#   · el sandbox está disponible, y la política de las sesiones deniega lo que
-#     tiene que denegar.
+#   · el sandbox está disponible —en Linux, con una sonda que hace lo que hace su
+#     filtro seccomp (sandbox_anidado_disponible)—, y la política de las sesiones
+#     deniega lo que tiene que denegar.
 comprobar_entorno() {
   local v f
   for v in CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN; do
@@ -336,7 +337,10 @@ comprobar_entorno() {
     Darwin) command -v sandbox-exec >/dev/null 2>&1 \
       || { log "no encuentro sandbox-exec: las sesiones del run corren en el sandbox de Claude Code y no arrancarían"; exit 1; };;
     *) { command -v bwrap >/dev/null 2>&1 && command -v socat >/dev/null 2>&1; } \
-      || { log "faltan bwrap o socat: las sesiones del run corren en el sandbox de Claude Code y no arrancarían"; exit 1; };;
+      || { log "faltan bwrap o socat: las sesiones del run corren en el sandbox de Claude Code y no arrancarían"; exit 1; }
+      . scripts/workflow/comun.sh
+      sandbox_anidado_disponible \
+        || { log "bwrap no puede crear un user namespace anidado (sysctl kernel.apparmor_restrict_unprivileged_userns: $(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo '?')): toda orden de Bash de una sesión del run fallaría en el filtro seccomp del sandbox. En Ubuntu, deja a /usr/bin/bwrap sin confinar con un perfil de AppArmor (docs/WORKFLOW.md, «Lo que una sesión de un paso no puede hacer»)"; exit 1; };;
   esac
   scripts/workflow/politica-paso.sh prueba >/dev/null \
     || { log "la política de las sesiones del run no deniega lo que debe (scripts/workflow/politica-paso.sh prueba)"; exit 1; }

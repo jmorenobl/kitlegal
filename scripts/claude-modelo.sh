@@ -95,7 +95,10 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #         /tmp ni el resto del equipo;
 #       – lectura: todo menos los directorios con secretos: ~/.config/kitlegal,
 #         ~/.config/gh, ~/.ssh y los de KITLEGAL_SECRETOS (rutas absolutas separadas
-#         por «:»). Una regla `deny` de Read sola no basta: no cubre un `cat`.
+#         por «:»), y el fichero en que Claude Code guarda la sesión de la suscripción
+#         donde no hay llavero, como en Linux (.credentials.json de su directorio, con
+#         el token OAuth; en macOS vive en el llavero del sistema). Una regla `deny`
+#         de Read sola no basta: no cubre un `cat`.
 #   · Las mismas rutas, denegadas a la herramienta Read, que no pasa por el sandbox.
 #   · Write, Edit y NotebookEdit, que tampoco pasan por el sandbox, solo escriben en el
 #     repositorio y en los directorios temporales que el sandbox deja escribir: los cierra
@@ -201,6 +204,7 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
   --arg configuracion "${configuracion%/}" --arg marcas "$raiz/scripts/workflow/marcas.sh" '
   ([$home + "/.config/kitlegal", $home + "/.config/gh", $home + "/.ssh"]
     + ($secretos | split(":") | map(select(startswith("/"))))) as $vedados
+  | [$configuracion + "/.credentials.json"] as $ficheros_vedados
   | {
       sandbox: {
         enabled: true,
@@ -211,7 +215,7 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
         filesystem: {
           allowWrite: ([$temporal, $gocache, $gomodcache, $gosumdb, $gotelemetria, $golangci] | map(select(startswith("/")))),
           denyWrite: [$configuracion + "/projects"],
-          denyRead: $vedados
+          denyRead: ($vedados + $ficheros_vedados)
         },
         network: {
           allowedDomains: ["proxy.golang.org", "sum.golang.org", "vuln.go.dev"],
@@ -220,7 +224,8 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
       },
       permissions: {
         blockWritesOutsideWorkingDirectories: true,
-        deny: (($vedados | map("Read(/" + . + "/**)")) + ["Edit(/" + $configuracion + "/**)"])
+        deny: (($vedados | map("Read(/" + . + "/**)")) + ($ficheros_vedados | map("Read(/" + . + ")"))
+          + ["Edit(/" + $configuracion + "/**)"])
       },
       enabledPlugins: $plugins,
       syncClaudeAiSkills: false,
