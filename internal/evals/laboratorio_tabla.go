@@ -974,10 +974,11 @@ func (c *contadorDelLaboratorio) documento() string {
 
 // compararClaves ordena dos claves de fila por variante, modo, modelo, versión,
 // instalación, presupuesto y skills instaladas, en ese orden (contracts/tabla.md
-// §3 de H41.2 y de este hito; research D10): el presupuesto vacío, 0, antes que
-// cualquier valor, y los valores de menor a mayor. Sin la constancia de la
-// instalación, la instalación y el presupuesto de todas las claves van vacíos y
-// el orden es el de H41.2.
+// §3 de H41.2 y de este hito; research D10): los presupuestos, de menor a mayor,
+// con lo que el vacío, 0, va antes que cualquier valor, que el arnés solo
+// escribe mayor que 0 (FR-013). Sin la constancia de la instalación, la
+// instalación y el presupuesto de todas las claves van vacíos y el orden es el
+// de H41.2.
 func compararClaves(a, b claveDeFila) int {
 	if a.variante != b.variante {
 		return a.variante - b.variante
@@ -1000,25 +1001,10 @@ func compararClaves(a, b claveDeFila) int {
 	}
 
 	if a.presupuesto != b.presupuesto {
-		return compararPresupuestos(a.presupuesto, b.presupuesto)
+		return cmp.Compare(a.presupuesto, b.presupuesto)
 	}
 
 	return strings.Compare(a.instaladas, b.instaladas)
-}
-
-// compararPresupuestos ordena los presupuestos de dos filas: el vacío, 0, antes
-// que cualquier valor, y los valores de menor a mayor (contracts/tabla.md §3).
-func compararPresupuestos(a, b int) int {
-	switch {
-	case a == b:
-		return 0
-	case a == 0:
-		return -1
-	case b == 0:
-		return 1
-	default:
-		return cmp.Compare(a, b)
-	}
 }
 
 // lineaDeLaFila es la línea de la tabla de una fila (contracts/tabla.md §3 de
