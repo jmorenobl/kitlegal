@@ -437,6 +437,12 @@ linters:
         # «Resolucion de adjudicacion», parte de la otra ruta larga de la misma
         # tabla, la que se recorta; misspell lo lee como «resolution».
         - resolucion
+        # «Secretos», en KITLEGAL_SECRETOS y KITLEGAL_FICHERO_SECRETOS, las
+        # variables con que scripts/claude-modelo.sh veda a las sesiones del run
+        # los directorios con secretos del equipo, que nombran los tests de
+        # internal/workflow/escrituras_test.go (ADR 0032; workflow 2.12.2);
+        # misspell lo lee como «secrets».
+        - secretos
         # «Variantes toleradas», el subtest aviso-con-variantes-toleradas de
         # TestJuzgar, en internal/evals/juzgar_test.go, cuyo nombre fijan el
         # inventario de tests del plan y la guía de validación de H5.1 (FR-035,

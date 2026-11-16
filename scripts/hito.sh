@@ -340,8 +340,16 @@ comprobar_entorno() {
       || { log "faltan bwrap o socat: las sesiones del run corren en el sandbox de Claude Code y no arrancarían"; exit 1; }
       . scripts/workflow/comun.sh
       sandbox_anidado_disponible \
-        || { log "bwrap no puede crear un user namespace anidado (sysctl kernel.apparmor_restrict_unprivileged_userns: $(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo '?')): toda orden de Bash de una sesión del run fallaría en el filtro seccomp del sandbox. En Ubuntu, deja a /usr/bin/bwrap sin confinar con un perfil de AppArmor (docs/WORKFLOW.md, «Lo que una sesión de un paso no puede hacer»)"; exit 1; };;
+        || { log "bwrap no puede crear un user namespace anidado con capacidades: toda orden de Bash de una sesión del run fallaría en el filtro seccomp del sandbox. Puede deberse a AppArmor (sysctl kernel.apparmor_restrict_unprivileged_userns: $(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null || echo '?'); en Ubuntu, el perfil bwrap-userns-restrict): docs/WORKFLOW.md, «Lo que una sesión de un paso no puede hacer»"; exit 1; };;
   esac
+  # Los commits del run pasan el gancho de pre-commit, con `make secrets` dentro. Sin
+  # lefthook en el PATH el gancho de git dice «Can't find lefthook in PATH» y deja pasar
+  # el commit sin controles (delorean, 2026-11-16): su último recurso es `go tool lefthook`
+  # sin el -modfile con que lo fija el repositorio.
+  if [ -f "$(git rev-parse --git-path hooks/pre-commit)" ] && ! lefthook -h >/dev/null 2>&1 \
+    && ! { [ -n "${LEFTHOOK_BIN:-}" ] && "$LEFTHOOK_BIN" -h >/dev/null 2>&1; }; then
+    log "el gancho de pre-commit está instalado pero no encuentra lefthook: los commits del run pasarían sin make secrets. Pon en el PATH la versión de tools/lefthook/go.mod (go build -modfile=tools/lefthook/go.mod -o <dir del PATH>/lefthook github.com/evilmartians/lefthook)"; exit 1
+  fi
   scripts/workflow/politica-paso.sh prueba >/dev/null \
     || { log "la política de las sesiones del run no deniega lo que debe (scripts/workflow/politica-paso.sh prueba)"; exit 1; }
 }

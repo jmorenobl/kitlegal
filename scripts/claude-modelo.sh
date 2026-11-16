@@ -73,6 +73,12 @@ done
 # dejaba sesiones que ninguno de los dos scripts reconocía. Se fija aquí para que
 # el transcript diga lo mismo se lance el hito desde donde se lance.
 export CLAUDE_CODE_ENTRYPOINT=sdk-cli
+# Por la misma razón, la sesión no hereda las variables con que Claude Code marca sus
+# propias órdenes: un hito lanzado desde una sesión interactiva pasaría a cada paso el
+# socket y el token de mensajería, el id y el esfuerzo de esa sesión (delorean,
+# 2026-11-16). La sesión del paso fija las suyas al arrancar.
+unset CLAUDECODE CLAUDE_CODE_CHILD_SESSION CLAUDE_CODE_EXECPATH CLAUDE_CODE_MESSAGING_SOCKET \
+  CLAUDE_CODE_MESSAGING_TOKEN CLAUDE_CODE_SESSION_ATTENDED CLAUDE_CODE_SESSION_ID CLAUDE_EFFORT CLAUDE_PID
 
 # Lo que una sesión de un paso no puede hacer lo impide algo que no es su prompt
 # (ADR 0032; docs/WORKFLOW.md «Lo que una sesión de un paso no puede hacer»). En H7.4
@@ -94,8 +100,13 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #         compilación, la de módulos y la de la base de sumas— y de golangci-lint. Ni
 #         /tmp ni el resto del equipo;
 #       – lectura: todo menos los directorios con secretos: ~/.config/kitlegal,
-#         ~/.config/gh, ~/.ssh y los de KITLEGAL_SECRETOS (rutas absolutas separadas
-#         por «:»), y el fichero en que Claude Code guarda la sesión de la suscripción
+#         ~/.config/gh, ~/.ssh, los de KITLEGAL_SECRETOS (rutas absolutas separadas
+#         por «:») y los del fichero de secretos del equipo (KITLEGAL_FICHERO_SECRETOS,
+#         por defecto ~/.config/kitlegal/secretos: una ruta por línea, absoluta o con
+#         «~/» delante; las vacías y las que empiezan por «#» no cuentan). Vive fuera del
+#         repositorio, que es público, y dentro de un directorio vedado; y lo lee el
+#         wrapper en cada sesión, así que vale también al reanudar. Cada ruta puede ser un
+#         directorio o un fichero, como un historial del shell. Y el fichero en que Claude Code guarda la sesión de la suscripción
 #         donde no hay llavero, como en Linux (.credentials.json de su directorio, con
 #         el token OAuth; en macOS vive en el llavero del sistema). Una regla `deny`
 #         de Read sola no basta: no cubre un `cat`.
@@ -197,7 +208,17 @@ if [ ${#de_ajustes[@]} -gt 0 ]; then
     "${de_ajustes[@]}")" \
     || { echo "claude-modelo: no se han podido leer los plugins activados en los ajustes de usuario y de proyecto" >&2; exit 2; }
 fi
-ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home "$HOME" --arg secretos "${KITLEGAL_SECRETOS:-}" \
+# Los directorios con secretos de este equipo, del fichero de arriba, detrás de los de
+# KITLEGAL_SECRETOS.
+secretos="${KITLEGAL_SECRETOS:-}"
+fichero_secretos="${KITLEGAL_FICHERO_SECRETOS:-$HOME/.config/kitlegal/secretos}"
+if [ -f "$fichero_secretos" ]; then
+  while IFS= read -r linea || [ -n "$linea" ]; do
+    case "$linea" in ''|'#'*) continue;; '~/'*) linea="$HOME/${linea#\~/}";; esac
+    secretos="${secretos:+$secretos:}$linea"
+  done < "$fichero_secretos"
+fi
+ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home "$HOME" --arg secretos "$secretos" \
   --arg gocache "$(go env GOCACHE 2>/dev/null || true)" --arg gomodcache "$(go env GOMODCACHE 2>/dev/null || true)" \
   --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" --arg gosumdb "$gosumdb" \
   --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" \
@@ -224,7 +245,7 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
       },
       permissions: {
         blockWritesOutsideWorkingDirectories: true,
-        deny: (($vedados | map("Read(/" + . + "/**)")) + ($ficheros_vedados | map("Read(/" + . + ")"))
+        deny: (($vedados | map("Read(/" + . + "/**)", "Read(/" + . + ")")) + ($ficheros_vedados | map("Read(/" + . + ")"))
           + ["Edit(/" + $configuracion + "/**)"])
       },
       enabledPlugins: $plugins,

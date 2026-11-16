@@ -36,7 +36,7 @@ PATH="$PWD/bin:$PATH" sandbox_anidado_disponible
 
 	argumentos := a.leer("argumentos-de-bwrap")
 
-	for _, pedido := range []string{"--unshare-user", "--unshare-net", "-- unshare -U -r true"} {
+	for _, pedido := range []string{"--unshare-user", "--unshare-net", "-- unshare -U -r --mount --pid --fork --mount-proc true"} {
 		assert.Contains(t, strings.TrimSpace(argumentos), pedido, "la sonda pide a bwrap lo que necesita el filtro seccomp")
 	}
 

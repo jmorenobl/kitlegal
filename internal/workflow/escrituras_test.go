@@ -222,3 +222,71 @@ func valoresDe(argumentos []string, bandera string) []string {
 
 	return valores
 }
+
+// TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza: en
+// delorean (2026-11-16) una sesión del run podía leer ~/.secrets y otras
+// credenciales que el wrapper no conocía, y KITLEGAL_SECRETOS, pasada a mano,
+// se pierde al reanudar. El wrapper lee en cada sesión el fichero de secretos
+// del equipo, fuera del repositorio: una ruta por línea, absoluta o con «~/»,
+// sin las vacías, los comentarios ni las relativas. Y la sesión no hereda las
+// variables con que Claude Code marca las órdenes de la sesión que lanzó el run.
+func TestLaSesionDeUnPasoVedaLosSecretosDelEquipoYNoHeredaLaQueLaLanza(t *testing.T) {
+	t.Parallel()
+
+	a := nuevoArbol(t)
+	entorno := filepath.Join(a.fuera, "entorno")
+	fichero := filepath.Join(a.fuera, "secretos")
+	require.NoError(t, os.WriteFile(fichero, []byte("# del equipo\n\n/srv/claves\n~/.secretos-del-test\nrelativa\n"), 0o600))
+
+	heredadas := []string{
+		"CLAUDECODE=1", "CLAUDE_CODE_CHILD_SESSION=1", "CLAUDE_CODE_EXECPATH=/x/claude",
+		"CLAUDE_CODE_MESSAGING_SOCKET=/x/socket", "CLAUDE_CODE_MESSAGING_TOKEN=testigo",
+		"CLAUDE_CODE_SESSION_ATTENDED=1", "CLAUDE_CODE_SESSION_ID=interactiva", "CLAUDE_EFFORT=max", "CLAUDE_PID=1",
+	}
+
+	salida, argumentos := a.abrirSesion(sesionDelTest{
+		modelo: modeloDelJuezA + "#juez_spec:modelo_juez",
+		variables: append([]string{
+			"KITLEGAL_TEST_ENTORNO=" + entorno,
+			"KITLEGAL_FICHERO_SECRETOS=" + fichero,
+			"KITLEGAL_SECRETOS=/srv/de-la-variable",
+		}, heredadas...),
+	})
+	require.Zero(t, salida.codigo, "la sesión se abre: %s", salida.errores)
+
+	var ajustes struct {
+		Permissions struct {
+			Deny []string `json:"deny"`
+		} `json:"permissions"`
+		Sandbox struct {
+			Filesystem struct {
+				DenyRead []string `json:"denyRead"`
+			} `json:"filesystem"`
+		} `json:"sandbox"`
+	}
+
+	require.NoError(t, json.Unmarshal([]byte(valorDe(argumentos, "--settings")), &ajustes))
+
+	casa := os.Getenv("HOME")
+	for _, vedado := range []string{"/srv/de-la-variable", "/srv/claves", casa + "/.secretos-del-test"} {
+		assert.Contains(t, ajustes.Sandbox.Filesystem.DenyRead, vedado, "vedado a toda orden de Bash")
+		assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+vedado+"/**)", "y a Read, si es un directorio")
+		assert.Contains(t, ajustes.Permissions.Deny, "Read(/"+vedado+")", "y si es un fichero")
+	}
+
+	for _, vedado := range ajustes.Sandbox.Filesystem.DenyRead {
+		assert.NotContains(t, vedado, "relativa", "una ruta relativa no se veda: no se sabe de dónde")
+		assert.NotContains(t, vedado, "#", "un comentario no es una ruta")
+	}
+
+	recibido, err := os.ReadFile(entorno) //nolint:gosec // el fichero que el claude sustituto del test escribe en su temporal.
+	require.NoError(t, err)
+
+	for variable := range strings.Lines(string(recibido)) {
+		nombre, _, _ := strings.Cut(strings.TrimSuffix(variable, "\n"), "=")
+		for _, heredada := range heredadas {
+			de, _, _ := strings.Cut(heredada, "=")
+			assert.NotEqual(t, de, nombre, "la sesión del paso no hereda %s de la sesión que lanza el run", de)
+		}
+	}
+}
