@@ -2,6 +2,7 @@
   "tarea": "T001",
   "commit": "39859600df92b5704dc394b729809770f2e25a24",
   "ficheros": {
-    "specs/038-h41-4-las-skills-del/aceptacion/skills-instaladas.txtar": "b2d32224de9909b7e760c558f32cc35b1cb7b13a11d2359cf5f474058e9be401"
+    "specs/038-h41-4-las-skills-del/aceptacion/skills-instaladas.txtar": "b2d32224de9909b7e760c558f32cc35b1cb7b13a11d2359cf5f474058e9be401",
+    "internal/app/testdata/script/h41-4-skills-instaladas.txtar": "b2d32224de9909b7e760c558f32cc35b1cb7b13a11d2359cf5f474058e9be401"
   }
 }
