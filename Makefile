@@ -156,18 +156,21 @@ evals-sondeo: check-tools
 
 # El sondeo del laboratorio de H39 lo lanza una persona, una vez, para la tabla
 # con la que escribe el ADR que precisa el 0046; no es un veredicto
-# (specs/031-h39-c-omo-se/contracts/arnes.md). De sus nueve argumentos, los siete
+# (specs/031-h39-c-omo-se/contracts/arnes.md). De sus diez argumentos, los siete
 # primeros no tienen valor por defecto, porque cada uno cambia lo que se mide;
 # DIRECTORIO, relativo a la raíz del repositorio o absoluto, no puede existir.
-# Los dos últimos, INSTALACION (vacío o producto) y EVAL (vacío o el número de
-# una eval del plan de la familia), solo valen en las familias del producto, y
-# vacíos son la instalación y el plan de hoy
-# (specs/036-h41-2-por-qu-e/contracts/arnes.md). La credencial
+# Los tres últimos, INSTALACION (vacío, producto o
+# producto-descripciones-cortas), EVAL (vacío o el número de una eval del plan
+# de la familia) y PRESUPUESTO (vacío o un entero mayor que 0, los caracteres
+# del listado de skills de cada sesión), solo valen en las familias del
+# producto; vacíos, INSTALACION y EVAL son la instalación y el plan de hoy, y
+# PRESUPUESTO es sin presupuesto (specs/036-h41-2-por-qu-e/contracts/arnes.md;
+# specs/037-h41-3-por-que-normativa/contracts/arnes.md). La credencial
 # la toma scripts/evals-sondeo-llavero.sh, como en evals-sondeo; ningún paso del
 # workflow `hito` puede lanzarlo (docs/ADR/0032).
 ## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
 evals-laboratorio: check-tools
-	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)" "$(INSTALACION)" "$(EVAL)"
+	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)" "$(INSTALACION)" "$(EVAL)" "$(PRESUPUESTO)"
 
 # La medida del juez no es de una ejecución normal del job de evals: la lanza
 # una persona, con la etiqueta evals-medir-juez en una propuesta de cambio o con

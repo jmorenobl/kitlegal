@@ -1186,3 +1186,28 @@ func comprobarLasRutasDelLaboratorio(t *testing.T, laboratorio contenidoDelLabor
 		assert.False(t, rutaQueMide(ruta, nil), "%s mide: un cambio suyo elegiría skills de kitlegal", ruta)
 	}
 }
+
+// TestLineasDelSkillConCorte comprueba que lineasDelSkill deja de dar líneas
+// cuando quien las recibe corta el recorrido: con un SKILL.md de cinco líneas y
+// el corte en la de la clave description, se reciben las dos primeras, cada una
+// con su clasificación, y ninguna de las que siguen.
+func TestLineasDelSkillConCorte(t *testing.T) {
+	t.Parallel()
+
+	type lineaClasificada struct {
+		linea           string
+		deLaDescripcion bool
+	}
+
+	var recibidas []lineaClasificada
+
+	for linea, deLaDescripcion := range lineasDelSkill("---\ndescription: Consulta el BOE.\nname: normativa\n---\n\n") {
+		recibidas = append(recibidas, lineaClasificada{linea, deLaDescripcion})
+
+		if deLaDescripcion {
+			break
+		}
+	}
+
+	assert.Equal(t, []lineaClasificada{{"---\n", false}, {"description: Consulta el BOE.\n", true}}, recibidas)
+}

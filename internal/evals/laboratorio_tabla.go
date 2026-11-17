@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -65,14 +66,19 @@ const (
 // orden de nombre (FR-032). Detrás, solo en un sondeo de una familia del
 // producto, la clave skills_instaladas, los nombres de las skills que enlaza
 // cada una de sus sesiones, en orden de nombre (FR-012 de H41.2; data-model §3
-// y research D11 de H41.2). Sin ninguna de las dos, las claves no se escriben y
-// el fichero es el de H39 byte a byte; quien no las lee, las ignora (research
-// V9).
+// y research D11 de H41.2). Detrás, solo en un sondeo con
+// INSTALACION=producto-descripciones-cortas, la clave instalacion, ese valor; y,
+// detrás, solo en un sondeo con PRESUPUESTO, la clave presupuesto, el número
+// pedido (FR-012; data-model §5; research D9). Sin ninguna de ellas, las claves
+// no se escriben y el fichero es el de H39 byte a byte; quien no las lee, las
+// ignora (research V9).
 type sondeoLeido struct {
 	Modelo                 string   `json:"modelo"`
 	ClaudeCode             string   `json:"claude_code"`
 	ReferenciasDelProducto []string `json:"referencias_del_producto,omitempty"`
 	SkillsInstaladas       []string `json:"skills_instaladas,omitempty"`
+	Instalacion            string   `json:"instalacion,omitempty"`
+	Presupuesto            int      `json:"presupuesto,omitempty"`
 }
 
 // sesionContada es lo que el guion saca de una sesión (data-model §6 de H39;
@@ -105,11 +111,16 @@ type sesionContada struct {
 
 // claveDeFila es lo que define una fila de la tabla: la variante, por su
 // posición en la declaración, el modo, por la suya en modosDeLaTabla, el modelo,
-// la versión de Claude Code (data-model §7 de H39) y las skills instaladas, la
-// celda de instalacionDelSondeo (FR-020 de H41.2; data-model §4 de H41.2).
+// la versión de Claude Code (data-model §7 de H39), las skills instaladas, la
+// celda de instalacionDelSondeo (FR-020 de H41.2; data-model §4 de H41.2), y la
+// instalación, la celda de instalacionDeLaFila, y el presupuesto del sondeo, que
+// solo se llenan en una tabla con la constancia de la instalación y en las demás
+// van vacíos en todas las claves (FR-020 y FR-022; data-model §6).
 type claveDeFila struct {
 	variante, modo              int
 	modelo, version, instaladas string
+	instalacion                 string
+	presupuesto                 int
 }
 
 // filaDelSondeo es una fila de la tabla con sus sesiones.
@@ -170,6 +181,13 @@ type familiaDeLaTabla struct {
 	// no las lleva (FR-023 de H41.2).
 	conLasActivaciones bool
 
+	// conLaInstalacion dice si la tabla lleva, en su cabecera y en sus filas,
+	// detrás de las skills instaladas, las celdas de la instalación y del
+	// presupuesto (FR-020 y FR-022; contracts/tabla.md §2 y §3; research D10):
+	// solo en una familia del producto con algún sondeo con instalacion o
+	// presupuesto; la de H39 no las lleva (FR-023).
+	conLaInstalacion bool
+
 	// titulo, cabeceraDeLaTabla y cabeceraDelDetalle son las líneas con que
 	// empiezan la tabla y su detalle.
 	titulo, cabeceraDeLaTabla, cabeceraDelDetalle string
@@ -182,9 +200,11 @@ type familiaDeLaTabla struct {
 // celdasDeLaFamilia son las celdas que cada familia escribe detrás de las que
 // comparten las dos: las seis primeras de una fila (variante, modo, modelo,
 // versión, sin terminar y n, con la de las skills instaladas detrás de la
-// versión en una tabla con las activaciones) y las dos primeras del detalle
-// (sesión y terminada). Una fila sin ninguna sesión terminada y una sesión sin
-// terminar llevan vacías las demás, hasta tener tantas celdas como su cabecera.
+// versión en una tabla con las activaciones, y las de la instalación y el
+// presupuesto detrás de ella en una con la instalación) y las dos primeras del
+// detalle (sesión y terminada). Una fila sin ninguna sesión terminada y una
+// sesión sin terminar llevan vacías las demás, hasta tener tantas celdas como
+// su cabecera.
 type celdasDeLaFamilia interface {
 	// deLaFila son las celdas de los recuentos de una fila de esa variante con
 	// sus sesiones terminadas, que son alguna.
@@ -235,9 +255,11 @@ const (
 // solo si la familia tiene variante con regla testigo, su columna, que solo se
 // llena en esa variante; y, solo con la constancia, la de las skills instaladas
 // y las de las activaciones (contracts/tabla.md §3 de H41.2; research D13 de
-// H41.2).
+// H41.2), y, solo con la de la instalación, detrás de la de las skills
+// instaladas, las de la instalación y el presupuesto (contracts/tabla.md §3;
+// research D10).
 func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]string,
-	conLasActivaciones bool,
+	constancias constanciasDeLosSondeos,
 ) familiaDeLaTabla {
 	var referencias []string
 	for _, deLaVariante := range porVariante {
@@ -248,17 +270,21 @@ func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]st
 	referencias = slices.Compact(referencias)
 
 	tabla := []string{"Variante", "Modo", "Modelo", "Claude Code"}
-	if conLasActivaciones {
+	if constancias.activaciones {
 		tabla = append(tabla, "Skills instaladas")
 	}
 
+	if constancias.instalacion {
+		tabla = append(tabla, "Instalación", "Presupuesto")
+	}
+
 	tabla = append(tabla, "Sin terminar", "n", "Activan antes")
-	if conLasActivaciones {
+	if constancias.activaciones {
 		tabla = append(tabla, "Activan otra skill", "Otras skills", "No activan ninguna")
 	}
 
 	detalle := []string{"Sesión", "Terminada", "Activa antes"}
-	if conLasActivaciones {
+	if constancias.activaciones {
 		detalle = append(detalle, "Activaciones")
 	}
 
@@ -276,15 +302,25 @@ func tablaDeLaFamilia(familia familiaDelLaboratorio, porVariante map[string][]st
 		skill:              familia.skill,
 		referencias:        referencias,
 		conCd:              true,
-		conLasActivaciones: conLasActivaciones,
+		conLasActivaciones: constancias.activaciones,
+		conLaInstalacion:   constancias.instalacion,
 		titulo:             "# Sondeo de las variantes de " + familia.skill,
 		cabeceraDeLaTabla:  cabeceraConTitulos(tabla),
 		cabeceraDelDetalle: cabeceraConTitulos(detalle),
 		celdas: celdasDelProducto{
 			conLaRegla: familia.conLaRegla, referencias: referencias, porVariante: porVariante,
-			skill: familia.skill, conLasActivaciones: conLasActivaciones,
+			skill: familia.skill, conLasActivaciones: constancias.activaciones,
 		},
 	}
+}
+
+// constanciasDeLosSondeos dicen qué constancias tiene en su sondeo.json alguno
+// de los sondeos de una tabla de una familia del producto: la de las skills
+// instaladas, que da las celdas de las activaciones (contracts/tabla.md §2 de
+// H41.2), y la de la instalación o del presupuesto, que da las de la
+// instalación y el presupuesto (contracts/tabla.md §2).
+type constanciasDeLosSondeos struct {
+	activaciones, instalacion bool
 }
 
 // cabeceraConTitulos es la cabecera de una tabla de Markdown con esos títulos,
@@ -299,9 +335,11 @@ func cabeceraConTitulos(titulos []string) string {
 // variantes. Si es de una de las familias del producto, la suya, con las
 // referencias de las variantes que leen los sondeos y, si alguno tiene la
 // constancia de las skills instaladas, con las celdas de las activaciones
-// (research D12 de H41.2); si no, o sin ninguna variante, la de la declaración
-// del laboratorio del repositorio de esa raíz, que solo se lee entonces, con su
-// comportamiento de hoy (FR-023 de H40 y de H41.2).
+// (research D12 de H41.2), y, si alguno tiene la de la instalación, con las de
+// la instalación y el presupuesto (research D10); si no, o sin ninguna variante,
+// la de la declaración del laboratorio del repositorio de esa raíz, que solo se
+// lee entonces, con su comportamiento de hoy (FR-023 de H40, de H41.2 y de este
+// hito).
 func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error) {
 	primera, err := primeraVariante(sondeos)
 	if err != nil {
@@ -318,12 +356,12 @@ func familiaDeLosSondeos(raiz string, sondeos []string) (familiaDeLaTabla, error
 			return familiaDeLaTabla{}, err
 		}
 
-		conLasActivaciones, err := algunoConLaConstancia(sondeos)
+		constancias, err := algunoConLaConstancia(sondeos)
 		if err != nil {
 			return familiaDeLaTabla{}, err
 		}
 
-		return tablaDeLaFamilia(familia, porVariante, conLasActivaciones), nil
+		return tablaDeLaFamilia(familia, porVariante, constancias), nil
 	}
 
 	declarada, err := leerLaDeclaracionDelRepositorio(raiz)
@@ -370,23 +408,30 @@ func referenciasDeLasVariantes(familia familiaDelLaboratorio, sondeos []string) 
 	return porVariante, nil
 }
 
-// algunoConLaConstancia dice si alguno de los sondeos, en su orden, tiene en su
-// sondeo.json la constancia de las skills instaladas, la clave
-// skills_instaladas (FR-012 y FR-022 de H41.2; contracts/tabla.md §2 de H41.2).
+// algunoConLaConstancia dice qué constancias tiene en su sondeo.json alguno de
+// los sondeos, que lee en su orden hasta tener las dos: la de las skills
+// instaladas, la clave skills_instaladas (FR-012 y FR-022 de H41.2;
+// contracts/tabla.md §2 de H41.2), y la de la instalación, la clave instalacion
+// o la clave presupuesto (FR-012 y FR-022; contracts/tabla.md §2; research D10).
 // Un sondeo.json que no se puede leer es el error de leerElSondeo.
-func algunoConLaConstancia(sondeos []string) (bool, error) {
+func algunoConLaConstancia(sondeos []string) (constanciasDeLosSondeos, error) {
+	var constancias constanciasDeLosSondeos
+
 	for _, sondeo := range sondeos {
+		if constancias.activaciones && constancias.instalacion {
+			break
+		}
+
 		leido, err := leerElSondeo(sondeo)
 		if err != nil {
-			return false, err
+			return constanciasDeLosSondeos{}, err
 		}
 
-		if len(leido.SkillsInstaladas) > 0 {
-			return true, nil
-		}
+		constancias.activaciones = constancias.activaciones || len(leido.SkillsInstaladas) > 0
+		constancias.instalacion = constancias.instalacion || leido.Instalacion != "" || leido.Presupuesto != 0
 	}
 
-	return false, nil
+	return constancias, nil
 }
 
 // instalacionDelSondeo es la celda de las skills instaladas de las filas de un
@@ -399,6 +444,24 @@ func instalacionDelSondeo(leido sondeoLeido, skill string) string {
 	}
 
 	return strings.Join(leido.SkillsInstaladas, ", ")
+}
+
+// instalacionDeLaFila es la celda de la instalación de las filas de un sondeo en
+// una tabla con la constancia de la instalación (FR-020 y FR-022; contracts/
+// tabla.md §3; data-model §6; research D11): su instalacion; sin ella, producto
+// si su skills_instaladas tiene alguna skill además de la de la familia, también
+// con otra más en el árbol, y si no —solo ella, o sin la clave—, la de la
+// familia.
+func instalacionDeLaFila(leido sondeoLeido, skill string) string {
+	if leido.Instalacion != "" {
+		return leido.Instalacion
+	}
+
+	if slices.ContainsFunc(leido.SkillsInstaladas, func(instalada string) bool { return instalada != skill }) {
+		return instalacionDelProducto
+	}
+
+	return skill
 }
 
 // primeraVariante es el nombre del primer directorio de variante de los
@@ -623,6 +686,9 @@ func (c *contadorDelLaboratorio) contarLaVariante(ruta, sondeo string, leido son
 		clave := claveDeFila{
 			variante: posicion, modo: slices.Index(modosDeLaTabla, modo),
 			modelo: leido.Modelo, version: leido.ClaudeCode, instaladas: instalacionDelSondeo(leido, c.familia.skill),
+		}
+		if c.familia.conLaInstalacion {
+			clave.instalacion, clave.presupuesto = instalacionDeLaFila(leido, c.familia.skill), leido.Presupuesto
 		}
 
 		sesiones, err := subdirectorios(filepath.Join(directorio, nombre))
@@ -871,8 +937,9 @@ func ordenDelUso(uso usoDelTranscript) (string, bool) {
 // documento es la tabla y el detalle de las filas contadas, con las cabeceras y
 // las celdas de la familia (contracts/tabla.md §3 y §4 de H39 y de H40), en el
 // orden de las filas: el de la declaración de la familia, orden antes que
-// herramienta, y modelo, versión e instalación por orden de texto; y en el
-// detalle, el de las filas y, dentro, por ruta.
+// herramienta, y modelo, versión, instalación, presupuesto y skills instaladas
+// como los ordena compararClaves; y en el detalle, el de las filas y, dentro,
+// por ruta.
 func (c *contadorDelLaboratorio) documento() string {
 	filas := make([]*filaDelSondeo, 0, len(c.filas))
 	for _, fila := range c.filas {
@@ -905,8 +972,13 @@ func (c *contadorDelLaboratorio) documento() string {
 	return documento.String()
 }
 
-// compararClaves ordena dos claves de fila por variante, modo, modelo, versión e
-// instalación, en ese orden (contracts/tabla.md §3 de H41.2).
+// compararClaves ordena dos claves de fila por variante, modo, modelo, versión,
+// instalación, presupuesto y skills instaladas, en ese orden (contracts/tabla.md
+// §3 de H41.2 y de este hito; research D10): los presupuestos, de menor a mayor,
+// con lo que el vacío, 0, va antes que cualquier valor, que el arnés solo
+// escribe mayor que 0 (FR-013). Sin la constancia de la instalación, la
+// instalación y el presupuesto de todas las claves van vacíos y el orden es el
+// de H41.2.
 func compararClaves(a, b claveDeFila) int {
 	if a.variante != b.variante {
 		return a.variante - b.variante
@@ -924,14 +996,24 @@ func compararClaves(a, b claveDeFila) int {
 		return strings.Compare(a.version, b.version)
 	}
 
+	if a.instalacion != b.instalacion {
+		return strings.Compare(a.instalacion, b.instalacion)
+	}
+
+	if a.presupuesto != b.presupuesto {
+		return cmp.Compare(a.presupuesto, b.presupuesto)
+	}
+
 	return strings.Compare(a.instaladas, b.instaladas)
 }
 
 // lineaDeLaFila es la línea de la tabla de una fila (contracts/tabla.md §3 de
 // H39 y de H40): la variante, el modo, el modelo, la versión, en una tabla con
-// las activaciones las skills instaladas (contracts/tabla.md §3 de H41.2), las
-// sesiones sin terminar y n, y detrás, las celdas de la familia o, con n = 0,
-// todas vacías (FR-042 de H39; FR-021 de H40 y de H41.2).
+// las activaciones las skills instaladas (contracts/tabla.md §3 de H41.2), en
+// una con la instalación la instalación y el presupuesto, vacío si es 0
+// (contracts/tabla.md §3), las sesiones sin terminar y n, y detrás, las celdas
+// de la familia o, con n = 0, todas vacías (FR-042 de H39; FR-021 de H40 y de
+// H41.2; FR-020).
 func (c *contadorDelLaboratorio) lineaDeLaFila(fila *filaDelSondeo) string {
 	variante := c.familia.variantes[fila.variante]
 
@@ -950,6 +1032,10 @@ func (c *contadorDelLaboratorio) lineaDeLaFila(fila *filaDelSondeo) string {
 		celdas = append(celdas, fila.instaladas)
 	}
 
+	if c.familia.conLaInstalacion {
+		celdas = append(celdas, fila.instalacion, celdaDelPresupuesto(fila.presupuesto))
+	}
+
 	celdas = append(celdas, strconv.Itoa(len(fila.sesiones)-n), strconv.Itoa(n))
 
 	if n == 0 {
@@ -957,6 +1043,16 @@ func (c *contadorDelLaboratorio) lineaDeLaFila(fila *filaDelSondeo) string {
 	}
 
 	return lineaDeCeldas(append(celdas, c.familia.celdas.deLaFila(variante, terminadas)...)...)
+}
+
+// celdaDelPresupuesto es la celda del presupuesto de una fila: el número, o
+// vacía si es 0, el de un sondeo sin presupuesto (contracts/tabla.md §3).
+func celdaDelPresupuesto(presupuesto int) string {
+	if presupuesto == 0 {
+		return ""
+	}
+
+	return strconv.Itoa(presupuesto)
 }
 
 // conLasVacias son las celdas seguidas de las vacías que les faltan para tener

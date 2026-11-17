@@ -1,0 +1,264 @@
+diff --git a/internal/evals/laboratorio_tabla.go b/internal/evals/laboratorio_tabla.go
+index 0eaa11e7..c4dad73f 100644
+--- a/internal/evals/laboratorio_tabla.go
++++ b/internal/evals/laboratorio_tabla.go
+@@ -974,10 +974,11 @@ func (c *contadorDelLaboratorio) documento() string {
+ 
+ // compararClaves ordena dos claves de fila por variante, modo, modelo, versión,
+ // instalación, presupuesto y skills instaladas, en ese orden (contracts/tabla.md
+-// §3 de H41.2 y de este hito; research D10): el presupuesto vacío, 0, antes que
+-// cualquier valor, y los valores de menor a mayor. Sin la constancia de la
+-// instalación, la instalación y el presupuesto de todas las claves van vacíos y
+-// el orden es el de H41.2.
++// §3 de H41.2 y de este hito; research D10): los presupuestos, de menor a mayor,
++// con lo que el vacío, 0, va antes que cualquier valor, que el arnés solo
++// escribe mayor que 0 (FR-013). Sin la constancia de la instalación, la
++// instalación y el presupuesto de todas las claves van vacíos y el orden es el
++// de H41.2.
+ func compararClaves(a, b claveDeFila) int {
+ 	if a.variante != b.variante {
+ 		return a.variante - b.variante
+@@ -1000,27 +1001,12 @@ func compararClaves(a, b claveDeFila) int {
+ 	}
+ 
+ 	if a.presupuesto != b.presupuesto {
+-		return compararPresupuestos(a.presupuesto, b.presupuesto)
++		return cmp.Compare(a.presupuesto, b.presupuesto)
+ 	}
+ 
+ 	return strings.Compare(a.instaladas, b.instaladas)
+ }
+ 
+-// compararPresupuestos ordena los presupuestos de dos filas: el vacío, 0, antes
+-// que cualquier valor, y los valores de menor a mayor (contracts/tabla.md §3).
+-func compararPresupuestos(a, b int) int {
+-	switch {
+-	case a == b:
+-		return 0
+-	case a == 0:
+-		return -1
+-	case b == 0:
+-		return 1
+-	default:
+-		return cmp.Compare(a, b)
+-	}
+-}
+-
+ // lineaDeLaFila es la línea de la tabla de una fila (contracts/tabla.md §3 de
+ // H39 y de H40): la variante, el modo, el modelo, la versión, en una tabla con
+ // las activaciones las skills instaladas (contracts/tabla.md §3 de H41.2), en
+diff --git a/internal/evals/laboratorio_tabla_test.go b/internal/evals/laboratorio_tabla_test.go
+index 4074586c..0d72363f 100644
+--- a/internal/evals/laboratorio_tabla_test.go
++++ b/internal/evals/laboratorio_tabla_test.go
+@@ -1005,6 +1005,9 @@ func TestTablaConLaInstalacion(t *testing.T) {
+ 	t.Run("sondeos-fijos", probarLosSondeosFijosConLaInstalacion)
+ 	t.Run("instalacion-de-la-fila", probarLaInstalacionDeLaFila)
+ 	t.Run("filas-por-instalacion-y-presupuesto", probarLasFilasConLaInstalacion)
++	t.Run("presupuestos-de-menor-a-mayor", probarLosPresupuestosDeMenorAMayor)
++	t.Run("solo-con-el-presupuesto", probarLaTablaSoloConElPresupuesto)
++	t.Run("solo-con-la-instalacion", probarLaTablaSoloConLaInstalacion)
+ }
+ 
+ // Las sesiones fijas de familias/instalacion/sondeo/, cinco sondeos de
+@@ -1089,36 +1092,123 @@ func probarLaInstalacionDeLaFila(t *testing.T) {
+ 	}
+ }
+ 
+-// Los cuatro sondeos que monta probarLasFilasConLaInstalacion, con nombres en el
+-// orden contrario al de sus filas, para que la tabla no las dé por el de sus
+-// directorios: copias de h41-2-b con la instalación producto-descripciones-cortas
+-// y con el presupuesto 1000000 añadidos a su sondeo.json, y sin cambiar, y de
+-// h41-2-a sin cambiar.
++// Los sondeos que montan los subtests de las filas con la instalación, con
++// nombres en el orden contrario al de sus filas, para que la tabla no las dé por
++// el de sus directorios: copias de h41-2-b con la instalación
++// producto-descripciones-cortas, con el presupuesto 1000000 y con el 5000
++// añadidos a su sondeo.json, y sin cambiar, y de h41-2-a sin cambiar.
+ const (
+ 	sondeoConLasDescripcionesCortas = "a-descripciones-cortas"
+ 	sondeoConElPresupuesto          = "b-presupuesto"
++	sondeoConUnPresupuestoMenor     = "bb-presupuesto-menor"
+ 	sondeoDelProducto               = "c-producto"
+ 	sondeoDeNormativaSola           = "d-normativa"
+ )
+ 
+-// probarLasFilasConLaInstalacion fija la tabla de cuatro sondeos que el test
+-// monta como copias de h41-2-a y h41-2-b (contracts/tabla.md §3): byte a byte,
+-// la de esos dos en familias/activaciones/tabla.md con «Instalación» y
+-// «Presupuesto» detrás de «Skills instaladas» y, en este orden, la fila de
+-// normativa sola, la del producto, la del producto con el presupuesto y la de
+-// producto-descripciones-cortas, cada una con los recuentos de su sondeo fijo y
+-// su detalle, con la ruta de su copia.
++// Las claves que los subtests de las filas con la instalación añaden al
++// sondeo.json de su copia, como las escribe el arnés.
++const (
++	claveDeLasDescripcionesCortas = `"instalacion":"producto-descripciones-cortas"`
++	claveDelPresupuesto           = `"presupuesto":1000000`
++	claveDeUnPresupuestoMenor     = `"presupuesto":5000`
++)
++
++// filaConLaInstalacion es una fila que espera un subtest de las filas con la
++// instalación: el sondeo fijo de las activaciones del que es copia su sondeo, el
++// nombre de la copia, la clave que añade a su sondeo.json (ninguna si va vacía),
++// y su instalación y su presupuesto en la tabla.
++type filaConLaInstalacion struct {
++	fijo, sondeo, clave      string
++	instalacion, presupuesto string
++}
++
++// probarLasFilasConLaInstalacion fija, en este orden, la fila de normativa sola,
++// la del producto, la del producto con el presupuesto y la de
++// producto-descripciones-cortas (contracts/tabla.md §3).
+ func probarLasFilasConLaInstalacion(t *testing.T) {
+ 	t.Parallel()
+ 
++	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
++		{fijo: sondeoFijoConNormativaSola, sondeo: sondeoDeNormativaSola, instalacion: "normativa"},
++		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
++			instalacion: "producto", presupuesto: "1000000",
++		},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConLasDescripcionesCortas, clave: claveDeLasDescripcionesCortas,
++			instalacion: "producto-descripciones-cortas",
++		},
++	})
++}
++
++// probarLosPresupuestosDeMenorAMayor fija las filas de una misma instalación con
++// el presupuesto vacío, con 5000 y con 1000000 en ese orden, el de los valores
++// y no el de sus directorios (contracts/tabla.md §3).
++func probarLosPresupuestosDeMenorAMayor(t *testing.T) {
++	t.Parallel()
++
++	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
++		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConUnPresupuestoMenor, clave: claveDeUnPresupuestoMenor,
++			instalacion: "producto", presupuesto: "5000",
++		},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
++			instalacion: "producto", presupuesto: "1000000",
++		},
++	})
++}
++
++// probarLaTablaSoloConElPresupuesto fija que la clave presupuesto basta para que
++// la tabla dé «Instalación» y «Presupuesto»: el único sondeo con constancia
++// lleva solo ella y su fila va aparte de la del producto (contracts/tabla.md §2).
++func probarLaTablaSoloConElPresupuesto(t *testing.T) {
++	t.Parallel()
++
++	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
++		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
++			instalacion: "producto", presupuesto: "1000000",
++		},
++	})
++}
++
++// probarLaTablaSoloConLaInstalacion fija que la clave instalacion basta para que
++// la tabla dé «Instalación» y «Presupuesto»: el único sondeo con constancia
++// lleva solo ella y su fila va aparte de la del producto (contracts/tabla.md §2).
++func probarLaTablaSoloConLaInstalacion(t *testing.T) {
++	t.Parallel()
++
++	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
++		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
++		{
++			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConLasDescripcionesCortas, clave: claveDeLasDescripcionesCortas,
++			instalacion: "producto-descripciones-cortas",
++		},
++	})
++}
++
++// exigirLasFilasConLaInstalacion monta esas filas como copias de h41-2-a y
++// h41-2-b y fija su tabla byte a byte: la de esos dos en
++// familias/activaciones/tabla.md con «Instalación» y «Presupuesto» detrás de
++// «Skills instaladas» y las filas en el orden dado, cada una con los recuentos
++// de su sondeo fijo y su detalle, con la ruta de su copia.
++func exigirLasFilasConLaInstalacion(t *testing.T, filas []filaConLaInstalacion) {
++	t.Helper()
++
+ 	sondeos := t.TempDir()
+ 
+-	copiarElSondeoFijoEntero(t, sondeoFijoConLasCuatro, filepath.Join(sondeos, sondeoConLasDescripcionesCortas),
+-		conLaClaveAnadida(t, `"instalacion":"producto-descripciones-cortas"`))
+-	copiarElSondeoFijoEntero(t, sondeoFijoConLasCuatro, filepath.Join(sondeos, sondeoConElPresupuesto),
+-		conLaClaveAnadida(t, `"presupuesto":1000000`))
+-	copiarElSondeoFijoEntero(t, sondeoFijoConLasCuatro, filepath.Join(sondeos, sondeoDelProducto), sinCambiar)
+-	copiarElSondeoFijoEntero(t, sondeoFijoConNormativaSola, filepath.Join(sondeos, sondeoDeNormativaSola), sinCambiar)
++	for _, fila := range filas {
++		cambio := sinCambiar
++		if fila.clave != "" {
++			cambio = conLaClaveAnadida(t, fila.clave)
++		}
++
++		copiarElSondeoFijoEntero(t, fila.fijo, filepath.Join(sondeos, fila.sondeo), cambio)
++	}
+ 
+ 	fija, err := os.ReadFile(filepath.Join(familiasFijas, familiaFijaDeLasActivaciones, tablaDeLaFamiliaFija))
+ 	require.NoError(t, err)
+@@ -1129,39 +1219,36 @@ func probarLasFilasConLaInstalacion(t *testing.T) {
+ 	lineas := strings.Split(tablaFija, "\n")
+ 	require.Len(t, lineas, 8, "título, línea vacía, cabecera, separador, tres filas y el salto de línea final")
+ 
+-	deLasCuatro, deNormativaSola := lineas[4], lineas[5]
+-
+-	conLasColumnas := func(fila, instaladas, instalacion, presupuesto string) string {
+-		t.Helper()
+-
+-		antes := "| 2.1.284 | " + instaladas + " | "
+-		require.Contains(t, fila, antes)
+-
+-		return strings.Replace(fila, antes, antes+instalacion+" | "+presupuesto+" | ", 1)
++	deLosFijos := map[string]struct{ fila, instaladas string }{
++		sondeoFijoConLasCuatro:     {lineas[4], lasCuatroSkillsInstaladas},
++		sondeoFijoConNormativaSola: {lineas[5], "normativa"},
+ 	}
+ 
+ 	esperada := slices.Concat(lineas[:2], []string{
+ 		strings.Replace(lineas[2], "| Skills instaladas |", "| Skills instaladas | Instalación | Presupuesto |", 1),
+ 		lineas[3] + "---|---|",
+-		conLasColumnas(deNormativaSola, "normativa", "normativa", ""),
+-		conLasColumnas(deLasCuatro, lasCuatroSkillsInstaladas, "producto", ""),
+-		conLasColumnas(deLasCuatro, lasCuatroSkillsInstaladas, "producto", "1000000"),
+-		conLasColumnas(deLasCuatro, lasCuatroSkillsInstaladas, "producto-descripciones-cortas", ""),
+-		"", tituloDelDetalle,
+ 	})
+ 
++	for _, fila := range filas {
++		deLaFija, ok := deLosFijos[fila.fijo]
++		require.Truef(t, ok, "%s es uno de los sondeos fijos de las activaciones", fila.fijo)
++
++		antes := "| 2.1.284 | " + deLaFija.instaladas + " | "
++		require.Contains(t, deLaFija.fila, antes)
++
++		esperada = append(esperada,
++			strings.Replace(deLaFija.fila, antes, antes+fila.instalacion+" | "+fila.presupuesto+" | ", 1))
++	}
++
++	esperada = append(esperada, "", tituloDelDetalle)
++
+ 	lineasDelDetalle := strings.Split(detalleFijo, "\n")
+ 	esperada = append(esperada, lineasDelDetalle[:3]...)
+ 
+-	for _, copia := range []struct{ fijo, sondeo string }{
+-		{sondeoFijoConNormativaSola, sondeoDeNormativaSola},
+-		{sondeoFijoConLasCuatro, sondeoDelProducto},
+-		{sondeoFijoConLasCuatro, sondeoConElPresupuesto},
+-		{sondeoFijoConLasCuatro, sondeoConLasDescripcionesCortas},
+-	} {
++	for _, fila := range filas {
+ 		for _, linea := range lineasDelDetalle[3:] {
+-			if sesion, ok := strings.CutPrefix(linea, "| "+copia.fijo+"/"); ok {
+-				esperada = append(esperada, "| "+copia.sondeo+"/"+sesion)
++			if sesion, ok := strings.CutPrefix(linea, "| "+fila.fijo+"/"); ok {
++				esperada = append(esperada, "| "+fila.sondeo+"/"+sesion)
+ 			}
+ 		}
+ 	}

@@ -86,13 +86,13 @@ var (
 )
 
 // Banderas con las que scripts/evals-laboratorio.sh invoca, tras -args, el
-// sondeo del laboratorio (contracts/arnes.md §1 de H39 y de H41.2), además de -modelo,
+// sondeo del laboratorio (contracts/arnes.md §1 de H39, de H41.2 y de H41.3), además de -modelo,
 // -concurrencia y -temporal, las del sondeo de una skill, y de -sesiones, la del
 // job, con SESIONES: los argumentos de make que no tienen, tal como los escribe
 // quien lo lanza, salvo DIRECTORIO relativo, que el guion recibe desde la raíz
 // del repositorio y pasa con ella delante. Son texto, como -repeticiones y
 // -concurrencia, para que un valor que no vale lo nombre sondearElLaboratorio
-// con su argumento de make (contracts/arnes.md §2 de H39 y de H41.2).
+// con su argumento de make (contracts/arnes.md §2 de H39, de H41.2 y de H41.3).
 var (
 	banderaVariantes  = flag.String("variantes", "", "variantes del sondeo del laboratorio, separadas por comas")
 	banderaModos      = flag.String("modos", "", "modos del sondeo del laboratorio, separados por comas")
@@ -101,9 +101,13 @@ var (
 	banderaDirectorio = flag.String("directorio", "",
 		"directorio, que no puede existir, en el que el sondeo del laboratorio deja sus sesiones")
 	banderaInstalacion = flag.String("instalacion", "",
-		"instalación de las sesiones del sondeo del laboratorio: vacía, o producto, las cuatro skills del producto")
+		"instalación de las sesiones del sondeo del laboratorio: vacía; producto, las cuatro skills del producto; "+
+			"o producto-descripciones-cortas, las cuatro con las descripciones de su variante")
 	banderaEval = flag.String("eval", "",
 		"eval del sondeo del laboratorio: vacía, o el número de dos cifras de una eval del plan de la familia")
+	banderaPresupuesto = flag.String("presupuesto", "",
+		"presupuesto del listado de skills de cada sesión del sondeo del laboratorio: vacío, sin presupuesto, "+
+			"o un entero mayor que 0")
 )
 
 // Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
@@ -710,6 +714,7 @@ func TestSondeoDelLaboratorio(t *testing.T) {
 			Directorio:   *banderaDirectorio,
 			Instalacion:  *banderaInstalacion,
 			Eval:         *banderaEval,
+			Presupuesto:  *banderaPresupuesto,
 		},
 		Entorno:               os.Environ(),
 		Raiz:                  raizDelRepositorio,

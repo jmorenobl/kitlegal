@@ -1,0 +1,82 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El motivo [a] de la ronda 1 está corregido. FR-016 (líneas 271-272) dice ahora que un `INSTALACION` con un valor que no es vacío, `producto` ni `producto-descripciones-cortas` da «el mensaje de hoy, byte a byte». FR-015 (265-266), la tercera viñeta de FR-018 (287-288), SC-004 (411-413) y el tercer supuesto (469-471) dicen que una petición sin las dos opciones que no vale da los mensajes de hoy. Así se cumple «Sin las dos opciones, todo lo demás queda como hoy, byte a byte» del hito. El mensaje de hoy, «INSTALACION: «todas» no es producto», está en laboratorio_sondeo.go:458 y se espera en laboratorio_sondeo_test.go:1335, 1341, 1351, 1379 y 1581 (grep en esta sesión). El resto del hito sigue cubierto: la variante en FR-001 y FR-002; las opciones del arnés en FR-010 a FR-014; lo que no cambia en FR-015; los errores en FR-016; el control del arnés en FR-018; la constancia de sondeo.json en FR-012; la tabla de FR-020 a FR-024; el sondeo y su lectura en FR-030 y FR-031; y los controles en FR-032 y FR-034. Lo ilegible remite a la regla genérica (ADR 0023) sin más casos (línea 204)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» (485-510) recoge las ocho viñetas de «Fuera» del hito (487-497). También recoge lo que deja fuera clarify: producto-descripciones-cortas con otra variante (498-499) y la constancia sin opciones (500-501). Y lo que el spec no añade: otras variantes de instalación, variantes que cambien más que la description, e INSTALACION o PRESUPUESTO con H39 (502-504); medir el listado (505-506); columnas en la tabla de H39 (507); otras versiones o modelos (508); el job y make ci (509); y el sondeo, el ADR y evidencias/ desde el run (510). La corrección no añadió comportamiento que tenga que ir a esta sección: la forma de PRESUPUESTO y los mensajes de hoy son requisitos (FR-013, FR-015, FR-016)."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "Q1 (A, conservadora) está en Clarifications (62) y en FR-010 (237-242): solo normativa-producto, el mensaje que nombra INSTALACION y el de H39 conservado. También en FR-016 (273), en la cuarta viñeta de FR-018 (289-291), en «Fuera de alcance» (498-499) y en el cuarto supuesto (472-474). Deja fuera justo lo dudoso. Q2 (A) está en Clarifications (63) y en FR-012 (251-254): sin opciones, sondeo.json byte a byte. También en FR-015, FR-022 (308-310), US2 escenario 4 y «Fuera de alcance» (500-501). La parte de diseño de la respuesta de Q1 (familia.producto, Go) ya no está en ningún FR. Solo queda en el registro de Clarifications, que la ronda 1 dio por bueno."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito (literales)» (427-461) lleva los Controles y la Aceptación del hito, y cada uno tiene su FR y su SC medibles. La variante sin red ni modelo: FR-002 y SC-001, con US1 escenarios 1 a 4. El arnés: SC-002 a SC-004 en FR-018, con US2 escenarios 1 a 5. Las suites congeladas: FR-032 y SC-007. Las evals del cierre en los dos modos y la caída dicha para la persona: FR-034 y SC-008. La tabla con las tres cuentas y Wilson al 95 %: FR-030. Las tres comparaciones: FR-031, con «no se tocan» fijado sobre los extremos que imprime la tabla. Todo en Dado/Cuando/Entonces en US4 escenarios 1 a 4, y SC-009 para la persona."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "No reabre ninguna. Las sesiones con modelo las lanza la persona, nunca el run, make ci, un gancho ni el job (FR-017, FR-031; ADR 0032). El modelo es un id completo con la versión del job, y el job no cambia (FR-030 y Fuera; ADR 0031). Las descripciones de 450 o menos caben en las 900 del ADR 0046, y la tercera persona se juzga en el job del hito siguiente (FR-001). El producto no cambia y la variante vive en laboratorio/ (FR-033). No se toca ningún umbral (Fuera; ADR 0038). La fusión la decide la persona (FR-031; ADR 0018 y 0021). No se pide la activación en el servidor ni se quita ninguna skill (Fuera; ADR 0050 y 0048)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": false,
+      "evidencia": "«No implementation details» y «No implementation details leak into specification» ya son ciertas: FR-010 no fija dónde se declara la regla, y la nota del checklist lo deja al plan. «No [NEEDS CLARIFICATION] markers remain» es cierta: el spec no tiene ningún marcador. «Scope is clearly bounded» lo es por 485-510, y «Success criteria are measurable» por SC-001 a SC-009, cada uno con su control o con la persona. «Requirements are testable and unambiguous» no es cierta. Su nota dice «con la forma de `PRESUPUESTO` fijada en FR-013 (solo cifras, sin signo ni ceros delante)», y FR-013 sigue con dos lecturas para un valor de solo cifras que no cabe en el entero de los demás argumentos (ver h)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "La corrección quitó de FR-010 la frase sobre `familia.producto` y Go (diff r1, líneas 239-244). El spec deja al plan el formato y el fichero de la variante (FR-001), cómo se compone el SKILL.md (FR-011), la clave de la constancia (FR-012), los textos de los mensajes nuevos (FR-016), las cabeceras (FR-020) y los cuatro textos (FR-001). Las rutas y los símbolos de «Contexto» (36-52) son constancia de lo comprobado, no requisitos. «La forma de los demás enteros de argumento del arnés» (FR-013) describe un comportamiento observable, no un diseño."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": false,
+      "evidencia": "Los dos huecos de la ronda 1 están cerrados. Los mensajes de un INSTALACION que no vale son los de hoy (FR-015, FR-016). Ceros delante y signo dejan de valer (FR-013; FR-016 da como errores `0`, `0100` y `+1000000`). Sigue derivable el resto: «no se tocan» en FR-031, las instalaciones y los presupuestos de cada fila en FR-020 a FR-022, y los errores con sus casos en FR-016 y FR-018. Recalculado en esta sesión con awk (Wilson, z = 1,96): 0/160 da 0,0-2,3; 7/160, 2,1-8,8; 8/160, 2,6-9,6; 12/160, 4,3-12,7; y 6/80, 3,5-15,4. Además, 70 × 1536 = 107 520. Todo cuadra con «Contexto», con FR-030 y con el hito. No hay requisitos contradictorios. Pero la corrección abrió un hueco material en FR-013, que sale en motivos. El texto nuevo, «un entero mayor que 0 escrito solo con cifras, sin signo ni ceros delante, la forma de los demás enteros de argumento del arnés», no dice si vale un valor de solo cifras que no cabe en el entero de esos argumentos. Hoy esos enteros lo rechazan: enteroDelArgumento y sesionesDeCadaEval exigen la forma y que «cabe en un int» (strconv.Atoi), en sondeo.go:945-951 y laboratorio_sondeo.go:607-613, leídos en esta sesión."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» (372-396) sigue intacto tras la corrección. Ninguna skill ni el binario distribuido consumen nada del hito (FR-033), así que no hay SKILL.md consumidora que leer. Las cuatro descripciones (FR-001, FR-011) las lee el modelo una vez por sesión: como mucho 1700 runas × 1 × 160 sesiones de la fila de remedio, frente a las 3313 de hoy. Su tamaño es fijo y no crece con cientos de normas ni miles de bloques, y dejan de usarse con el ADR. La comprobación de FR-002 da una línea por defecto, como mucho 4 + 1, solo en rojo, y deja de darse al corregir la variante. La constancia de FR-012 son unas decenas de bytes × 1 sondeo.json por invocación × 2 de las 4 invocaciones con opción, leída una vez por sondeo. Los errores dan una línea por argumento, solo cuando la orden no vale. Las columnas de FR-020 son 4 filas × 2 celdas, más el detalle de 640 sesiones como hoy. Las acotan las filas y las sesiones pedidas, y ninguna señal se repite sin información nueva."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral que se mide sin persona nombra la comprobación que sale en rojo:\n- ≤ 450 runas, ≤ 1700, 0 etiquetas y 1 por skill (FR-001, SC-001): la comprobación de FR-002 en make ci sale en rojo con la skill, la medida y el límite.\n- 4 skills, 0 repetidas, el 100 % de las descripciones y 0 bytes (SC-002): el test de FR-018 en make ci falla con la primera sesión que difiere. Igual el 100 % y las 0 sesiones con la variable (SC-003), los 0 bytes sin opciones, también los mensajes (SC-004), y las 0 sesiones con una petición inválida (SC-005).\n- Los valores exactos del guion (SC-006): su test de FR-024 falla con el primero que difiere.\n- Los 0 bytes de las suites congeladas (SC-007): esas suites en make ci.\n- sin_activar ≤ 0 en el cierre (SC-008): el job de evals del cierre sale en rojo.\n\nLas 160 sesiones por fila (FR-030) y SC-009 los mide la persona."
+    }
+  ],
+  "motivos": [
+    "[h][f] FR-013 (líneas 255-256) dice que `PRESUPUESTO` es «un entero mayor que 0 escrito solo con cifras, sin signo ni ceros delante, la forma de los demás enteros de argumento del arnés». Es texto nuevo de la corrección r1. No dice si vale un valor de solo cifras que no cabe en el entero de esos argumentos, p. ej. `PRESUPUESTO=99999999999999999999`. Hoy los demás enteros (SESIONES, CONCURRENCIA) lo rechazan, porque además de la forma exigen que «cabe en un int» (enteroDelArgumento, internal/evals/sondeo.go:945-951; sesionesDeCadaEval, internal/evals/laboratorio_sondeo.go:607-613). Vía: la persona lanza make evals-laboratorio con ese PRESUPUESTO, un argumento de make. Diferencia: con una lectura, el arnés abre las sesiones con SLASH_COMMAND_TOOL_CHAR_BUDGET a ese valor y la tabla lo da en «Presupuesto». Con la otra, sale con un error de argumentos de FR-016, con un código distinto de 0 y ninguna sesión. Fijarlo en FR-013 y en el primer error de FR-016 con la lectura conservadora, la regla de hoy (constitución, «Criterio de decisión autónoma», puntos 2 y 4): PRESUPUESTO tiene la forma y el rango de SESIONES, y un valor de solo cifras que no cabe en ese rango es error de argumentos. Añadirlo al ejemplo de FR-016 (junto a `0`, `0100` o `+1000000`). Corregir en consonancia la nota de «Requirements are testable and unambiguous» de checklists/requirements.md, que hoy da la forma por fijada."
+  ],
+  "observaciones": [
+    "El fichero del hito ya no está en docs/roadmap/in-progress/: lo movió a docs/roadmap/done/ el commit 7c19f15b, y lo he leído allí. La línea «Input» de spec.md (9) sigue apuntando a in-progress/.",
+    "FR-011 y US2 escenario 1 dicen «skills/ del árbol que lanza el sondeo», y FR-018, SC-002 y «Key Entities», «skills/ de la cabeza». Solo difieren con skills/ modificado a mano sin confirmar, que no es una vía. Convendría un solo término.",
+    "«Cada otro byte» (FR-011), con las description de hoy en bloque plegado de YAML (`description: >-`, comprobado en los cuatro SKILL.md): las dos lecturas de dónde empieza «lo demás» solo difieren por dentro. Lo fija el plan.",
+    "El orden de las cuatro filas de la tabla del sondeo, que solo se distinguen por la instalación y el presupuesto, no se especifica. No cambia ninguna cuenta ni la lectura; lo fija el plan para el test de FR-024.",
+    "FR-031 hereda del hito un hueco: un control por debajo de `sola` y sin tocarse no cae en ninguna rama. Lo lee y lo escribe la persona en el ADR, sin efecto en el producto.",
+    "FR-002 y SC-001 dicen «las cuatro suman» para la cota de 1700. Con una quinta skill, que solo traería un hito futuro, habría que releerlo; US1 escenario 4 ya dice que la comprobación sale en rojo.",
+    "FR-010, «con las variantes de H39 conserva el de FR-016», se lee como solo la línea de H39. Es el patrón de hoy, «un valor que no es producto da solo su error» (laboratorio_sondeo_test.go:1338). Lo mismo pasa con `VARIANTES=foo,normativa-producto`: solo cambiaría una línea de error, con el mismo código y ninguna sesión.",
+    "El error de FR-016 para «producto-descripciones-cortas cuando la variante no tiene una description por skill o pasa de sus límites» solo se alcanza editando laboratorio/ o skills/ en un hito posterior, y make ci (FR-002) lo para antes. No hace daño, pero no hace falta para el umbral.",
+    "Clarifications (62) conserva «con la regla declarada junto a la familia de `normativa`», que es diseño. La ronda 1 lo dio por bueno como registro, y ya no está en ningún FR.",
+    "La nota de checklists/requirements.md sobre FR-033 («en las suites (no cambia ningún fichero de skills/)») exagera. Las suites congeladas comprueban fragmentos de las skills instaladas, no cada fichero byte a byte.",
+    "Las cifras de partida (6 de 80, 0 de 180, 3313 caracteres, 20 y 21 skills, 49 órdenes) no se han medido en esta sesión, y el spec lo dice. Sí he recalculado con awk los intervalos de Wilson del Contexto y 70 × 1536, y he comprobado que skills/ tiene las cuatro skills que nombra FR-001. spec-precheck.txt está vacío: no hay defectos mecánicos."
+  ],
+  "entrada": []
+}

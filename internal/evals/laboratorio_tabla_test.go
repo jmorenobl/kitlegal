@@ -646,7 +646,7 @@ func TestLecturaConCd(t *testing.T) {
 		{
 			nombre: normativa.skill,
 			familia: tablaDeLaFamilia(normativa,
-				map[string][]string{varianteDeControlDeNormativa: normativa.referencias}, false),
+				map[string][]string{varianteDeControlDeNormativa: normativa.referencias}, constanciasDeLosSondeos{}),
 			casos: casosDeLecturaConCdDeNormativa(),
 		},
 		{nombre: "h39", familia: tablaDeH39(declarada), casos: casosDeLecturaConCdDeH39(declarada)},
@@ -988,6 +988,302 @@ func probarElOrdenConLasActivaciones(t *testing.T) {
 	assert.Contains(t, tabla.salida, "| 2 de 2 · 100,0 % [34,2–100,0 %] | consulta-juridica: 1 de 2 · 50,0 % "+
 		"[9,5–90,5 %]; plazos-y-territorio: 1 de 2 · 50,0 % [9,5–90,5 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | ")
 	assert.Empty(t, tabla.errores)
+}
+
+// TestTablaConLaInstalacion fija la tabla de una familia del producto con la
+// constancia de la instalación o del presupuesto (FR-020 a FR-022 y FR-024;
+// SC-006; contracts/tabla.md §2 a §4 y §6; data-model §6; research D10 a D12):
+// sobre las sesiones fijas de la instalación, la tabla de su tabla.md; la
+// instalación de la fila de un sondeo, en sus casos; y, sobre sondeos que el
+// test monta con los fijos de las activaciones, «Instalación» y «Presupuesto»
+// detrás de «Skills instaladas», una fila por instalación y presupuesto en el
+// orden del contrato y, en cada una, los recuentos y el detalle que da hoy su
+// sondeo sin la constancia.
+func TestTablaConLaInstalacion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sondeos-fijos", probarLosSondeosFijosConLaInstalacion)
+	t.Run("instalacion-de-la-fila", probarLaInstalacionDeLaFila)
+	t.Run("filas-por-instalacion-y-presupuesto", probarLasFilasConLaInstalacion)
+	t.Run("presupuestos-de-menor-a-mayor", probarLosPresupuestosDeMenorAMayor)
+	t.Run("solo-con-el-presupuesto", probarLaTablaSoloConElPresupuesto)
+	t.Run("solo-con-la-instalacion", probarLaTablaSoloConLaInstalacion)
+}
+
+// Las sesiones fijas de familias/instalacion/sondeo/, cinco sondeos de
+// normativa-producto en modo herramienta con claude-sonnet-5-5 —los cuatro de
+// H41.3 con 2.1.284, h41-3-sola (normativa sola), h41-3-control (las cuatro
+// skills del producto), h41-3-diagnostico (las cuatro, con el presupuesto
+// 1000000) y h41-3-remedio (las cuatro, con la instalación
+// producto-descripciones-cortas), y h41-2, de H41.2 con 2.1.322, sin la
+// constancia—, y la tabla que el guion da de ellas, familias/instalacion/tabla.md:
+// copias byte a byte de los ficheros bajo instalacion/ del guion de aceptación
+// de H41.3 y de su tabla esperada, la de contracts/tabla.md §4 (FR-020 a FR-022
+// y FR-024; contracts/tabla.md §6).
+const familiaFijaDeLaInstalacion = "instalacion"
+
+// probarLosSondeosFijosConLaInstalacion fija la salida del guion sobre las
+// sesiones fijas de la instalación: la de su tabla.md, byte a byte, con el
+// código 0 y nada en la salida de error.
+func probarLosSondeosFijosConLaInstalacion(t *testing.T) {
+	t.Parallel()
+
+	esperada, err := os.ReadFile(filepath.Join(familiasFijas, familiaFijaDeLaInstalacion, tablaDeLaFamiliaFija))
+	require.NoError(t, err)
+
+	tabla := contarElSondeo(t, filepath.Join(familiasFijas, familiaFijaDeLaInstalacion, sondeosDeLaFamilia))
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de la instalación, byte a byte")
+	assert.Empty(t, tabla.errores)
+}
+
+// probarLaInstalacionDeLaFila fija la instalación de la fila de un sondeo de
+// normativa en una tabla con la constancia, leída de su sondeo.json como la lee
+// la tabla (contracts/tabla.md §3; research D11): su instalacion; sin ella,
+// producto si skills_instaladas tiene alguna skill además de normativa, también
+// con una quinta skill en el árbol; y normativa si solo la tiene a ella o no
+// anota la clave.
+func probarLaInstalacionDeLaFila(t *testing.T) {
+	t.Parallel()
+
+	const deLasCuatro = `"skills_instaladas":["consulta-juridica","jurisprudencia","normativa","plazos-y-territorio"]`
+
+	casos := []struct {
+		nombre, sondeo, instalacion string
+	}{
+		{
+			nombre:      "con-la-instalacion",
+			sondeo:      `{"modelo":"m","claude_code":"v",` + deLasCuatro + `,"instalacion":"producto-descripciones-cortas"}`,
+			instalacion: "producto-descripciones-cortas",
+		},
+		{
+			nombre: "las-cuatro-skills", sondeo: `{"modelo":"m","claude_code":"v",` + deLasCuatro + `}`,
+			instalacion: "producto",
+		},
+		{
+			nombre: "una-quinta-skill",
+			sondeo: `{"modelo":"m","claude_code":"v","skills_instaladas":["consulta-juridica","jurisprudencia",` +
+				`"mercantil","normativa","plazos-y-territorio"]}`,
+			instalacion: "producto",
+		},
+		{
+			nombre: "solo-la-de-la-familia", sondeo: `{"modelo":"m","claude_code":"v","skills_instaladas":["normativa"]}`,
+			instalacion: "normativa",
+		},
+		{
+			nombre: "sin-skills-instaladas", sondeo: `{"modelo":"m","claude_code":"v","presupuesto":1000000}`,
+			instalacion: "normativa",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sondeo := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(sondeo, ficheroDelSondeo), []byte(caso.sondeo), 0o600))
+
+			leido, err := leerElSondeo(sondeo)
+			require.NoError(t, err)
+
+			assert.Equal(t, caso.instalacion, instalacionDeLaFila(leido, "normativa"))
+		})
+	}
+}
+
+// Los sondeos que montan los subtests de las filas con la instalación, con
+// nombres en el orden contrario al de sus filas, para que la tabla no las dé por
+// el de sus directorios: copias de h41-2-b con la instalación
+// producto-descripciones-cortas, con el presupuesto 1000000 y con el 5000
+// añadidos a su sondeo.json, y sin cambiar, y de h41-2-a sin cambiar.
+const (
+	sondeoConLasDescripcionesCortas = "a-descripciones-cortas"
+	sondeoConElPresupuesto          = "b-presupuesto"
+	sondeoConUnPresupuestoMenor     = "bb-presupuesto-menor"
+	sondeoDelProducto               = "c-producto"
+	sondeoDeNormativaSola           = "d-normativa"
+)
+
+// Las claves que los subtests de las filas con la instalación añaden al
+// sondeo.json de su copia, como las escribe el arnés.
+const (
+	claveDeLasDescripcionesCortas = `"instalacion":"producto-descripciones-cortas"`
+	claveDelPresupuesto           = `"presupuesto":1000000`
+	claveDeUnPresupuestoMenor     = `"presupuesto":5000`
+)
+
+// filaConLaInstalacion es una fila que espera un subtest de las filas con la
+// instalación: el sondeo fijo de las activaciones del que es copia su sondeo, el
+// nombre de la copia, la clave que añade a su sondeo.json (ninguna si va vacía),
+// y su instalación y su presupuesto en la tabla.
+type filaConLaInstalacion struct {
+	fijo, sondeo, clave      string
+	instalacion, presupuesto string
+}
+
+// probarLasFilasConLaInstalacion fija, en este orden, la fila de normativa sola,
+// la del producto, la del producto con el presupuesto y la de
+// producto-descripciones-cortas (contracts/tabla.md §3).
+func probarLasFilasConLaInstalacion(t *testing.T) {
+	t.Parallel()
+
+	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
+		{fijo: sondeoFijoConNormativaSola, sondeo: sondeoDeNormativaSola, instalacion: "normativa"},
+		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
+			instalacion: "producto", presupuesto: "1000000",
+		},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConLasDescripcionesCortas, clave: claveDeLasDescripcionesCortas,
+			instalacion: "producto-descripciones-cortas",
+		},
+	})
+}
+
+// probarLosPresupuestosDeMenorAMayor fija las filas de una misma instalación con
+// el presupuesto vacío, con 5000 y con 1000000 en ese orden, el de los valores
+// y no el de sus directorios (contracts/tabla.md §3).
+func probarLosPresupuestosDeMenorAMayor(t *testing.T) {
+	t.Parallel()
+
+	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
+		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConUnPresupuestoMenor, clave: claveDeUnPresupuestoMenor,
+			instalacion: "producto", presupuesto: "5000",
+		},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
+			instalacion: "producto", presupuesto: "1000000",
+		},
+	})
+}
+
+// probarLaTablaSoloConElPresupuesto fija que la clave presupuesto basta para que
+// la tabla dé «Instalación» y «Presupuesto»: el único sondeo con constancia
+// lleva solo ella y su fila va aparte de la del producto (contracts/tabla.md §2).
+func probarLaTablaSoloConElPresupuesto(t *testing.T) {
+	t.Parallel()
+
+	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
+		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConElPresupuesto, clave: claveDelPresupuesto,
+			instalacion: "producto", presupuesto: "1000000",
+		},
+	})
+}
+
+// probarLaTablaSoloConLaInstalacion fija que la clave instalacion basta para que
+// la tabla dé «Instalación» y «Presupuesto»: el único sondeo con constancia
+// lleva solo ella y su fila va aparte de la del producto (contracts/tabla.md §2).
+func probarLaTablaSoloConLaInstalacion(t *testing.T) {
+	t.Parallel()
+
+	exigirLasFilasConLaInstalacion(t, []filaConLaInstalacion{
+		{fijo: sondeoFijoConLasCuatro, sondeo: sondeoDelProducto, instalacion: "producto"},
+		{
+			fijo: sondeoFijoConLasCuatro, sondeo: sondeoConLasDescripcionesCortas, clave: claveDeLasDescripcionesCortas,
+			instalacion: "producto-descripciones-cortas",
+		},
+	})
+}
+
+// exigirLasFilasConLaInstalacion monta esas filas como copias de h41-2-a y
+// h41-2-b y fija su tabla byte a byte: la de esos dos en
+// familias/activaciones/tabla.md con «Instalación» y «Presupuesto» detrás de
+// «Skills instaladas» y las filas en el orden dado, cada una con los recuentos
+// de su sondeo fijo y su detalle, con la ruta de su copia.
+func exigirLasFilasConLaInstalacion(t *testing.T, filas []filaConLaInstalacion) {
+	t.Helper()
+
+	sondeos := t.TempDir()
+
+	for _, fila := range filas {
+		cambio := sinCambiar
+		if fila.clave != "" {
+			cambio = conLaClaveAnadida(t, fila.clave)
+		}
+
+		copiarElSondeoFijoEntero(t, fila.fijo, filepath.Join(sondeos, fila.sondeo), cambio)
+	}
+
+	fija, err := os.ReadFile(filepath.Join(familiasFijas, familiaFijaDeLasActivaciones, tablaDeLaFamiliaFija))
+	require.NoError(t, err)
+
+	tablaFija, detalleFijo, ok := strings.Cut(string(fija), "\n"+tituloDelDetalle+"\n")
+	require.True(t, ok, "la tabla fija de las activaciones tiene su detalle")
+
+	lineas := strings.Split(tablaFija, "\n")
+	require.Len(t, lineas, 8, "título, línea vacía, cabecera, separador, tres filas y el salto de línea final")
+
+	deLosFijos := map[string]struct{ fila, instaladas string }{
+		sondeoFijoConLasCuatro:     {lineas[4], lasCuatroSkillsInstaladas},
+		sondeoFijoConNormativaSola: {lineas[5], "normativa"},
+	}
+
+	esperada := slices.Concat(lineas[:2], []string{
+		strings.Replace(lineas[2], "| Skills instaladas |", "| Skills instaladas | Instalación | Presupuesto |", 1),
+		lineas[3] + "---|---|",
+	})
+
+	for _, fila := range filas {
+		deLaFija, ok := deLosFijos[fila.fijo]
+		require.Truef(t, ok, "%s es uno de los sondeos fijos de las activaciones", fila.fijo)
+
+		antes := "| 2.1.284 | " + deLaFija.instaladas + " | "
+		require.Contains(t, deLaFija.fila, antes)
+
+		esperada = append(esperada,
+			strings.Replace(deLaFija.fila, antes, antes+fila.instalacion+" | "+fila.presupuesto+" | ", 1))
+	}
+
+	esperada = append(esperada, "", tituloDelDetalle)
+
+	lineasDelDetalle := strings.Split(detalleFijo, "\n")
+	esperada = append(esperada, lineasDelDetalle[:3]...)
+
+	for _, fila := range filas {
+		for _, linea := range lineasDelDetalle[3:] {
+			if sesion, ok := strings.CutPrefix(linea, "| "+fila.fijo+"/"); ok {
+				esperada = append(esperada, "| "+fila.sondeo+"/"+sesion)
+			}
+		}
+	}
+
+	tabla := contarElSondeo(t, sondeos)
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Equal(t, strings.Join(esperada, "\n")+"\n", tabla.salida,
+		"las filas por instalación y presupuesto, con los recuentos y el detalle de sus sondeos, byte a byte")
+	assert.Empty(t, tabla.errores)
+}
+
+// copiarElSondeoFijoEntero copia en ese directorio el sondeo fijo de las
+// activaciones de ese nombre, con sus sesiones y su sondeo.json con el cambio
+// dado.
+func copiarElSondeoFijoEntero(t *testing.T, fijo, sondeo string, cambio func(string) string) {
+	t.Helper()
+
+	require.NoError(t, os.CopyFS(sondeo, os.DirFS(filepath.Join(familiasFijas, familiaFijaDeLasActivaciones,
+		sondeosDeLaFamilia, fijo))))
+	copiarElSondeoFijoDeLasActivaciones(t, fijo, sondeo, cambio)
+}
+
+// conLaClaveAnadida es el cambio de copiarElSondeoFijoDeLasActivaciones que
+// añade esa clave, con su valor, detrás de las demás del sondeo.json, donde la
+// escribe el arnés.
+func conLaClaveAnadida(t *testing.T, clave string) func(string) string {
+	t.Helper()
+
+	return func(contenido string) string {
+		final := strings.LastIndex(contenido, "}")
+		require.Positive(t, final, "el sondeo.json fijo es un objeto")
+
+		return contenido[:final] + "," + clave + contenido[final:]
+	}
 }
 
 // copiarElSondeoFijoDeLasActivaciones escribe en ese directorio el sondeo.json
