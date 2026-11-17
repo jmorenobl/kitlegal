@@ -1,0 +1,84 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-17 14:56:51.793593193 +0100
++++ ahora/checklists/requirements.md	2026-11-17 14:58:03.285976533 +0100
+@@ -18,8 +18,11 @@
+ ## Requirement Completeness
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — ninguno; «Clarifications» dice por qué.
+-- [x] Requirements are testable and unambiguous — cada FR nombra su control y cuándo sale en rojo (FR-001 a FR-010);
+-  FR-011 es el sondeo de la persona, con su criterio literal.
++- [x] Requirements are testable and unambiguous — FR-001 a FR-007, FR-009 y FR-010 nombran su control y cuándo sale
++  en rojo; FR-005 dice qué espera cada subtest («desde control»: base y declaración; «frontmatter»: el de su control),
++  en los dos con la `description` de la variante, sin contradecir FR-003 ni FR-009; FR-008 se verifica en el
++  quickstart y la revisión, sin control en `make ci` («## Fuera de alcance»), porque la release cierra
++  «[Unreleased]»; FR-011 es el sondeo de la persona, con su criterio literal.
+ - [x] Success criteria are measurable — SC-001 a SC-006 con recuentos, bytes, caracteres o intervalos.
+ - [x] Success criteria are technology-agnostic (no implementation details) — se expresan en descripciones, bytes,
+   caracteres y sesiones; los controles nombrados son los de `make ci` y del job que el hito exige.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-17 14:56:51.793624106 +0100
++++ ahora/spec.md	2026-11-17 14:57:53.767578215 +0100
+@@ -93,8 +93,8 @@
+ **Acceptance Scenarios**:
+ 
+ 1. **Dado** la cabeza de la rama, **Cuando** corre `TestSkillsDelProductoDesdeControl`, **Entonces** `normativa`,
+-   `jurisprudencia` y `plazos-y-territorio` son lo que dan su base y su declaración, con el `SKILL.md` comparado con
+-   el de su control con la `description` de la variante, y sale en verde (FR-003, FR-005).
++   `jurisprudencia` y `plazos-y-territorio` son lo que dan su base y su declaración, y su frontmatter el de su
++   control, en los dos con la `description` de la variante en lugar de la suya, y sale en verde (FR-003, FR-005).
+ 2. **Dado** la cabeza de la rama, **Cuando** corre la comprobación de `consulta-juridica`, **Entonces** cada fichero
+    de `skills/consulta-juridica/` es, ruta a ruta y byte a byte, el de la base de la rama, salvo las líneas de la
+    clave `description` de su `SKILL.md`, y no falta ni sobra ninguno (FR-003, SC-002).
+@@ -191,11 +191,17 @@
+   comprobación de FR-001, que mide sobre `skills/` los 450 por descripción y los 1700 entre las cuatro y sale en rojo
+   con la skill o la suma, la medida y el límite. La tercera persona no se comprueba en `make ci`: la juzga el job de
+   evals (FR-010; ADR 0046, punto 4).
+-- **FR-005**: El único cambio en las suites congeladas de H39 a H41.3 es este, en `TestSkillsDelProductoDesdeControl`:
+-  en `normativa`, `jurisprudencia` y `plazos-y-territorio`, el `SKILL.md` deja de compararse con el de su control tal
+-  cual —en el subtest «desde control», el fichero entero, y en «frontmatter», el frontmatter— y pasa a compararse con
+-  el de su control con la `description` de la variante: fuera de las líneas de la clave `description`, byte a byte, y
+-  la `description` que lee `skills.LeerFrontmatter`, el texto de la variante. Lo demás del test no cambia: los otros
++- **FR-005**: El único cambio en las suites congeladas de H39 a H41.3 es este, en `TestSkillsDelProductoDesdeControl`,
++  para `normativa`, `jurisprudencia` y `plazos-y-territorio`, y solo en lo esperado de la `description`:
++  - en el subtest «desde control», lo esperado del `SKILL.md` sigue siendo el de su base con los cambios de su
++    declaración —la base es su control en `normativa` y `jurisprudencia`, y `plazos-y-territorio-sin-condicion` en
++    `plazos-y-territorio`; los cambios del cuerpo declarados no cambian—, con la `description` de la variante en lugar
++    de la suya;
++  - en el subtest «frontmatter», lo esperado es el frontmatter de su control con la `description` de la variante en
++    lugar de la suya.
++
++  En los dos, fuera de las líneas de la clave `description`, byte a byte, y la `description` que lee
++  `skills.LeerFrontmatter`, el texto de la variante. Lo demás del test no cambia: los otros
+   ficheros, los movimientos y los mensajes de rojo. Sigue saliendo en rojo con la ruta del primer fichero que difiere,
+   falta o sobra, también con un carácter cambiado en el cuerpo, en `name` o en `metadata` de un `SKILL.md`. Es lo que
+   hizo H41.1 con el subtest de H41 que comparaba `plazos-y-territorio` con su control.
+@@ -210,8 +216,7 @@
+ - **FR-008**: `CHANGELOG.md` lleva, en «[Unreleased]» → «Cambiado», una entrada que nombra las cuatro skills, dice que
+   su `description` pasa a ser la de la variante `producto-descripciones-cortas` medida en H41.3, que nada más de las
+   skills cambia y que el cambio es para quitar la caída de la eval 04 de `normativa` en modo herramienta (ADR 0055).
+-  Control: la suite de aceptación del hito sale en rojo si «Cambiado» de «[Unreleased]» no tiene una entrada con los
+-  cuatro nombres y `producto-descripciones-cortas`.
++  Se verifica en el quickstart y en la revisión, sin control en `make ci`: la release siguiente cierra «[Unreleased]».
+ - **FR-009**: Las suites congeladas de H39 a H41.3 siguen en verde con el único cambio de FR-005; `go test ./...` y
+   `make ci` salen en verde en la cabeza de la rama. `TestConLaDescripcion` y el mutante de `eleccion_test.go` que
+   cambia la descripción de `plazos-y-territorio` siguen en verde sin cambios, porque la clave sigue en un bloque `>-`
+@@ -262,9 +267,9 @@
+ 
+ - **SC-001**: 4 de 4 descripciones de `skills/` son, byte a byte, las de la variante, con 0 bytes de diferencia.
+   Control: la comprobación de FR-001 en `make ci`, en rojo con un byte de diferencia.
+-- **SC-002**: 0 bytes cambian en las cuatro skills fuera de las líneas de la clave `description`, respecto a su control
+-  con la descripción de la variante (`normativa`, `jurisprudencia`, `plazos-y-territorio`) o a la base de la rama
+-  (`consulta-juridica`), y 0 ficheros se añaden o se quitan. Control: `TestSkillsDelProductoDesdeControl` (FR-005) y
++- **SC-002**: 0 bytes cambian en las cuatro skills fuera de las líneas de la clave `description`, respecto a lo que
++  dan su base y su declaración con la descripción de la variante (`normativa`, `jurisprudencia`,
++  `plazos-y-territorio`) o a la base de la rama (`consulta-juridica`), y 0 ficheros se añaden o se quitan. Control: `TestSkillsDelProductoDesdeControl` (FR-005) y
+   la comprobación de FR-003 en `make ci`, en rojo con el primer fichero que difiere, falta o sobra.
+ - **SC-003**: cada descripción de `skills/` tiene como mucho 450 caracteres (y por tanto menos de 900), las cuatro
+   suman como mucho 1700 y llevan 0 etiquetas XML; en la rama, 417, 420, 426 y 427, y 1690. Control: la comprobación de
+@@ -355,5 +360,6 @@
+ - Lanzar el sondeo de aceptación, escribir su tabla en `evidencias/` o el ADR que lo lea: los hace la persona, fuera
+   del run.
+ - Etiquetar, publicar una release o fusionar (ADR 0018, 0020 y 0021).
++- Comprobar `CHANGELOG.md` en `make ci` o en la suite de aceptación.
+ - Medir o proteger aparte la activación de `jurisprudencia`, `plazos-y-territorio` o `consulta-juridica` más allá de
+   lo que ya mide el job: el ADR 0055 lo acepta como riesgo.

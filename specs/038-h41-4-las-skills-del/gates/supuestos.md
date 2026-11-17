@@ -1,0 +1,4 @@
+# Supuestos de H41.4
+
+- [alcance] corrector_spec: [a][h] FR-008 añadía un control en la suite de aceptación sobre «[Unreleased]» de `CHANGELOG.md`, que el hito no pide y que saldría en rojo en `make ci` tras la release siguiente → FR-008 se queda con el contenido de la entrada, verificado en el quickstart y en la revisión; «## Fuera de alcance» añade comprobar `CHANGELOG.md` en `make ci` o en la suite de aceptación (lectura conservadora: lo no pedido no se implementa).
+- [interno] corrector_spec: [h] FR-005, SC-002 y el escenario 1 de US2 decían que el `SKILL.md` se compara con el de su control, contra FR-003 y FR-009 → «desde control» espera lo que dan su base (su control, o `plazos-y-territorio-sin-condicion`) y su declaración, y «frontmatter» el de su control, en los dos con la `description` de la variante en lugar de la suya; nada más del test cambia.
