@@ -1,0 +1,20 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "692cb248feaa9fbd74f82edce16592fbdfdaeeba7406b77f516bb063119b7421",
+      "bytes": 4984,
+      "fecha": "2026-11-17",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H41.3 (#270)"
+    },
+    {
+      "fichero": "tabla-normativa.md",
+      "sha256": "0155544923f5953de581f3613dd84244584e0598f116cd04a453ecba71a7ec19",
+      "bytes": 99412,
+      "fecha": "2026-11-17",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones de las cuatro filas"
+    }
+  ]
+}
