@@ -53,28 +53,37 @@ Los intervalos son de Wilson al 95 % y las p, de Fisher unilateral.
 - **La instalación.** `control` queda por encima de `sola`, y los intervalos no se tocan (p ≈ 0,0004). El control
   reproduce la caída, así que las otras dos comparaciones deciden.
 - **El presupuesto.** `diagnostico` cae a la mitad que `control`, pero los intervalos se tocan (p ≈ 0,087). Con un
-  listado que no se puede recortar siguen cayendo 7 de 160.
+  listado que no se puede recortar siguen cayendo 7 de 160. Tampoco se separa de `sola` ([2,1–8,8 %] frente a
+  [0,1–3,5 %]; p ≈ 0,033), así que el sondeo no demuestra que el presupuesto sea la causa, pero tampoco descarta que
+  contribuya.
 - **El remedio, en «No activan ninguna».** `remedio` queda por debajo de `control`, y los intervalos no se tocan
   (p ≈ 0,00005).
 - **El remedio, en «Activan otra skill».** Queda por encima de `control`, y los intervalos no se tocan (p ≈ 0,000002).
   Las 18 sesiones activan `consulta-juridica` y `normativa`, las dos antes de la primera herramienta. Abren
-  `con_herramientas.md` y `normas.md` en el turno 3, uno más tarde que las demás, porque la skill de entrada ocupa un
-  turno. En las otras 142 sesiones de `remedio`, `normativa` se activa sola y no cae ninguna. El remedio no funciona
+  `con_herramientas.md` y `normas.md` en el turno 3, uno más tarde que casi todas las demás, porque la skill de
+  entrada ocupa un turno. En las otras 142 sesiones de `remedio`, `normativa` se activa sola y no cae ninguna. El remedio no funciona
   llevando la activación a otra skill: `normativa` se activa antes en las 160.
 - **Lo que mide el control.** En `control` no activa `consulta-juridica` ninguna sesión, aunque su descripción dice que
   se usa «antes que las demás skills de kitlegal» y la entrada de una pregunta es suya (ADR 0048). Con la descripción
   corta, la activan 18. En las 18, la skill hace lo que su descripción y el ADR 0048 piden.
-- **La descripción corta de `consulta-juridica` cambia más que la longitud.** Quita «también cuando el agente cree saber
-  la respuesta». D2 conserva esa frase en `normativa` («aunque el agente crea saberlo») porque es lo que mide la eval 04.
-  En `consulta-juridica` no cabía en 450 caracteres. Quitarla haría pensar en menos activaciones de `consulta-juridica`,
+- **La descripción corta de `consulta-juridica` cambia más que la longitud.** Pierde varias cosas
+  (`specs/037-h41-3-por-que-normativa/contracts/variante.md` §2):
+  - la lista de ejemplos, que incluía «un artículo de una ley»;
+  - «qué tipo de pregunta es» y «qué cubre la base y qué no»;
+  - «también cuando el agente cree saber la respuesta», que no cabía en 450 caracteres. D2 conserva esa frase en
+    `normativa` («aunque el agente crea saberlo») porque es lo que mide la eval 04.
+
+  Además, «cualquier pregunta sobre una situación legal» pasa a «toda pregunta legal». Quitarla haría pensar en menos activaciones de `consulta-juridica`,
   no en más, así que el texto no explica las 18 por sí solo.
 
 ## Opciones consideradas
 
 1. **Aplicar el remedio ya, leyendo las 18 sesiones como la skill de entrada que hace su trabajo.** Rechazada. La
-   regla se fijó antes de medir, y leerla de otra forma después de ver los datos es el error que corrigió el ADR 0047.
-   La condición de «Activan otra skill» estaba para detectar justo esto. Que esta vez no señale un defecto solo se sabe
-   mirando las sesiones, y ese criterio se fija ahora, después de medir.
+   entrada de H41.3 fijó la regla antes de medir, y una regla fijada así se aplica como está. La condición de «Activan
+   otra skill» estaba para detectar justo esto. Que esta vez no señale un defecto solo se sabe mirando las sesiones, y
+   esa lectura se hace ahora, después de medir. Una regla nueva solo puede decidir sobre datos que todavía no existen.
+   Es lo que hizo el ADR 0047: cambió una regla después de un sondeo y dejó la decisión a un sondeo nuevo, que no se
+   repite para ver si sale en verde (punto 4).
 2. **Fijar `SLASH_COMMAND_TOOL_CHAR_BUDGET` al instalar kitlegal.** Rechazada. No se demuestra que el presupuesto sea
    la causa, es un ajuste de Claude Code en el equipo de quien instala (fuera, por la entrada de H41.3), y el remedio
    quita la caída sin él.
@@ -97,31 +106,46 @@ Los intervalos son de Wilson al 95 % y las p, de Fisher unilateral.
 3. **El remedio no se aplica con la regla de H41.3, porque no la cumple.** La lectura de las 18 sesiones que da «Lo
    medido» no cambia la regla de este sondeo.
 4. **Lo aplica H41.4**, el hito siguiente. Pone en `skills/` las cuatro `description` de
-   `laboratorio/producto-descripciones-cortas/`, byte a byte, y nada más. Su aceptación es un sondeo nuevo en las
-   condiciones del de H41.3 (`claude-sonnet-5-5`, la versión de Claude Code del job, la eval 04 en modo herramienta y
-   160 sesiones por fila) con dos filas:
-   - **control**: la instalación de `main` (`INSTALACION=producto` sobre la base de la rama);
-   - **producto**: la instalación de la rama (`INSTALACION=producto` sobre su cabeza).
+   `laboratorio/producto-descripciones-cortas/`, byte a byte, y no hace ningún otro cambio en las skills. Lo generado
+   que dependa de ellas lo regenera el hito. Su aceptación es un sondeo nuevo en las condiciones del de H41.3
+   (`claude-sonnet-5-5`, la versión de Claude Code del job y la eval 04 en modo herramienta), con **320 sesiones por
+   fila** y dos filas:
+   - **control**: `INSTALACION=producto`, lanzado desde un árbol en la base de la rama, para que instale `skills/` de
+     `main`;
+   - **producto**: `INSTALACION=producto`, lanzado desde la cabeza de la rama.
 
-   El criterio, fijado aquí, antes de medir:
-   - en «No activan ninguna», la fila `producto` queda por debajo de `control` y los intervalos no se tocan;
-   - en «Activan antes», que cuenta las sesiones que activan `normativa` antes de la primera herramienta, `producto` no
-     queda por debajo de `control` con intervalos que no se tocan;
-   - «Activan otra skill» se da en la tabla y no decide. Una skill que se activa junto a `normativa`, antes de la
-     primera herramienta, no es un fallo de la activación de `normativa`. Si la que se activa es otra que
-     `consulta-juridica`, el ADR que lea el sondeo lo dice.
+   Las dos filas se lanzan el mismo día, una detrás de otra.
+
+   El criterio queda fijado aquí, antes de medir. **«No activan `normativa` antes de la primera herramienta»**, que es
+   *n* menos «Activan antes», queda en `producto` por debajo de `control`, con intervalos que no se tocan. Ese recuento
+   cuenta como fallo tres cosas:
+   - la sesión que no activa ninguna skill;
+   - la que activa solo otra;
+   - la que activa `normativa` después de la primera herramienta.
+
+   Es el desplazamiento que temía D2. «Activan otra skill» se da en la tabla y no decide: una skill que se activa junto
+   a `normativa`, antes de la primera herramienta, no hace que `normativa` falle. Con los datos de H41.3, el recuento
+   es 14 de 160 en `control` y 0 de 160 en `remedio`.
 
    Además, las evals de las cuatro skills salen en verde en el job, que las mide todas porque cambia una descripción
-   (ADR 0045), y el job juzga la tercera persona de los cuatro textos (ADR 0046, punto 4). Si una de las dos cosas
-   falla, H41.4 no se fusiona y el ADR que lea su sondeo dice qué se mide después.
+   (ADR 0045), y el job juzga la tercera persona de los cuatro textos (ADR 0046, punto 4).
+
+   **Si no se cumple el criterio del sondeo, o si fallan las evals o el juicio de la tercera persona, H41.4 no se
+   fusiona.** El sondeo no se repite para ver si sale en verde (ADR 0047, punto 4), y el ADR que lo lea dice qué se
+   mide después.
 
 ## Consecuencias
 
 - **Hasta que entre H41.4, el cierre de un hito puede salir en rojo por esta caída.** El job mide 3 sesiones de la
   eval 04 en modo herramienta en cada medición. Con la tasa del control, en torno al 9 %, sale en rojo en torno a
   1 de cada 4 mediciones. Se acepta, como en el ADR 0054, solo hasta el arreglo, y ningún hito la esquiva.
-- **H41.4 va primero en la cola**, por delante de H33, porque es el que trata la caída. Su entrada la escribe la
-  persona y sigue el punto 4.
+- **H41.4 va primero en la cola**, por delante de H33, porque es el que trata la caída. Su entrada sigue el punto 4 y
+  llega en una propuesta de cambio aparte. Hasta que esté en `docs/roadmap/todo/`, el siguiente hito del repositorio
+  sigue siendo H33.
+- **El sondeo de H41.4 solo mide la activación de `normativa`, pero cambian cuatro descripciones.** Las de
+  `jurisprudencia` y `plazos-y-territorio` también pierden disparadores, y su activación solo la protege el job. El job
+  mide 3 sesiones por eval y medición, así que no ve una caída del 5 al 10 %: la de la eval 04 tardó cinco cierres en
+  verse por eso. Es herencia de la entrada de H41.3, y se acepta como riesgo.
 - **La activación de `consulta-juridica` pasa a ser algo que se mira.** En las evals de `normativa` con la instalación
   de hoy no la activa ninguna sesión, aunque su descripción lo pide. Si eso es un defecto de la skill de entrada no se
   decide aquí. Las evals de `consulta-juridica` del job ya miden su activación en las preguntas que son suyas.
@@ -139,6 +163,17 @@ Los intervalos son de Wilson al 95 % y las p, de Fisher unilateral.
   tabla: activaciones `consulta-juridica (antes), normativa (antes)`, y `con_herramientas.md` y `normas.md` en el
   turno 3.
 - **La estadística.** Los intervalos son de Wilson al 95 %, y las p, de la prueba exacta de Fisher unilateral sobre
-  las dos filas que se comparan. La potencia del criterio del punto 4 es la del ADR 0054, «Validación»: con 160 por
-  fila, hacen falta 8 caídas de 160 en `control` para separar su intervalo del de 0 de 160. Con una tasa real del
-  7,5 %, eso pasa en 9 de cada 10 sondeos.
+  las dos filas que se comparan. La potencia del criterio del punto 4 es la probabilidad binomial de que los
+  intervalos de las dos filas no se toquen. Las dos son filas medidas: `producto` no se supone en 0.
+
+  | Tasa real de `producto` | 160 por fila, control al 7,5 % | 160, control al 8,75 % | **320, control al 7,5 %** | **320, control al 8,75 %** |
+  |---|---|---|---|---|
+  | 0 % | 0,92 | 0,97 | 1,00 | 1,00 |
+  | 0,6 %, la de `sola` | 0,68 | 0,82 | 0,98 | 1,00 |
+  | 1,25 % | 0,47 | 0,64 | 0,91 | 0,97 |
+  | la del control, sin mejora | 0,002 | — | 0,003 | — |
+
+  Con 160 por fila, un remedio que funcionase como `sola` suspendería entre 1 de cada 3 y 1 de cada 5 sondeos. Es el
+  sorteo que corrigió el ADR 0047. Con 320 por fila pasa 49 de cada 50 veces, y un remedio sin efecto, 3 de cada 1000.
+  Con el control en el límite inferior de su intervalo de hoy, el 5,3 %, y `producto` en 0, pasa con probabilidad
+  1,00 con 320 por fila, frente a 0,62 con 160.
