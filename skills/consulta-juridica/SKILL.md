@@ -1,13 +1,10 @@
 ---
 name: consulta-juridica
 description: >-
-  Punto de entrada de cualquier pregunta sobre una situación legal en España, de cualquier materia —un seguro, un
-  contrato, una multa, un recurso contra una administración, una herencia, una sentencia o un artículo de una ley—:
-  dice qué tipo de pregunta es, qué capacidad de kitlegal la resuelve —normativa, jurisprudencia, plazos y
-  territorio— y con qué skill, qué cubre la base y qué no, y lo que no cubre lo dice sin dar de memoria ningún plazo,
-  órgano ni vía. Se usa al empezar cualquier pregunta legal, antes que las demás skills de kitlegal, también cuando el
-  agente cree saber la respuesta, cuando la pregunta no nombra ninguna norma o cuando pide qué hacer, a quién reclamar
-  o qué escrito presentar.
+  Punto de entrada de toda pregunta legal en España, de cualquier materia: dice qué capacidad de kitlegal la resuelve
+  —normativa, jurisprudencia, plazos y territorio— y con qué skill, y lo que no cubre lo dice sin dar de memoria plazos,
+  órganos ni vías. Se usa al empezar toda pregunta legal, antes que las demás skills de kitlegal, también si no nombra
+  norma o pide qué hacer, a quién reclamar o qué escrito presentar.
 ---
 
 # Consulta jurídica: qué la resuelve y qué cubre la base

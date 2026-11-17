@@ -1,14 +1,10 @@
 ---
 name: jurisprudencia
 description: >-
-  Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que la
-  pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
-  sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia
-  («qué dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando
-  el agente crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del
-  CENDOJ: prepara la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae.
-  Se activa antes de llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante
-  y cómo citar la que sí lo dice la skill.
+  Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que la pregunta
+  nombre, pida o cite una sentencia (STS, ECLI, ROJ), pregunte si existe o qué dice, pida jurisprudencia sobre una
+  materia o traiga una resolución, aunque el agente crea conocerla. kitlegal no consulta el CENDOJ: prepara la búsqueda
+  y coteja el documento. Se activa antes de cita_preparar o cita_cotejar.
 metadata:
   kitlegal-applets: cita
 ---
