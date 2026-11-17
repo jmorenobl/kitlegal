@@ -62,6 +62,17 @@ const varianteConLaReglaDeNormativa = "normativa-testigo-en-referencia"
 // de skills/normativa en v0.9.0 (FR-020; data-model §2).
 const varianteDeControlDeNormativa = "normativa-control"
 
+// varianteDelProductoDeNormativa es la variante del producto de normativa, la que
+// se instala desde skills/normativa (FR-022 de H41), y
+// instalacionConLasDescripcionesCortas, el valor de INSTALACION que instala las
+// cuatro skills del producto con la description de la variante
+// producto-descripciones-cortas, que solo vale con ella (FR-010; research D6;
+// data-model §1).
+const (
+	varianteDelProductoDeNormativa       = "normativa-producto"
+	instalacionConLasDescripcionesCortas = "producto-descripciones-cortas"
+)
+
 // familiasDelProducto son las familias de las skills del producto, declaradas en
 // Go porque las fija enteras el hito (research D10; data-model §1;
 // contracts/variantes.md §1), en este orden: normativa, plazos-y-territorio y
@@ -79,12 +90,12 @@ var familiasDelProducto = []familiaDelLaboratorio{
 		carpeta: path.Join(carpetaDelLaboratorio, skillDeNormativa),
 		variantes: []varianteDelLaboratorio{
 			{Nombre: varianteDeControlDeNormativa, Modos: []Modo{ModoOrden, ModoHerramienta}},
-			{Nombre: "normativa-producto", Modos: []Modo{ModoOrden, ModoHerramienta}},
+			{Nombre: varianteDelProductoDeNormativa, Modos: []Modo{ModoOrden, ModoHerramienta}},
 			{Nombre: "normativa-remisiones-en-orden", Modos: []Modo{ModoHerramienta}},
 			{Nombre: "normativa-cuerpo-corto", Modos: []Modo{ModoHerramienta}},
 			{Nombre: varianteConLaReglaDeNormativa, Modos: []Modo{ModoHerramienta}},
 		},
-		producto:   "normativa-producto",
+		producto:   varianteDelProductoDeNormativa,
 		conLaRegla: varianteConLaReglaDeNormativa,
 		referencias: []string{
 			"buscar_la_norma.md",

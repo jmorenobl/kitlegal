@@ -1,0 +1,108 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-16 11:12:06.506474093 +0100
++++ ahora/checklists/requirements.md	2026-11-16 11:13:14.956036523 +0100
+@@ -9,8 +9,9 @@
+ - [x] No implementation details (languages, frameworks, APIs) — el spec nombra `make evals-laboratorio`,
+   `make laboratorio-tabla`, `INSTALACION`, `PRESUPUESTO`, `SLASH_COMMAND_TOOL_CHAR_BUDGET` y `sondeo.json` porque los
+   nombra el hito; el fichero y el formato de la variante en `laboratorio/` (FR-001), cómo se compone el `SKILL.md`
+-  (FR-011), dónde y con qué clave se anota la constancia (FR-012), los textos de los mensajes de error (FR-016), las
+-  cabeceras de las columnas (FR-020) y los cuatro textos de la variante los decide el plan.
++  (FR-011), dónde y con qué clave se anota la constancia (FR-012), dónde se declara en el código la regla de FR-010,
++  los textos de los mensajes de error nuevos (FR-016; los de hoy no cambian), las cabeceras de las columnas (FR-020)
++  y los cuatro textos de la variante los decide el plan.
+ - [x] Focused on user value and business needs — Contexto (la hipótesis del ADR 0054 y por qué medirla antes de tocar
+   las descripciones del producto) y «Uso, de fuera adentro».
+ - [x] Written for non-technical stakeholders — cada historia dice qué ve la persona en `make ci`, en la sesión o en la
+@@ -22,7 +23,8 @@
+ - [x] No [NEEDS CLARIFICATION] markers remain — cerrados por clarify: `INSTALACION=producto-descripciones-cortas` solo
+   con `normativa-producto` (FR-010) y `sondeo.json` sin las dos opciones como hoy, byte a byte (FR-012).
+ - [x] Requirements are testable and unambiguous — FR-001 y FR-002 con la comprobación de la variante; FR-010 a FR-018
+-  con el test del arnés (FR-018); FR-020 a FR-024 con el del guion (FR-024); FR-032 con las suites congeladas; FR-034
++  con el test del arnés (FR-018), con la forma de `PRESUPUESTO` fijada en FR-013 (solo cifras, sin signo ni ceros
++  delante) y los mensajes de hoy de una petición sin las dos opciones que no vale (FR-015, FR-016); FR-020 a FR-024 con el del guion (FR-024); FR-032 con las suites congeladas; FR-034
+   con el job; FR-030 y FR-031 los comprueba la persona (SC-009), con la regla de «no se tocan» fijada en FR-031.
+ - [x] Success criteria are measurable — SC-001 (≤ 450, ≤ 1700, 0 etiquetas, 1 por skill), SC-002 (4 skills, 100 %,
+   0 bytes), SC-003 (100 % y 0 sesiones), SC-004 (0 bytes), SC-005 (0 sesiones), SC-006 (valores exactos), SC-007
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-16 11:12:06.506491861 +0100
++++ ahora/spec.md	2026-11-16 11:13:02.518181378 +0100
+@@ -119,7 +119,7 @@
+    **Entonces** las skills instaladas, las sesiones que abre, sus invocaciones de `claude`, su entorno, su
+    `sondeo.json` (sin ninguna constancia nueva, FR-012) y su salida son los de hoy, byte a byte, con los valores esperados de los
+    tests de hoy sin cambiar (FR-015, SC-004).
+-5. **Dado** una petición con `PRESUPUESTO` que no es un entero mayor que 0, con `PRESUPUESTO` y variantes del
++5. **Dado** una petición con `PRESUPUESTO` sin la forma de FR-013, con `PRESUPUESTO` y variantes del
+    laboratorio de H39, con `INSTALACION=producto-descripciones-cortas` y cualquier `VARIANTES` que no sea solo
+    `normativa-producto`, o con un valor de `INSTALACION` que
+    no vale, **Cuando** la persona lanza el arnés, **Entonces** sale con un código distinto de 0, dice qué no vale con
+@@ -239,9 +239,7 @@
+   FR-016: las versionadas de `normativa` (`normativa-control`…), las `<skill>-producto` y las versionadas de las otras
+   dos familias del producto, y las de H39. El mensaje nombra `INSTALACION` y dice que `producto-descripciones-cortas`
+   solo vale con `normativa-producto`; con las variantes de H39 conserva el de FR-016, que dice que no son de ninguna
+-  familia del producto. La regla se declara junto a la familia de `normativa` (su variante del producto,
+-  `familia.producto`), no como un nombre suelto en la comprobación, igual que las familias del laboratorio, declaradas
+-  en Go porque las fija enteras el hito.
++  familia del producto.
+ - **FR-011**: El arnés compone la variante al preparar el sondeo: copia `skills/` del árbol que lanza el sondeo y pone
+   en el frontmatter de cada `SKILL.md` la `description` de la variante para esa skill, y nada más. La `description`
+   leída de cada `SKILL.md` compuesto es exactamente el texto de la variante; cada otro byte de cada skill es el de
+@@ -254,7 +252,8 @@
+   `INSTALACION=producto`) deja su `sondeo.json` como hoy, byte a byte: no anota ni el nombre de su instalación ni la
+   ausencia de presupuesto. La tabla deduce su instalación de `skills_instaladas` (FR-022), y no distingue un sondeo de
+   H41.3 sin opciones de uno de H41.2: miden lo mismo, la misma instalación y ningún presupuesto en la sesión.
+-- **FR-013**: `make evals-laboratorio` acepta `PRESUPUESTO=<caracteres>`, un entero mayor que 0 en decimal. Con él,
++- **FR-013**: `make evals-laboratorio` acepta `PRESUPUESTO=<caracteres>`, un entero mayor que 0 escrito solo con cifras,
++  sin signo ni ceros delante, la forma de los demás enteros de argumento del arnés. Con él,
+   cada sesión que abre el arnés corre con `SLASH_COMMAND_TOOL_CHAR_BUDGET=<caracteres>` en su entorno, con el valor
+   tal como se pidió, y nada más de su entorno cambia. Vale con cualquier `INSTALACION` válida de una familia del
+   producto, también vacía.
+@@ -263,12 +262,14 @@
+ - **FR-015**: Una petición válida sin las dos opciones —`INSTALACION` vacía o `producto`, y `PRESUPUESTO` vacío— hace lo
+   que hace hoy, byte a byte: las skills que instala en cada sesión, las sesiones que abre, sus invocaciones de
+   `claude`, su entorno, su `sondeo.json` (sin ninguna constancia nueva, FR-012) y su salida. La única diferencia posible con hoy
+-  es la de FR-014, que con el entorno de las sesiones de hoy no cambia ningún byte.
++  es la de FR-014, que con el entorno de las sesiones de hoy no cambia ningún byte. Una petición sin las dos opciones
++  que no vale da los mensajes de error de hoy, byte a byte.
+ - **FR-016**: Son errores de argumentos como los de hoy —junto a los demás, uno por línea, cada uno con el nombre del
+   argumento de `make`; salida con un código distinto de 0; ninguna sesión abierta, nada construido y `DIRECTORIO` sin
+-  crear—: `PRESUPUESTO` que no es un entero mayor que 0; `PRESUPUESTO` o `INSTALACION=producto-descripciones-cortas`
+-  con variantes del laboratorio de H39, que no son de ninguna familia del producto; `INSTALACION` con un valor que no
+-  es vacío, `producto` ni `producto-descripciones-cortas`, cuyo mensaje nombra los dos valores que valen;
++  crear—: `PRESUPUESTO` que no tiene la forma de FR-013 (`0`, `0100` o `+1000000` no valen);
++  `PRESUPUESTO` o `INSTALACION=producto-descripciones-cortas` con variantes del laboratorio de H39, que no son de
++  ninguna familia del producto; `INSTALACION` con un valor que no es vacío, `producto` ni
++  `producto-descripciones-cortas`, con el mensaje de hoy, byte a byte;
+   `INSTALACION=producto-descripciones-cortas` con cualquier `VARIANTES` que no sea solo `normativa-producto` (FR-010); y
+   `INSTALACION=producto-descripciones-cortas` cuando la variante de instalación no tiene una `description` por
+   skill de `skills/` o que pasa de sus límites (FR-002). Los mensajes de hoy de los demás argumentos no cambian.
+@@ -283,7 +284,8 @@
+     `description` es `skills/` de la cabeza, byte a byte, fichero a fichero;
+   - con `PRESUPUESTO`, que `SLASH_COMMAND_TOOL_CHAR_BUDGET` llega al entorno de cada sesión con el valor pedido; y sin
+     él, con la variable puesta en el entorno de quien lanza el arnés, que no llega a ninguna;
+-  - sin las dos opciones, lo que hace hoy, byte a byte, con los valores esperados de los tests de hoy sin cambiar;
++  - sin las dos opciones, lo que hace hoy, byte a byte, también los mensajes de una petición que no vale, con los
++    valores esperados de los tests de hoy sin cambiar;
+   - con cada petición inválida de FR-016, 0 sesiones abiertas; para `INSTALACION=producto-descripciones-cortas`, al
+     menos con una variante versionada (`normativa-control`), con la `-producto` de otra familia
+     (`jurisprudencia-producto`) y con una de H39.
+@@ -406,7 +408,8 @@
+ - **SC-003**: Con `PRESUPUESTO=N`, el 100 % de las sesiones con `SLASH_COMMAND_TOOL_CHAR_BUDGET=N`; sin él, 0 sesiones
+   con la variable aunque esté en el entorno de quien lanza el arnés. Control: el test de FR-018 falla con la primera
+   sesión que difiere.
+-- **SC-004**: Sin las dos opciones, 0 bytes de diferencia con lo que hace el arnés hoy en lo que enumera FR-015.
++- **SC-004**: Sin las dos opciones, 0 bytes de diferencia con lo que hace el arnés hoy en lo que enumera FR-015,
++  también en los mensajes de una petición que no vale.
+   Control: el test de FR-018, con los valores esperados de hoy sin cambiar, falla con la primera diferencia.
+ - **SC-005**: 0 sesiones abiertas con cada petición inválida de FR-016. Control: el test de FR-018 falla si una abre
+   alguna.
+@@ -464,8 +467,8 @@
+ - «Caracteres» en los límites de la variante son runas, como en los límites de la descripción del producto (ADR 0046,
+   punto 2), y «etiqueta XML» es la de su validación (punto 3).
+ - «Sin las dos opciones» es una petición válida con `INSTALACION` vacía o `producto` y `PRESUPUESTO` vacío. Una
+-  petición inválida no es «sin las dos opciones»: es un error de argumentos de FR-016, y el mensaje de un `INSTALACION`
+-  que no vale nombra los dos valores que valen, porque el de hoy («no es producto») dejaría de ser cierto.
++  petición que no vale y no lleva ninguna de las dos da los mensajes de error de hoy, byte a byte: el de un
++  `INSTALACION` que no vale sigue siendo el de hoy («no es producto»), que sigue siendo cierto (FR-015, FR-016).
+ - `INSTALACION=producto-descripciones-cortas` solo con `normativa-producto` es la lectura conservadora: el hito no pide
+   otra variante y ningún sondeo la usa; con una versionada, la variante compuesta sustituiría por entero su contenido y
+   una fila etiquetada `normativa-control` mediría la cabeza compuesta, un dato mal etiquetado (FR-010).

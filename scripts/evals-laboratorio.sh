@@ -14,10 +14,12 @@
 # solo en la salida de error, sin el registro de go test, y sale con 1. No usa nada posterior a bash 3.2, el de macOS.
 #
 #   make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
-#     CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto] [EVAL=<nn>]
+#     CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto|producto-descripciones-cortas] [EVAL=<nn>] \
+#     [PRESUPUESTO=<caracteres>]
 #
-# Los nueve argumentos son los de make, en ese orden y tal como los escribe quien lo lanza: los siete primeros no tienen
-# valor por defecto; INSTALACION y EVAL, vacíos, son la instalación y el plan de hoy; y los que no valen los nombra
+# Los diez argumentos son los de make, en ese orden y tal como los escribe quien lo lanza: los siete primeros no tienen
+# valor por defecto; INSTALACION y EVAL, vacíos, son la instalación y el plan de hoy; PRESUPUESTO, vacío, es sin
+# presupuesto (specs/037-h41-3-por-que-normativa/contracts/arnes.md §1 y §2); y los que no valen los nombra
 # TestSondeoDelLaboratorio. Abre sesiones con modelo y consume la suscripción de
 # quien lo lanza, con CLAUDE_CODE_OAUTH_TOKEN: lo ejecuta una persona; ni make ci, ni los ganchos, ni el job de evals,
 # ni ningún paso del workflow (FR-032 de H39). La credencial se la pone en el entorno scripts/evals-sondeo-llavero.sh,
@@ -25,8 +27,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if [[ $# -ne 9 ]]; then
-	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval>" >&2
+if [[ $# -ne 10 ]]; then
+	echo "evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> <modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval> <presupuesto>" >&2
 	exit 1
 fi
 
@@ -56,7 +58,7 @@ mkdir "$temporal/tmp"
 codigo=0
 TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args \
 	-variantes "$1" -modos "$2" -sesiones "$3" -modelo "$4" -claude-code "$5" -concurrencia "$6" -directorio "$directorio" \
-	-instalacion "$8" -eval "$9" -temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
+	-instalacion "$8" -eval "$9" -presupuesto "${10}" -temporal "$temporal" > "$temporal/go-test.log" 2>&1 || codigo=$?
 
 if [[ $codigo -ne 0 ]]; then
 	cat "$temporal/go-test.log" >&2

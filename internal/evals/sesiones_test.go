@@ -5,6 +5,7 @@ import (
 	"encoding/json/v2"
 	"io/fs"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -108,6 +109,17 @@ func TestTopeDeLaSesion(t *testing.T) {
 			ejecucion := sesionesDelTest(t, s, false)
 			ejecucion.Entorno = s.base(caso.variables...)
 			sesion := ejecucion.Plan[0]
+
+			// El test fija su condición de partida: la sesión hereda las señales
+			// que el proceso de test ignora, y la shell del sustituto no puede
+			// restaurar una que le llega ignorada. Con SIGHUP ignorada, el
+			// kill -s HUP que el sustituto se envía a sí mismo en
+			// muere-por-otra-senal no lo mata, y el código es 0 y no 129.
+			// Mientras el test la escucha, Go no la ignora y la sesión la recibe
+			// con su disposición por omisión.
+			hup := make(chan os.Signal, 1)
+			signal.Notify(hup, syscall.SIGHUP)
+			t.Cleanup(func() { signal.Stop(hup) })
 
 			inicio := time.Now()
 			require.NoError(t, abrirSesion(t.Context().Done(), ejecucion, sesion))

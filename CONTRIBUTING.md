@@ -1657,7 +1657,7 @@ suscripción de quien lo lanza: ni `make ci` ni ningún flujo lo ejecutan.
 **La credencial no vive en un fichero** (ADR 0032). `make evals-sondeo` y `make evals-laboratorio` pasan por
 `scripts/evals-sondeo-llavero.sh`, cuyo primer argumento, de una lista cerrada, dice qué guion ejecuta con los demás:
 `sondeo`, `scripts/evals-sondeo.sh` con sus cinco (`SKILL`, `EVALS`, `MODELO`, `REPETICIONES` y `CONCURRENCIA`), y
-`laboratorio`, `scripts/evals-laboratorio.sh` con sus nueve ([El sondeo del laboratorio](#el-sondeo-del-laboratorio));
+`laboratorio`, `scripts/evals-laboratorio.sh` con sus diez ([El sondeo del laboratorio](#el-sondeo-del-laboratorio));
 con otro, o sin ninguno, imprime su uso y termina con `1` sin tocar el llavero. Si `CLAUDE_CODE_OAUTH_TOKEN` no está
 ya en el entorno, el guion la lee en macOS de un llavero propio —no el de inicio de
 sesión— que está bloqueado: el sistema abre un diálogo que pide la contraseña del llavero, y el guion lo vuelve a
@@ -1693,16 +1693,18 @@ y cuáles cumplen la regla. Lo lanza una persona para la tabla con la que escrib
 
 ```sh
 make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
-  CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto] [EVAL=<nn>]
+  CONCURRENCIA=<c> DIRECTORIO=<ruta> [INSTALACION=producto|producto-descripciones-cortas] [EVAL=<nn>] \
+  [PRESUPUESTO=<caracteres>]
 ```
 
-La cadena es `make` → `scripts/evals-sondeo-llavero.sh laboratorio` con los nueve, que toma la credencial como en
+La cadena es `make` → `scripts/evals-sondeo-llavero.sh laboratorio` con los diez, que toma la credencial como en
 `make evals-sondeo` → `scripts/evals-laboratorio.sh`, que crea un temporal y lo borra al terminar → `go test -tags
 evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args …`. Ninguno de los siete primeros
-argumentos tiene valor por defecto, porque cada uno cambia lo que se mide; los dos últimos, `INSTALACION` y `EVAL`
-(H41.2, solo en las familias del producto, abajo), vacíos son la instalación y el plan de antes. Antes de abrir ninguna
-sesión se comprueban todos; los errores salen juntos, uno por línea y cada uno con el nombre de su argumento, los de
-`INSTALACION` y `EVAL` detrás del de `DIRECTORIO`:
+argumentos tiene valor por defecto, porque cada uno cambia lo que se mide; los tres últimos, `INSTALACION` y `EVAL`
+(H41.2) y `PRESUPUESTO` (H41.3), solo en las familias del producto (abajo), vacíos son la instalación, el plan y el
+entorno de las sesiones de antes. Antes de abrir ninguna sesión se comprueban todos; los errores salen juntos, uno por
+línea y cada uno con el nombre de su argumento, los de `INSTALACION`, `EVAL` y `PRESUPUESTO` detrás del de
+`DIRECTORIO`, en ese orden:
 
 | Argumento | Vale si | Mensaje si no |
 |---|---|---|
@@ -1715,14 +1717,23 @@ sesión se comprueban todos; los errores salen juntos, uno por línea y cada uno
 | `CLAUDE_CODE` | no vacía | `CLAUDE_CODE: está vacía` |
 | `CONCURRENCIA` | entero mayor o igual que 1 | `CONCURRENCIA: «<c>» no es un entero mayor o igual que 1` |
 | `DIRECTORIO` | no vacío y no existe; relativo, desde la raíz del repositorio | `DIRECTORIO: está vacío` o `DIRECTORIO: <ruta> ya existe` |
-| `INSTALACION` | vacío, o `producto` | `INSTALACION: «<v>» no es producto` |
-| `INSTALACION=producto` | las variantes pedidas son de una familia del producto | `INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia del producto` |
+| `INSTALACION` | vacío, `producto` o `producto-descripciones-cortas` | `INSTALACION: «<v>» no es producto` |
+| `INSTALACION=producto` o `=producto-descripciones-cortas` | las variantes pedidas son de una familia del producto | `INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia del producto` |
+| `INSTALACION=producto-descripciones-cortas` | las variantes pedidas que valen son solo `normativa-producto` | `INSTALACION: producto-descripciones-cortas solo vale con VARIANTES=normativa-producto` |
+| `INSTALACION=producto-descripciones-cortas` | la variante `laboratorio/producto-descripciones-cortas/` no tiene ningún defecto (abajo) | `INSTALACION: <defecto>`, uno por defecto |
 | `EVAL` | vacío, o el número de dos cifras de una de las cuatro evals del plan de la familia pedida, la que empieza por `<nn>-` | `EVAL: «<v>» no es el número de ninguna eval del plan de <skill>` |
 | `EVAL` no vacío | las variantes pedidas son de una familia del producto | `EVAL: las variantes del laboratorio de H39 no tienen el plan de una familia del producto` |
+| `PRESUPUESTO` | vacío, o un entero mayor que 0 escrito solo con cifras, sin signo ni ceros delante, que cabe en un `int` | `PRESUPUESTO: «<v>» no es un entero mayor que 0` |
+| `PRESUPUESTO` no vacío y que vale | las variantes pedidas son de una familia del producto | `PRESUPUESTO: las variantes del laboratorio de H39 no son de ninguna familia del producto` |
 
-Los errores de `INSTALACION=producto`, de `EVAL` no vacío y de un `EVAL` que no es de la familia solo salen cuando las
-variantes pedidas que valen son de una sola familia: si ninguna vale, o se mezclan familias, ya lo dicen los errores de
-`VARIANTES`. `INSTALACION: «<v>» no es producto` sale con cualquier `VARIANTES`.
+Los errores de H39 —los de `INSTALACION=producto` o `=producto-descripciones-cortas`, de `EVAL` no vacío y de
+`PRESUPUESTO`— y el de un `EVAL` que no es de la familia solo salen cuando las variantes pedidas que valen son de una
+sola familia: si ninguna vale, o se mezclan familias, ya lo dicen los errores de `VARIANTES`.
+`INSTALACION: «<v>» no es producto` sale con cualquier `VARIANTES`, y el de «solo vale con», con cualquier variante que
+vale y no es `normativa-producto`, también en una mezcla, salvo con la familia de H39, que da solo el suyo: de esos tres
+de `INSTALACION` sale uno como mucho, y los de la variante se suman detrás. La variante solo se lee con
+`INSTALACION=producto-descripciones-cortas`. `PRESUPUESTO` da una sola línea: la de la forma si no la tiene y, si no, la
+de H39. Sin las dos opciones, los mensajes son los de H41.2, byte a byte.
 
 Detrás, en este orden y solo si los argumentos valen: la credencial, `CLAUDE_CODE_OAUTH_TOKEN` no vacía, con el mensaje
 de `make evals-sondeo`; y el primer campo de `claude --version`, con el `PATH` de quien lo lanza, igual a
@@ -1873,7 +1884,7 @@ H39 y `normativa` da el mensaje de H40. `SESIONES`, sin `EVAL` (abajo), sigue si
 | `jurisprudencia` | `01-existe-con-numero-y-fecha`, `03-por-materia`, `04-documento-pegado` y `06-documento-que-no-es-el-pedido` |
 
 Cada sesión se prepara como en el job, servida por lo grabado y con los proxies que rechazan toda petición (ADR 0043),
-y, sin `INSTALACION=producto` (abajo), tiene instalada solo la skill de su variante, con el nombre de la de la familia;
+y, sin `INSTALACION` (abajo), tiene instalada solo la skill de su variante, con el nombre de la de la familia;
 en modo herramienta, el servidor es `kitlegal mcp serve` del árbol en todas. Con `<skill>-producto`, el arnés copia
 `skills/<skill>` del árbol en el temporal y anota en `sondeo.json` la clave `referencias_del_producto`: los nombres de
 los ficheros de su `references/`, en orden de nombre, y nada más de la skill. Sin `<skill>-producto`, `sondeo.json` no
@@ -1925,7 +1936,7 @@ dice qué medir después. La tabla de `plazos-y-territorio` no decide la fusión
 `plazos-y-territorio-control` y el desglose por eval del detalle, va a un ADR que escribe la persona y que dice qué
 forma aplica H41.1 o, si ninguna cumple, que no aplica ninguna y qué medir después.
 
-H41.2 añade a las familias del producto los dos últimos argumentos, para medir si las sesiones de la eval 04 que en el
+H41.2 añade a las familias del producto `INSTALACION` y `EVAL`, para medir si las sesiones de la eval 04 que en el
 job no activan `normativa` en modo herramienta lo deben a la versión de Claude Code del job o a tener instaladas, como
 allí, las demás skills del producto (`specs/036-h41-2-por-qu-e/contracts/arnes.md`). Con `INSTALACION=producto`, el
 temporal tiene, además de la copia de la variante, la de cada directorio de `skills/` del árbol que no es la skill de
@@ -1934,8 +1945,9 @@ skills del producto, cada una byte a byte, con la de su variante en el lugar de 
 repetido; en `<skill>-producto`, eso es `skills/` entera. Con `EVAL=<nn>`, el plan de cada par variante × modo son
 `SESIONES` sesiones de esa eval, `<eval>-01` en adelante, en lugar de `SESIONES/4` de cada una de las cuatro. Vacíos,
 los dos son lo de antes, byte a byte. En toda familia del producto, con la opción o sin ella, `sondeo.json` lleva al
-final `skills_instaladas`, los nombres de las skills que enlaza cada sesión, en orden de nombre; ni su copia ni su
-huella quedan en `DIRECTORIO`, y un sondeo de H39 no la lleva:
+final `skills_instaladas`, los nombres de las skills que enlaza cada sesión, en orden de nombre —detrás, desde H41.3,
+solo van `instalacion` y `presupuesto`, cada una con su opción (abajo)—; ni su copia ni su huella quedan en
+`DIRECTORIO`, y un sondeo de H39 no la lleva:
 
 ```json
 {"modelo":"claude-sonnet-5-5","claude_code":"2.1.284","referencias_del_producto":["buscar_la_norma.md","como_se_cita.md","con_herramientas.md","lecturas_que_fallan.md","normas.md","redaccion_en_una_fecha.md","redaccion_modificada.md","varios_bloques.md"],"skills_instaladas":["consulta-juridica","jurisprudencia","normativa","plazos-y-territorio"]}
@@ -1977,6 +1989,79 @@ make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41-2
 4 × 40 = 160 sesiones. La tabla va a `evidencias/` y, con su lectura, a la propuesta de cambio, que no se fusiona sin
 ellas; no decide la fusión, que la deciden los controles. Con ella escribe la persona el ADR que dice qué se hace con
 la caída; ni el run ni un paso del workflow lanzan el sondeo o escriben ese ADR.
+
+H41.3 añade a las familias del producto una instalación más y `PRESUPUESTO`, para medir si la caída de la eval 04 con
+las cuatro skills instaladas es de la instalación completa, si la causa el presupuesto del listado de skills de Claude
+Code —que al pasarlo quita descripciones— y si unas descripciones cortas la arreglan
+(`specs/037-h41-3-por-que-normativa/contracts/arnes.md`). La variante de instalación `producto-descripciones-cortas`
+vive en `laboratorio/producto-descripciones-cortas/`, también **fuera del producto**: un fichero `<skill>.txt` por cada
+skill de `skills/` y nada más de ninguna skill —ni cuerpos, ni referencias, ni otras claves del frontmatter—. Cada
+fichero es una sola línea terminada en `\n`, y la `description` de su skill es el fichero sin ese salto de línea. Cada
+una tiene como mucho 450 caracteres, las cuatro suman como mucho 1700 y ninguna lleva una etiqueta XML; los caracteres
+son runas, como en los límites de la `description` de `skills/`, y la etiqueta, la de ADR 0046, punto 3. Los textos los
+fija `specs/037-h41-3-por-que-normativa/contracts/variante.md` §2. Solo la lee el arnés, con
+`INSTALACION=producto-descripciones-cortas`: ninguna skill de `skills/` cambia, el binario no la empotra,
+`kitlegal skills install` no la instala y el job de evals no la mide. `make ci` la comprueba sin modelo con
+`TestDescripcionesCortas`, que da un defecto por línea, cada una con `laboratorio/producto-descripciones-cortas: `
+delante —por cada skill, en orden de nombre, `falta la descripción de <skill>` o, si está,
+`la descripción de <skill> tiene <n> caracteres (máximo 450)` y
+`la descripción de <skill> tiene la etiqueta XML «<etiqueta>» (no admite ninguna)`; después, por cada entrada que no es
+`<skill>.txt` de una skill, `«<entrada>» no es la descripción de ninguna skill de skills/`; y al final
+`las descripciones suman <n> caracteres (máximo 1700)`—: un hito que añade una skill a `skills/` sin su descripción
+en la variante deja `make ci` en rojo, y esos mismos defectos son los errores de `INSTALACION` de arriba.
+
+Con `INSTALACION=producto-descripciones-cortas`, que solo vale con `VARIANTES=normativa-producto`, el arnés hace lo de
+`INSTALACION=producto` y, en la copia de cada `SKILL.md` del temporal, pone en el frontmatter la `description` de la
+variante para esa skill, y nada más: la `description` leída es el texto de la variante, exacto; cada otro byte de cada
+skill es el de `skills/` del árbol que lanza el sondeo, y cada `SKILL.md` compuesto pasa la validación del frontmatter
+que pasan los de `skills/`. La copia no queda en `DIRECTORIO`. Con `PRESUPUESTO=<caracteres>`, cada sesión corre con
+`SLASH_COMMAND_TOOL_CHAR_BUDGET=<caracteres>` en su entorno, con el valor tal como se pidió, y nada más de su entorno
+cambia; vale con cualquier `INSTALACION` válida de una familia del producto, también vacía. La variable la ponen solo
+las sesiones del laboratorio: sin `PRESUPUESTO`, ninguna sesión la tiene aunque esté en el entorno de quien lanza el
+arnés, porque la lista cerrada de variables de las sesiones no la deja pasar.
+
+`sondeo.json` lleva, detrás de `skills_instaladas`, `"instalacion":"producto-descripciones-cortas"` con esa instalación
+y `"presupuesto":<caracteres>`, un número, con `PRESUPUESTO`; sin las dos opciones —`INSTALACION` vacía o `producto`, y
+`PRESUPUESTO` vacío— es el de H41.2, byte a byte, y la salida del arnés no cambia con ellas. Si algún sondeo de la ruta
+lleva `instalacion` o `presupuesto`, la tabla de una familia del producto tiene, detrás de «Skills instaladas», dos
+columnas más: «Instalación», la `instalacion` de su `sondeo.json` o, sin ella, `producto` si `skills_instaladas` tiene
+alguna skill además de la de la familia, y si no —solo ella, o sin la clave—, la skill de la familia; y «Presupuesto»,
+el `presupuesto` de su `sondeo.json`, o vacía. Hay entonces una fila por variante, modo, modelo, versión de Claude Code,
+instalación, presupuesto y skills instaladas, en ese orden, con el presupuesto vacío antes que cualquier valor y los
+valores de menor a mayor; lo demás de la fila y el detalle se cuentan y se escriben como en H41.2, y una fila con
+`n` = 0 da su instalación y su presupuesto con los recuentos vacíos. Sin ningún sondeo con una de las dos claves, la
+tabla y el detalle son los de H41.2, byte a byte, y la del laboratorio de H39 no cambia. Qué cuenta cada columna lo
+fija `specs/037-h41-3-por-que-normativa/contracts/tabla.md`. `make ci` lo comprueba sin modelo: la composición de
+cada `SKILL.md`, en `TestConLaDescripcion`; el arnés, con el sustituto de `claude`, que anota además el entorno de
+cada sesión, en `TestArnesConLasDescripcionesCortas` y `TestArnesConElPresupuesto`; y la tabla, con sesiones fijas, en
+`TestTablaConLaInstalacion`.
+
+La medida de H41.3 son cuatro filas de 160 sesiones de `normativa-producto`, todas de la eval 04, en modo herramienta,
+con `claude-sonnet-5-5` y Claude Code 2.1.284, la versión del job: `sola`, sin `INSTALACION`; `control`, con
+`INSTALACION=producto`; `diagnóstico`, con `INSTALACION=producto` y `PRESUPUESTO=1000000`, que no puede recortar el
+listado; y `remedio`, con `INSTALACION=producto-descripciones-cortas`. Cuatro invocaciones y una tabla, con las
+sesiones fuera del repositorio; el `DIRECTORIO` de cada una no puede existir antes, y `claude` en el `PATH` tiene que
+ser la 2.1.284, que el arnés comprueba antes de abrir nada:
+
+```sh
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=160 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-3/sola EVAL=04
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=160 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-3/control EVAL=04 INSTALACION=producto
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=160 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-3/diagnostico EVAL=04 INSTALACION=producto \
+  PRESUPUESTO=1000000
+make evals-laboratorio VARIANTES=normativa-producto MODOS=herramienta SESIONES=160 MODELO=claude-sonnet-5-5 \
+  CLAUDE_CODE=2.1.284 CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41-3/remedio EVAL=04 \
+  INSTALACION=producto-descripciones-cortas
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41-3
+```
+
+4 × 160 = 640 sesiones, `04-lgt-prescripcion-01` a `-160` en cada fila. La tabla va a `evidencias/` y, con su
+lectura, a la propuesta de cambio, que no se fusiona sin ellas; no decide la fusión, que la deciden los controles. Con
+ella escribe la persona el ADR que dice si la caída es de la instalación completa, si la causa el presupuesto del
+listado y si las descripciones cortas la arreglan, con las comparaciones de FR-031 de
+`specs/037-h41-3-por-que-normativa/spec.md`; ni el run ni un paso del workflow lanzan el sondeo o escriben ese ADR.
 
 ## `make vuln` necesita red
 

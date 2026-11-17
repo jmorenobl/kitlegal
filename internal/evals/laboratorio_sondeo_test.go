@@ -5,17 +5,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // Lo que fijan los casos de TestArnesDelLaboratorio: la versión que contesta el
@@ -39,13 +45,16 @@ var evalsDelLaboratorioDelTest = []string{
 // digan, que de ordinario es la versión como la escribe Claude Code
 // (respuestaConLaVersion; research V22 y S1 de H39); y con cualquier otra cosa,
 // que es una sesión que abre el guion de la sesión en trabajo/, anota la ruta
-// física del directorio de la sesión y escribe el transcript que el test deja
+// física del directorio de la sesión y, aparte, esa ruta en la primera línea y
+// la salida de env detrás, que es el entorno que le llega a la sesión
+// (contracts/arnes.md §6; research D13), y escribe el transcript que el test deja
 // para ella, si lo hay, en <transcripts>/<variante>/<modo>/<sesión>.jsonl. Las
 // sesiones no ven las variables del test: las rutas van escritas en el guion, y
 // cada anotación es un fichero propio, de modo que dos sesiones a la vez no se
-// pisan. Los tres %s son las anotaciones, entre comillas simples, las órdenes de
-// sh de la respuesta a --version, que terminan con exit, y los transcripts,
-// entre comillas simples.
+// pisan; las variables del guion no son del entorno, porque no se exportan. Los
+// tres %s son las anotaciones, entre comillas simples, las órdenes de sh de la
+// respuesta a --version, que terminan con exit, y los transcripts, entre
+// comillas simples.
 const guionDelClaudeDelLaboratorio = `#!/bin/sh
 if [ "${` + variableDeCalentar + `:-}" = si ]; then exit 0; fi
 set -eu
@@ -56,6 +65,7 @@ if [ "$#" -eq 1 ] && [ "$1" = --version ]; then
 fi
 sesion=$(cd .. && pwd -P)
 printf '%%s\n' "$sesion" > "$(mktemp "$anotaciones/sesion.XXXXXX")"
+{ printf '%%s\n' "$sesion"; env; } > "$(mktemp "$anotaciones/entorno.XXXXXX")"
 relativa=$(printf '%%s\n' "$sesion" | awk -F/ '{ print $(NF-2) "/" $(NF-1) "/" $NF }')
 transcript=%s/"$relativa".jsonl
 if [ -f "$transcript" ]; then cat "$transcript"; fi
@@ -144,6 +154,40 @@ func (c claudeDelLaboratorio) versiones(t *testing.T) int {
 	t.Helper()
 
 	return len(c.anotadas(t, "version"))
+}
+
+// entornos son los entornos que anotó el sustituto en las sesiones que abrió,
+// por la ruta física de la carpeta de cada una: sus variables, valor por nombre.
+// Exige que cada línea del volcado sea nombre=valor, que ningún nombre se repita
+// en una sesión y que ninguna sesión vuelque dos veces, para no comparar con un
+// volcado que no se lee entero.
+func (c claudeDelLaboratorio) entornos(t *testing.T) map[string]map[string]string {
+	t.Helper()
+
+	entornos := map[string]map[string]string{}
+
+	for _, anotada := range c.anotadas(t, "entorno") {
+		contenido, err := leerFichero(anotada)
+		require.NoError(t, err)
+
+		sesion, volcado, esta := strings.Cut(string(contenido), "\n")
+		require.True(t, esta, "la anotación %s lleva la ruta de su sesión en su primera línea", anotada)
+		require.NotContains(t, entornos, sesion, "la sesión %s vuelca su entorno una vez", sesion)
+
+		variables := map[string]string{}
+
+		for linea := range strings.Lines(volcado) {
+			nombre, valor, esta := strings.Cut(strings.TrimSuffix(linea, "\n"), "=")
+			require.True(t, esta, "la línea %q del entorno de %s es nombre=valor", linea, sesion)
+			require.NotContains(t, variables, nombre, "la sesión %s tiene %s una vez", sesion, nombre)
+
+			variables[nombre] = valor
+		}
+
+		entornos[sesion] = variables
+	}
+
+	return entornos
 }
 
 // escribirTranscript deja el transcript que el sustituto escribe en la sesión de
@@ -377,13 +421,19 @@ func todosLosArgumentosMal(t *testing.T, a *ArgumentosDelLaboratorio) {
 // las que quedan sin abrir tras el límite de uso; los transcripts que escribe
 // el sustituto, por sesión <variante>/<modo>/<sesión>; y la skill de la
 // variante <skill>-producto que pide, cuyas referencias de skills/<skill> lista
-// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4).
+// su sondeo.json, vacía si no pide ninguna (contracts/arnes.md §3.4); el
+// ajuste de su sondeo, como el de entorno de quien lanza el arnés, si lo hay; y
+// la instalación y el presupuesto que anota su sondeo.json, vacía y 0 si no
+// anota ninguno (contracts/arnes.md §5).
 type casoValidoDelArnes struct {
 	nombre      string
 	argumentos  func(a *ArgumentosDelLaboratorio)
 	repartos    []repartoEsperado
 	transcripts func(t *testing.T) map[string]string
 	producto    string
+	sondeo      func(t *testing.T, s *SondeoDelLaboratorio)
+	instalacion string
+	presupuesto int
 }
 
 // repartoEsperado es lo que se espera de un reparto: su variante y su modo, las
@@ -539,8 +589,18 @@ func exigirElErrorDeUsoDelArnes(t *testing.T, caso casoDeUsoDelArnes) {
 	var uso *errorDeUso
 	require.ErrorAs(t, err, &uso, "el error del caso es un error de uso")
 
+	exigirQueElArnesNoHizoNada(t, arnes, caso.version, directorioExistia)
+}
+
+// exigirQueElArnesNoHizoNada exige que el arnés que terminó con un error no haya
+// abierto ninguna sesión, haya preguntado la versión de Claude Code una vez solo
+// si se dice, no haya construido nada ni escrito nada en el temporal y no haya
+// creado DIRECTORIO ni su padre o, si ya existía, no haya escrito nada en él.
+func exigirQueElArnesNoHizoNada(t *testing.T, arnes arnesDelTest, version, directorioExistia bool) {
+	t.Helper()
+
 	assert.Empty(t, arnes.claude.sesiones(t), "no se abre ninguna sesión")
-	assert.Equal(t, caso.version, arnes.claude.versiones(t) == 1, "la versión se pregunta solo tras los argumentos y la "+
+	assert.Equal(t, version, arnes.claude.versiones(t) == 1, "la versión se pregunta solo tras los argumentos y la "+
 		"credencial, y una vez")
 	assert.False(t, *arnes.construido, "no se construye nada")
 
@@ -577,6 +637,10 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instal
 
 	arnes := nuevoArnesDelTest(t, caso.argumentos, "")
 
+	if caso.sondeo != nil {
+		caso.sondeo(t, &arnes.sondeo)
+	}
+
 	if caso.transcripts != nil {
 		for sesion, transcript := range caso.transcripts(t) {
 			arnes.claude.escribirTranscript(t, sesion, transcript)
@@ -603,13 +667,14 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals, instal
 
 	contenido, err := leerFichero(filepath.Join(directorio, ficheroDelSondeo))
 	require.NoError(t, err)
-	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas), string(contenido), "sondeo.json, byte a byte")
+	assert.Equal(t, sondeoEscritoDelTest(t, referencias, instaladas, caso.instalacion, caso.presupuesto),
+		string(contenido), "sondeo.json, byte a byte")
 
 	leido, err := leerElSondeo(directorio)
 	require.NoError(t, err, "el guion que cuenta el sondeo lee su sondeo.json")
 	assert.Equal(t, sondeoLeido{
 		Modelo: modeloDelLaboratorio, ClaudeCode: versionDelClaudeDelLaboratorio, ReferenciasDelProducto: referencias,
-		SkillsInstaladas: instaladas,
+		SkillsInstaladas: instaladas, Instalacion: caso.instalacion, Presupuesto: caso.presupuesto,
 	}, leido)
 
 	fisico, err := filepath.EvalSymlinks(directorio)
@@ -668,9 +733,12 @@ func referenciasDelProductoDelTest(t *testing.T, skill string) []string {
 // sondeoEscritoDelTest es el sondeo.json que deja el arnés, con su salto de
 // línea final: el de H39 y H40 sin referencias del producto ni skills
 // instaladas; con referencias, el mismo con referencias_del_producto detrás
-// (data-model §4); y con skills instaladas, con skills_instaladas detrás de
-// todo (data-model §3 de H41.2).
-func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string) string {
+// (data-model §4); con skills instaladas, con skills_instaladas detrás (data-model
+// §3 de H41.2); con una instalación, con instalacion detrás; y con un
+// presupuesto, con presupuesto, un número, detrás de todo (data-model §5;
+// contracts/arnes.md §5).
+func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string, instalacion string, presupuesto int,
+) string {
 	t.Helper()
 
 	escrito := strings.TrimSuffix(sondeoSinElProductoDelTest, "}")
@@ -690,6 +758,17 @@ func sondeoEscritoDelTest(t *testing.T, referencias, instaladas []string) string
 		require.NoError(t, err)
 
 		escrito += `,"` + clave.nombre + `":` + string(lista)
+	}
+
+	if instalacion != "" {
+		valor, err := json.Marshal(instalacion)
+		require.NoError(t, err)
+
+		escrito += `,"instalacion":` + string(valor)
+	}
+
+	if presupuesto > 0 {
+		escrito += `,"presupuesto":` + strconv.Itoa(presupuesto)
 	}
 
 	return escrito + "}\n"
@@ -1600,7 +1679,10 @@ type casoDeUnaEval struct {
 // de esa eval, el comienzo de su nombre, esas SESIONES y esa INSTALACION: un
 // reparto que abre sesiones sesiones de la eval, <eval>-01 a <eval>-<sesiones>,
 // y ninguna más; cada una con las skills de hoy o, con INSTALACION=producto, con
-// las cuatro del producto (contracts/arnes.md §3 y §5; FR-013).
+// las cuatro del producto (contracts/arnes.md §3 y §5; FR-013); y con
+// INSTALACION=producto-descripciones-cortas, con las cuatro del producto con la
+// description de la variante, y la instalación en su sondeo.json
+// (contracts/arnes.md §3 y §5 de H41.3).
 func invocacionDeUnaEval(nombre, variante, skill, eval string, sesiones int, instalacion string) casoDeUnaEval {
 	producto := ""
 	if variante == skill+sufijoDelProductoDelTest {
@@ -1625,8 +1707,12 @@ func invocacionDeUnaEval(nombre, variante, skill, eval string, sesiones int, ins
 		exigirLaSesion: exigirLaSesionDeLaFamilia(skill),
 	}
 
-	if instalacion == "producto" {
+	switch instalacion {
+	case "producto":
 		deUnaEval.instaladas, deUnaEval.exigirLaSesion = skillsDelProductoDelTest, exigirLaSesionConElProducto(skill)
+	case instalacionConLasDescripcionesCortasDelTest:
+		deUnaEval.instaladas, deUnaEval.exigirLaSesion = skillsDelProductoDelTest, exigirLaSesionConLasDescripcionesCortas
+		deUnaEval.caso.instalacion = instalacion
 	}
 
 	return deUnaEval
@@ -1685,6 +1771,653 @@ func TestArnesConUnaEval(t *testing.T) {
 				deUnaEval.exigirLaSesion)
 		})
 	}
+}
+
+// Lo que pone cada caso de TestArnesConElPresupuesto en el entorno de quien
+// lanza el arnés (contracts/arnes.md §6): la variable del presupuesto del
+// listado de skills de Claude Code, con un valor que ningún caso pide; y el
+// PRESUPUESTO que piden los casos que piden uno que vale.
+const (
+	variableDelPresupuestoDelTest  = "SLASH_COMMAND_TOOL_CHAR_BUDGET"
+	presupuestoDeQuienLanzaDelTest = "500"
+	presupuestoPedidoDelTest       = 1000000
+)
+
+// errorDelPresupuestoConLaDeH39 es la línea de PRESUPUESTO con un valor que vale
+// y las variantes de la familia de H39 (contracts/arnes.md §2; research D7).
+const errorDelPresupuestoConLaDeH39 = "PRESUPUESTO: las variantes del laboratorio de H39 no son de ninguna familia " +
+	"del producto"
+
+// errorDeLaFormaDelPresupuestoDelTest es la línea de PRESUPUESTO con un valor
+// que no es un entero mayor que 0 escrito solo con cifras y sin ceros delante, o
+// que no cabe en un int (contracts/arnes.md §2; research D7).
+func errorDeLaFormaDelPresupuestoDelTest(valor string) string {
+	return "PRESUPUESTO: «" + valor + "» no es un entero mayor que 0"
+}
+
+// variablesDeLosInterpretes son las que añaden al entorno de una sesión, al
+// arrancar, bash, el guion de la sesión, y sh, el sustituto de claude: no son
+// del arnés (research V17).
+var variablesDeLosInterpretes = []string{"PWD", "SHLVL", "_"}
+
+// conElPresupuestoDeQuienLanza pone la variable del presupuesto en el entorno
+// de quien lanza el arnés, encima del de nuevoArnesDelTest.
+func conElPresupuestoDeQuienLanza(_ *testing.T, s *SondeoDelLaboratorio) {
+	s.Entorno = sobreLaBase(s.Entorno, []string{variableDelPresupuestoDelTest + "=" + presupuestoDeQuienLanzaDelTest})
+}
+
+// casosDeUsoDelPresupuesto son los casos de TestArnesConElPresupuesto que son un
+// error de uso (contracts/arnes.md §2 y §6; research D7; FR-013, FR-016), todos
+// con la variable del presupuesto en el entorno de quien lanza el arnés: un
+// PRESUPUESTO que no es un entero mayor que 0 escrito solo con cifras, sin signo
+// ni ceros delante, o que no cabe en un int, con la familia de H39 de
+// argumentosValidos, para que se vea que da solo la línea de la forma; uno que
+// vale con la de H39; uno que no vale detrás de un EVAL que no vale, para que se
+// vea que su línea va la última; y los dos ejemplos de §2, con sus dos líneas en
+// su orden. Cada uno, con su mensaje y nada hecho.
+func casosDeUsoDelPresupuesto() []casoDeUsoDelArnes {
+	pedido := strconv.Itoa(presupuestoPedidoDelTest)
+
+	var casos []casoDeUsoDelArnes
+
+	for _, valor := range []string{"0", "0100", "+1000000", "99999999999999999999"} {
+		casos = append(casos, casoDeUsoDelArnes{
+			nombre:     "con-presupuesto-" + valor,
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Presupuesto = valor },
+			error:      mensajeFijo(errorDeLaFormaDelPresupuestoDelTest(valor)),
+		})
+	}
+
+	casos = append(casos,
+		casoDeUsoDelArnes{
+			nombre:     "con-presupuesto-y-la-de-h39",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Presupuesto = pedido },
+			error:      mensajeFijo(errorDelPresupuestoConLaDeH39),
+		},
+		casoDeUsoDelArnes{
+			nombre: "con-eval-y-presupuesto-que-no-valen",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Eval, a.Presupuesto = "normativa-producto", "herramienta", "07", "0"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"EVAL: «07» no es el número de ninguna eval del plan de normativa",
+				errorDeLaFormaDelPresupuestoDelTest("0"),
+			}, "\n")),
+		},
+		casoDeUsoDelArnes{
+			// El primer ejemplo de contracts/arnes.md §2: SESIONES=4 y MODELO, los de
+			// argumentosValidos.
+			nombre: "el-primer-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.ClaudeCode, a.Concurrencia = "normativa-control", "herramienta", "2.1.284", "1"
+				a.Instalacion, a.Presupuesto = instalacionConLasDescripcionesCortasDelTest, "0100"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				soloValeConNormativaProductoDelTest,
+				errorDeLaFormaDelPresupuestoDelTest("0100"),
+			}, "\n")),
+		},
+		casoDeUsoDelArnes{
+			// El segundo, con la de H39: VARIANTES=control, MODOS=orden, SESIONES=4 y
+			// MODELO, los de argumentosValidos.
+			nombre: "el-segundo-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.ClaudeCode, a.Concurrencia = "2.1.284", "1"
+				a.Instalacion, a.Presupuesto = instalacionConLasDescripcionesCortasDelTest, pedido
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia del producto",
+				errorDelPresupuestoConLaDeH39,
+			}, "\n")),
+		},
+	)
+
+	for posicion := range casos {
+		casos[posicion].sondeo = conElPresupuestoDeQuienLanza
+	}
+
+	return casos
+}
+
+// conElPresupuestoPedido es el caso de esa invocación con PRESUPUESTO=1000000 y
+// la variable del presupuesto a 500 en el entorno de quien lanza el arnés: su
+// sondeo.json anota el presupuesto detrás de lo de §5, y cada una de sus sesiones
+// ve, además de lo que ve en la invocación, la variable con el valor pedido
+// (exigirElPresupuestoPedido; contracts/arnes.md §4, §5 y §6; FR-012, FR-013,
+// FR-014).
+func conElPresupuestoPedido(deUnaEval casoDeUnaEval) casoDeUnaEval {
+	argumentos, exigirLaSesion := deUnaEval.caso.argumentos, deUnaEval.exigirLaSesion
+
+	deUnaEval.caso.argumentos = func(a *ArgumentosDelLaboratorio) {
+		argumentos(a)
+		a.Presupuesto = strconv.Itoa(presupuestoPedidoDelTest)
+	}
+	deUnaEval.caso.sondeo = conElPresupuestoDeQuienLanza
+	deUnaEval.caso.presupuesto = presupuestoPedidoDelTest
+	deUnaEval.exigirLaSesion = func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+		t.Helper()
+
+		exigirLaSesion(t, arnes, reparto, sesion)
+		exigirElPresupuestoPedido(t, arnes, sesion)
+	}
+
+	return deUnaEval
+}
+
+// TestArnesConElPresupuesto fija PRESUPUESTO y el entorno de las sesiones del
+// sondeo del laboratorio, sin modelo (contracts/arnes.md §2, §4, §5 y §6;
+// data-model §2, §4 y §5; research D7, D8, D9 y D13; FR-012, FR-013, FR-014,
+// FR-015, FR-016, FR-018; SC-003, SC-004, SC-005), con la construcción
+// sustituida, el sustituto de claude de TestArnesDelLaboratorio, que vuelca el
+// entorno de cada sesión, y SLASH_COMMAND_TOOL_CHAR_BUDGET=500 en el entorno de
+// quien lanza el arnés.
+//
+// Con un PRESUPUESTO que no es un entero mayor que 0 o con la de H39, devuelve
+// un error de uso con los mensajes de §2, no construye nada, no abre ninguna
+// sesión, no escribe nada en el temporal y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes).
+//
+// Sin PRESUPUESTO, con la petición del control, VARIANTES=normativa-producto
+// MODOS=herramienta SESIONES=2 EVAL=04 INSTALACION=producto, ninguna sesión
+// tiene la variable, el entorno de cada una es el que componen las funciones de
+// hoy (exigirElEntornoDeHoy), y las sesiones, lo que ve cada una y sondeo.json,
+// el de control de §5, son los de TestArnesConUnaEval con esa petición
+// (exigirElSondeoDelArnes).
+//
+// Con PRESUPUESTO=1000000 —la petición del diagnóstico, la del control con él;
+// la del remedio con él; y jurisprudencia-control sin INSTALACION—, las
+// sesiones, lo que ve cada una y sondeo.json son los de esa petición sin él, con
+// presupuesto detrás en sondeo.json, y cada sesión tiene la variable con el
+// valor pedido, en una sola línea (conElPresupuestoPedido). Y los nombres de las
+// variables de cada sesión del control son los de la misma sesión del
+// diagnóstico menos la del presupuesto
+// (exigirLosNombresDelControlYDelDiagnostico), cuando terminan los dos.
+func TestArnesConElPresupuesto(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDelPresupuesto() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	var delControl, delDiagnostico nombresDelEntorno
+
+	control := invocacionDeUnaEval("el-control-sin-presupuesto", "normativa-producto", skillDeNormativaDelTest,
+		"04-lgt-prescripcion.yaml", 2, "producto")
+	control.caso.sondeo = conElPresupuestoDeQuienLanza
+
+	t.Run(control.caso.nombre, func(t *testing.T) {
+		t.Parallel()
+
+		exigirElSondeoDelArnes(t, control.caso, []string{control.eval}, control.instaladas,
+			delControl.anotando(func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+				t.Helper()
+
+				control.exigirLaSesion(t, arnes, reparto, sesion)
+				exigirElEntornoDeHoy(t, arnes, reparto, sesion)
+			}))
+	})
+
+	diagnostico := conElPresupuestoPedido(invocacionDeUnaEval("el-diagnostico", "normativa-producto",
+		skillDeNormativaDelTest, "04-lgt-prescripcion.yaml", 2, "producto"))
+	diagnostico.exigirLaSesion = delDiagnostico.anotando(diagnostico.exigirLaSesion)
+
+	for _, conPresupuesto := range []casoDeUnaEval{
+		diagnostico,
+		conElPresupuestoPedido(invocacionDeUnaEval("el-remedio-con-presupuesto", "normativa-producto",
+			skillDeNormativaDelTest, "04-lgt-prescripcion.yaml", 2, instalacionConLasDescripcionesCortasDelTest)),
+		conElPresupuestoPedido(invocacionDeUnaEval("jurisprudencia-control-sin-instalacion", "jurisprudencia-control",
+			skillDeJurisprudenciaDelTest, "03-por-materia.yaml", 2, "")),
+	} {
+		t.Run(conPresupuesto.caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElSondeoDelArnes(t, conPresupuesto.caso, []string{conPresupuesto.eval}, conPresupuesto.instaladas,
+				conPresupuesto.exigirLaSesion)
+		})
+	}
+
+	// Las limpiezas de un test corren cuando terminan él y todos sus subtests,
+	// también los que corren en paralelo: el control y el diagnóstico ya han
+	// anotado.
+	t.Cleanup(func() {
+		exigirLosNombresDelControlYDelDiagnostico(t, delControl.anotados(), delDiagnostico.anotados())
+	})
+}
+
+// nombresDelEntorno son los nombres de las variables del entorno que vuelca cada
+// sesión de un sondeo del test, en orden de nombre, por la ruta de la sesión
+// relativa a DIRECTORIO, con barras; los anotan las sesiones de un caso que corre
+// en paralelo con el que los compara.
+type nombresDelEntorno struct {
+	mutex     sync.Mutex
+	porSesion map[string][]string
+}
+
+// anotando es esa exigencia de cada sesión, que además anota los nombres de las
+// variables de su entorno si se cumple.
+func (n *nombresDelEntorno) anotando(exigirLaSesion exigirLaSesionDelReparto) exigirLaSesionDelReparto {
+	return func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+		t.Helper()
+
+		exigirLaSesion(t, arnes, reparto, sesion)
+
+		nombres := slices.Sorted(maps.Keys(volcadoDeLaSesion(t, arnes, sesion)))
+
+		relativa, err := filepath.Rel(arnes.sondeo.Argumentos.Directorio, sesion)
+		require.NoError(t, err)
+
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
+
+		if n.porSesion == nil {
+			n.porSesion = map[string][]string{}
+		}
+
+		n.porSesion[filepath.ToSlash(relativa)] = nombres
+	}
+}
+
+// anotados son los nombres anotados hasta ahora, por sesión.
+func (n *nombresDelEntorno) anotados() map[string][]string {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
+	return maps.Clone(n.porSesion)
+}
+
+// exigirLosNombresDelControlYDelDiagnostico exige que los nombres de las
+// variables de cada sesión del control sean los de la misma sesión del
+// diagnóstico menos la del presupuesto: PRESUPUESTO añade esa y nada más
+// (contracts/arnes.md §4 y §6; FR-013). Sin los de alguno de los dos, porque
+// -run no lo corrió o porque ya falló antes de anotarlos, no compara nada: ese
+// caso ya está en rojo o no se pidió.
+func exigirLosNombresDelControlYDelDiagnostico(t *testing.T, delControl, delDiagnostico map[string][]string) {
+	t.Helper()
+
+	if len(delControl) == 0 || len(delDiagnostico) == 0 {
+		return
+	}
+
+	esperados := make(map[string][]string, len(delDiagnostico))
+
+	for sesion, nombres := range delDiagnostico {
+		esperados[sesion] = slices.DeleteFunc(slices.Clone(nombres), func(nombre string) bool {
+			return nombre == variableDelPresupuestoDelTest
+		})
+	}
+
+	assert.Equal(t, esperados, delControl, "las variables de cada sesión del control son las de la misma sesión del "+
+		"diagnóstico menos %s", variableDelPresupuestoDelTest)
+}
+
+// volcadoDeLaSesion es el entorno que vuelca la sesión de ese directorio, por
+// nombre, con la ruta física de su directorio, la que anota el sustituto de
+// claude.
+func volcadoDeLaSesion(t *testing.T, arnes arnesDelTest, sesion string) map[string]string {
+	t.Helper()
+
+	absoluta, err := filepath.Abs(sesion)
+	require.NoError(t, err)
+
+	fisica, err := filepath.EvalSymlinks(absoluta)
+	require.NoError(t, err)
+
+	volcado, esta := arnes.claude.entornos(t)[fisica]
+	require.True(t, esta, "la sesión %s vuelca su entorno", sesion)
+
+	return volcado
+}
+
+// exigirElPresupuestoPedido exige que la sesión de ese directorio, de un sondeo
+// con PRESUPUESTO=1000000, tenga la variable del presupuesto con el valor
+// pedido y no con el de quien lanza el arnés, en una sola línea de las que
+// vuelca, porque entornos no deja pasar un nombre repetido (contracts/arnes.md
+// §4; FR-013, FR-014).
+func exigirElPresupuestoPedido(t *testing.T, arnes arnesDelTest, sesion string) {
+	t.Helper()
+
+	valor, esta := volcadoDeLaSesion(t, arnes, sesion)[variableDelPresupuestoDelTest]
+	require.True(t, esta, "la sesión %s tiene %s con PRESUPUESTO", sesion, variableDelPresupuestoDelTest)
+	assert.Equal(t, strconv.Itoa(presupuestoPedidoDelTest), valor, "la sesión %s tiene %s con el valor pedido", sesion,
+		variableDelPresupuestoDelTest)
+}
+
+// exigirElEntornoDeHoy exige que la sesión de ese directorio, del modo
+// herramienta y sin PRESUPUESTO, no tenga la variable del presupuesto, aunque la
+// tenga quien lanza el arnés (contracts/arnes.md §4); que el entorno que vuelca,
+// salvo las variables de los intérpretes, sea, como conjunto, nombre a nombre y
+// valor a valor, el que componen para el modo herramienta las funciones de hoy
+// (disponerElModo) con el entorno de quien lanza, el temporal y la ruta
+// absoluta de la sesión, sin ninguna de más ni de menos; y que sus nombres sean
+// los de §4 (nombresDelEntornoDeHoy), que no salen de entornoDelSondeo, para que
+// una variable de más o de menos dentro de ella también se vea (contracts/arnes.md
+// §6; research D8 y D13; FR-014, FR-015).
+func exigirElEntornoDeHoy(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+	t.Helper()
+
+	require.Equal(t, ModoHerramienta, reparto.modo, "el entorno de hoy se compone aquí para el modo herramienta")
+
+	volcado := volcadoDeLaSesion(t, arnes, sesion)
+
+	assert.NotContains(t, volcado, variableDelPresupuestoDelTest, "la sesión %s no tiene %s sin PRESUPUESTO", sesion,
+		variableDelPresupuestoDelTest)
+
+	for _, nombre := range variablesDeLosInterpretes {
+		delete(volcado, nombre)
+	}
+
+	absoluta, err := filepath.Abs(sesion)
+	require.NoError(t, err)
+
+	temporal, err := filepath.Abs(arnes.sondeo.Temporal)
+	require.NoError(t, err)
+
+	compuesto := sinElDirectorioEnElPATH(entornoDeLaSesion(entornoDelSondeo(arnes.sondeo.Entorno, temporal), absoluta,
+		false), filepath.Join(temporal, carpetaDeBinarios))
+
+	// Con un nombre repetido, vale el último, como en exec.Cmd.Env.
+	esperado := make(map[string]string, len(compuesto))
+	for _, variable := range compuesto {
+		nombre, valor, _ := strings.Cut(variable, "=")
+		esperado[nombre] = valor
+	}
+
+	assert.Equal(t, esperado, volcado, "el entorno de la sesión %s es el que componen las funciones de hoy", sesion)
+	assert.Equal(t, nombresDelEntornoDeHoy(arnes.sondeo.Entorno, absoluta), slices.Sorted(maps.Keys(volcado)),
+		"las variables de la sesión %s son las de la lista cerrada que tiene quien lanza, PATH, HOME y las de la "+
+			"sesión", sesion)
+}
+
+// nombresDelEntornoDeHoy son, en orden de nombre y sin repetir, los de las
+// variables del entorno de una sesión del sondeo del laboratorio sin
+// PRESUPUESTO, como los da contracts/arnes.md §4: los de la lista cerrada que
+// tiene quien lanza el arnés, PATH, HOME y los de lo de la sesión de ese
+// directorio (entornoDeLaSesion sin base).
+func nombresDelEntornoDeHoy(deQuienLanza []string, sesion string) []string {
+	nombres := []string{variableDelPATH, "HOME"}
+
+	for _, variable := range deQuienLanza {
+		if nombre, _, _ := strings.Cut(variable, "="); slices.Contains(variablesQueVenLasSesionesDelSondeo, nombre) {
+			nombres = append(nombres, nombre)
+		}
+	}
+
+	for _, variable := range entornoDeLaSesion(nil, sesion, false) {
+		nombre, _, _ := strings.Cut(variable, "=")
+		nombres = append(nombres, nombre)
+	}
+
+	slices.Sort(nombres)
+
+	return slices.Compact(nombres)
+}
+
+// Lo que fijan los casos de TestArnesConLasDescripcionesCortas (contracts/arnes.md
+// §2 y §5; research D6): el valor de INSTALACION, la línea de su error con una
+// variante que vale y no es normativa-producto, y la variante del repositorio,
+// desde la raíz.
+const (
+	instalacionConLasDescripcionesCortasDelTest = "producto-descripciones-cortas"
+	soloValeConNormativaProductoDelTest         = "INSTALACION: producto-descripciones-cortas solo vale con " +
+		"VARIANTES=normativa-producto"
+	varianteDeLasDescripcionesCortasDelTest = "laboratorio/producto-descripciones-cortas"
+)
+
+// conLasDescripcionesCortas es el ajuste de los argumentos de un caso de uso con
+// esas VARIANTES, esos MODOS e INSTALACION=producto-descripciones-cortas.
+func conLasDescripcionesCortas(variantes, modos string) func(*testing.T, *ArgumentosDelLaboratorio) {
+	return func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+		a.Variantes, a.Modos, a.Instalacion = variantes, modos, instalacionConLasDescripcionesCortasDelTest
+	}
+}
+
+// casosDeUsoDeLasDescripcionesCortas son los casos de
+// TestArnesConLasDescripcionesCortas que son un error de uso (contracts/arnes.md
+// §2 y §6; research D6; FR-010, FR-016): con una variante que vale y no es
+// normativa-producto, de normativa, de otra familia del producto, junto a
+// normativa-producto en la misma familia y en una mezcla, detrás del error de la
+// mezcla, la línea de «solo vale con»; con la de H39, solo el error de hoy; y con
+// una variante a la que le falta una descripción, la línea de su defecto. Cada
+// uno, con su mensaje y nada hecho.
+func casosDeUsoDeLasDescripcionesCortas() []casoDeUsoDelArnes {
+	return []casoDeUsoDelArnes{
+		{
+			nombre:     "con-normativa-control",
+			argumentos: conLasDescripcionesCortas("normativa-control", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			nombre:     "con-jurisprudencia-producto",
+			argumentos: conLasDescripcionesCortas("jurisprudencia-producto", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			nombre:     "con-la-de-h39",
+			argumentos: conLasDescripcionesCortas("control", "orden"),
+			error: mensajeFijo("INSTALACION: las variantes del laboratorio de H39 no son de ninguna familia " +
+				"del producto"),
+		},
+		{
+			nombre:     "con-normativa-producto-y-normativa-control",
+			argumentos: conLasDescripcionesCortas("normativa-producto,normativa-control", "herramienta"),
+			error:      mensajeFijo(soloValeConNormativaProductoDelTest),
+		},
+		{
+			// Sin familia, porque las que valen se mezclan, también.
+			nombre:     "con-la-mezcla-con-jurisprudencia-producto",
+			argumentos: conLasDescripcionesCortas("normativa-producto,jurisprudencia-producto", "herramienta"),
+			error: mensajeFijo(strings.Join([]string{
+				"VARIANTES: se mezclan variantes de normativa y variantes de jurisprudencia",
+				soloValeConNormativaProductoDelTest,
+			}, "\n")),
+		},
+		{
+			nombre:     "con-la-variante-sin-plazos-y-territorio",
+			argumentos: conLasDescripcionesCortas("normativa-producto", "herramienta"),
+			sondeo: func(t *testing.T, s *SondeoDelLaboratorio) {
+				t.Helper()
+
+				s.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+				require.NoError(t, os.Remove(filepath.Join(s.Raiz, filepath.FromSlash(
+					varianteDeLasDescripcionesCortasDelTest), "plazos-y-territorio.txt")))
+			},
+			error: mensajeFijo("INSTALACION: laboratorio/producto-descripciones-cortas: falta la descripción de " +
+				"plazos-y-territorio"),
+		},
+	}
+}
+
+// raizDePruebaDeLasDescripcionesCortas monta en un temporal del test una raíz de
+// prueba con copias de laboratorio/variantes.yaml, de skills/ y de la variante
+// producto-descripciones-cortas del repositorio (contracts/arnes.md §6), y
+// devuelve su ruta.
+func raizDePruebaDeLasDescripcionesCortas(t *testing.T) string {
+	t.Helper()
+
+	raiz := t.TempDir()
+
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, "skills"), os.DirFS(filepath.Join(raizDelRepositorio, "skills"))))
+
+	variante := filepath.FromSlash(varianteDeLasDescripcionesCortasDelTest)
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, variante), os.DirFS(filepath.Join(raizDelRepositorio, variante))))
+
+	declarada, err := leerFichero(filepath.Join(raizDelRepositorio, "laboratorio", "variantes.yaml"))
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(raiz, "laboratorio", "variantes.yaml"), declarada, 0o600))
+
+	return raiz
+}
+
+// TestArnesConLasDescripcionesCortas fija INSTALACION=producto-descripciones-cortas
+// en el arnés del sondeo del laboratorio, sin modelo (contracts/arnes.md §2, §3,
+// §5 y §6; data-model §2, §3 y §5; research D3, D5, D6 y D9; FR-010, FR-011,
+// FR-012, FR-015, FR-016, FR-018; SC-002, SC-004, SC-005), con la construcción
+// sustituida y el sustituto de claude de TestArnesDelLaboratorio, que anota sus
+// invocaciones.
+//
+// Con una variante que no es normativa-producto, con la de H39, con una mezcla o
+// con una variante con un defecto, devuelve un error de uso con los mensajes de
+// §2, no construye nada, no abre ninguna sesión y no crea DIRECTORIO
+// (exigirElErrorDeUsoDelArnes). Una variante que no se puede leer es un error
+// que no es de uso, sin nada hecho tampoco.
+//
+// Con la petición del remedio, VARIANTES=normativa-producto MODOS=herramienta
+// SESIONES=2 EVAL=04 INSTALACION=producto-descripciones-cortas, abre dos sesiones;
+// cada una ve las cuatro skills del producto, cada una con la description de su
+// fichero de la variante y todo lo demás de skills/ del árbol
+// (exigirLaSesionConLasDescripcionesCortas); y sondeo.json, el de remedio de §5,
+// anota las cuatro y la instalación (exigirElSondeoDelArnes).
+func TestArnesConLasDescripcionesCortas(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDeLasDescripcionesCortas() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	t.Run("con-la-variante-que-no-se-puede-leer", func(t *testing.T) {
+		t.Parallel()
+
+		arnes := nuevoArnesDelTest(t, nil, "")
+		conLasDescripcionesCortas("normativa-producto", "herramienta")(t, &arnes.sondeo.Argumentos)
+
+		arnes.sondeo.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+		require.NoError(t, os.RemoveAll(filepath.Join(arnes.sondeo.Raiz,
+			filepath.FromSlash(varianteDeLasDescripcionesCortasDelTest))))
+
+		salida, err := sondearElLaboratorio(t.Context().Done(), arnes.sondeo)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		assert.Empty(t, salida)
+
+		var uso *errorDeUso
+		assert.NotErrorAs(t, err, &uso, "una variante que no se puede leer no es un error de uso")
+
+		exigirQueElArnesNoHizoNada(t, arnes, false, false)
+	})
+
+	remedio := invocacionDeUnaEval("el-remedio", "normativa-producto", skillDeNormativaDelTest,
+		"04-lgt-prescripcion.yaml", 2, instalacionConLasDescripcionesCortasDelTest)
+
+	t.Run("con-una-skill-que-no-se-puede-componer", func(t *testing.T) {
+		t.Parallel()
+
+		arnes := nuevoArnesDelTest(t, remedio.caso.argumentos, "")
+
+		// La raíz de prueba lleva además las evals del repositorio, que el arnés
+		// lee antes de preparar las copias.
+		arnes.sondeo.Raiz = raizDePruebaDeLasDescripcionesCortas(t)
+		require.NoError(t, os.CopyFS(filepath.Join(arnes.sondeo.Raiz, "evals"),
+			os.DirFS(filepath.Join(raizDelRepositorio, "evals"))))
+		require.NoError(t, os.WriteFile(filepath.Join(arnes.sondeo.Raiz, "skills", skillDeJurisprudenciaDelTest,
+			"SKILL.md"), []byte("---\nname: "+skillDeJurisprudenciaDelTest+"\n---\n\n# Sin la clave\n"), 0o600))
+
+		salida, err := sondearElLaboratorio(t.Context().Done(), arnes.sondeo)
+		require.ErrorIs(t, err, errSinLaClaveDeLaDescripcion)
+		require.ErrorContains(t, err, filepath.Join(skillDeJurisprudenciaDelTest, "SKILL.md")+" no se puede componer")
+		assert.Empty(t, salida)
+
+		var uso *errorDeUso
+		assert.NotErrorAs(t, err, &uso, "una skill que no se puede componer no es un error de uso")
+
+		assert.Empty(t, arnes.claude.sesiones(t), "no se abre ninguna sesión")
+	})
+
+	t.Run(remedio.caso.nombre, func(t *testing.T) {
+		t.Parallel()
+
+		exigirElSondeoDelArnes(t, remedio.caso, []string{remedio.eval}, remedio.instaladas, remedio.exigirLaSesion)
+	})
+}
+
+// exigirLaSesionConLasDescripcionesCortas exige que una sesión de
+// normativa-producto con INSTALACION=producto-descripciones-cortas vea
+// exactamente las cuatro skills del producto, en orden de nombre y sin repetir,
+// cada una enlazada a la copia de su variante en el temporal; que en cada una la
+// description de su SKILL.md, leída con skills.LeerFrontmatter, sea el texto de
+// su fichero de la variante, que el frontmatter pase skills.ValidarFrontmatter
+// sin ningún defecto, que el cuerpo de descripcionYCuerpo de ese SKILL.md sea el
+// de skills/ del árbol y cada otro fichero, ruta a ruta y byte a byte, el de
+// skills/; su servidor, el de la familia (exigirElServidorDeLaFamilia); y que en
+// DIRECTORIO no haya ningún SKILL.md. Falla con la primera sesión cuyas skills,
+// descripción o bytes difieren (contracts/arnes.md §3 y §6; FR-011; SC-002).
+func exigirLaSesionConLasDescripcionesCortas(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+	t.Helper()
+
+	deLaSesion := filepath.Join(sesion, directorioDeClaude, directorioDeSkills)
+
+	enlazadas, err := os.ReadDir(deLaSesion)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(enlazadas))
+	for _, enlazada := range enlazadas {
+		nombres = append(nombres, enlazada.Name())
+	}
+
+	require.Equal(t, skillsDelProductoDelTest, nombres, "la sesión %s ve las cuatro skills del producto", sesion)
+
+	copia := filepath.Join(arnes.sondeo.Temporal, carpetaDeLasSkillsDelSondeo, reparto.variante)
+	arbol := filepath.Join(raizDelRepositorio, "skills")
+
+	for _, nombre := range nombres {
+		destino, err := os.Readlink(filepath.Join(deLaSesion, nombre))
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(copia, nombre), destino, "la sesión %s enlaza la copia de su variante", sesion)
+
+		instalada := ficherosDeLaSkillDelTest(t, deLaSesion, nombre)
+		original := ficherosDeLaSkillDelTest(t, arbol, nombre)
+
+		compuesto, esta := instalada[ficheroDeLaSkillDeLaVariante]
+		require.True(t, esta, "la skill %s de la sesión %s tiene su %s", nombre, sesion, ficheroDeLaSkillDeLaVariante)
+
+		texto, err := leerFichero(filepath.Join(raizDelRepositorio, filepath.FromSlash(
+			varianteDeLasDescripcionesCortasDelTest), nombre+".txt"))
+		require.NoError(t, err)
+
+		frontmatter, err := skills.LeerFrontmatter([]byte(compuesto))
+		require.NoError(t, err, "el %s de %s en la sesión %s:\n%s", ficheroDeLaSkillDeLaVariante, nombre, sesion,
+			compuesto)
+		require.Equal(t, strings.TrimSuffix(string(texto), "\n"), frontmatter.Description,
+			"la description de %s en la sesión %s es la de su fichero de la variante", nombre, sesion)
+
+		defectos, err := skills.ValidarFrontmatter(raizDelRepositorio, nombre, frontmatter,
+			frontmatter.DeclaracionDeKitlegal().Applets)
+		require.NoError(t, err)
+		require.Empty(t, defectos, "el %s de %s en la sesión %s pasa la validación de su frontmatter",
+			ficheroDeLaSkillDeLaVariante, nombre, sesion)
+
+		_, delOriginal := descripcionYCuerpo(original[ficheroDeLaSkillDeLaVariante])
+		_, delCompuesto := descripcionYCuerpo(compuesto)
+		require.Equal(t, delOriginal, delCompuesto, "lo que no es la description del %s de %s en la sesión %s es "+
+			"lo de skills/", ficheroDeLaSkillDeLaVariante, nombre, sesion)
+
+		delete(instalada, ficheroDeLaSkillDeLaVariante)
+		delete(original, ficheroDeLaSkillDeLaVariante)
+		require.Equal(t, original, instalada, "cada otro fichero de %s en la sesión %s es, ruta a ruta y byte a "+
+			"byte, el de skills/", nombre, sesion)
+	}
+
+	exigirElServidorDeLaFamilia(t, arnes, reparto, sesion)
+
+	// WalkDir no sigue los enlaces de las skills de cada sesión: lo que visita es
+	// lo que guarda DIRECTORIO.
+	require.NoError(t, filepath.WalkDir(arnes.sondeo.Argumentos.Directorio,
+		func(ruta string, entrada fs.DirEntry, delPaso error) error {
+			if delPaso != nil {
+				return delPaso
+			}
+
+			assert.NotEqual(t, ficheroDeLaSkillDeLaVariante, entrada.Name(), "DIRECTORIO no guarda ningún %s: %s",
+				ficheroDeLaSkillDeLaVariante, ruta)
+
+			return nil
+		}))
 }
 
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y
@@ -1823,17 +2556,18 @@ type casoDelGuionDelLaboratorio struct {
 // TestGuionDelLaboratorio fija scripts/evals-laboratorio.sh (contracts/arnes.md
 // §1 de H39; FR-030, FR-032 de H39), como TestGuionDelSondeo el guion del sondeo
 // de una skill, con el sustituto de go delante en el PATH y un TMPDIR vacío del
-// test. Con nueve argumentos, crea en TMPDIR su temporal con la plantilla
+// test. Con diez argumentos, crea en TMPDIR su temporal con la plantilla
 // kitlegal-laboratorio.XXXXXX y ejecuta, en la raíz del repositorio y con el
 // tmp/ de ese temporal como TMPDIR, la orden go test de TestSondeoDelLaboratorio
-// con los nueve tras -args, DIRECTORIO con la raíz delante si es relativo,
-// INSTALACION y EVAL detrás, y -temporal con ese temporal, el último, con sus
-// dos salidas en su go-test.log. Si go test sale con 0 y deja uso.txt, el guion
-// sale con 1 e imprime solo uso.txt, en la salida de error; si go test falla,
-// aunque deje uso.txt, sale con 1 e imprime su registro; si no, sale con 0 e
-// imprime salida.txt. Sin nueve argumentos, el uso y el código 1, sin ejecutar
-// go (contracts/arnes.md §1 y §5 de H41.2; research D9 de H41.2). En todos los casos, el TMPDIR del test
-// queda vacío: el guion borra su temporal.
+// con los diez tras -args, DIRECTORIO con la raíz delante si es relativo,
+// INSTALACION, EVAL y PRESUPUESTO detrás, y -temporal con ese temporal, el
+// último, con sus dos salidas en su go-test.log. Si go test sale con 0 y deja
+// uso.txt, el guion sale con 1 e imprime solo uso.txt, en la salida de error; si
+// go test falla, aunque deje uso.txt, sale con 1 e imprime su registro; si no,
+// sale con 0 e imprime salida.txt. Sin diez argumentos, el uso y el código 1,
+// sin ejecutar go (contracts/arnes.md §1 y §5 de H41.2 y §1 de H41.3; research
+// D9 de H41.2 y D7 de H41.3). En todos los casos, el TMPDIR del test queda
+// vacío: el guion borra su temporal.
 func TestGuionDelLaboratorio(t *testing.T) {
 	t.Parallel()
 
@@ -1873,7 +2607,7 @@ func exigirElGuionDelLaboratorio(t *testing.T, caso casoDelGuionDelLaboratorio, 
 
 	anotaciones := filepath.Join(comun, sustitutoGo)
 	if caso.sinGo {
-		assert.NoDirExists(t, anotaciones, "sin nueve argumentos, el guion no ejecuta go")
+		assert.NoDirExists(t, anotaciones, "sin diez argumentos, el guion no ejecuta go")
 
 		return
 	}
@@ -1912,27 +2646,28 @@ func exigirElGoDelLaboratorio(t *testing.T, anotado goAnotado, delGuion []string
 }
 
 // ordenDelLaboratorio son los argumentos de go de la orden de
-// TestSondeoDelLaboratorio (contracts/arnes.md §1 y §5 de H39 y de H41.2), con
-// los seis primeros de los nueve argumentos del guion, en su orden, ese
-// DIRECTORIO, el octavo, INSTALACION, y el noveno, EVAL, tal cual, y su
-// temporal, el último.
+// TestSondeoDelLaboratorio (contracts/arnes.md §1 y §5 de H39 y de H41.2 y §1
+// de H41.3), con los seis primeros de los diez argumentos del guion, en su
+// orden, ese DIRECTORIO, el octavo, INSTALACION, el noveno, EVAL, y el décimo,
+// PRESUPUESTO, tal cual, y su temporal, el último.
 func ordenDelLaboratorio(argumentos []string, directorio, temporal string) []string {
 	return []string{
 		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestSondeoDelLaboratorio$", "./internal/evals/",
 		"-args", "-variantes", argumentos[0], "-modos", argumentos[1], "-sesiones", argumentos[2], "-modelo",
 		argumentos[3], "-claude-code", argumentos[4], "-concurrencia", argumentos[5], "-directorio", directorio,
-		"-instalacion", argumentos[7], "-eval", argumentos[8], "-temporal", temporal,
+		"-instalacion", argumentos[7], "-eval", argumentos[8], "-presupuesto", argumentos[9], "-temporal", temporal,
 	}
 }
 
-// casosDelGuionDelLaboratorio son los casos de TestGuionDelLaboratorio, con nueve
-// argumentos, el octavo producto en el de un DIRECTORIO absoluto, el noveno 04
-// en el de uno relativo, con el octavo vacío, para que los dos se vean por
-// separado, y los dos vacíos en los demás: go test sale con 0, con un DIRECTORIO
-// relativo y con uno absoluto; sale con 1; sale con 0 y deja uso.txt, con los
-// errores de SESIONES=6 y MODELO=sonnet o con el de DIRECTORIO vacío, que el
-// guion pasa vacío; sale con 1 y deja uso.txt; y el guion recibe ocho
-// argumentos, uno menos de los nueve.
+// casosDelGuionDelLaboratorio son los casos de TestGuionDelLaboratorio, con diez
+// argumentos, el octavo producto y el décimo 1000000 en el de un DIRECTORIO
+// absoluto, con el noveno vacío, el noveno 04 en el de uno relativo, con el
+// octavo y el décimo vacíos, para que los tres se vean por separado, y los tres
+// vacíos en los demás: go test sale con 0, con un DIRECTORIO relativo y con uno
+// absoluto; sale con 1; sale con 0 y deja uso.txt, con los errores de SESIONES=6
+// y MODELO=sonnet o con el de DIRECTORIO vacío, que el guion pasa vacío; sale
+// con 1 y deja uso.txt; y el guion recibe nueve argumentos, uno menos de los
+// diez.
 func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
 
@@ -1941,7 +2676,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-0-y-directorio-relativo",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control,instrucciones", "orden,herramienta", "8",
-					modeloDelLaboratorio, versionDelClaudeDelLaboratorio, "2", directorioRelativoDelLaboratorio, "", "04")
+					modeloDelLaboratorio, versionDelClaudeDelLaboratorio, "2", directorioRelativoDelLaboratorio, "", "04", "")
 			},
 			codigo: 0,
 			salida: salidaDelSustitutoDeGo,
@@ -1950,7 +2685,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-0-y-directorio-absoluto",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "parametro", "herramienta", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioAbsolutoDelLaboratorio, "producto", "")
+					versionDelClaudeDelLaboratorio, "1", directorioAbsolutoDelLaboratorio, "producto", "", "1000000")
 			},
 			codigo: 0,
 			salida: salidaDelSustitutoDeGo,
@@ -1959,7 +2694,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-1",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "", "")
+					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "", "", "")
 			},
 			codigoDeGo: 1,
 			codigo:     1,
@@ -1969,7 +2704,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "uso-con-dos-argumentos-que-no-valen",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
-					"1", directorioAbsolutoDelLaboratorio, "", "")
+					"1", directorioAbsolutoDelLaboratorio, "", "", "")
 			},
 			uso:    usoDelLaboratorioConDosArgumentos,
 			codigo: 1,
@@ -1978,7 +2713,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "uso-sin-directorio",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", "", "", "")
+					versionDelClaudeDelLaboratorio, "1", "", "", "", "")
 			},
 			uso:    usoDelLaboratorioSinDirectorio,
 			codigo: 1,
@@ -1987,7 +2722,7 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			nombre: "go-test-sale-con-1-y-deja-uso",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
-					"1", directorioRelativoDelLaboratorio, "", "")
+					"1", directorioRelativoDelLaboratorio, "", "", "")
 			},
 			codigoDeGo: 1,
 			uso:        usoDelLaboratorioConDosArgumentos,
@@ -1995,16 +2730,16 @@ func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
 			deError:    registro,
 		}, desdeLaRaiz: true},
 		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
-			// Los ocho de antes: el guion da su uso, que nombra <instalacion> y
-			// <eval> detrás de <directorio>, y no ejecuta go.
-			nombre: "sin-nueve-argumentos",
+			// Los nueve de antes: el guion da su uso, que nombra <instalacion>,
+			// <eval> y <presupuesto> detrás de <directorio>, y no ejecuta go.
+			nombre: "sin-diez-argumentos",
 			orden: func(ctx context.Context, guion string) *exec.Cmd {
 				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
-					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "")
+					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio, "", "")
 			},
 			codigo: 1,
 			deError: []string{"evals-laboratorio: uso: scripts/evals-laboratorio.sh <variantes> <modos> <sesiones> " +
-				"<modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval>"},
+				"<modelo> <claude-code> <concurrencia> <directorio> <instalacion> <eval> <presupuesto>"},
 			sinGo: true,
 		}},
 	}
@@ -2019,11 +2754,12 @@ const prefijoDeLaOrdenDelLlavero = "scripts/evals-sondeo-llavero.sh"
 // los valores fijos de sus casos (contracts/arnes.md §1 de H39): el guion del
 // llavero con el nombre del guion que ejecuta y los argumentos de make detrás,
 // cada uno entre comillas dobles y en su orden; los cinco del sondeo de una
-// skill y los nueve del laboratorio (contracts/arnes.md §1 y §5 de H41.2).
+// skill y los diez del laboratorio (contracts/arnes.md §1 y §5 de H41.2 y §1
+// de H41.3).
 const (
 	ordenDeLaRecetaDelSondeo      = `scripts/evals-sondeo-llavero.sh sondeo "normativa" "01" "claude-sonnet-5-5" "2" "1"`
 	ordenDeLaRecetaDelLaboratorio = `scripts/evals-sondeo-llavero.sh laboratorio "control,instrucciones" ` +
-		`"orden,herramienta" "8" "claude-sonnet-5-5" "2.1.284" "2" "sondeo-de-prueba" "producto" "04"`
+		`"orden,herramienta" "8" "claude-sonnet-5-5" "2.1.284" "2" "sondeo-de-prueba" "producto" "04" "1000000"`
 )
 
 // variablesDelMakeQueLanzaElTest son las que el make que lanza go test, el de
@@ -2067,7 +2803,8 @@ func TestRecetasDelSondeo(t *testing.T) {
 			orden: func(ctx context.Context) *exec.Cmd {
 				return exec.CommandContext(ctx, "make", "-n", "evals-laboratorio", "VARIANTES=control,instrucciones",
 					"MODOS=orden,herramienta", "SESIONES=8", "MODELO=claude-sonnet-5-5", "CLAUDE_CODE=2.1.284",
-					"CONCURRENCIA=2", "DIRECTORIO=sondeo-de-prueba", "INSTALACION=producto", "EVAL=04")
+					"CONCURRENCIA=2", "DIRECTORIO=sondeo-de-prueba", "INSTALACION=producto", "EVAL=04",
+					"PRESUPUESTO=1000000")
 			},
 			esperada: ordenDeLaRecetaDelLaboratorio,
 		},

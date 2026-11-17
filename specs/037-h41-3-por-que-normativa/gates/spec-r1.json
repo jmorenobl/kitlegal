@@ -1,0 +1,82 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "Cubre todo el hito. La variante, en FR-001 y FR-002. Las dos opciones del arnés, en FR-010, FR-013 y FR-014. Lo que no cambia, en FR-015. Los errores, en FR-016. El control del arnés, en FR-018. La constancia de sondeo.json, en FR-012, y las columnas de la tabla, de FR-020 a FR-024. El sondeo de cuatro filas de 160, en FR-030, y la lectura y el ADR, en FR-031. Los controles, en FR-032 y FR-034. El edge case de lo ilegible remite a la regla genérica (ADR 0023), sin más casos. Pero se aparta del hito en un punto, que sale en motivos: FR-016 y el tercer supuesto cambian el mensaje de hoy de un INSTALACION que no vale («INSTALACION: «todas» no es producto», laboratorio_sondeo.go:458, esperado en laboratorio_sondeo_test.go:1335-1379 y :1581). Una petición así no lleva ninguna de las dos opciones, y el hito dice «Sin las dos opciones, todo lo demás queda como hoy, byte a byte», «es la única diferencia con hoy» y «salvo eso»."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» (líneas 484-494) recoge las ocho viñetas de «Fuera» del hito. También recoge lo que excluye clarify: las otras variantes con producto-descripciones-cortas (495-496) y la constancia sin opciones (497-498). Y lo que el spec no añade: otras variantes de instalación o que cambien más que la description, INSTALACION o PRESUPUESTO con H39 (499-501), medir el listado (502-503), las columnas de H39 (504), otras versiones o modelos (505), el job y make ci (506), y el ADR y evidencias/ desde el run (507). Las decisiones del spec que el hito no dice están en FR y en «Assumptions»: la forma de PRESUPUESTO, PRESUPUESTO con H39 como error y la regla de «no se tocan»."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "Q1 (A, conservadora) está en Clarifications (línea 62), en FR-010 (solo normativa-producto, con el mensaje que nombra INSTALACION y el de H39 conservado), en FR-016 y en la cuarta viñeta de FR-018 (normativa-control, jurisprudencia-producto y una de H39). También en «Fuera de alcance» (495-496) y en «Assumptions» (469-471). Deja fuera justo lo dudoso: las variantes que no son normativa-producto. Q2 (A) está en Clarifications (63), en FR-012 (la constancia solo con alguna opción y, sin ellas, sondeo.json byte a byte), en FR-015, en FR-022, en US2 escenario 4 y en «Fuera de alcance» (497-498). La parte de diseño de la respuesta de Q1 (familia.producto) no tiene que pasar a los FR (ver g)."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "Los controles del hito están en «Criterios del hito (literales)» (424-440) y tienen su FR y su SC medibles. La variante sin red ni modelo: FR-002 y SC-001, con US1 escenarios 1 a 4. El arnés: skills y descripción (SC-002), entorno con y sin PRESUPUESTO (SC-003), byte a byte sin opciones (SC-004), en FR-018 y US2 escenarios 1 a 5. Las suites congeladas: FR-032 y SC-007. Las evals del cierre en los dos modos, y la caída dicha para la persona: FR-034 y SC-008. La aceptación es FR-030 (tabla con las tres cuentas y Wilson al 95 %) y FR-031 (las tres comparaciones, más «no se tocan» con los extremos impresos y la fusión supeditada a la lectura). Se cumple en US4 escenarios 1 a 4, en Dado/Cuando/Entonces, y en SC-009."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "No reabre ninguna. Las sesiones con modelo las lanza la persona, nunca el run, make ci ni el job (FR-017, FR-031; ADR 0032). El modelo es un id completo con la versión del job (FR-030) y el job no cambia (Fuera; ADR 0031). Las descripciones, de 450 o menos, quedan dentro de las 900 del ADR 0046, y la tercera persona se juzga en el job del hito siguiente (FR-001). El producto no cambia (FR-033) y la variante vive en laboratorio/ (skills primero; ADR 0019). No se toca ningún umbral (Fuera; ADR 0038). Fusionar lo decide la persona (FR-031; ADR 0018 y 0021). No se pide la activación en el servidor (Fuera; ADR 0050) ni se quita ninguna skill (Fuera; ADR 0048)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": false,
+      "evidencia": "Hay marcas ciertas. «No [NEEDS CLARIFICATION] markers remain»: grep da 0. «Scope is clearly bounded»: las ocho viñetas de «Fuera» del hito están en 484-494. «All acceptance scenarios are defined»: US1 a US4. «Success criteria are measurable»: SC-001 a SC-008 con su control. Hay dos que no lo son. «No implementation details» y «No implementation details leak into specification» dicen que el diseño es del plan, pero FR-010 fija dónde se declara la regla («junto a la familia… familia.producto… declaradas en Go»). «Requirements are testable and unambiguous» no lo es mientras la forma de PRESUPUESTO tenga dos lecturas (ver h)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": false,
+      "evidencia": "El último párrafo de FR-010 fija diseño interno sin efecto observable: «La regla se declara junto a la familia de `normativa` (su variante del producto, `familia.producto`), no como un nombre suelto en la comprobación, igual que las familias del laboratorio, declaradas en Go porque las fija enteras el hito». El resto deja el diseño al plan: el formato de la variante, la clave de la constancia, los textos de los mensajes, las cabeceras y los cuatro textos (FR-001, FR-012, FR-020). Las rutas y los símbolos de «Contexto» son constancia de lo comprobado, no requisitos."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": false,
+      "evidencia": "Casi todo da un test. «No se tocan» está definido en FR-031: el extremo superior del de abajo menor que el inferior del de arriba, y si son iguales se tocan. Las instalaciones y los presupuestos de cada fila, en FR-020 a FR-022. Los errores, en FR-016, con sus casos en FR-018. He recalculado los intervalos de Wilson del Contexto con awk (z = 1,96) y cuadran. 0/160 da 0,0-2,34; 7/160, 2,14-8,75; 8/160, 2,555-9,56; 12/160, 4,34-12,65. 6/80 da 3,48-15,41, y 70 × 1536 = 107 520. Queda un hueco material, que sale en motivos: la forma de PRESUPUESTO. FR-013 pide «un entero mayor que 0 en decimal», que pasa «tal como se pidió» y que la tabla da como «el valor pedido». No dice si valen ceros delante o un signo. Los enteros de hoy (SESIONES, CONCURRENCIA) los rechazan con ^[1-9][0-9]*$ (sondeo.go:34). No hay requisitos contradictorios."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» lo traza a quien lo consume. Ninguna skill ni el binario distribuido consumen nada (FR-033). Lo que gana la skill es la decisión del ADR. Las cuatro descripciones (FR-001, FR-011) las lee el modelo una vez por sesión, al arrancar: como mucho 1700 runas × 1 por sesión × 160 sesiones de la fila de remedio, frente a las 3313 de hoy. Su tamaño es fijo y no crece con cientos de normas ni miles de bloques. Dejan de usarse con el ADR. El aviso de FR-002 da una línea por defecto, como mucho 4 + 1, solo en rojo, y deja de darse al corregir la variante. La constancia de FR-012 son unas decenas de bytes × 1 sondeo.json por invocación × 4 invocaciones, y el guion la lee una vez por sondeo. Los errores, una línea por argumento, solo cuando la orden no vale. Las columnas de FR-020: 4 filas × 2 celdas (un nombre y un número o nada), más el detalle de 640 sesiones como hoy. Las acotan las filas y las sesiones pedidas, no lo acumulado. Ninguna señal se repite sin información nueva."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral que se mide sin persona nombra la comprobación que sale en rojo. ≤ 450 runas, ≤ 1700, 0 etiquetas y 1 por skill (FR-001, SC-001): la comprobación de FR-002 en make ci sale en rojo con la skill, la medida y el límite. 4 skills, 0 repetidas, 100 % de descripciones y 0 bytes (SC-002); 100 % y 0 sesiones con la variable (SC-003); 0 bytes sin opciones (SC-004); y 0 sesiones con una petición inválida (SC-005): el test de FR-018 en make ci falla con la primera sesión o petición que difiere. Los valores exactos del guion (SC-006): su test de FR-024 falla con el primero que difiere. 0 bytes en las suites congeladas (SC-007): esas suites en make ci. sin_activar ≤ 0 en el cierre (SC-008): el job de evals sale en rojo. Las 160 sesiones por fila y SC-009 los mide la persona."
+    }
+  ],
+  "motivos": [
+    "[g][f] Quitar de FR-010 la frase final: «La regla se declara junto a la familia de `normativa` (su variante del producto, `familia.producto`), no como un nombre suelto en la comprobación, igual que las familias del laboratorio, declaradas en Go porque las fija enteras el hito». Fija dónde vive la regla en el código, un campo de una estructura de Go y el lenguaje, y eso es del plan. No cambia nada observable: lo que se ve de la regla (producto-descripciones-cortas solo vale con normativa-producto, con su mensaje y sus casos de test) ya está en FR-010, FR-016 y FR-018. El registro de la respuesta de Q1 en «Clarifications» puede quedarse como está. Con eso son ciertas las marcas [x] «No implementation details (languages, frameworks, APIs)» y «No implementation details leak into specification» de checklists/requirements.md, que hoy no lo son.",
+    "[a] FR-016 y el tercer supuesto de «Assumptions» dicen: «`INSTALACION` con un valor que no es vacío, `producto` ni `producto-descripciones-cortas`, cuyo mensaje nombra los dos valores que valen». Así cambia el mensaje de hoy, «INSTALACION: «todas» no es producto» (errorDeLaInstalacion, internal/evals/laboratorio_sondeo.go:458, esperado en internal/evals/laboratorio_sondeo_test.go:1335-1379 y :1581), en una petición que no lleva ninguna de las dos opciones. El hito dice «Sin las dos opciones, todo lo demás queda como hoy, byte a byte» y que quitar la variable «es la única diferencia con hoy», y su control pide «que sin las dos opciones hace lo que hace hoy, byte a byte, salvo eso». Vía: la persona lanza make evals-laboratorio INSTALACION=todas sin PRESUPUESTO. Diferencia: otra línea de error en la salida y otros valores esperados en los tests de hoy. El supuesto lo justifica con que el mensaje de hoy «dejaría de ser cierto», y no es así: «todas» sigue sin ser producto. Aplicar la lectura conservadora (constitución, «Criterio de decisión autónoma», puntos 2 y 4): un INSTALACION que no es vacío, producto ni producto-descripciones-cortas da el mensaje de hoy, byte a byte, con los valores esperados de hoy sin cambiar. Corregir FR-016 y el supuesto. Decir en FR-015 y SC-004, o en el supuesto, que una petición sin las dos opciones que no vale da los mensajes de hoy.",
+    "[h][f] FR-013 pide para PRESUPUESTO «un entero mayor que 0 en decimal», que llega a la sesión «con el valor tal como se pidió» y a la tabla como «el valor pedido» (FR-020), que además separa filas. No dice si valen ceros delante o un signo. Vía: la persona lanza PRESUPUESTO=0100 o PRESUPUESTO=+1000000, un argumento de make. Diferencia: con una lectura, el arnés abre las sesiones con SLASH_COMMAND_TOOL_CHAR_BUDGET=0100 y la tabla da «0100» en «Presupuesto», en otra fila que la de 100; con la otra, sale con un error de argumentos de FR-016 y no abre ninguna sesión. Hoy los enteros de argumento del arnés (SESIONES, CONCURRENCIA) solo aceptan cifras sin signo ni ceros delante (formaDeUnEnteroPositivo, internal/evals/sondeo.go:34). Fijar esa forma en FR-013 y en el primer error de FR-016: solo cifras, sin signo ni ceros delante, como SESIONES; lo demás es error de argumentos. Así «tal como se pidió» y «el valor pedido» tienen una sola lectura, y es cierta la marca [x] «Requirements are testable and unambiguous» de checklists/requirements.md."
+  ],
+  "observaciones": [
+    "FR-011 y US2 escenario 1 dicen «skills/ del árbol que lanza el sondeo», y FR-018, SC-002 y «Key Entities», «skills/ de la cabeza». Solo difieren con skills/ modificado a mano sin confirmar, que no es una vía; en make ci coinciden. Convendría usar un solo término.",
+    "«Cada otro byte» (FR-011), con una description en bloque plegado de YAML (description: >- y varias líneas): no dice si «lo demás» empieza tras la entrada entera o tras el valor. Las dos lecturas solo difieren por dentro: el modelo lee la description analizada y el cuerpo es el mismo. Lo fija el plan.",
+    "El orden de las cuatro filas del sondeo de H41.3, iguales en variante, modo, modelo y versión y distintas solo en instalación y presupuesto, no se especifica. No cambia ninguna cuenta ni la lectura, y lo fija el plan para el test de FR-024.",
+    "FR-031 hereda del hito un hueco: un control por debajo de sola y sin tocarse no cae en ninguna rama. Lo lee y lo escribe la persona en el ADR, sin efecto en el producto.",
+    "FR-002 y SC-001 dicen «las cuatro suman» para la cota de 1700. Con una quinta skill, de un hito futuro (un emisor que no existe), habría que releerlo; US1 escenario 4 ya dice que la comprobación sale en rojo.",
+    "INSTALACION=producto-descripciones-cortas con VARIANTES=foo,normativa-producto: foo no es una variante, así que da el error de VARIANTES, y no queda dicho si da además el de INSTALACION. Solo cambia una línea de error, con el mismo código y ninguna sesión. El plan sigue el patrón de hoy de errorDeLaInstalacion.",
+    "La nota de checklists/requirements.md sobre FR-033 («en las suites (no cambia ningún fichero de skills/)») exagera. Las suites congeladas de H41 y H41.1 comprueban fragmentos de las skills instaladas, no cada fichero byte a byte; lo que impide tocar skills/ es el guardián de diff de rutas declaradas.",
+    "La línea «Input» de spec.md apunta a docs/roadmap/in-progress/, pero el fichero del hito está ya en docs/roadmap/done/ (commit 7c19f15b).",
+    "Las cifras de partida (6 de 80, 0 de 180, 3313 caracteres, 20 y 21 skills, 49 órdenes) no se han medido en esta sesión, y el spec lo dice. He comprobado en el código las afirmaciones del «Contexto» sobre el entorno de lista cerrada (sondeo.go:74 y 1043-1061) y sobre conLasActivaciones y skills_instaladas (laboratorio_tabla.go:377-401, laboratorio_sondeo.go:961)."
+  ],
+  "entrada": []
+}
