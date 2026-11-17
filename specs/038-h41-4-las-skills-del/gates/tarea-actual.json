@@ -1,23 +1,11 @@
 {
-  "id": "T005",
-  "texto": "T005 [US3] La entrada del changelog y la verificación final de la rama (FR-006, FR-007, FR-008, FR-009; SC-004; DoD §1; contracts/skills.md §4; research D9). **Fichero**: CHANGELOG.md: al final de «## [Unreleased]» → «### Cambiado», la viñeta de contracts/skills.md §4 byte a byte, que nombra las cuatro skills, dice que su `description` pasa a ser la de la variante `producto-descripciones-cortas` medida en H41.3, que nada más de las skills cambia y que es para quitar la caída de la eval 04 de `normativa` en modo herramienta (ADR 0055); nada más del fichero cambia. **Verificación**, sin cambiar otro fichero: `make ci` en verde; `make skills-sync` seguido de `git status --porcelain` sin ningún fichero (FR-007); `git diff --name-only ab951c22` (el árbol de trabajo contra la base) sin ninguna ruta bajo `laboratorio/`, `evals/`, `web/`, `mcp/`, `internal/empaquetado/`, `.github/` ni de un test congelado distinto de internal/evals/laboratorio_familias_test.go (FR-006, FR-009; quickstart, escenario 4). Sin ADR nuevo (el ADR 0055 ya decide el cambio), sin `docs/SOURCES.md` (ninguna fuente), sin esquemas de salida (ninguna salida de applet cambia) y sin fixtures (ninguna grabación): plan.md «Gates» y «Datos externos».",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "57f4e5c5111c512266532a5ba5857cbffa63c605",
-  "rutas": [
-    "CHANGELOG.md",
-    "contracts/skills.md",
-    "docs/SOURCES.md",
-    "evals/",
-    ".github/",
-    "internal/empaquetado/",
-    "internal/evals/laboratorio_familias_test.go",
-    "laboratorio/",
-    "mcp/",
-    "plan.md",
-    "web/"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

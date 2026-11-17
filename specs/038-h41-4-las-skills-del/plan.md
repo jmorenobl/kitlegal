@@ -44,7 +44,7 @@ empotra.
 cambiados en las skills fuera de las líneas de la clave, en `laboratorio/`, `evals/`, `web/`, `mcp/`, el empaquetado y
 el job de evals; el run no graba, no escribe en `evidencias/` y no abre sesiones con modelo.
 
-**Scale/Scope**: 4 skills, 4 ficheros de ellas, 20 líneas de bloque; 2 tests nuevos con 16 subtests (10 y 6); 1 test
+**Scale/Scope**: 4 skills, 4 ficheros de ellas, 20 líneas de bloque; 2 tests nuevos con 15 subtests (9 y 6); 1 test
 que cambia; 1 guion con 8 `grep`; 1 viñeta de `CHANGELOG.md`.
 
 ## Constitution Check
@@ -124,7 +124,7 @@ fichero de test nuevo junto al código que reutiliza (research D1).
   fichero no cambia.
 - **`TestDescripcionesDelProducto`** (contracts/controles.md §1; research D1, D6, D7): `defectosDeLasDescripcionesDelProducto(raiz)`
   da, por skill de `skills/`, el defecto del texto, el de la forma y el de la longitud, y al final el de la suma; el
-  test exige cero en la rama y las líneas exactas en nueve mutantes sobre copias.
+  test exige cero en la rama y las líneas exactas en ocho mutantes sobre copias.
 - **`TestConsultaJuridicaDesdeLaBase`** (contracts/controles.md §2; research D2, V3): las huellas de `ab951c22` y la
   primera ruta que falta, sobra o difiere; cero en la rama, el defecto exacto en cuatro mutantes, y ninguno si solo
   cambia la clave.

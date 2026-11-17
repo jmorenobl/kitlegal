@@ -251,7 +251,7 @@ dos modos y el juicio de la tercera persona; la tabla del sondeo la añade la pe
 - **Las cuatro descripciones** las consume el agente (Claude Code u otro host) en el listado de skills que lee al
   empezar cada sesión: una vez por sesión, no por consulta ni por norma. Tamaño: 1690 caracteres entre las cuatro
   (como mucho 1700, FR-004), frente a los 3313 de hoy que da H41.3 (`specs/037-h41-3-por-que-normativa/spec.md`,
-  «Contexto»; no medido en esta sesión). No crece con el uso: con meses de uso diario, cientos de normas y miles de
+  «Contexto»; medidos de nuevo en research V1). No crece con el uso: con meses de uso diario, cientos de normas y miles de
   bloques consultados, el listado sigue siendo de cuatro textos fijos, porque ni la caché ni el grafo entran en él. Lo
   que gana la skill: `normativa` se activa antes de `boe_articulo` u otra herramienta `boe_…`, la entrada de su paso 1.
   No hay señales que caduquen: el texto cambia solo con una release.

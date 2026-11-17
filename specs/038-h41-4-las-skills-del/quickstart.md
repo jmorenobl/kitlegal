@@ -12,8 +12,9 @@ go test -count=1 -run '^TestDescripcionesDelProducto$' -v ./internal/evals/
 go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/
 ```
 
-Verde: `--- PASS: TestDescripcionesDelProducto` con sus diez subtests —la rama, sin ninguna línea, y los nueve casos de
-contracts/controles.md §1.3, cada uno con sus líneas— y `ok` en los dos paquetes. Las medidas, en
+Verde: `--- PASS: TestDescripcionesDelProducto` con sus nueve subtests, las nueve filas de
+contracts/controles.md §1.3 —la rama, sin ninguna línea, y los ocho mutantes, cada uno con sus líneas— y `ok` en los
+dos paquetes. Las medidas, en
 contracts/skills.md §3.
 
 ## 2. Lo que instala el binario (US1; FR-001, FR-002; SC-001)
