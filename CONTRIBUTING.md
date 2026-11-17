@@ -1043,7 +1043,7 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `UMBRAL_DE_EVALS` | `2` |
 | `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion` y en `jurisprudencia`; `2` en `legal-core` |
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `jurisprudencia` y en `legal-core` |
-| `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
+| `VERSION_DE_CLAUDE_CODE` | `2.1.326` |
 | `MODELO_DEL_JUEZ` | `claude-opus-5-5` |
 | `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` | `2.1.289` |
 

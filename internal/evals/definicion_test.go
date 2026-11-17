@@ -1281,7 +1281,7 @@ func enCambios(antes, despues string) cambioDeLaDefinicion {
 const (
 	modeloDelJuezDelContrato        = "claude-opus-5-5"
 	versionDelJuezDelContrato       = "2.1.289"
-	versionDeLasSesionesDelContrato = "2.1.284"
+	versionDeLasSesionesDelContrato = "2.1.326"
 
 	modeloDelJuezEnElEnv  = "      MODELO_DEL_JUEZ: " + modeloDelJuezDelContrato + "\n"
 	versionDelJuezEnElEnv = "      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: " + versionDelJuezDelContrato + "\n"
