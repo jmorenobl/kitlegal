@@ -123,8 +123,9 @@ con una regla de forma que el agente solo puede sacar de donde se ponga, 40 sesi
 - La activación se mide con todas las skills del producto instaladas (`INSTALACION=producto`), como las deja
   `kitlegal skills install` (ADR 0054). Con las cuatro, la eval 04 de `normativa` en modo herramienta no activa
   ninguna skill en 6 de 80 sesiones, y con `normativa` sola, en 0 de 80 en el mismo sondeo. El «40 de 40» de «Activan
-  antes» de los sondeos de H39 a H41.1 es de una instalación con una sola skill. Si la causa es el presupuesto del
-  listado de skills de Claude Code, lo mide H41.3.
+  antes» de los sondeos de H39 a H41.1 es de una instalación con una sola skill. H41.3 lo confirma con 160 por fila
+  (14 de 160 con las cuatro, 1 de 160 con `normativa` sola) y no demuestra que la causa sea el presupuesto del listado
+  de skills de Claude Code; unas descripciones cortas la quitan, y H41.4 las aplica al producto (ADR 0055).
 
 **Cómo se remite.** El laboratorio no reproducía el defecto de `normativa` en modo herramienta, donde las referencias
 casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `normativa` fuera del producto
