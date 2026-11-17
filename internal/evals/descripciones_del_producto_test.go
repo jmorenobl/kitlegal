@@ -3,9 +3,11 @@ package evals
 import (
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -340,6 +342,160 @@ func cambiarElSkill(t *testing.T, raiz, skill, de, a string) {
 	require.NotEqual(t, string(contenido), cambiado, "el mutante cambia %s", ruta)
 
 	require.NoError(t, escribirFichero(ruta, []byte(cambiado)))
+}
+
+// consultaJuridica es la skill de skills/ que viene de la base de la rama salvo
+// las líneas de la clave description (FR-003; contracts/controles.md §2), y
+// baseDeLaRama, esa base abreviada, como la nombran sus defectos.
+const (
+	consultaJuridica = "consulta-juridica"
+	baseDeLaRama     = "ab951c22"
+)
+
+// huellasDeConsultaJuridicaEnLaBase son los ficheros de skills/consulta-juridica/
+// en la base de la rama, ab951c227e1fc8acac8bd6b23534e275e4a36a76 (git merge-base
+// main HEAD; research V3), por su ruta relativa a la skill, con la SHA-256 en
+// hexadecimal de su contenido; la del SKILL.md, de su contenido sin las líneas de
+// la clave description, las que da descripcionYCuerpo (contracts/controles.md
+// §2.1). Las rutas son las de git ls-tree -r --name-only ab951c22
+// skills/consulta-juridica, y la huella se calculó sobre git show
+// ab951c22:skills/consulta-juridica/SKILL.md dos veces, con la regla de
+// lineasDelSkill y con awk y sha256sum. Se fijan aquí y no se leen con git
+// porque el make ci del cierre no garantiza el historial (research D2).
+var huellasDeConsultaJuridicaEnLaBase = map[string]string{
+	ficheroDeLaSkill: "bd089909060d0fd82c1c6d2ee4ae148f6f0a1b2b7d7eefd476d164dc610a205a",
+}
+
+// defectoDeConsultaJuridica compara los ficheros de skills/consulta-juridica/ de
+// la raíz con los de la base de la rama, huellasDeConsultaJuridicaEnLaBase, el
+// SKILL.md sin las líneas de la clave description (FR-003; contracts/controles.md
+// §2.2): en orden de ruta sobre la unión de las dos listas, da el primero que
+// falta, sobra o difiere, o la cadena vacía. El error, sin defecto, es el de
+// leerLosFicheros: un defecto inesperado (ADR 0023).
+func defectoDeConsultaJuridica(raiz string) (string, error) {
+	directorio := path.Join(directorioDeLasSkills, consultaJuridica)
+
+	ficheros, err := leerLosFicheros(os.DirFS(raiz), directorio)
+	if err != nil {
+		return "", err
+	}
+
+	huellas := make(map[string]string, len(ficheros))
+
+	for ruta, contenido := range ficheros {
+		texto := string(contenido)
+		if ruta == ficheroDeLaSkill {
+			_, texto = descripcionYCuerpo(texto)
+		}
+
+		huellas[ruta] = sha256DeTexto(texto)
+	}
+
+	rutas := slices.AppendSeq(slices.Collect(maps.Keys(huellas)), maps.Keys(huellasDeConsultaJuridicaEnLaBase))
+	slices.Sort(rutas)
+
+	for _, ruta := range slices.Compact(rutas) {
+		enLaRaiz, estaEnLaRaiz := huellas[ruta]
+		enLaBase, estaEnLaBase := huellasDeConsultaJuridicaEnLaBase[ruta]
+		completa := path.Join(directorio, ruta)
+
+		switch {
+		case !estaEnLaRaiz:
+			return fmt.Sprintf("%s falta: está en la base de la rama (%s)", completa, baseDeLaRama), nil
+		case !estaEnLaBase:
+			return fmt.Sprintf("%s sobra: no está en la base de la rama (%s)", completa, baseDeLaRama), nil
+		case enLaRaiz != enLaBase:
+			return fmt.Sprintf("%s difiere de la base de la rama (%s)", completa, baseDeLaRama), nil
+		}
+	}
+
+	return "", nil
+}
+
+// TestConsultaJuridicaDesdeLaBase comprueba que skills/consulta-juridica/ es la
+// de la base de la rama salvo las líneas de la clave description (FR-003; SC-002;
+// contracts/controles.md §2.3): la rama, sin defecto; cada mutante, un byte o un
+// fichero de diferencia fuera de la clave, la medida pasada del umbral de 0, con
+// su defecto exacto (ADR 0029); y el que solo cambia la clave, sin defecto.
+func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
+	t.Parallel()
+
+	t.Run("la rama", func(t *testing.T) {
+		t.Parallel()
+
+		defecto, err := defectoDeConsultaJuridica(raizDelRepositorio)
+		require.NoError(t, err)
+
+		require.Empty(t, defecto)
+	})
+
+	casos := []struct {
+		nombre   string
+		mutante  func(t *testing.T, raiz string)
+		esperado string
+	}{
+		{
+			nombre: "el cuerpo",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarElSkill(t, raiz, consultaJuridica, "## Método", "## Métodos")
+			},
+			esperado: "skills/consulta-juridica/SKILL.md difiere de la base de la rama (ab951c22)",
+		},
+		{
+			nombre: "name",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarElSkill(t, raiz, consultaJuridica, "name: consulta-juridica", "name: consulta-juridico")
+			},
+			esperado: "skills/consulta-juridica/SKILL.md difiere de la base de la rama (ab951c22)",
+		},
+		{
+			nombre: "un fichero de más",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				referencias := filepath.Join(raiz, directorioDeLasSkills, consultaJuridica, "references")
+				require.NoError(t, os.Mkdir(referencias, 0o700))
+				require.NoError(t, escribirFichero(filepath.Join(referencias, "otra.md"), []byte("# Otra\n")))
+			},
+			esperado: "skills/consulta-juridica/references/otra.md sobra: no está en la base de la rama (ab951c22)",
+		},
+		{
+			nombre: "un fichero de menos",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				require.NoError(t, os.Remove(filepath.Join(raiz, directorioDeLasSkills, consultaJuridica, ficheroDeLaSkill)))
+			},
+			esperado: "skills/consulta-juridica/SKILL.md falta: está en la base de la rama (ab951c22)",
+		},
+		{
+			nombre: "solo la clave",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarElSkill(t, raiz, consultaJuridica, "Punto de entrada de toda", "Punto de entrada de cualquier")
+			},
+			esperado: "",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := copiaDeLasSkillsYLaVariante(t)
+			caso.mutante(t, raiz)
+
+			defecto, err := defectoDeConsultaJuridica(raiz)
+			require.NoError(t, err)
+
+			require.Equal(t, caso.esperado, defecto)
+		})
+	}
 }
 
 // textoDeLaSkillEnLaVariante es el texto de la skill en la variante
