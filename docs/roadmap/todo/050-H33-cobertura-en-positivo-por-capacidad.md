@@ -63,10 +63,11 @@ depende_de: [H32, H41.4]
     antes que `normativa` 0 de 160 y ninguna sin `normativa`; con la frase anterior del §4, que decía «lleva la línea de
     su fila, la de `plazos-y-territorio`», 92 de 160 y 35 sin `normativa` (Fisher unilateral, p ≈ 10⁻³⁶). Esas sesiones
     leen `references/administrativo.md`, donde está la fila del plazo de acceso, y piden `kitlegal boe articulo` sin la
-    skill de normativa. La frase de hoy no nombra ninguna skill. Antes de los despachos, el mismo sondeo con el
-    prototipo corregido frente a `main`: vale si `plazos-y-territorio` antes que `normativa` no sale más que en `main`
-    (Fisher unilateral, p ≥ 0,025) y ninguna sesión se queda sin `normativa`. Si no, se quitan también la frase nueva
-    de la introducción y «lo que cubre» de la viñeta de los paquetes, y se mide otra vez.
+    skill de normativa. La frase de hoy no nombra ninguna skill. El mismo sondeo con el prototipo corregido
+    (`30aa4929`) frente a `main`, con el criterio fijado antes de medir —`plazos-y-territorio` antes que `normativa` no
+    más que en `main` (Fisher unilateral, p ≥ 0,025) y ninguna sesión sin `normativa`—, lo cumple: 1 de 160 frente a 0
+    de 160 (p = 0,5), y las 160 activan `normativa` antes de pedir nada a kitlegal. Los despachos se cuentan desde
+    `30aa4929`.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
