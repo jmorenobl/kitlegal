@@ -56,11 +56,11 @@ sus formas y sus citas son las de la respuesta.
 
 Toda parte de la pregunta que no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la del
 procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el motivo «no está
-en lo que kitlegal cubre». Lo que la ley regula aparte del procedimiento común no: lleva la línea de su fila, la de
-`plazos-y-territorio`, y tras ella no leas su norma. Lo que leas con la skill de normativa para completarla va detrás,
-citado, con su marca: el texto citado es el de la norma; lo que no está verificado es que se aplique a este asunto. No
-des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los del procedimiento común, ni pidas
-`kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
+en lo que kitlegal cubre». Esta línea no es para lo que la ley regula aparte del procedimiento común: eso lo declara,
+con su propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de
+normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está verificado
+es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los
+del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
 
 ```text
 ⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
