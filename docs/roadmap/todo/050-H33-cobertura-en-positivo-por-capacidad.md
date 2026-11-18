@@ -7,72 +7,93 @@ depende_de: [H32, H41.4]
 # H33 · Cobertura en positivo por capacidad y materia
 
 - **Objetivo**: que la cobertura diga lo que kitlegal cubre, por capacidad y materia, y que todo lo demás se declare no
-  cubierto con una sola línea, igual en todas las materias (ADR 0044, punto 4; principio II). Hoy `data/cobertura.yaml`
-  solo lista lo que la LPAC deja fuera del procedimiento común. Por eso una pregunta civil, de seguros o laboral no cae
-  en ninguna fila, y `consulta-juridica` dice en prosa lo que no cubre, sin forma que un programa compruebe.
+  cubierto con una sola línea, igual en todas las materias (ADR 0044, punto 4; ADR 0058; principio II). Hoy
+  `data/cobertura.yaml` solo lista lo que la LPAC deja fuera del procedimiento común. Por eso una pregunta civil, de
+  seguros o laboral no cae en ninguna fila, y `consulta-juridica` dice en prosa lo que no cubre, sin forma que un
+  programa compruebe.
 - **Evidencia de partida**:
   - **La bitácora** (`docs/USO.md`, 2026-10-21). En la póliza, kitlegal leyó y citó bien la Ley 50/1980, de Contrato de
     Seguro. Pero nada le dijo a la familia que los plazos, a quién reclamar y qué vía seguir no estaban cubiertos.
   - **Las evals de hoy.** La eval 01 de `consulta-juridica` (la póliza) dice en su comentario que lo que no cubre «lo dice
-    en prosa», y no exige ninguna línea fija (research D13 de H32; ADR 0048, que describe así la skill y que el ADR 0044,
-    punto 4, cambia).
+    en prosa», y no exige ninguna línea fija (research D13 de H32; ADR 0048, punto 1, que el ADR 0058 sustituye en eso).
   - **El umbral.** `cobertura_sin_declarar` solo existe en `plazos-y-territorio`, sobre las evals 07, 08 y 12, todas de
     lo que la ley regula aparte.
   - **La línea, en dos formas.** Las dos están en el cuerpo de `plazos-y-territorio`, y de ellas salen las nueve filas
     de `references/administrativo.md`.
+- **Decisiones que esta entrada aplica**: el ADR 0058, que va en la misma propuesta y precisa los ADR 0044 y 0048. El
+  run no lo cambia ni escribe otro.
+- **Antes de lanzar** (lo hace la persona, no el run): medir la plantilla con un modelo. Nadie la ha medido, y el cierre
+  la congela con 0 de tope.
+  - **Cómo.** Una propuesta en borrador con el prototipo de esta entrada y la etiqueta `evals`. El prototipo es una rama
+    que no se fusiona, con los textos de «Entrega», el generador, el formato de eval y las evals 01, 03 y 04.
+  - **Se lanza solo si**, en los dos modos, salen en 0:
+    - `cobertura_sin_declarar` de `consulta-juridica` y de `plazos-y-territorio`;
+    - y `sin_activar` de `consulta-juridica` (ADR 0058, punto 6).
+  - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
+  - **El art. 59 del ET en la fecha de la eval 04** no está grabado en el prototipo. Su lectura sale en
+    `fuera_de_lo_grabado`, que no decide.
 - **Entrega**:
-  - **`data/cobertura.yaml`, en dos listas**, validadas contra `schemas/cobertura.yaml.json`. Lo lee
-    `skills.LeerCobertura`:
-    - **`cubierto`, nueva**: lo que kitlegal cubre, una fila por capacidad y materia. Cada fila lleva `capacidad` (una de
-      `normativa`, `jurisprudencia`, `plazos` o `territorio`, el vocabulario de las capacidades con herramienta de
-      `consulta-juridica`), `alcance` (qué cubre, en una frase) y, si es de una materia, `materia` y `normas`.
+  - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
+    listas y un texto:
+    - **`motivo_de_lo_no_declarado`, nuevo**: `no está en lo que kitlegal cubre`. Es el motivo de la línea fuera de lo
+      declarado, y su única fuente (ver «De dónde sale cada texto»).
+    - **`cubierto`, nueva**: lo que kitlegal cubre, una fila por capacidad y materia.
+      - **Cada fila** lleva `capacidad` (una de `normativa`, `jurisprudencia`, `plazos` o `territorio`, el vocabulario de
+        las capacidades con herramienta de `consulta-juridica`) y `alcance` (qué cubre, el texto de su viñeta en §3 de
+        `consulta-juridica`). Si es de una materia, lleva además `materia` y `normas`.
       - **`materia`** es el nombre de un paquete, el `vertical:` de `data/normas.yaml`. La fila que no la lleva sirve a
         todas las materias.
       - **`normas`** son los identificadores que delimitan lo cubierto. El esquema no admite una fila de materia sin
-        normas, ni normas sin materia. Que cada norma esté en `data/normas.yaml` con el `vertical` de su fila no lo
-        puede comprobar un JSON Schema: lo comprueba la sincronía de las skills (`internal/skills`, en `make
-        skills-sync` y en `make ci`), con su defecto, como hoy los preceptos de las regiones.
-      - **Las filas** son las que el ADR 0044 declara cubiertas hoy, y ninguna más:
-        - normativa, en todas las materias: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, en
-          cualquier fecha;
-        - jurisprudencia, en todas: preparar la consulta de una sentencia, que la persona busca con su navegador, y
-          cotejar el documento que trae;
-        - territorio, en todas: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un
-          municipio;
-        - plazos, en lo administrativo: los del procedimiento común y del acceso a la información ante cualquier
-          administración y la interposición del contencioso, con los festivos de los municipios que cuentan. Sus normas
-          son la LPAC (`BOE-A-2015-10565`), la LTAIBG (`BOE-A-2013-12887`) y la LJCA (`BOE-A-1998-16718`).
+        normas, ni normas sin materia (`dependentRequired`).
+      - **Que cada norma esté en `data/normas.yaml`** con el `vertical` de su fila no lo puede comprobar un JSON Schema.
+        Lo comprueba la sincronía de las skills (`internal/skills`, en `make skills-sync` y en `make ci`), con su
+        defecto, como hoy los preceptos de las regiones.
+      - **Las filas** son las cuatro que `consulta-juridica` declara hoy en §3, con su texto, y ninguna más. El territorio
+        va sin materia (ADR 0058, punto 5):
+
+        ```yaml
+        cubierto:
+          - capacidad: normativa
+            alcance: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha.
+          - capacidad: jurisprudencia
+            alcance: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
+          - capacidad: plazos
+            alcance: solo los del procedimiento administrativo común y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
+            materia: administrativo
+            normas: [BOE-A-2015-10565, BOE-A-2013-12887, BOE-A-1998-16718]
+          - capacidad: territorio
+            alcance: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
+        ```
+
     - **`regulados_aparte`, la de hoy**, con sus nueve filas tal como están. Sigue siendo lo que la ley regula aparte del
       procedimiento común, con el precepto que lo dice y, si se cita de lo grabado, la norma que lo rige.
-  - **Un único `⚠ NO CUBIERTO:`**, una sola plantilla en todas las materias, y la marca de lo leído:
+  - **Un único `⚠ NO CUBIERTO:`**, una sola plantilla en todas las materias (ADR 0058, punto 1), y la marca de lo leído,
+    que solo lleva `consulta-juridica` (punto 2):
 
     ```text
-    ⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos; lo que lea de su norma con kitlegal va marcado ⚠ NO VERIFICADO.
+    ⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
     ⚠ NO VERIFICADO: <lo encontrado>: <forma legible> [<identificador>, bloque <id>]; kitlegal no ha comprobado que se aplique a este asunto.
     ```
 
-    - **La cola nombra la lectura, no la búsqueda.** «Lo que lea de su norma con kitlegal» son el índice y los artículos
-      de `kitlegal boe`, que tienen las dos skills (paso 6 de `plazos-y-territorio`). No nombra `boe buscar`, que
-      `plazos-y-territorio` no tiene en su tabla y cuyas búsquedas de texto libre las evals no sirven nunca (ADR 0043,
-      puntos 2 y 3). Tampoco nombra una orden de `kitlegal` que `ordenes-de-ejemplo` vaya a ejecutar.
+    - **La cola** es `kitlegal no da sus plazos, órganos, vías ni escritos.` No nombra ninguna herramienta ni invita a
+      leer nada. Qué se puede leer tras la línea lo dice cada skill: en `consulta-juridica`, lo que se lea con la skill
+      de normativa fuera de lo declarado; en lo regulado aparte, nada (ADR 0043, punto 7).
     - **Qué es lo no verificado.** El texto citado es el de la norma, leído con kitlegal y citado como en `normativa`. Lo
       no verificado es que se aplique a este asunto.
     - **El `<motivo>`**, según el caso:
-      - **fuera de lo declarado**: `no está en lo que kitlegal cubre`, fijo;
+      - **fuera de lo declarado**: `no está en lo que kitlegal cubre`, el de `data/cobertura.yaml`;
       - **lo regulado aparte con norma**: `se rige por <norma> (<identificador de la norma>), no por el procedimiento
         común (<precepto> [<identificador>, bloque <id>])`;
       - **lo regulado aparte sin norma**: `lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>,
         bloque <id>])`.
-    - **La línea generada.** La de la aplicación de los tributos, por ejemplo, queda así, en una sola línea:
+    - **La línea generada.** La de la aplicación de los tributos queda así, en una sola línea (salida del prototipo):
       `⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa: se
       rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común (DA 1ª.2.a LPAC
-      [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos; lo que lea de su norma
-      con kitlegal va marcado ⚠ NO VERIFICADO.`
+      [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos.`
   - **Lo regulado aparte se queda como hoy en lo que se dice tras la línea.** Tras su línea no se expone la norma que
-    rige el procedimiento —sus plazos, sus recursos— (ADR 0043, punto 7): la regla 9 de `plazos-y-territorio` y «Lo que
-    la ley regula aparte» de `administrativo.md` lo siguen diciendo. Por eso, en lo regulado aparte no hay
-    `⚠ NO VERIFICADO:`, y la cola de su línea no se cumple con nada. Que se pueda leer y marcar esa norma pide antes un
-    ADR que sustituya ese punto, y no es de este hito.
+    rige el procedimiento, ni sus plazos ni sus recursos (ADR 0043, punto 7). Lo siguen diciendo la regla 9 de
+    `plazos-y-territorio` y «Lo que la ley regula aparte» de `administrativo.md`. Por eso no hay `⚠ NO VERIFICADO:` en
+    lo regulado aparte, y la cola no lo contradice.
   - **El generador de la región `cobertura_por_materia`** (`internal/skills/regiones.go`), con este contrato:
     - **La plantilla** es la única línea de un bloque `text` del `SKILL.md` que empieza por `⚠ NO CUBIERTO: ` y lleva
       `<motivo>`. Una skill con otra cantidad no tiene plantilla.
@@ -88,15 +109,36 @@ depende_de: [H32, H41.4]
       - un marcador que la tabla no conoce.
     - **Una fila sin región** sigue dando su defecto en cada skill con plantilla, que ahora son `consulta-juridica` y
       `plazos-y-territorio`.
-    - **Probado.** Un prototipo de este contrato genera las nueve filas de `administrativo.md`.
+  - **La región de lo cubierto**, nueva, en el `SKILL.md` que lleva sus marcas, hoy solo `consulta-juridica`. Es una
+    región de `SKILL.md` como la de los paquetes de la base (`internal/skills/paquetes.go`), no una tabla de una
+    referencia:
+    - **Sus marcas**, cada una en su línea: `<!-- lo que cubre la base: lo genera make skills-sync -->` y
+      `<!-- fin de lo que cubre la base -->`.
+    - **Entre ellas**, una línea por fila de `cubierto`, en el orden del fichero: `- **<Capacidad>**: <alcance>`, con la
+      primera letra de la capacidad en mayúscula. Dos filas de una capacidad dan dos líneas, como en la vertical de
+      ensayo. `materia` y `normas` no se escriben: el alcance ya dice a qué se ciñe.
+    - **Con las cuatro filas de arriba**, la región repite palabra por palabra las cuatro viñetas de hoy. Cada viñeta
+      queda en una sola línea, y ninguna frase de hoy se pierde: «No consulta ningún buscador…» (ADR 0036), «solo los
+      del procedimiento administrativo común» y «Lo que la ley regula aparte… lo declara `plazos-y-territorio` con su
+      línea» van en sus alcances.
+    - **Sin `data/cobertura.yaml`, o con defectos**, la región queda como está, y el defecto es el del fichero, como en
+      la de los paquetes.
+    - **El presupuesto de líneas.** `partirElCuerpo` (`internal/app/skills_test.go`) no parte las líneas de esta región,
+      como ya no parte las de la tabla de comandos.
+  - **De dónde sale cada texto que comprueba `internal/evals`.** Ninguno vive en Go:
+    - la cola, de la plantilla del `SKILL.md` de la skill de la eval, con la función del generador que la busca;
+    - el motivo fijo, de `motivo_de_lo_no_declarado`;
+    - y la norma y el precepto de lo regulado aparte, de la eval, como hoy.
+
+    La sincronía comprueba que la prosa de cada skill con plantilla dice el motivo fijo tal cual, entre «»; si no, da su
+    defecto.
   - **`consulta-juridica`**:
     - **El párrafo de entrada** dice que la skill declara lo que no cubre con su línea, que es suya, y que las demás
       líneas `⚠` las lleva cada capacidad.
-    - **§3.** Las cuatro viñetas de las capacidades salen de `cubierto`, en una región que genera `make skills-sync`.
-      Las viñetas de los paquetes de materia, ya generadas, y la de lo que no tiene herramienta, escrita a mano, se
-      quedan.
+    - **§3.** Las cuatro viñetas de las capacidades pasan a ser la región de lo cubierto. Las viñetas de los paquetes
+      de materia, ya generadas, y la de lo que no tiene herramienta, escrita a mano, se quedan.
     - **§4** pasa a decir lo que no cubre con su línea.
-    - **El texto medido.** Del párrafo de entrada y de §4, el que dio el prototipo, palabra por palabra:
+    - **El texto medido.** Del párrafo de entrada y de §4, el del prototipo, palabra por palabra:
 
       > Esta skill no consulta nada: decide qué capacidad de kitlegal resuelve la pregunta, con qué skill, y qué cubre la
       > base, y declara lo que no cubre con su línea (paso 4). Lo que responde cada capacidad —su protocolo, sus reglas,
@@ -112,31 +154,42 @@ depende_de: [H32, H41.4]
       > asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los del procedimiento
       > común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
 
-      Detrás van las dos plantillas, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
-    - **El resto del cuerpo** y el frontmatter no cambian.
-  - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto que dio el prototipo, y nada más.
+      Detrás van la plantilla y la marca, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
+    - **El cuerpo** pasa de 3810 a 4212 caracteres. El resto del cuerpo y el frontmatter no cambian.
+  - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto del prototipo, y nada más.
     - **Paso 7.** Tras «**ni `plazos calcular`** ni ninguna fecha (regla 9)» se añade: «; si es de otra materia, igual,
       con el motivo de lo no declarado».
-    - **«Cómo se presenta un plazo».** Las dos formas de hoy y su párrafo pasan a ser las dos plantillas, detrás de este
-      párrafo:
+    - **«Cómo se presenta un plazo».** Las dos formas de hoy y su párrafo pasan a ser la plantilla, sola en su bloque
+      `text` y sin la marca, detrás de este párrafo:
 
       > Lo no cubierto (paso 7 y regla 9) va con esta forma: en un asunto de la cobertura del paquete, la línea de su
-      > fila, entera; en otra materia, con el motivo «no está en lo que kitlegal cubre», y lo que leas de su norma,
-      > detrás, con su marca:
+      > fila, entera; en otra materia, con el motivo «no está en lo que kitlegal cubre»:
 
     - **Regla 9.** Su última frase pasa a ser: «Un plazo, un órgano o una vía de otra materia tampoco: su línea, sin
       darlos de memoria ni pedir `plazos calcular`.».
     - **Lo que no cambia.** Las órdenes de leer (ADR 0052 y 0053), el frontmatter y lo demás del cuerpo.
-    - **El tope.** Con los tres cambios, el cuerpo tiene 10 940 caracteres, frente a 10 883 hoy y 11 000 de máximo (ADR
-      0046). Si la implementación necesita más, lo que sobra va a `administrativo.md` o a `calculo_de_plazos.md`, como
-      movimiento declarado en `TestSkillsDelProductoDesdeControl`. No se acorta otro texto del cuerpo.
-  - **`administrativo.md`.** Gana, en «Lo que la ley regula aparte», delante de la región, los dos motivos en un bloque
-    `text`, con una frase que diga que el primero es el de la fila con norma. Lo demás escrito a mano no cambia, y la
-    tabla se regenera.
-  - **El paquete de materia incluye lo cubierto.** Un paquete trae ahora también sus filas de `cubierto` y, si trae
-    región de cobertura, sus dos motivos (ADR 0044, punto 5; contracts/paquetes.md de H32). La vertical de ensayo de
-    `TestVerticalDeEnsayo` gana una fila de `cubierto` y los dos motivos en su `references/ensayo.md`. Es `testdata/`,
-    así que lo hace una tarea `[datos]`. Y sigue entrando sin un `.go` ni un cambio en un `SKILL.md` fuera de las marcas.
+    - **El tope.** Con los tres cambios, el cuerpo baja de 10 882 a 10 688 caracteres, frente a 11 000 de máximo (ADR
+      0046). Cada paquete nuevo suma una línea de unos 70: con la de la vertical de ensayo queda en 10 758, y caben
+      cuatro más. Si la implementación necesita más texto, no puede dejar menos de 140 caracteres libres. Lo que sobre
+      va a `administrativo.md` o a `calculo_de_plazos.md`, como movimiento declarado en
+      `TestSkillsDelProductoDesdeControl`. No se acorta otro texto del cuerpo.
+  - **`administrativo.md`.** Gana, en «Lo que la ley regula aparte», delante de la región, la frase «Los motivos de la
+    línea; el primero es el de la fila con norma:» y los dos motivos en un bloque `text`. Lo demás escrito a mano no
+    cambia, y la tabla se regenera.
+  - **El paquete de materia incluye lo cubierto** (ADR 0058, punto 4). Un paquete trae ahora también sus filas de
+    `cubierto` y, si trae región de cobertura, sus dos motivos.
+  - **La vertical de ensayo** de `TestVerticalDeEnsayo`, en una tarea `[datos]` porque es `testdata/`:
+    - gana en su `data/cobertura.yaml` una fila de `cubierto`, `{capacidad: plazos, alcance: los de ensayo del molde de
+      los paquetes., materia: ensayo, normas: [BOE-A-1900-1]}`, delante de `regulados_aparte`;
+    - y en su `references/ensayo.md` de `plazos-y-territorio`, la frase y los dos motivos de `administrativo.md`.
+
+    El test cambia en tres sitios:
+    - `anadirEntradas` copia ahora las dos listas, cada una bajo su clave;
+    - `partirPorLasMarcas` conoce las marcas de lo cubierto;
+    - `comprobarLoSincronizado` comprueba que `consulta-juridica` lista la fila de la vertical.
+
+    La vertical sigue entrando sin un `.go` ni un cambio en un `SKILL.md` fuera de las marcas (comprobado en el
+    prototipo).
   - **Evals.** Cuatro en `consulta-juridica`, una a cada lado de la frontera en dos materias sin paquete, las dos con
     norma en `data/normas.yaml` y sin `vertical`:
 
@@ -169,19 +222,30 @@ depende_de: [H32, H41.4]
     - **Los mensajes de hoy.** Los que da el esquema a una eval `{norma, precepto}` mal escrita siguen igual: con un
       `if`/`then` sobre `fuera_de_lo_declarado`, no con `oneOf`. Un prototipo con `oneOf` cambiaba los de
       `TestFormatoDePlazos`.
-    - **La respuesta declarada** es la que lleva una línea `⚠ NO CUBIERTO:` con las partes fijas de la plantilla:
-      - la cola, entera;
+    - **La respuesta declarada** es la que lleva una línea `⚠ NO CUBIERTO:`, encontrada por su etiqueta como hoy, que
+      tras normalizarla contiene, también normalizadas:
+      - la cola, sin su punto final;
       - y además, en lo regulado aparte, el identificador de la norma esperada y la cita de su precepto, como hoy;
-      - o, fuera de lo declarado, el motivo fijo.
+      - o, fuera de lo declarado, `: ` seguido del motivo fijo.
 
       La línea con `⚠ PLAZO:` no cuenta.
-    - **La tolerancia** es la de las etiquetas de hoy (`internal/evals/plazos.go`), aplicada a la línea entera: el
-      énfasis de Markdown, el selector de presentación de las marcas (`⚠️` vale como `⚠`), los blancos juntados y las
-      minúsculas. Nada más: una línea con otras palabras no cuenta.
-    - **El umbral** se calcula en toda skill con alguna eval de cobertura. Desde H33 lo tienen
-      `cobertura_sin_declarar:<modelo>:<modo>` de `consulta-juridica` (evals 01 y 04) y el de `plazos-y-territorio`
-      (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1), y su descripción en el informe dice la
-      cola.
+    - **La normalización**, sobre la línea y sobre lo que se busca en ella, y nada más:
+      - quita `**`, `__`, `*`, `_` y las comillas invertidas;
+      - quita el selector de presentación U+FE0F (`⚠️` vale como `⚠`);
+      - junta los blancos seguidos en un espacio;
+      - y pasa a minúsculas.
+    - **Lo que cuenta y lo que no.** La comprobación es de subcadena, así que vale lo que vaya antes o después en la
+      misma línea, también otro texto tras la cola o sin su punto final. No cuenta:
+      - la línea partida en dos;
+      - una palabra de la cola o del motivo cambiada, quitada o con otra tilde;
+      - y la cola sin el motivo, o el motivo sin la cola.
+    - **Los umbrales.** Se calculan en toda skill con alguna eval de cobertura:
+      - `cobertura_sin_declarar:<modelo>:<modo>` lo tienen `consulta-juridica` (evals 01 y 04) y `plazos-y-territorio`
+        (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1), y su descripción en el informe pasa a
+        decir la cola y el motivo, en lugar de «con la norma esperada».
+      - Con una eval de cobertura, `consulta-juridica` tiene umbrales de respuestas, y con ellos nace su
+        `sin_activar:<modelo>:<modo>`, con 0 de tope, sobre las respuestas de sus cuatro evals (ADR 0058, punto 6). Su
+        código no cambia: es el de las demás skills.
     - **`⚠ NO VERIFICADO:`** no entra en ningún umbral (ver «Fuera»).
   - **Una regla nueva del conjunto de `consulta-juridica`, «frontera en dos materias».** Hay al menos dos normas de
     `data/normas.yaml` sin `vertical` que tienen cada una:
@@ -192,27 +256,33 @@ depende_de: [H32, H41.4]
   - **El trabajo de evals.** `consulta-juridica` pasa de 2 a 4 evals y sigue a concurrencia 1. Su peor caso pasa de
     8485 s a 15 013 s, y cabe en el tope de 352 minutos (21 120 s). La concurrencia de las demás no cambia.
   - **Documentación.**
-    - `docs/SKILLS.md`: la plantilla, los motivos en la referencia del paquete y la tabla de defectos de la región, que
-      hoy dice «las dos formas».
+    - `docs/SKILLS.md`: la plantilla, los motivos en la referencia del paquete, la región de lo cubierto y la tabla de
+      defectos de la región, que hoy dice «las dos formas».
     - `docs/HISTORIAL.md`: la viñeta del hito.
     - `CHANGELOG.md`: «Cambiado».
     - `web/src/pages/como-se-evalua/index.astro`: la frase que anuncia H33 pasa a decir lo hecho.
+    - El ADR 0058 ya va con esta entrada; el run no escribe ninguno.
   - **Lo generado.** Las referencias y las regiones se regeneran con `make skills-sync`.
 - **Fuera**:
-  - cubrir algo que hoy no se cubre. Ninguna fila de `cubierto` más allá de las cuatro de arriba, y ninguna capacidad
-    nueva: destinatarios y documentos son H35 y H37;
+  - cubrir algo que hoy no se cubre, o dejar de cubrir algo. Ninguna fila de `cubierto` más allá de las cuatro de
+    arriba, ninguna capacidad nueva (destinatarios y documentos son H35 y H37) y ningún cambio de texto en sus alcances;
   - cambiar las filas de `regulados_aparte` (sus procedimientos, preceptos y normas) o quitarlas;
-  - exponer o marcar con `⚠ NO VERIFICADO:` la norma que rige lo regulado aparte (ADR 0043, punto 7);
+  - exponer o marcar con `⚠ NO VERIFICADO:` la norma que rige lo regulado aparte (ADR 0043, punto 7; ADR 0058, punto
+    2);
   - cambiar `normativa` o `jurisprudencia`, o una `description` de cualquier skill (ADR 0055 y 0057);
   - cambiar en `consulta-juridica`, `plazos-y-territorio` o `administrativo.md` algo distinto de lo que dice «Entrega»;
   - un umbral o una clase del juez para `⚠ NO VERIFICADO:`. Saber si una frase vino de una lectura pide leer su
     significado, y una clase del juez solo decide medida contra casos etiquetados (ADR 0037);
-  - un umbral para una línea `⚠ NO CUBIERTO:` de más en una eval de dentro de lo cubierto. Es un límite conocido: las
-    evals 02 y 03 solo comprueban comando y cita, así que una skill que declarase todo no cubierto las pasaría. Medirlo
-    con tope 0 sin una tasa de fondo arriesga el cierre por algo que nadie ha visto pasar (ADR 0038). Si el uso lo
-    muestra, va a la bitácora;
-  - cambiar el umbral de `cobertura_sin_declarar`, cómo cuentan los demás, o ningún otro umbral, límite ni tope (ADR
-    0038, punto 1);
+  - medir dos límites conocidos. Medirlos con 0 de tope sin una tasa de fondo arriesgaría el cierre por algo que nadie
+    ha visto pasar (ADR 0038). Si el uso los muestra, van a la bitácora:
+    - **una línea `⚠ NO CUBIERTO:` de más en una eval de dentro de lo cubierto.** Las evals 02 y 03 solo comprueban
+      comando y cita, así que una skill que declarase todo no cubierto las pasaría;
+    - **una fecha contada a mano en la prosa** de una respuesta que lleva la línea. `juzgarElPlazo`
+      (`internal/evals/plazos.go`) solo falla por la línea ausente o por una línea `⚠ PLAZO:`, y una fecha suelta no
+      cuenta (`TestUmbralesDePlazosYTerritorio/una-de-cobertura-con-una-fecha-suelta`). La eval 04 pasa con la línea y
+      «puedes reclamar hasta el 30 de noviembre» en la prosa. Lo que la impide es el texto de §4, no un umbral;
+  - cambiar el tope de `cobertura_sin_declarar` o de `sin_activar`, cómo cuentan los demás, o ningún otro umbral, límite
+    ni tope, más allá de los dos que nacen en `consulta-juridica` (ADR 0038, punto 1);
   - cambiar el job de evals más allá de lo que piden sus tests con las evals nuevas: ni `VERSION_DE_CLAUDE_CODE`, ni
     `MODELO_DE_EVALS`, ni lo que instala (ADR 0031);
   - que el binario o un servidor detecte la materia de una pregunta o lea una respuesta. La frontera la decide la skill
@@ -222,55 +292,66 @@ depende_de: [H32, H41.4]
   - `make ci` comprueba, sin red ni modelo:
     - **El esquema de la cobertura** rechaza, cada caso con su defecto:
       - una fila de `cubierto` sin `capacidad` o `alcance`, o con una capacidad fuera del vocabulario;
-      - una fila de materia sin normas, o normas sin materia.
+      - una fila de materia sin normas, o normas sin materia;
+      - un fichero sin `motivo_de_lo_no_declarado` o con él vacío.
 
-      La sincronía rechaza una norma que no está en `data/normas.yaml` o no tiene el `vertical` de su fila. Con
-      `regulados_aparte`, igual que hoy.
-    - **Las regiones.** La de `consulta-juridica` sale de `cubierto` con diff vacío. La tabla de `administrativo.md` sale
-      de la plantilla y de los motivos de la referencia, entera y en una línea por fila. Cada defecto del contrato del
-      generador tiene un mutante que lo da.
-    - **`formas-compartidas`**: las dos plantillas son la misma línea en `consulta-juridica` y en `plazos-y-territorio`.
-      `forma-de-cita` y `ordenes-de-ejemplo` siguen en verde con ellas (comprobado en el prototipo).
+      La sincronía rechaza una norma que no está en `data/normas.yaml` o no tiene el `vertical` de su fila, y una skill
+      con plantilla cuya prosa no dice el motivo fijo. Con `regulados_aparte`, igual que hoy.
+    - **Las regiones.** La de lo cubierto de `consulta-juridica` sale de `cubierto` con diff vacío. La tabla de
+      `administrativo.md` sale de la plantilla y de los motivos de la referencia, entera y en una línea por fila. Cada
+      defecto del contrato del generador tiene un mutante que lo da.
+    - **`formas-compartidas`**: la plantilla es la misma línea en `consulta-juridica` y en `plazos-y-territorio`.
+      `forma-de-cita` y `ordenes-de-ejemplo` siguen en verde (comprobado en el prototipo).
     - **`cobertura_sin_declarar`, con mutantes** de respuestas escritas como constantes en los tests. Cuentan como sin
       declarar, cada una con su motivo:
       - una respuesta sin la línea, en una eval fuera de lo declarado y en una de lo regulado aparte;
-      - la línea dicha con otras palabras o sin la cola;
+      - la línea con una palabra de la cola cambiada, o sin la cola;
+      - fuera de lo declarado, con otro motivo;
       - en lo regulado aparte, sin la norma o sin la cita;
+      - la línea partida en dos;
       - la línea con `⚠ PLAZO:`.
 
-      No cuentan la línea entera, ni la línea con negritas, con `⚠️` o en minúsculas.
+      No cuentan como sin declarar la línea entera, con negritas, con `⚠️`, en minúsculas, sin el punto final o con
+      texto detrás.
+    - **De dónde salen los textos**: un mutante con otra cola en la plantilla de la skill, y otro con otro motivo en
+      `data/cobertura.yaml`, cambian lo que la eval exige, sin tocar ningún `.go`.
     - **La regla «frontera en dos materias»**: el conjunto de la rama la cumple, y un mutante sin la eval de un lado da
       su defecto.
-    - **La vertical de ensayo** entra con su fila de `cubierto` y sus motivos.
-    - **El tope** del cuerpo de cada skill y el peor caso del trabajo de evals bajo su tope (`TestDefinicionDelJob`).
-  - **Tests de unidad que el prototipo puso en rojo**. Se actualizan con los datos y la forma nuevos, sin cambiar lo que
-    comprueban:
-    - en `internal/skills`, `TestLeerCobertura` y `TestRegiones`;
+    - **La vertical de ensayo** entra con su fila de `cubierto` y sus motivos, y su fila sale en la región de lo cubierto
+      de `consulta-juridica`.
+    - **El tope** del cuerpo de cada skill, también con la línea de la vertical de ensayo (`TestVerticalDeEnsayo`), y el
+      peor caso del trabajo de evals bajo su tope (`TestDefinicionDelJob`).
+  - **Tests de unidad que el prototipo puso en rojo**, con `go test ./...` y con `-tags=integration` en
+    `internal/{evals,skills,app,workflow}` y `data`. La lista es completa. Se actualizan con los datos y la forma nuevos;
+    lo que cambia lo que comprueban va dicho:
+    - en `internal/skills`:
+      - `TestLeerCobertura`, `TestRegiones` y `TestRegionDeLaCobertura`, que lleva la fila de los tributos byte a byte;
+      - `TestVerticalDeEnsayo`, con los tres cambios de la vertical de arriba;
+    - en `internal/app`, `TestSkillsDelRepositorio` (sus presupuestos de líneas de `consulta-juridica`): `partirElCuerpo`
+      no parte la región de lo cubierto;
     - en `internal/evals`:
-      - con la línea vieja escrita como constante: `TestJuzgarPlazos`, `TestJuzgarLasLecturasSinServir`,
-        `TestUmbralesDePlazosYTerritorio` y `TestUmbralesDeLasSkills`, y las de `informe_test.go`;
+      - con la línea vieja escrita como constante: `TestJuzgarPlazos`, `TestJuzgarLasLecturasSinServir` y
+        `TestUmbralesDePlazosYTerritorio`, y las de `informe_test.go`;
+      - `TestUmbralesDeLasSkills`, que cambia lo que comprueba. Su comentario fija que `consulta-juridica` va «sin
+        `sin_activar`». Pasa a llevar `sin_activar` y `cobertura_sin_declarar` del modelo que decide en cada modo, los
+        cuatro con `Decide: true` y delante de sus cuatro `fuera_de_lo_grabado` (ADR 0058, punto 6);
       - con los datos de las evals nuevas: `TestDefinicionDelJob` (el peor caso de `consulta-juridica`, de 8485 s a
         15 013 s), `TestMatrizDeLasPropuestas` (la matriz de cada ejecución) y `TestCacheDeLasSesiones` (el art. 59, que
         se graba);
-      - en `conjunto_test.go`, dos: «las dos evals de la entrega» de `consulta-juridica`, y el mutante de «no
-        activación de cada capacidad». La eval 03 también lleva `plazos-y-territorio` en `no_se_activan`, y el mutante
-        tiene que quitarlo de las dos.
+      - en `conjunto_test.go` (`TestEvalsDelRepositorio`), dos subtests: «formato», con las dos evals de la entrega de
+        `consulta-juridica`, y el mutante de «no activación de cada capacidad». La eval 03 también lleva
+        `plazos-y-territorio` en `no_se_activan`, y el mutante tiene que quitarlo de las dos.
 
       `TestFormatoDePlazos` no tiene que cambiar (ver el `if`/`then` de arriba).
   - **Las suites congeladas siguen en verde, con cuatro cambios declarados aquí.** Son las únicas que se pusieron en rojo
-    con `go test ./...`, en una copia fuera del repositorio. El prototipo llevaba lo que dice «Entrega»:
-    - el generador de este contrato;
-    - el formato de eval con `fuera_de_lo_declarado` y la comprobación de la cola;
-    - los cambios de las dos skills y de `administrativo.md`;
-    - `cubierto` en los datos;
-    - y las evals 01, 03 y 04.
-
-    No llevaba la región de §3 de `consulta-juridica` ni los motivos de la vertical de ensayo. Los cuatro cambios:
+    en el prototipo. Los dos guiones de H32 están en `internal/app/testdata/script/`: la tarea `[datos]` que cambia sus
+    ficheros es la misma que cambia la skill, para que `make ci` quede en verde en cada tarea. Sus copias de
+    `specs/030-h32-*/aceptacion/` son el registro de H32, no se ejecutan y no cambian.
     - **`h32-paquetes.txtar`** (de H32). Su `tributos.txt`, la fila de la aplicación de los tributos byte a byte, pasa a
-      ser la línea de arriba. Lo demás del guion no cambia: las 33 filas de `c991808` siguen con sus datos en la
-      referencia.
+      ser la línea de arriba en su fila de la tabla. Lo demás del guion no cambia: las 33 filas de `c991808` siguen con
+      sus datos en la referencia.
     - **`h32-capacidades.txtar`** (de H32). En su `formas.txt`, la fila `plazos-y-territorio|⚠ NO CUBIERTO:|2` pasa a
-      `|1`, y se añade `plazos-y-territorio|⚠ NO VERIFICADO:|1`. Hoy cae en `formas: 16 de 16`, y el total pasa a 17.
+      `|1`. El total sigue en `formas: 16 de 16`: no mira `consulta-juridica`, y `plazos-y-territorio` no lleva la marca.
     - **`TestSkillsDelProductoDesdeControl`**, el subtest de `plazos-y-territorio` (de H41, H41.1 y H41.4):
       - la declaración de `plazos-y-territorio` gana los tres cambios del cuerpo de arriba;
       - y gana un cambio en lo escrito a mano de `administrativo.md`, los motivos. Hoy la declaración solo admite cambios
@@ -282,22 +363,22 @@ depende_de: [H32, H41.4]
       Es lo que hizo H41.1 con el subtest de H41. Los de `normativa` y `jurisprudencia` no cambian.
     - **`TestConsultaJuridicaDesdeLaBase`** (de H41.4). Guarda la huella sha256 del `SKILL.md` de `consulta-juridica` en
       `ab951c22`, y no hay en el repositorio texto de esa base sobre el que declarar cambios.
-      - La huella pasa a ser la del `SKILL.md` que entrega H33, con sus regiones generadas reducidas a sus marcas, para
-        que regenerar la lista de lo cubierto no la mueva.
+      - La huella pasa a ser la del `SKILL.md` que entrega H33, con sus dos regiones generadas reducidas a sus marcas,
+        para que regenerar la lista de lo cubierto o la de los paquetes no la mueva.
       - El nombre de la base en los mensajes pasa a ser el de H33.
       - Sus mutantes siguen dando su defecto exacto.
 
       Lo que cambia del `SKILL.md` lo ve la persona en el diff de la propuesta.
 
   Las evals salen en verde en la medición del cierre, en los dos modos, con `cobertura_sin_declarar` en 0 en
-  `consulta-juridica` y en `plazos-y-territorio`. Esa es la primera medida de la plantilla: nadie la ha medido antes con
-  un modelo. Si caen, la reparación no toca la plantilla, el motivo, la cola, la tolerancia ni el umbral para que pase:
-  lo deja dicho para la persona.
+  `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. La primera medida es la de
+  «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola, la normalización ni
+  los umbrales para que pasen: lo deja dicho para la persona.
 - **Aceptación**:
   - **e2e** (`testscript`) sobre `kitlegal skills install`:
-    - el `SKILL.md` instalado de `consulta-juridica` y el de `plazos-y-territorio` llevan las dos plantillas, la misma
-      línea en los dos;
-    - la lista de lo cubierto de `consulta-juridica` nombra las cuatro filas de `cubierto`;
+    - el `SKILL.md` instalado de `consulta-juridica` y el de `plazos-y-territorio` llevan la plantilla, la misma línea
+      en los dos, y solo el de `consulta-juridica` lleva la marca;
+    - la región de lo cubierto de `consulta-juridica` tiene una línea por cada una de las cuatro filas de `cubierto`;
     - cada fila de `cobertura_por_materia` de `administrativo.md` es la plantilla con el motivo de su caso, con la de los
       tributos byte a byte;
     - y la plantilla no dice «procedimiento común» en ningún cuerpo: eso solo lo dicen los motivos de la referencia.
