@@ -50,6 +50,12 @@ var (
 		inicio: "<!-- paquetes de la base: lo genera make skills-sync -->",
 		fin:    "<!-- fin de los paquetes de la base -->",
 	}
+
+	regionDeLoCubierto = regionDeMarcas{
+		nombre: "lo que cubre la base",
+		inicio: "<!-- lo que cubre la base: lo genera make skills-sync -->",
+		fin:    "<!-- fin de lo que cubre la base -->",
+	}
 )
 
 // entreMarcas es lo que hay entre las dos marcas de una región de un SKILL.md:
@@ -131,6 +137,7 @@ func (e entreMarcas) sustituir(contenido, lineas []byte) []byte {
 // la referencia de cada uno (contracts/paquetes.md §1; data-model §3; research
 // D3 de H32).
 type paquetes struct {
+	cubierto []FilaCubierta
 	// nombres son los valores de vertical de data/normas.yaml, cada uno una vez y
 	// en orden.
 	nombres []string
@@ -184,6 +191,12 @@ func leerPaquetes(raiz string, skills []string) (paquetes, error) {
 		deLaSkill:     make(map[string][]string, len(skills)),
 		conReferencia: make(map[string][]string, len(nombres)),
 		defecto:       defecto,
+	}
+
+	if deCobertura, err := leerFichero(filepath.Join(raiz, carpetaDeLosDatos, ficheroDeLaCobertura)); err == nil {
+		if cobertura, err := LeerCobertura(deCobertura); err == nil {
+			leidos.cubierto = cobertura.Cubierto
+		}
 	}
 
 	arbol := os.DirFS(raiz)
@@ -255,7 +268,7 @@ func (p paquetes) regenerar(skill string, contenido []byte) ([]byte, []*DefectoD
 
 	conMarcas := false
 
-	for _, region := range []regionDeMarcas{regionDeLosPaquetes, regionDeLaBase} {
+	for _, region := range []regionDeMarcas{regionDeLosPaquetes, regionDeLaBase, regionDeLoCubierto} {
 		entre, lleva, err := region.buscar(contenido)
 
 		switch {
@@ -271,7 +284,7 @@ func (p paquetes) regenerar(skill string, contenido []byte) ([]byte, []*DefectoD
 		case lleva:
 			conMarcas = true
 
-			if p.defecto == nil {
+			if p.defecto == nil && (region != regionDeLoCubierto || p.cubierto != nil) {
 				contenido = entre.sustituir(contenido, p.lineas(region, skill))
 			}
 		}
@@ -290,6 +303,14 @@ func (p paquetes) regenerar(skill string, contenido []byte) ([]byte, []*DefectoD
 // alguna skill, con esas skills como código en línea, separadas por «, ».
 func (p paquetes) lineas(region regionDeMarcas, skill string) []byte {
 	var lineas bytes.Buffer
+
+	if region == regionDeLoCubierto {
+		for _, fila := range p.cubierto {
+			lineas.WriteString("- **" + strings.ToUpper(fila.Capacidad[:1]) + fila.Capacidad[1:] + "**: " + fila.Alcance + "\n")
+		}
+
+		return lineas.Bytes()
+	}
 
 	if region == regionDeLosPaquetes {
 		for _, paquete := range p.deLaSkill[skill] {

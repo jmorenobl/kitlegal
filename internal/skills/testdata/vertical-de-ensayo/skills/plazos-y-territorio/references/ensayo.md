@@ -6,5 +6,12 @@ tabla la genera `make skills-sync` desde `data/`, y en la vertical va vacía.
 
 ## Lo que la ley regula aparte
 
+Los motivos de la línea; el primero es el de la fila con norma:
+
+```text
+se rige por <norma> (<identificador de la norma>), no por el procedimiento común (<precepto> [<identificador>, bloque <id>])
+lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])
+```
+
 <!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y data/normas.yaml con make skills-sync, no editar -->
 <!-- fin de cobertura_por_materia -->

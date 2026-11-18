@@ -174,7 +174,7 @@ func (e Eval) esDePlazo() bool {
 // esDeCobertura dice si la eval es una eval de cobertura: si espera una
 // declaración de no cubierto, que su esquema no admite sin norma.
 func (e Eval) esDeCobertura() bool {
-	return e.NoCubierto.Norma != ""
+	return e.NoCubierto.Norma != "" || e.NoCubierto.FueraDeLoDeclarado
 }
 
 // esDeVigencia dice si la eval es una eval de vigencia: si espera la
@@ -214,6 +214,9 @@ type NoCubiertoEsperado struct {
 	// esa misma línea (contracts/forma-de-cita.md §4 de H32; FR-014). El
 	// esquema no admite una eval de cobertura sin él.
 	Precepto CitaEsperada `yaml:"precepto"`
+
+	// FueraDeLoDeclarado: prototipo de H33.
+	FueraDeLoDeclarado bool `yaml:"fuera_de_lo_declarado"`
 }
 
 // PlazoSinCalcularEsperado es lo que una eval de vigencia espera de la

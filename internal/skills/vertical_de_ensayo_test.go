@@ -134,6 +134,8 @@ func comprobarLoSincronizado(t *testing.T, raiz string) {
 	_, dentro := partirPorLasMarcas(leerFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md")))
 	assert.Contains(t, strings.Split(dentro, "\n"), strings.TrimSuffix(lineaDelEnsayoEnLaEntrada, "\n"),
 		"la skill de entrada lista la vertical")
+	assert.Contains(t, leerFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md")),
+		"- **Plazos**: los de ensayo del molde de los paquetes.\n", "prototipo: la fila de cubierto de la vertical")
 
 	referencia := leerFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "references", "ensayo.md"))
 	fila, hay := filaQueEmpiezaPor(referencia, filaDelEnsayo)
@@ -188,6 +190,7 @@ func instalarLaVertical(t *testing.T, raiz string) {
 
 	anadirEntradas(t, raiz, "normas.yaml", "normas")
 	anadirEntradas(t, raiz, "cobertura.yaml", "regulados_aparte")
+	anadirLoCubierto(t, raiz)
 
 	for _, carpeta := range []string{"skills", "evals"} {
 		require.NoError(t, os.CopyFS(filepath.Join(raiz, carpeta), os.DirFS(filepath.Join(verticalDeEnsayo, carpeta))))
@@ -361,11 +364,11 @@ func partirPorLasMarcas(contenido string) (fuera, dentro string) {
 
 	for linea := range strings.Lines(contenido) {
 		switch linea {
-		case inicioDeLosPaquetes, inicioDeLosPaquetesDeLaBase:
+		case inicioDeLosPaquetes, inicioDeLosPaquetesDeLaBase, "<!-- lo que cubre la base: lo genera make skills-sync -->\n":
 			enLaRegion = true
 
 			deFuera.WriteString(linea)
-		case finDeLosPaquetes, finDeLosPaquetesDeLaBase:
+		case finDeLosPaquetes, finDeLosPaquetesDeLaBase, "<!-- fin de lo que cubre la base -->\n":
 			enLaRegion = false
 
 			deFuera.WriteString(linea)
@@ -408,4 +411,17 @@ func huellasDe(t *testing.T, raiz string) map[string]string {
 	}
 
 	return huellas
+}
+
+// anadirLoCubierto: prototipo de H33.
+func anadirLoCubierto(t *testing.T, raiz string) {
+	t.Helper()
+
+	_, tras, _ := strings.Cut(leerFicheroDePrueba(t, filepath.Join(verticalDeEnsayo, "data", "cobertura.yaml")), "\ncubierto:\n")
+	filas, _, hay := strings.Cut(tras, "regulados_aparte:\n")
+	require.True(t, hay)
+
+	ruta := filepath.Join(raiz, "data", "cobertura.yaml")
+	copiado := leerFicheroDePrueba(t, ruta)
+	escribirFicheroDePrueba(t, ruta, strings.Replace(copiado, "\nregulados_aparte:\n", "\n"+filas+"regulados_aparte:\n", 1))
 }

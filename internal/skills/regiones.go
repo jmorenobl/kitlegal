@@ -59,7 +59,7 @@ const (
 // marcadoresDeLaCobertura son los marcadores que la tabla de contracts/paquetes.md
 // §3 conoce.
 var marcadoresDeLaCobertura = []string{
-	marcadorDelProcedimiento, marcadorDeLaNorma, marcadorDelIdentificadorDeLaNorma, marcadorDelPrecepto,
+	marcadorDelProcedimiento, "<asunto>", "<motivo>", marcadorDeLaNorma, marcadorDelIdentificadorDeLaNorma, marcadorDelPrecepto,
 	marcadorDelIdentificador, marcadorDelID,
 }
 
@@ -253,7 +253,8 @@ func generadorDeLaMarca(linea string) (string, bool) {
 // con sus marcadores (contracts/forma-de-cita.md §3 de H32): la de la fila que
 // trae la norma que la rige y la de la que no.
 type formasDeNoCubierto struct {
-	conNorma, sinNorma string
+	conNorma, sinNorma   string
+	motivoCon, motivoSin string
 }
 
 // formasDelCuerpo son las formas ⚠ NO CUBIERTO: del SKILL.md de contenido: las
@@ -261,25 +262,43 @@ type formasDeNoCubierto struct {
 // etiqueta; la que lleva <norma> y la que no. Si no son dos, una de cada, la
 // skill no las tiene.
 func formasDelCuerpo(contenido []byte) (formasDeNoCubierto, bool) {
-	var conNorma, sinNorma []string
+	var plantillas []string
+
+	for _, linea := range lineasDeLosBloquesText(contenido) {
+		linea = strings.TrimLeft(linea, " ")
+		if strings.HasPrefix(linea, etiquetaDeNoCubierto) && strings.Contains(linea, "<motivo>") {
+			plantillas = append(plantillas, linea)
+		}
+	}
+
+	if len(plantillas) != 1 {
+		return formasDeNoCubierto{}, false
+	}
+
+	return formasDeNoCubierto{conNorma: plantillas[0], sinNorma: plantillas[0]}, true
+}
+
+// motivosDeLaReferencia: prototipo.
+func motivosDeLaReferencia(contenido []byte) (conNorma, sinNorma string, ok bool) {
+	var con, sin []string
 
 	for _, linea := range lineasDeLosBloquesText(contenido) {
 		linea = strings.TrimLeft(linea, " ")
 
 		switch {
-		case !strings.HasPrefix(linea, etiquetaDeNoCubierto):
+		case strings.HasPrefix(linea, "⚠") || !strings.Contains(linea, marcadorDelPrecepto):
 		case strings.Contains(linea, marcadorDeLaNorma):
-			conNorma = append(conNorma, linea)
+			con = append(con, linea)
 		default:
-			sinNorma = append(sinNorma, linea)
+			sin = append(sin, linea)
 		}
 	}
 
-	if len(conNorma) != 1 || len(sinNorma) != 1 {
-		return formasDeNoCubierto{}, false
+	if len(con) != 1 || len(sin) != 1 {
+		return "", "", false
 	}
 
-	return formasDeNoCubierto{conNorma: conNorma[0], sinNorma: sinNorma[0]}, true
+	return con[0], sin[0], true
 }
 
 // lineasDeLosBloquesText son las líneas del contenido, sin su salto, que están
@@ -332,10 +351,13 @@ func (f formasDeNoCubierto) desconocidos() []string {
 // marcador sustituido por su dato, y el precepto en su forma legible. Lo
 // sustituido no se vuelve a mirar.
 func (f formasDeNoCubierto) linea(entrada ReguladoAparte, norma Norma) string {
-	forma, nombre, identificador := f.sinNorma, "", ""
+	forma, motivo, nombre, identificador := f.sinNorma, f.motivoSin, "", ""
 	if entrada.Norma != nil {
-		forma, nombre, identificador = f.conNorma, entrada.Norma.Nombre, entrada.Norma.Identificador
+		forma, motivo, nombre, identificador = f.conNorma, f.motivoCon, entrada.Norma.Nombre, entrada.Norma.Identificador
 	}
+
+	forma = strings.Replace(forma, "<motivo>", motivo, 1)
+	forma = strings.Replace(forma, "<asunto>", marcadorDelProcedimiento, 1)
 
 	return strings.NewReplacer(
 		marcadorDelProcedimiento, entrada.Procedimiento,
@@ -556,6 +578,7 @@ func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Ref
 		}
 
 		region := contextoDeLaRegion{paquete: strings.TrimSuffix(referencia.Fichero, extensionDeLasReferencias), formas: formas}
+		region.formas.motivoCon, region.formas.motivoSin, _ = motivosDeLaReferencia(referencia.Contenido)
 
 		encontradas, deLasMarcas := regionesDeLaReferencia(referencia.Contenido)
 		for _, texto := range deLasMarcas {

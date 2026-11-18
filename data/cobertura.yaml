@@ -6,6 +6,17 @@
 # la entrada cuyo precepto aplicable se cita de lo grabado; la que no la lleva no la toma de ningún otro sitio, y la
 # declaración nombra el precepto de la LPAC. TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo grabado del
 # BOE que cada bloque existe y que cada identificador es el que resuelve su búsqueda grabada.
+motivo_de_lo_no_declarado: no está en lo que kitlegal cubre
+cubierto:
+  - capacidad: normativa
+    alcance: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha.
+  - capacidad: jurisprudencia
+    alcance: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
+  - capacidad: plazos
+    alcance: solo los del procedimiento administrativo común y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
+    materia: administrativo
+  - capacidad: territorio
+    alcance: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
 regulados_aparte:
   - procedimiento: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.a"}

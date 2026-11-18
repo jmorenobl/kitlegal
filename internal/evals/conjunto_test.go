@@ -2277,7 +2277,7 @@ const (
 	// dos de la entrega, la de la póliza y la de una sola capacidad
 	// (contracts/evals.md §2 y §4 de H32; FR-035, FR-036).
 	evalsDeConsultaJuridica            = "../../evals/consulta-juridica"
-	evalsDeConsultaJuridicaDeLaEntrega = 2
+	evalsDeConsultaJuridicaDeLaEntrega = 4
 
 	// evalsDePlazosYTerritorioConLaDeVigencia son las de
 	// evals/plazos-y-territorio/: desde H9, las cuatro de antes, las tres de
@@ -2428,7 +2428,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		require.NoError(t, err)
 		assert.Nil(t, deConsultaJuridica.Juez, "%s no tiene juez", evalsDeConsultaJuridica)
 		assert.Len(t, deConsultaJuridica.Evals, evalsDeConsultaJuridicaDeLaEntrega,
-			"%s tiene las dos evals de la entrega", evalsDeConsultaJuridica)
+			"%s tiene las cuatro evals de la entrega (prototipo de H33)", evalsDeConsultaJuridica)
 	})
 
 	t.Run("conjunto", func(t *testing.T) {
@@ -2858,12 +2858,16 @@ func probarLaNoActivacionDeCadaCapacidadDelRepositorio(t *testing.T) {
 		capacidad = "plazos-y-territorio"
 	)
 
+	// Prototipo de H33: la eval 03 también nombra la capacidad; se quita de todas
+	// las de la entrada.
 	deLaEntrada := slices.Clone(carpetas[entrada])
-	posicion := slices.IndexFunc(deLaEntrada, func(eval Eval) bool { return eval.Fichero == consultaDeUnaSolaCapacidad })
-	require.NotEqual(t, -1, posicion, "%s está en %s", consultaDeUnaSolaCapacidad, evalsDeConsultaJuridica)
+	require.True(t, slices.ContainsFunc(deLaEntrada, func(eval Eval) bool { return eval.Fichero == consultaDeUnaSolaCapacidad }),
+		"%s está en %s", consultaDeUnaSolaCapacidad, evalsDeConsultaJuridica)
 
-	deLaEntrada[posicion].NoSeActivan = slices.DeleteFunc(slices.Clone(deLaEntrada[posicion].NoSeActivan),
-		func(nombre string) bool { return nombre == capacidad })
+	for posicion := range deLaEntrada {
+		deLaEntrada[posicion].NoSeActivan = slices.DeleteFunc(slices.Clone(deLaEntrada[posicion].NoSeActivan),
+			func(nombre string) bool { return nombre == capacidad })
+	}
 
 	for carpeta, evals := range carpetas {
 		if carpeta == entrada || carpeta == capacidad {

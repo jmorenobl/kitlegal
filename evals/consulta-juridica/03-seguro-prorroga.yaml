@@ -1,0 +1,12 @@
+# Prototipo de H33: dentro de lo cubierto, seguros.
+pregunta: "¿Qué dice la Ley de Contrato de Seguro sobre la prórroga de la póliza?"
+activa: true
+se_activan: [normativa]
+no_se_activan: [jurisprudencia, plazos-y-territorio]
+comandos:
+  - applet: boe
+    norma: BOE-A-1980-22501
+    bloque: aveintidos
+citas:
+  - norma: BOE-A-1980-22501
+    bloque: aveintidos

@@ -874,6 +874,10 @@ func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 				enLaTabla = true
 			case finDeLaTablaDeComandos:
 				enLaTabla = false
+			case "<!-- lo que cubre la base: lo genera make skills-sync -->":
+				enLaTabla = true
+			case "<!-- fin de lo que cubre la base -->":
+				enLaTabla = false
 			default:
 				for !enLaTabla && !strings.HasPrefix(linea, "<!--") && !strings.ContainsAny(linea, "[`~|") && faltan > 0 &&
 					strings.Contains(linea, " ") {

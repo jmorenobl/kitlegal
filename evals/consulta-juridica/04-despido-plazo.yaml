@@ -1,0 +1,17 @@
+# Prototipo de H33: fuera de lo cubierto, laboral.
+pregunta: "Me despidieron el 2 de noviembre de 2026. ¿Qué dice el Estatuto de los Trabajadores del plazo para reclamar y hasta qué día puedo hacerlo?"
+activa: true
+no_se_activan: [jurisprudencia]
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-11430
+    bloque: a59
+    fecha: "2026-11-02"
+citas:
+  - norma: BOE-A-2015-11430
+    bloque: a59
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  fuera_de_lo_declarado: true

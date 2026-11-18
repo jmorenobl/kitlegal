@@ -16,6 +16,8 @@ citas:
 prohibidos:
   - applet: plazos
     verbo: calcular
+no_cubierto:
+  fuera_de_lo_declarado: true
 lecturas:
   - norma: BOE-A-1980-22501
     bloque: acuarto

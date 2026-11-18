@@ -19,8 +19,21 @@ const rutaDelEsquemaDeCobertura = "../../schemas/cobertura.yaml.json"
 // región cobertura_por_materia de la referencia de cada paquete
 // (contracts/paquetes.md §3 de H32); el binario no lo lleva.
 type Cobertura struct {
+	// MotivoDeLoNoDeclarado: prototipo de H33.
+	MotivoDeLoNoDeclarado string `yaml:"motivo_de_lo_no_declarado"`
+
+	// Cubierto: prototipo de H33.
+	Cubierto []FilaCubierta `yaml:"cubierto"`
+
 	// ReguladosAparte son los procedimientos, al menos uno.
 	ReguladosAparte []ReguladoAparte `yaml:"regulados_aparte"`
+}
+
+// FilaCubierta: prototipo de H33.
+type FilaCubierta struct {
+	Capacidad string `yaml:"capacidad"`
+	Alcance   string `yaml:"alcance"`
+	Materia   string `yaml:"materia"`
 }
 
 // ReguladoAparte es un procedimiento que la ley regula aparte del

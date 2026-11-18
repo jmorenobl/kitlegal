@@ -128,8 +128,11 @@
     "no_cubierto": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["norma", "precepto"],
+      "if": { "required": ["fuera_de_lo_declarado"] },
+      "then": { "not": { "anyOf": [{ "required": ["norma"] }, { "required": ["precepto"] }] } },
+      "else": { "required": ["norma", "precepto"] },
       "properties": {
+        "fuera_de_lo_declarado": { "const": true },
         "norma": { "$ref": "#/$defs/norma" },
         "precepto": {
           "type": "object",
