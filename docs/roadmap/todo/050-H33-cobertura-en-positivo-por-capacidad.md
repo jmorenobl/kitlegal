@@ -40,13 +40,29 @@ depende_de: [H32, H41.4]
       `TestIdentificadoresDeLasNormas`), en verde con las cuatro evals. En `conjunto_test.go`, la cuenta de las evals de
       la entrega y el mutante de «no activación de cada capacidad», como dice «Controles».
   - **Cómo.** Tres despachos del job en modo completa sobre la rama, uno tras otro: `gh workflow run evals.yml --ref
-    <rama>`. Miden las cuatro skills enteras, sin reutilizar nada. Cada uno tarda unas cinco horas.
+    <rama>`. Miden las cuatro skills enteras, sin reutilizar nada. Cada uno tarda unos 35 minutos.
+  - **Qué despachos cuentan.** Tres seguidos, desde el último cambio del prototipo, sin elegir los mejores. Si uno no
+    cumple, se corrige y se vuelve a contar desde cero. El primero (ejecución 44355778768, sobre `f3b78ef4`) es
+    evidencia, no uno de los tres: tras él cambió la regla del motivo (ver «`no_cubierto` y
+    `cobertura_sin_declarar`»).
   - **Se lanza solo si**, en los tres despachos:
     - los cuatro trabajos salen en verde;
     - y `cobertura_sin_declarar` de `consulta-juridica` y de `plazos-y-territorio`, y `sin_activar` de
       `consulta-juridica`, salen en 0 en los dos modos.
 
-    Son 18, 27 y 36 respuestas por modo. Un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6).
+    Son 18, 27 y 36 respuestas por modo. Un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6): con 36
+    respuestas en tres despachos, `cobertura_sin_declarar` de `consulta-juridica` aún deja pasar una tasa de hasta el
+    8 %.
+  - **Un rojo fuera de esos tres umbrales**, en otra skill o en otra clase, no se decide relanzando hasta que salga
+    verde. Se compara con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que cae, `main`
+    frente al prototipo), que lanza la persona. Si el prototipo cae más, es un defecto de esta entrada y se corrige
+    antes de lanzar; si no, es la serie de `main`.
+  - **El orden de activación en las evals 17 y 08 de `normativa`.** En el primer despacho, la sesión que dio
+    `sin_activar` en la 17 activó `consulta-juridica` y `plazos-y-territorio`, y no `normativa`. En las sesiones que
+    activan `plazos-y-territorio` y `normativa`, la primera iba antes 0 de 8 veces sobre `main` (cierre de H41.4 y
+    v0.10.1) y 5 de 5 con el prototipo; en la 08, la misma ley con el artículo nombrado, no cambió. La causa probable
+    es el §4 nuevo, que nombra `plazos-y-territorio`, sin demostrar. En cada despacho se mira ese orden; si sigue
+    invertido, lo decide el sondeo de arriba, y el arreglo va en el texto de `consulta-juridica`.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
@@ -258,9 +274,12 @@ depende_de: [H32, H41.4]
       tras normalizarla contiene, también normalizadas:
       - la cola, sin su punto final;
       - y además, en lo regulado aparte, el identificador de la norma esperada y la cita de su precepto, como hoy;
-      - o, fuera de lo declarado, `: ` seguido del motivo fijo.
+      - o, fuera de lo declarado, el motivo fijo.
 
-      La línea con `⚠ PLAZO:` no cuenta.
+      La línea con `⚠ PLAZO:` no cuenta. El motivo no tiene que ir tras `: `: lo que une el asunto con el motivo es
+      texto libre del modelo, como el asunto, y el cero del ADR 0038 va en lo que el modelo copia, el motivo y la cola.
+      En el primer despacho del prototipo, una respuesta de la eval 04 con el motivo y la cola palabra por palabra
+      cayó por llevar el asunto unido con «porque es un plazo laboral y».
     - **El motivo del juicio** de una respuesta sin declarar es `declaración de no cubierto ausente: ` seguido de la
       norma esperada, como hoy, o, en una eval `fuera_de_lo_declarado`, de `fuera de lo declarado`.
     - **La normalización**, sobre la línea y sobre lo que se busca en ella, y nada más:
@@ -273,6 +292,8 @@ depende_de: [H32, H41.4]
       - la línea partida en dos;
       - una palabra de la cola o del motivo cambiada, quitada o con otra tilde;
       - y la cola sin el motivo, o el motivo sin la cola.
+
+      Sí cuenta cualquier unión entre el asunto y el motivo, con dos puntos, con una coma o con una frase.
     - **Los umbrales.** Se calculan en toda skill con alguna eval de cobertura:
       - `cobertura_sin_declarar:<modelo>:<modo>` lo tienen `consulta-juridica` (evals 01 y 04) y `plazos-y-territorio`
         (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1). Su descripción en el informe, una
