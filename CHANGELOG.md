@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-18
+
 ### Añadido
 
 - **Una variante de instalación con las descripciones cortas de las cuatro skills del producto, para medir si
