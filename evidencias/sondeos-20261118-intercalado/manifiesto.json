@@ -1,0 +1,28 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "1317f7e27536418f6870a2b284e001fc34c3882697b5a5c518fb1f3cdd720c58",
+      "bytes": 2157,
+      "fecha": "2026-11-18",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo intercalado antes de fusionar H41.4 (#274)"
+    },
+    {
+      "fichero": "tabla-control.md",
+      "sha256": "20f2a0a948c0bb9be5e7892fcbe4f7a120d5e71dee7b07b2e6e5a5721996a762",
+      "bytes": 46870,
+      "fecha": "2026-11-18",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las 8 tandas de la fila control"
+    },
+    {
+      "fichero": "tabla-producto.md",
+      "sha256": "c698d49c26a630034827c794edf51fe8f36a07cbfaa567102add1ef7ffe492d5",
+      "bytes": 47617,
+      "fecha": "2026-11-18",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las 8 tandas de la fila producto"
+    }
+  ]
+}

@@ -1,14 +1,10 @@
 ---
 name: normativa
 description: >-
-  Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia —procedimiento
-  administrativo, contratación pública, régimen local, tributos, transparencia, relaciones laborales, seguros…—: lee
-  con kitlegal índice y artículos y cita identificador y bloque. Se usa siempre que la respuesta dependa de lo que dice
-  una norma —qué dice un artículo, ley o real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una
-  materia— o de lo que decía en una fecha, la del acto o de los hechos, aunque el agente crea saberlo: sin leer la
-  norma con kitlegal no hay cita. Se activa antes de boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo
-  dice la skill. La norma, estatal o autonómica, se nombra por número y año (Ley 39/2015, Real Decreto Legislativo
-  2/2004), abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o identificador BOE-A-….
+  Consulta y cita normativa consolidada del BOE de cualquier materia: lee con kitlegal índice y artículos y cita
+  identificador y bloque. Se usa siempre que la respuesta dependa de lo que dice una norma —un artículo, ley o real
+  decreto, el plazo o requisito que fija— o de lo que decía en una fecha, aunque el agente crea saberlo. Se activa antes
+  de boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill.
 metadata:
   kitlegal-applets: boe graph
   kitlegal-referencias: normas

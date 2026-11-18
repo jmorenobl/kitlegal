@@ -1,14 +1,10 @@
 ---
 name: plazos-y-territorio
 description: >-
-  Calcula con kitlegal hasta qué día se puede recurrir una resolución de una administración, cuándo vence un plazo
-  administrativo o el de interposición del recurso contencioso-administrativo y cuándo se produce el silencio, con los
-  festivos de los municipios que cuentan, e identifica el territorio de un municipio —código INE, provincia,
-  comunidad, régimen, DIR3 del ayuntamiento y boletines—. Cuenta hoy los plazos del procedimiento administrativo común
-  (LPAC) y la interposición del contencioso, no los de otras materias, y dice qué asuntos regula aparte la ley
-  (tributos, multas de tráfico, Seguridad Social, extranjería). Se usa cuando se pregunta hasta cuándo se puede
-  recurrir o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o
-  boletines corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece.
+  Calcula con kitlegal hasta qué día se puede recurrir una resolución administrativa, cuándo vence un plazo del
+  procedimiento común (LPAC) o el del contencioso y cuándo hay silencio, con los festivos que cuentan, e identifica el
+  territorio de un municipio: INE, provincia, comunidad, DIR3 y boletines. No cuenta plazos de otras materias. Se usa al
+  preguntar cuándo vence un plazo o un recurso, o qué boletines tiene un municipio.
 metadata:
   kitlegal-applets: territorio plazos
   kitlegal-referencias: jerarquia_normativa

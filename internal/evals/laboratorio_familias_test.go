@@ -318,8 +318,9 @@ type movimientoALaReferencia struct {
 // base: la variante versionada de su familia, desde, o su control si está vacío;
 // los cambios de su cuerpo, en el orden del fichero, y sus movimientos
 // (data-model §5 de H41 y §3 de H41.1). Nada más cambia: ni el frontmatter, que
-// es el de su control, ni lo generado, ni ninguna otra referencia (FR-007,
-// FR-009 de H41; FR-005 de H41.1).
+// es el de su control con la description de la variante
+// producto-descripciones-cortas, ni lo generado, ni ninguna otra referencia
+// (FR-007, FR-009 de H41; FR-005 de H41.1; FR-005 de H41.4).
 type declaracionDelProducto struct {
 	desde       string
 	cambios     []cambioDelCuerpo
@@ -500,35 +501,47 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 }
 
 // TestSkillsDelProductoDesdeControl es el control de lo que cambian las skills
-// del producto respecto a su base (FR-006, FR-007, FR-009, FR-010 de H41 y
-// FR-005 de H41.1; SC-003 a SC-005 de H41; contracts/remisiones.md §8 de H41 y
-// contracts/controles.md §1 de H41.1; data-model §5 de H41 y §3 de H41.1): en
-// cada skill de una declaración, su base —la variante desde, o su control si no
-// la lleva— sin lo generado, con sus cambios y sus movimientos, es
-// skills/<skill> sin lo generado, ruta a ruta y byte a byte; cada texto movido
-// está en el SKILL.md de la base, no en el suyo, y sí al final de su
-// referencia; y el frontmatter es el de su control.
+// del producto respecto a su base (FR-006, FR-007, FR-009, FR-010 de H41,
+// FR-005 de H41.1 y FR-005 de H41.4; SC-003 a SC-005 de H41; contracts/remisiones.md
+// §8 de H41, contracts/controles.md §1 de H41.1 y §3 de H41.4; data-model §5 de
+// H41 y §3 de H41.1): en cada skill de una declaración, su base —la variante
+// desde, o su control si no la lleva— sin lo generado, con sus cambios y sus
+// movimientos, es skills/<skill> sin lo generado, ruta a ruta y byte a byte, con
+// el SKILL.md de las dos sin las líneas de la clave description; cada texto
+// movido está en el SKILL.md de la base, no en el suyo, y sí al final de su
+// referencia; y el frontmatter es el de su control con la description de la
+// variante producto-descripciones-cortas: fuera de las líneas de la clave, byte a
+// byte, y la description que lee skills.LeerFrontmatter, el texto de la variante,
+// que el test lee una vez (research D3 de H41.4).
 func TestSkillsDelProductoDesdeControl(t *testing.T) {
 	t.Parallel()
 
 	repositorio := os.DirFS(raizDelRepositorio)
 
+	// Los defectos de la variante no son de este test: los da
+	// TestDescripcionesCortas. Una skill sin texto en ella da aquí el rojo de su
+	// description, que no es la de la variante.
+	variante, _, err := descripcionesCortas(raizDelRepositorio)
+	require.NoError(t, err)
+
 	for _, skill := range slices.Sorted(maps.Keys(declaracionesDelProducto)) {
 		t.Run(skill, func(t *testing.T) {
 			t.Parallel()
 
-			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill])
+			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill], variante[skill])
 		})
 	}
 }
 
 // comprobarElProductoDesdeControl comprueba skills/<skill> contra su base y su
-// declaración, y su frontmatter contra el de su control
-// (contracts/remisiones.md §8.1 a §8.3 de H41; contracts/controles.md §1.2 de
-// H41.1). Los mensajes nombran la base: «su control», o el nombre de la
-// variante desde (research D5 de H41.1).
+// declaración, y su frontmatter contra el de su control con la description de la
+// variante, deLaVariante (contracts/remisiones.md §8.1 a §8.3 de H41;
+// contracts/controles.md §1.2 de H41.1 y §3.1 de H41.4): el SKILL.md de los dos,
+// sin las líneas de la clave description, y la description de skills/<skill>,
+// el texto de la variante. Los mensajes nombran la base: «su control», o el
+// nombre de la variante desde (research D5 de H41.1).
 func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill string,
-	declarada declaracionDelProducto,
+	declarada declaracionDelProducto, deLaVariante string,
 ) {
 	t.Helper()
 
@@ -560,7 +573,9 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 		obtenidos, err := sinLoGenerado(delProducto)
 		require.NoError(t, err, "%s", producto)
 
-		compararLosFicheros(t, esperados, obtenidos, producto, "lo que dan "+laBase+" y su declaración")
+		compararLosFicheros(t, sinLasLineasDeLaDescripcion(esperados), sinLasLineasDeLaDescripcion(obtenidos), producto,
+			"lo que dan "+laBase+" y su declaración")
+		exigirLaDescripcionDeLaVariante(t, delProducto, skill, deLaVariante)
 	})
 
 	t.Run("movimientos", func(t *testing.T) {
@@ -593,9 +608,45 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 		deLaSkillDelProducto, _, err := frontmatterYCuerpo(string(delProducto[ficheroDeLaSkill]))
 		require.NoError(t, err, "%s/%s", producto, ficheroDeLaSkill)
 
-		assert.Equal(t, deLaSkillDeControl, deLaSkillDelProducto, "el frontmatter de %s/%s es el de su control",
-			producto, ficheroDeLaSkill)
+		_, deControlSinLaDescripcion := descripcionYCuerpo(deLaSkillDeControl)
+		_, delProductoSinLaDescripcion := descripcionYCuerpo(deLaSkillDelProducto)
+
+		assert.Equal(t, deControlSinLaDescripcion, delProductoSinLaDescripcion,
+			"el frontmatter de %s/%s es el de su control", producto, ficheroDeLaSkill)
+		exigirLaDescripcionDeLaVariante(t, delProducto, skill, deLaVariante)
 	})
+}
+
+// sinLasLineasDeLaDescripcion son los ficheros de una skill con su SKILL.md sin
+// las líneas de la clave description, las que descripcionYCuerpo no da como
+// cuerpo: las que cambian con la variante producto-descripciones-cortas, cuyo
+// texto comprueba aparte exigirLaDescripcionDeLaVariante (FR-005 de H41.4).
+// Los demás ficheros, y la falta del SKILL.md, quedan como están.
+func sinLasLineasDeLaDescripcion(ficheros map[string][]byte) map[string][]byte {
+	sinLaDescripcion := maps.Clone(ficheros)
+
+	if contenido, laTiene := ficheros[ficheroDeLaSkill]; laTiene {
+		_, cuerpo := descripcionYCuerpo(string(contenido))
+		sinLaDescripcion[ficheroDeLaSkill] = []byte(cuerpo)
+	}
+
+	return sinLaDescripcion
+}
+
+// exigirLaDescripcionDeLaVariante exige que la description que lee
+// skills.LeerFrontmatter del SKILL.md de skills/<skill>, entre sus ficheros
+// delProducto, sea deLaVariante, el texto de la skill en la variante
+// producto-descripciones-cortas (FR-005 de H41.4; contracts/controles.md §3.1).
+func exigirLaDescripcionDeLaVariante(t *testing.T, delProducto map[string][]byte, skill, deLaVariante string) {
+	t.Helper()
+
+	ruta := path.Join(directorioDeLasSkills, skill, ficheroDeLaSkill)
+
+	frontmatter, err := skills.LeerFrontmatter(delProducto[ficheroDeLaSkill])
+	require.NoError(t, err, "%s", ruta)
+
+	assert.Equal(t, deLaVariante, frontmatter.Description, "la description de %s es la de %s/%s%s", ruta,
+		carpetaDeLasDescripcionesCortas, skill, extensionDeLaDescripcionCorta)
 }
 
 // directorioDelControl es el directorio de la skill de la variante de control de

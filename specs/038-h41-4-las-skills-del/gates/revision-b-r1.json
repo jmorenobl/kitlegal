@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:102-104 («ci: todos los controles en verde», exit=0). Reproducido en un clon de la cabeza beb5cef0 fuera del repositorio (/tmp/claude/juezb-h414), por objetivos de `make ci`: fmt-check y lint (0 issues); test (-race -shuffle=on, ningún FAIL, cobertura total 96,2 %); test-integration, schema-check, skills-check y mod-tidy-check (32 líneas ok, ningún FAIL); test-tiempos (ok, 30,3 s); vuln (No vulnerabilities found); goreleaser-check (1 configuration file(s) validated); secrets (no leaks found); mod-verify (all modules verified). Árbol: `git status --porcelain` solo da lo que el workflow escribe en gates/ para esta revisión (modelos.jsonl, revision-cambios.md, revision-ciclo.json) y los puntos de montaje del sandbox; ningún fichero del producto."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El código nuevo son solo tests: internal/evals/descripciones_del_producto_test.go (nuevo) y el cambio de FR-005 en internal/evals/laboratorio_familias_test.go:516-650. Suite congelada: sha256 b2d32224de99… de specs/038-h41-4-las-skills-del/aceptacion/skills-instaladas.txtar y de internal/app/testdata/script/h41-4-skills-instaladas.txtar, el de gates/aceptacion-congelada.json; `git diff 39859600 HEAD -- …/aceptacion/` vacío; ningún otro guion ni suite de H39 a H41.3 en el diff. Mutantes aplicados al árbol del clon (no los subtests): (1) la description de normativa sin su punto final → rojo en TestDescripcionesDelProducto/la_rama («skills/normativa/SKILL.md: la description no es la de laboratorio/producto-descripciones-cortas/normativa.txt»), en TestSkillsDelProductoDesdeControl/normativa/{desde_control,frontmatter} y en TestEntregaDelHito (h41-4-skills-instaladas.txtar:30: no match); (2) «## Método» → «## Métodos» en consulta-juridica → TestConsultaJuridicaDesdeLaBase/la_rama («…SKILL.md difiere de la base de la rama (ab951c22)»); (3) plazos-y-territorio en un bloque >- de una línea → «…la description no está en un bloque >- de más de una línea»; (4) «## Protocolo» → «## Protocolos» en normativa, el orden de kitlegal-applets en plazos-y-territorio, un carácter en jurisprudencia/references/consulta_preparada.md y references/otra.md de más → TestSkillsDelProductoDesdeControl en rojo, cada uno con su ruta; (5) skills/ de la base ab951c22 → el guion en rojo por aserción en :22 y TestDescripcionesDelProducto/la_rama en rojo, con TestConsultaJuridicaDesdeLaBase en verde. La huella bd089909…a205a de descripciones_del_producto_test.go:366 sale igual con awk y sha256sum sobre `git show ab951c22:skills/consulta-juridica/SKILL.md` y con un programa propio que no usa lineasDelSkill."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`git diff --name-status main...HEAD -- '*.go'` da solo los dos _test.go de internal/evals: ningún fichero de producción, import ni paquete nuevo. En las líneas añadidas no hay net/http, os.Exit, fmt.Print ni panic (grep sobre el diff, vacío). `make lint` (depguard, forbidigo) da 0 issues y `make test`, con los tests de arquitectura de ./..., sale en verde en el clon."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia: ni un .go de producción ni schemas/ en el diff. Medido con el binario compilado de la cabeza: `kitlegal skills install --dir … --json` sale con 0 y el sobre {ok, fuente: kitlegal.skills, url, fecha_consulta, hash, data}, 785 bytes. `make schema-check` (TestEsquemasPublicados) en verde en el clon, y el guion congelado ejecuta esa orden real (h41-4-skills-instaladas.txtar:19)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin código de producción: ningún error, código de salida ni ruta de usuario nueva. Los contratos del hito no prometen códigos; el único que se usa es el 0 de `skills install` del guion (h41-4-skills-instaladas.txtar:19), que ocurre. Lo manipulado a mano (un SKILL.md sin frontmatter, una variante ilegible) es el error de la comprobación, sin casos propios (descripciones_del_producto_test.go:48-58 y :99-107), como pide el spec («Edge Cases»; ADR 0023)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:62-67, en «## [Unreleased]» (:13) → «### Cambiado» (:43): nombra las cuatro skills, la variante producto-descripciones-cortas, 1690 frente a 3313 (medidos: 417+420+426+427 y 705+842+887+879), que nada más cambia y el porqué (ADR 0055); 6 líneas y 632 bytes, como dice plan.md. Sin ADR nuevo (lo decide el 0055) ni docs/SOURCES.md (ninguna fuente). CONTRIBUTING.md:1864-1868 y :2014-2023 dan los mensajes que da el código (descripciones_del_producto_test.go:82-83 y :115-130). Artefactos contra el producto: contracts/skills.md §2 y §3 (medido: 431, 424, 438 y 435 bytes; 463 en el fichero de normativa; línea más larga de 120), contracts/controles.md §1.3 y §2.3 (9 y 6 casos, los del test), contracts/aceptacion.md §2 (el sha256 del bloque es el del guion), quickstart §3 (16 inserciones y 31 borrados) y research V16 (tabla de H41.3: 99 412 bytes, 653 líneas). docs/ROADMAP.md:185: H33 es el primero de docs/roadmap/todo/. Ver las observaciones 1 y 5."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El diff no añade ninguna petición, adaptador ni dato externo: ningún .go de producción y nada en data/, testdata/, evidencias/ ni docs/SOURCES.md (`git diff --name-status` sobre esas rutas solo da el guion que activa el workflow). Ningún secreto (gitleaks: no leaks found en el clon) ni dato de una persona. La description de jurisprudencia sigue diciendo que kitlegal no consulta el CENDOJ (skills/jurisprudencia/SKILL.md:6-7)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de los .go no hay nolint, t.Skip, TODO ni un error descartado: los `_` son el segundo valor de descripcionesCortas (los defectos de la variante, que da TestDescripcionesCortas; una skill sin texto da su rojo aquí, caso «una quinta skill sin texto») y el de descripcionYCuerpo, que no son errores. Ningún fixture ni golden en el diff (testdata/ y schemas/ sin tocar). El único test congelado que cambia es el que declara FR-005 y sigue discriminando (mutantes 1 y 4 del criterio b). gates/cuarentena.json, vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff del producto son las líneas de la clave de los cuatro SKILL.md (16 inserciones y 31 borrados; fuera de la clave, idénticos a ab951c22: la huella del resto coincide en los cuatro, medido), los dos ficheros de test, el guion y la viñeta. CONTRIBUTING.md y docs/ROADMAP.md los toca el barrido del workflow (beb5cef0) y el paso a done/, hito_a_done (b13886af). `git diff --stat main...HEAD` vacío en laboratorio/, evals/, web/, mcp/, internal/empaquetado/, .github/, Makefile, .golangci.yml, scripts/, cmd/, data/, go.mod y go.sum. Los tres supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: retirar el control de CHANGELOG que el hito no pide, alinear FR-005 con FR-003 y FR-009, y leer «sin ningún fichero» como «skills-sync no cambia nada» (reproducido: `make skills-sync` no cambia nada en el clon)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido con el binario de la cabeza, compilado en el clon y ejecutado desde un test de un solo uso: las cuatro descripciones instaladas miden 431, 424, 438 y 435 bytes (1728; 1690 caracteres), frente a 3313 caracteres en la base. Las lee el host una vez por sesión, en el listado de skills; son texto fijo empotrado, que no depende de la caché ni del grafo, así que con meses de uso diario (cientos de normas, miles de bloques) miden lo mismo. `skills install --json`: 785 bytes, una entrada por skill. Invocaciones por pregunta: las de la base, porque el cuerpo y las referencias de las cuatro skills son los de ab951c22 (misma huella del SKILL.md sin la clave en las cuatro; `git diff --name-status` solo da los cuatro SKILL.md). Ninguna señal nueva, nada que caduque ni que se repita por consulta. Los rojos de los controles: una línea por defecto, de unos 62 a 131 bytes, solo cuando `make ci` falla."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza: el texto y la skill sin texto → FR-001 (descripciones_del_producto_test.go:113-120); la forma → FR-002 (:122-125 y :140-152); la longitud y la suma sobre skills/ → FR-004, que pide medirlas «sobre skills/» (:127-131 y :81-84); las huellas y el primer fichero que falta, sobra o difiere → FR-003 (:365-413); los ocho mutantes y los cinco de consulta-juridica → US1.2, FR-002, FR-004, el caso límite de la quinta skill y US2.3; sinLasLineasDeLaDescripcion y exigirLaDescripcionDeLaVariante en los dos subtests → FR-005, que dice «en los dos» (laboratorio_familias_test.go:578, :616, :625-650); los ocho grep del guion → FR-001 y FR-002. Ningún paquete, tipo exportado, opción, reintento ni código de producción. Ver las observaciones 3 y 4."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md tiene su control, visto en rojo en el clon con la medida pasada del umbral: FR-001 (un carácter de menos) y FR-002 (bloque de una línea), en TestDescripcionesDelProducto/la_rama; FR-004, con los umbrales bajados a 426 y 1689 en internal/evals/laboratorio_descripciones.go:32-33 → «skills/plazos-y-territorio/SKILL.md: la description tiene 427 caracteres (máximo 426)» y «skills: las descripciones suman 1690 caracteres (máximo 1689)»; una etiqueta XML en la description de normativa → TestSkillsDelRepositorio («normativa: SKILL.md: description con la etiqueta XML «<b>»»); FR-003 y FR-005, los mutantes 2 y 4 del criterio b; FR-006: un carácter en laboratorio/producto-descripciones-cortas/jurisprudencia.txt → TestDescripcionesCortas en rojo, y uno en laboratorio/normativa/normativa-control/skills/normativa/references/como_se_cita.md → TestVariantesDeControl («…difiere: su huella es…»); FR-007: `make skills-sync` no cambia ningún fichero; el guion, en rojo con el mutante 1. Cierre (FR-010, SC-005): los nombres de las filas `evals:` son los que publican con decide: true los informes de specs/037-h41-3-por-que-normativa/gates/evals/*.json (11, 11 y 12, leídos con jq); el del juez de las descripciones lleva Decide: true (internal/evals/umbrales.go:481-488) y se juzga en cada skill de la cabeza si alguna description cambia (internal/evals/decision.go:84-102), y una description cambiada elige todas las evals (internal/evals/eleccion.go:243-244): configuración que el hito no toca. El límite de 900 lo lee ValidarFrontmatter, que no he mutado."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "CONTRIBUTING.md:2015-2016 dice que `INSTALACION=producto-descripciones-cortas` «instala lo mismo que `INSTALACION=producto`», con las palabras del fichero del hito (línea 34); el spec lo precisa como «las mismas descripciones» (FR-006). Medido en el clon con skillConLaDescripcion: la description leída y todo lo que no es la clave son iguales en las cuatro skills, pero las líneas de la clave no, un escalar entrecomillado de una línea (447, 440, 454 y 451 bytes) frente al bloque >- de cinco (456, 449, 463 y 460). No llega a motivo: es la serialización de la clave en la copia temporal del arnés, sin resultado distinto para la persona ni para la skill salvo que falle S1, que el plan ya pasa a la persona y mide el sondeo. Si se quiere exacto, «instala las mismas descripciones».",
+    "FR-002, «en su sitio de hoy, detrás de name:»: con el bloque de normativa movido detrás de metadata, TestDescripcionesDelProducto y TestSkillsDelProductoDesdeControl siguen en verde; lo detecta solo el guion congelado (TestEntregaDelHito, h41-4-skills-instaladas.txtar:30), que corre en `make ci`. Cubierto.",
+    "Los límites se prueban en 451 y en 1701, no en 450 ni en 1700 exactos: un mutante `>=` en descripciones_del_producto_test.go:81 y :128 sobreviviría. Sin vía real hoy (427 la mayor y 1690 la suma).",
+    "descripciones_del_producto_test.go:66-68 salta lo que no es un directorio en skills/, donde hoy solo hay cuatro directorios: es la regla «skill = subdirectorio» de descripcionesCortas (laboratorio_descripciones.go:80-82), sin caso que la ejerza; y textoDeLaSkillEnLaVariante (:504-512) no está en «Trazabilidad» de plan.md, aunque sirve a los dos mutantes de FR-002.",
+    "CHANGELOG.md:66-67 y FR-007 dicen que el `.mcpb` lleva las skills: las lleva empotradas en sus binarios; quien copia skills/ como ficheros es solo el plugin (internal/empaquetado/piezas.go:354). La frase viene del fichero del hito.",
+    "Las evals de consulta-juridica no publican ningún umbral con decide: true (specs/037-h41-3-por-que-normativa/gates/evals/consulta-juridica.json: solo fuera_de_lo_grabado, que no decide): su veredicto lo dan sus series (ADR 0016), configuración que el hito no toca.",
+    "No medido en esta sesión: la elección y la decisión del job sobre la propuesta real (leen la plataforma con gh; leídas en el código), las evals del cierre, el juicio de la tercera persona y S1, que el host lea el bloque >- como el escalar de una línea que instaló el sondeo de H41.3. SC-006 lo mide la persona con el sondeo."
+  ]
+}

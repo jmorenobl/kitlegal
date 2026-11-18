@@ -1864,7 +1864,8 @@ SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de cada familia tien
 y ninguno `<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl`
 (`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41, y
 `skills/plazos-y-territorio`, la que da sobre `plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara
-H41.1, con el frontmatter de su control), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
+H41.1, con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
+`laboratorio/producto-descripciones-cortas/`), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
 declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFamilias`, `TestTablaDeLasFamilias`,
 `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias: ninguna variante versionada
 se empotra en el binario, la pone `kitlegal skills install` ni la mide el job de evals. El tope de 11 000 caracteres
@@ -2009,6 +2010,17 @@ delante —por cada skill, en orden de nombre, `falta la descripción de <skill>
 `<skill>.txt` de una skill, `«<entrada>» no es la descripción de ninguna skill de skills/`; y al final
 `las descripciones suman <n> caracteres (máximo 1700)`—: un hito que añade una skill a `skills/` sin su descripción
 en la variante deja `make ci` en rojo, y esos mismos defectos son los errores de `INSTALACION` de arriba.
+
+Desde H41.4 (ADR 0055), la `description` de cada skill de `skills/` es, byte a byte, su texto de la variante, en un
+bloque `>-` de más de una línea, así que `INSTALACION=producto-descripciones-cortas` instala lo mismo que
+`INSTALACION=producto`; la variante sigue en `laboratorio/` sin cambios. `make ci` lo comprueba sin modelo con
+`TestDescripcionesDelProducto` —por skill, `skills/<skill>/SKILL.md: la description no es la de
+laboratorio/producto-descripciones-cortas/<skill>.txt` o `skills/<skill>: no tiene descripción en
+laboratorio/producto-descripciones-cortas`, `skills/<skill>/SKILL.md: la description no está en un bloque >- de más de
+una línea` y `skills/<skill>/SKILL.md: la description tiene <n> caracteres (máximo 450)`; y al final
+`skills: las descripciones suman <n> caracteres (máximo 1700)`— y con `TestConsultaJuridicaDesdeLaBase`, que compara
+`skills/consulta-juridica/`, fuera de las líneas de la clave `description`, con las huellas SHA-256 de su contenido en
+la base de la rama de H41.4 y falla con la primera ruta que falta, sobra o difiere.
 
 Con `INSTALACION=producto-descripciones-cortas`, que solo vale con `VARIANTES=normativa-producto`, el arnés hace lo de
 `INSTALACION=producto` y, en la copia de cada `SKILL.md` del temporal, pone en el frontmatter la `description` de la

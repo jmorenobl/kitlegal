@@ -59,6 +59,12 @@ sustituyen a este fichero.
   sesiones del usuario, y les dejaba escribir en él. Y en Linux las órdenes corren con bash (`CLAUDE_CODE_SHELL`): con
   zsh, el `exec 3<&- || exit 126` que Claude Code antepone a cada orden sale con 126 si la última sustitución de órdenes
   de `~/.zshenv` falla dentro del sandbox, y ninguna orden llegaba a ejecutarse.
+- **Las cuatro skills del producto llevan las descripciones cortas medidas en H41.3** (ADR 0055): la `description` de
+  `consulta-juridica`, `jurisprudencia`, `normativa` y `plazos-y-territorio` pasa a ser la de la variante
+  `producto-descripciones-cortas` del laboratorio, 1690 caracteres entre las cuatro en lugar de 3313, para quitar la
+  caída de la eval 04 de `normativa` en modo herramienta, en la que la sesión respondía sin activar ninguna skill.
+  Nada más de las skills cambia: ni sus cuerpos, ni sus referencias, ni sus nombres. El plugin, el `.mcpb` y el
+  `llms.txt` de la web las llevan con la release siguiente.
 
 ## [0.10.0] - 2026-11-16
 
