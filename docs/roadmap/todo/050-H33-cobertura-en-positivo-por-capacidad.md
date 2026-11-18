@@ -57,12 +57,16 @@ depende_de: [H32, H41.4]
     verde. Se compara con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que cae, `main`
     frente al prototipo), que lanza la persona. Si el prototipo cae más, es un defecto de esta entrada y se corrige
     antes de lanzar; si no, es la serie de `main`.
-  - **El orden de activación en las evals 17 y 08 de `normativa`.** En el primer despacho, la sesión que dio
-    `sin_activar` en la 17 activó `consulta-juridica` y `plazos-y-territorio`, y no `normativa`. En las sesiones que
-    activan `plazos-y-territorio` y `normativa`, la primera iba antes 0 de 8 veces sobre `main` (cierre de H41.4 y
-    v0.10.1) y 5 de 5 con el prototipo; en la 08, la misma ley con el artículo nombrado, no cambió. La causa probable
-    es el §4 nuevo, que nombra `plazos-y-territorio`, sin demostrar. En cada despacho se mira ese orden; si sigue
-    invertido, lo decide el sondeo de arriba, y el arreglo va en el texto de `consulta-juridica`.
+  - **El orden de activación en la eval 17 de `normativa`.** En el primer despacho, la sesión que dio `sin_activar` en
+    la 17 activó `consulta-juridica` y `plazos-y-territorio`, y no `normativa`. Un sondeo intercalado (2026-11-18, eval
+    17, los dos modos, 160 sesiones por fila en ocho tandas alternas) lo confirmó: con `main`, `plazos-y-territorio`
+    antes que `normativa` 0 de 160 y ninguna sin `normativa`; con la frase anterior del §4, que decía «lleva la línea de
+    su fila, la de `plazos-y-territorio`», 92 de 160 y 35 sin `normativa` (Fisher unilateral, p ≈ 10⁻³⁶). Esas sesiones
+    leen `references/administrativo.md`, donde está la fila del plazo de acceso, y piden `kitlegal boe articulo` sin la
+    skill de normativa. La frase de hoy no nombra ninguna skill. Antes de los despachos, el mismo sondeo con el
+    prototipo corregido frente a `main`: vale si `plazos-y-territorio` antes que `normativa` no sale más que en `main`
+    (Fisher unilateral, p ≥ 0,025) y ninguna sesión se queda sin `normativa`. Si no, se quitan también la frase nueva
+    de la introducción y «lo que cubre» de la viñeta de los paquetes, y se mide otra vez.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
@@ -189,12 +193,12 @@ depende_de: [H32, H41.4]
       >
       > Toda parte de la pregunta que no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es
       > la del procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el
-      > motivo «no está en lo que kitlegal cubre». Lo que la ley regula aparte del procedimiento común no: lleva la
-      > línea de su fila, la de `plazos-y-territorio`, y tras ella no leas su norma. Lo que leas con la skill de
-      > normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está
-      > verificado es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de
-      > otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia:
-      > ese plazo no es el suyo.
+      > motivo «no está en lo que kitlegal cubre». Esta línea no es para lo que la ley regula aparte del procedimiento
+      > común: eso lo declara, con su propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma.
+      > Lo que leas con la skill de normativa para completarla va detrás, citado, con su marca: el texto citado es el de
+      > la norma; lo que no está verificado es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni
+      > vía, ni apliques los de otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un
+      > asunto de otra materia: ese plazo no es el suyo.
 
       La segunda frase es la que impide que una pregunta de lo regulado aparte, que también es «el plazo de una materia
       que no es la del procedimiento común», reciba el motivo fijo y la lectura marcada de su norma (ADR 0043, punto 7).
@@ -203,7 +207,7 @@ depende_de: [H32, H41.4]
       Detrás van la plantilla y la marca, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
     - **La viñeta «Paquetes de materia»** de §3 dice ahora «—sus normas, una referencia en cada skill que la necesita,
       lo que cubre y lo que la ley regula aparte—» (ADR 0058, punto 4).
-    - **El cuerpo** pasa de 3810 a 4368 caracteres. El resto del cuerpo y el frontmatter no cambian.
+    - **El cuerpo** pasa de 3810 a 4406 caracteres. El resto del cuerpo y el frontmatter no cambian.
   - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto del prototipo, y nada más.
     - **Paso 7.** Tras «**ni `plazos calcular`** ni ninguna fecha (regla 9)» se añade: «; si es de otra materia, igual,
       con el motivo de lo no declarado».
