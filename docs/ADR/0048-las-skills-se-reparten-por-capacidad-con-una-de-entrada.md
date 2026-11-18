@@ -1,6 +1,8 @@
 # 0048 · Las skills se reparten por capacidad, con una de entrada
 
-- **Estado**: propuesta (2026-10-29); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+- **Estado**: propuesta (2026-10-29); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae;
+  sustituida en parte por el ADR 0058: `consulta-juridica` declara lo no cubierto con la línea, no en prosa (punto 1),
+  y un paquete de materia trae también sus filas de lo cubierto (punto 5).
 - **Fecha**: 2026-10-29
 - **Hito**: H32. Decide lo que el ADR 0044 deja a H32 (punto 7): los nombres de las skills por capacidad, y con ellos
   el reparto y el molde de un paquete de materia (puntos 3 y 5). No cambia la regla de `references/` del ADR 0046

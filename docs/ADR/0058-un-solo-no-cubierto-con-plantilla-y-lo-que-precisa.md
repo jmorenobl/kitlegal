@@ -3,8 +3,8 @@
 - **Estado**: propuesta (2026-11-18); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
 - **Fecha**: 2026-11-18
 - **Hito**: H33. Se escribe con su entrada (`docs/roadmap/todo/050-H33-cobertura-en-positivo-por-capacidad.md`, #277),
-  antes del run y fuera de él, en una sesión interactiva. Precisa cinco puntos que la entrada necesita y que el ADR 0044
-  (punto 7) pide decidir con un ADR, en lugar de dejarlos a la entrada.
+  antes del run y fuera de él, en una sesión interactiva. Decide en seis puntos lo que la entrada necesita y que el ADR
+  0044 (punto 7) pide decidir con un ADR, en lugar de dejarlo a la entrada.
 
 ## Contexto y problema
 
@@ -27,8 +27,8 @@ o sin dejar el cierre en riesgo:
   para cualquier pregunta desde H32, sin materia. Y la identificación de un municipio no depende de ninguna (principio
   IX).
 - **`sin_activar` en `consulta-juridica`.** Con una eval de cobertura, el código de `internal/evals` da a la skill sus
-  umbrales de respuestas, y entre ellos `sin_activar`, con 0 de tope. Hoy no lo tiene, y nadie lo ha medido en ella más
-  allá de las 24 sesiones del job de la v0.10.1, todas con la skill activada.
+  umbrales de respuestas, y entre ellos `sin_activar`, con 0 de tope. Hoy no lo tiene, y la serie es corta: en el job de la
+  v0.10.1, las 12 sesiones del modelo que decide la activaron, y en el cierre de H41.4, sus 12 también.
 
 ## Decisión
 
@@ -54,17 +54,21 @@ o sin dejar el cierre en riesgo:
    añade cobertura. Precisa el punto 4 del ADR 0044.
 6. **`sin_activar` nace en `consulta-juridica`, con 0 de tope**, como en las demás skills con umbrales de respuestas:
    activarse es un hecho de la sesión (ADR 0038, punto 1). No se le hace una excepción en el código, que sería un caso
-   especial por skill. El riesgo de un cierre en rojo por un umbral sin serie lo cubre la medida de antes de lanzar que
-   fija la entrada: si sale por encima de 0, H33 no se lanza.
+   especial por skill. El riesgo de un cierre en rojo por un umbral sin serie lo reduce, sin quitarlo, la medida de antes
+   de lanzar que fija la entrada: tres ejecuciones completas del job sobre el prototipo, y si una sale por encima de 0,
+   H33 no se lanza. Con 36 respuestas por modo en `sin_activar`, un 0 no descarta una tasa de fondo del 2 %; si el
+   cierre cae por él, es la serie que ve la persona (ADR 0038, punto 5), no un defecto que el run repare.
 
 ## Consecuencias
 
 - **La cola es más corta.** El cuerpo de `plazos-y-territorio` baja de 10 882 a 10 688 caracteres, con sitio para la
-  línea de cuatro paquetes más.
+  línea de cuatro paquetes, contando el de ensayo de los tests.
 - **Las nueve filas de lo regulado aparte dejan de decir «no calcula sus plazos ni sus recursos»**, y pasan a decir que
   kitlegal no da sus plazos, órganos, vías ni escritos. Lo que hace la skill tras la línea no cambia.
 - **La primera medida de la plantilla y del `sin_activar` de `consulta-juridica` la hace la persona antes de lanzar**,
   no el cierre del run.
+- **La regla «frontera en dos materias»** pide dos normas sin `vertical`. El paquete que tome la Ley de Contrato de Seguro
+  o el Estatuto de los Trabajadores tendrá que mover la eval de ese lado a otra norma sin paquete.
 - **Lo que falta medir sigue en la bitácora.** Una línea de no cubierto de más en una pregunta cubierta, y una fecha
   contada a mano en la prosa de una respuesta que lleva la línea, no los decide ningún umbral. La entrada los deja como
   límites conocidos.

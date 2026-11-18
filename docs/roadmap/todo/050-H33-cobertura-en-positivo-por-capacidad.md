@@ -24,14 +24,30 @@ depende_de: [H32, H41.4]
   run no lo cambia ni escribe otro.
 - **Antes de lanzar** (lo hace la persona, no el run): medir la plantilla con un modelo. Nadie la ha medido, y el cierre
   la congela con 0 de tope.
-  - **Cómo.** Una propuesta en borrador con el prototipo de esta entrada y la etiqueta `evals`. El prototipo es una rama
-    que no se fusiona, con los textos de «Entrega», el generador, el formato de eval y las evals 01, 03 y 04.
-  - **Se lanza solo si**, en los dos modos, salen en 0:
-    - `cobertura_sin_declarar` de `consulta-juridica` y de `plazos-y-territorio`;
-    - y `sin_activar` de `consulta-juridica` (ADR 0058, punto 6).
+  - **El prototipo** es una rama que no se fusiona ni lleva propuesta de cambio. Lleva lo de «Entrega» que cambia lo
+    que ve o hace una sesión:
+    - los textos de las dos skills y de `administrativo.md`;
+    - el generador, la región de lo cubierto y `data/cobertura.yaml`;
+    - el formato de eval y la comprobación de la línea;
+    - y las evals 01, 03 y 04.
+
+    Además, dos cosas que el job comprueba antes de abrir ninguna sesión:
+    - **lo grabado de la eval 04.** El job prepara la caché de cada sesión con las consultas de todas las evals de la
+      skill (`PrepararSesion`, `internal/evals/preparar.go`), así que sin el art. 59 del ET grabado no se abre ninguna
+      sesión de `consulta-juridica`. Lo graba la persona con `KITLEGAL_RECORD=1`, como lo haría `grabar_datos`, y
+      `TestCacheDeLasSesiones` queda en verde;
+    - **los tests del paso de comprobación de `scripts/evals.sh`** (`TestEvalsDelRepositorio` y
+      `TestIdentificadoresDeLasNormas`), en verde con las cuatro evals. En `conjunto_test.go`, la cuenta de las evals de
+      la entrega y el mutante de «no activación de cada capacidad», como dice «Controles».
+  - **Cómo.** Tres despachos del job en modo completa sobre la rama, uno tras otro: `gh workflow run evals.yml --ref
+    <rama>`. Miden las cuatro skills enteras, sin reutilizar nada. Cada uno tarda unas cinco horas.
+  - **Se lanza solo si**, en los tres despachos:
+    - los cuatro trabajos salen en verde;
+    - y `cobertura_sin_declarar` de `consulta-juridica` y de `plazos-y-territorio`, y `sin_activar` de
+      `consulta-juridica`, salen en 0 en los dos modos.
+
+    Son 18, 27 y 36 respuestas por modo. Un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6).
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
-  - **El art. 59 del ET en la fecha de la eval 04** no está grabado en el prototipo. Su lectura sale en
-    `fuera_de_lo_grabado`, que no decide.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
     listas y un texto:
@@ -40,14 +56,15 @@ depende_de: [H32, H41.4]
     - **`cubierto`, nueva**: lo que kitlegal cubre, una fila por capacidad y materia.
       - **Cada fila** lleva `capacidad` (una de `normativa`, `jurisprudencia`, `plazos` o `territorio`, el vocabulario de
         las capacidades con herramienta de `consulta-juridica`) y `alcance` (qué cubre, el texto de su viñeta en §3 de
-        `consulta-juridica`). Si es de una materia, lleva además `materia` y `normas`.
+        `consulta-juridica`). Si es de una materia, lleva además `materia`.
       - **`materia`** es el nombre de un paquete, el `vertical:` de `data/normas.yaml`. La fila que no la lleva sirve a
         todas las materias.
-      - **`normas`** son los identificadores que delimitan lo cubierto. El esquema no admite una fila de materia sin
-        normas, ni normas sin materia (`dependentRequired`).
-      - **Que cada norma esté en `data/normas.yaml`** con el `vertical` de su fila no lo puede comprobar un JSON Schema.
+      - **Que la `materia` sea un paquete**, un `vertical` de `data/normas.yaml`, no lo puede comprobar un JSON Schema.
         Lo comprueba la sincronía de las skills (`internal/skills`, en `make skills-sync` y en `make ci`), con su
         defecto, como hoy los preceptos de las regiones.
+      - **Sin `normas`.** Lo que una fila cubre lo dice su `alcance`, y las normas de un paquete ya están en
+        `data/normas.yaml` con su `vertical`. Una lista de normas en la fila no la leería nadie, y podría separarse de
+        esas.
       - **Las filas** son las cuatro que `consulta-juridica` declara hoy en §3, con su texto, y ninguna más. El territorio
         va sin materia (ADR 0058, punto 5):
 
@@ -60,7 +77,6 @@ depende_de: [H32, H41.4]
           - capacidad: plazos
             alcance: solo los del procedimiento administrativo común y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
             materia: administrativo
-            normas: [BOE-A-2015-10565, BOE-A-2013-12887, BOE-A-1998-16718]
           - capacidad: territorio
             alcance: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
         ```
@@ -116,7 +132,7 @@ depende_de: [H32, H41.4]
       `<!-- fin de lo que cubre la base -->`.
     - **Entre ellas**, una línea por fila de `cubierto`, en el orden del fichero: `- **<Capacidad>**: <alcance>`, con la
       primera letra de la capacidad en mayúscula. Dos filas de una capacidad dan dos líneas, como en la vertical de
-      ensayo. `materia` y `normas` no se escriben: el alcance ya dice a qué se ciñe.
+      ensayo. `materia` no se escribe: el alcance ya dice a qué se ciñe.
     - **Con las cuatro filas de arriba**, la región repite palabra por palabra las cuatro viñetas de hoy. Cada viñeta
       queda en una sola línea, y ninguna frase de hoy se pierde: «No consulta ningún buscador…» (ADR 0036), «solo los
       del procedimiento administrativo común» y «Lo que la ley regula aparte… lo declara `plazos-y-territorio` con su
@@ -126,12 +142,20 @@ depende_de: [H32, H41.4]
     - **El presupuesto de líneas.** `partirElCuerpo` (`internal/app/skills_test.go`) no parte las líneas de esta región,
       como ya no parte las de la tabla de comandos.
   - **De dónde sale cada texto que comprueba `internal/evals`.** Ninguno vive en Go:
-    - la cola, de la plantilla del `SKILL.md` de la skill de la eval, con la función del generador que la busca;
-    - el motivo fijo, de `motivo_de_lo_no_declarado`;
-    - y la norma y el precepto de lo regulado aparte, de la eval, como hoy.
+    - **la cola**, de la plantilla de `skills/<skill>/SKILL.md` del árbol que se mide, con la función del generador que
+      la busca: lo que sigue a `<motivo>. ` hasta el final de la línea;
+    - **el motivo fijo**, de `motivo_de_lo_no_declarado` de `data/cobertura.yaml` del mismo árbol;
+    - **y la norma y el precepto de lo regulado aparte**, de la eval, como hoy.
 
-    La sincronía comprueba que la prosa de cada skill con plantilla dice el motivo fijo tal cual, entre «»; si no, da su
-    defecto.
+    Los casos sin esos textos:
+    - **una eval de cobertura en una skill sin plantilla** es un defecto del conjunto, con su regla, y `make ci` no
+      pasa. El juicio nunca corre sin plantilla. El laboratorio no juzga la cobertura, y sus variantes de
+      `plazos-y-territorio` con las dos formas viejas no cambian;
+    - **sin `data/cobertura.yaml`, o con defectos**, el conjunto da el defecto del fichero, y el juicio no corre.
+
+    La sincronía comprueba que la prosa de cada skill con plantilla dice el motivo fijo tal cual, entre «». Antes junta
+    los blancos seguidos, saltos de línea incluidos, porque el cuerpo va partido a 120 columnas. Si no lo dice, da su
+    defecto. Sin `data/cobertura.yaml`, el defecto es el del fichero, como en la región.
   - **`consulta-juridica`**:
     - **El párrafo de entrada** dice que la skill declara lo que no cubre con su línea, que es suya, y que las demás
       líneas `⚠` las lleva cada capacidad.
@@ -149,13 +173,21 @@ depende_de: [H32, H41.4]
       >
       > Toda parte de la pregunta que no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es
       > la del procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el
-      > motivo «no está en lo que kitlegal cubre». Lo que leas con la skill de normativa para completarla va detrás,
-      > citado, con su marca: el texto citado es el de la norma; lo que no está verificado es que se aplique a este
-      > asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los del procedimiento
-      > común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
+      > motivo «no está en lo que kitlegal cubre». Lo que la ley regula aparte del procedimiento común no: lleva la
+      > línea de su fila, la de `plazos-y-territorio`, y tras ella no leas su norma. Lo que leas con la skill de
+      > normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está
+      > verificado es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de
+      > otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia:
+      > ese plazo no es el suyo.
+
+      La segunda frase es la que impide que una pregunta de lo regulado aparte, que también es «el plazo de una materia
+      que no es la del procedimiento común», reciba el motivo fijo y la lectura marcada de su norma (ADR 0043, punto 7).
+      En una eval de lo regulado aparte, la línea con el motivo fijo cuenta como sin declarar.
 
       Detrás van la plantilla y la marca, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
-    - **El cuerpo** pasa de 3810 a 4212 caracteres. El resto del cuerpo y el frontmatter no cambian.
+    - **La viñeta «Paquetes de materia»** de §3 dice ahora «—sus normas, una referencia en cada skill que la necesita,
+      lo que cubre y lo que la ley regula aparte—» (ADR 0058, punto 4).
+    - **El cuerpo** pasa de 3810 a 4368 caracteres. El resto del cuerpo y el frontmatter no cambian.
   - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto del prototipo, y nada más.
     - **Paso 7.** Tras «**ni `plazos calcular`** ni ninguna fecha (regla 9)» se añade: «; si es de otra materia, igual,
       con el motivo de lo no declarado».
@@ -169,8 +201,8 @@ depende_de: [H32, H41.4]
       darlos de memoria ni pedir `plazos calcular`.».
     - **Lo que no cambia.** Las órdenes de leer (ADR 0052 y 0053), el frontmatter y lo demás del cuerpo.
     - **El tope.** Con los tres cambios, el cuerpo baja de 10 882 a 10 688 caracteres, frente a 11 000 de máximo (ADR
-      0046). Cada paquete nuevo suma una línea de unos 70: con la de la vertical de ensayo queda en 10 758, y caben
-      cuatro más. Si la implementación necesita más texto, no puede dejar menos de 140 caracteres libres. Lo que sobre
+      0046). Cada paquete nuevo suma una línea de 58 caracteres más dos veces su nombre: la de la vertical de ensayo
+      mide 70, y con ella el cuerpo queda en 10 758. Desde ahí caben tres más de 70. Si la implementación necesita más texto, no puede dejar menos de 140 caracteres libres. Lo que sobre
       va a `administrativo.md` o a `calculo_de_plazos.md`, como movimiento declarado en
       `TestSkillsDelProductoDesdeControl`. No se acorta otro texto del cuerpo.
   - **`administrativo.md`.** Gana, en «Lo que la ley regula aparte», delante de la región, la frase «Los motivos de la
@@ -180,7 +212,7 @@ depende_de: [H32, H41.4]
     `cubierto` y, si trae región de cobertura, sus dos motivos.
   - **La vertical de ensayo** de `TestVerticalDeEnsayo`, en una tarea `[datos]` porque es `testdata/`:
     - gana en su `data/cobertura.yaml` una fila de `cubierto`, `{capacidad: plazos, alcance: los de ensayo del molde de
-      los paquetes., materia: ensayo, normas: [BOE-A-1900-1]}`, delante de `regulados_aparte`;
+      los paquetes., materia: ensayo}`, delante de `regulados_aparte`;
     - y en su `references/ensayo.md` de `plazos-y-territorio`, la frase y los dos motivos de `administrativo.md`.
 
     El test cambia en tres sitios:
@@ -229,6 +261,8 @@ depende_de: [H32, H41.4]
       - o, fuera de lo declarado, `: ` seguido del motivo fijo.
 
       La línea con `⚠ PLAZO:` no cuenta.
+    - **El motivo del juicio** de una respuesta sin declarar es `declaración de no cubierto ausente: ` seguido de la
+      norma esperada, como hoy, o, en una eval `fuera_de_lo_declarado`, de `fuera de lo declarado`.
     - **La normalización**, sobre la línea y sobre lo que se busca en ella, y nada más:
       - quita `**`, `__`, `*`, `_` y las comillas invertidas;
       - quita el selector de presentación U+FE0F (`⚠️` vale como `⚠`);
@@ -241,8 +275,10 @@ depende_de: [H32, H41.4]
       - y la cola sin el motivo, o el motivo sin la cola.
     - **Los umbrales.** Se calculan en toda skill con alguna eval de cobertura:
       - `cobertura_sin_declarar:<modelo>:<modo>` lo tienen `consulta-juridica` (evals 01 y 04) y `plazos-y-territorio`
-        (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1), y su descripción en el informe pasa a
-        decir la cola y el motivo, en lugar de «con la norma esperada».
+        (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1). Su descripción en el informe, una
+        constante de `internal/evals/umbrales.go` que no copia ningún texto de la línea, pasa a ser: «Respuestas de %s
+        en el modo %s sin la línea ⚠ NO CUBIERTO: con la cola de su plantilla y el motivo esperado, o con una línea
+        ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una declaración de no cubierto».
       - Con una eval de cobertura, `consulta-juridica` tiene umbrales de respuestas, y con ellos nace su
         `sin_activar:<modelo>:<modo>`, con 0 de tope, sobre las respuestas de sus cuatro evals (ADR 0058, punto 6). Su
         código no cambia: es el de las demás skills.
@@ -252,12 +288,21 @@ depende_de: [H32, H41.4]
     - una eval activa que la cita y no es de cobertura;
     - y otra activa que la cita, es de cobertura con `fuera_de_lo_declarado` y prohíbe `plazos calcular`.
 
-    La regla la cumplen las cuatro evals de arriba.
+    La regla la cumplen las cuatro evals de arriba. Pide normas sin `vertical`: el paquete que tome la Ley de Contrato
+    de Seguro o el Estatuto de los Trabajadores tendrá que mover la eval de ese lado a otra norma sin paquete (ADR
+    0058).
   - **El trabajo de evals.** `consulta-juridica` pasa de 2 a 4 evals y sigue a concurrencia 1. Su peor caso pasa de
     8485 s a 15 013 s, y cabe en el tope de 352 minutos (21 120 s). La concurrencia de las demás no cambia.
   - **Documentación.**
-    - `docs/SKILLS.md`: la plantilla, los motivos en la referencia del paquete, la región de lo cubierto y la tabla de
-      defectos de la región, que hoy dice «las dos formas».
+    - `docs/SKILLS.md`: la plantilla, los motivos en la referencia del paquete, la región de lo cubierto, la tabla de
+      defectos de la región, que hoy dice «las dos formas», y la fila de `consulta-juridica` en la tabla de las skills,
+      que dice «en prosa» y «sin… líneas `⚠`».
+    - `CONTRIBUTING.md`:
+      - la fila del campo `no_cubierto` en la tabla del formato de eval, con `fuera_de_lo_declarado`;
+      - la fila de `cobertura_sin_declarar` en la tabla de umbrales, con su descripción nueva;
+      - y los umbrales de `consulta-juridica`, con los dos que nacen.
+    - `.github/workflows/evals.yml`: el comentario del tope que da 8485 s y «sus dos evals» para `consulta-juridica`.
+      Solo el comentario: sus valores no cambian.
     - `docs/HISTORIAL.md`: la viñeta del hito.
     - `CHANGELOG.md`: «Cambiado».
     - `web/src/pages/como-se-evalua/index.astro`: la frase que anuncia H33 pasa a decir lo hecho.
@@ -283,20 +328,20 @@ depende_de: [H32, H41.4]
       «puedes reclamar hasta el 30 de noviembre» en la prosa. Lo que la impide es el texto de §4, no un umbral;
   - cambiar el tope de `cobertura_sin_declarar` o de `sin_activar`, cómo cuentan los demás, o ningún otro umbral, límite
     ni tope, más allá de los dos que nacen en `consulta-juridica` (ADR 0038, punto 1);
-  - cambiar el job de evals más allá de lo que piden sus tests con las evals nuevas: ni `VERSION_DE_CLAUDE_CODE`, ni
-    `MODELO_DE_EVALS`, ni lo que instala (ADR 0031);
+  - cambiar el job de evals más allá de lo que piden sus tests con las evals nuevas y del comentario de su tope: ni
+    `VERSION_DE_CLAUDE_CODE`, ni `MODELO_DE_EVALS`, ni lo que instala (ADR 0031);
   - que el binario o un servidor detecte la materia de una pregunta o lea una respuesta. La frontera la decide la skill
     con `cubierto`, y la comprueban las evals (principio X);
   - evals de más materias. La aceptación de la fase 1, con cinco o seis materias, no es de este hito.
 - **Controles**:
   - `make ci` comprueba, sin red ni modelo:
     - **El esquema de la cobertura** rechaza, cada caso con su defecto:
-      - una fila de `cubierto` sin `capacidad` o `alcance`, o con una capacidad fuera del vocabulario;
-      - una fila de materia sin normas, o normas sin materia;
+      - una fila de `cubierto` sin `capacidad` o `alcance`, con una capacidad fuera del vocabulario, o con una clave
+        que no declara, como `normas`;
       - un fichero sin `motivo_de_lo_no_declarado` o con él vacío.
 
-      La sincronía rechaza una norma que no está en `data/normas.yaml` o no tiene el `vertical` de su fila, y una skill
-      con plantilla cuya prosa no dice el motivo fijo. Con `regulados_aparte`, igual que hoy.
+      La sincronía rechaza una `materia` que no es el `vertical` de ninguna norma de `data/normas.yaml`, y una skill con
+      plantilla cuya prosa no dice el motivo fijo. Con `regulados_aparte`, igual que hoy.
     - **Las regiones.** La de lo cubierto de `consulta-juridica` sale de `cubierto` con diff vacío. La tabla de
       `administrativo.md` sale de la plantilla y de los motivos de la referencia, entera y en una línea por fila. Cada
       defecto del contrato del generador tiene un mutante que lo da.
@@ -314,7 +359,8 @@ depende_de: [H32, H41.4]
       No cuentan como sin declarar la línea entera, con negritas, con `⚠️`, en minúsculas, sin el punto final o con
       texto detrás.
     - **De dónde salen los textos**: un mutante con otra cola en la plantilla de la skill, y otro con otro motivo en
-      `data/cobertura.yaml`, cambian lo que la eval exige, sin tocar ningún `.go`.
+      `data/cobertura.yaml`, cambian lo que la eval exige, sin tocar ningún `.go`. Una eval de cobertura en una skill
+      sin plantilla da el defecto del conjunto, y una prosa partida en dos líneas con el motivo dentro no da defecto.
     - **La regla «frontera en dos materias»**: el conjunto de la rama la cumple, y un mutante sin la eval de un lado da
       su defecto.
     - **La vertical de ensayo** entra con su fila de `cubierto` y sus motivos, y su fila sale en la región de lo cubierto
@@ -371,8 +417,8 @@ depende_de: [H32, H41.4]
       Lo que cambia del `SKILL.md` lo ve la persona en el diff de la propuesta.
 
   Las evals salen en verde en la medición del cierre, en los dos modos, con `cobertura_sin_declarar` en 0 en
-  `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. La primera medida es la de
-  «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola, la normalización ni
+  `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. Las primeras medidas son las
+  tres de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola, la normalización ni
   los umbrales para que pasen: lo deja dicho para la persona.
 - **Aceptación**:
   - **e2e** (`testscript`) sobre `kitlegal skills install`:
@@ -381,7 +427,8 @@ depende_de: [H32, H41.4]
     - la región de lo cubierto de `consulta-juridica` tiene una línea por cada una de las cuatro filas de `cubierto`;
     - cada fila de `cobertura_por_materia` de `administrativo.md` es la plantilla con el motivo de su caso, con la de los
       tributos byte a byte;
-    - y la plantilla no dice «procedimiento común» en ningún cuerpo: eso solo lo dicen los motivos de la referencia.
+    - y la línea de la plantilla de cada `SKILL.md` no contiene «procedimiento común»: eso solo lo dicen los motivos de
+      la referencia.
   - **Las evals** de las cuatro skills, en verde en el cierre.
   - El run no lanza ningún sondeo.
 - **Dependencias**: H32 y H41.4.
