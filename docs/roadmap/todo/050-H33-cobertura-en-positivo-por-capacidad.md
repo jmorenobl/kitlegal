@@ -79,6 +79,10 @@ depende_de: [H32, H41.4]
       defecto real de estos sondeos, los `⚠ NO CUBIERTO:` falsos, no lo cazó ningún umbral, sino leer las
       respuestas.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
+  - **Resultado.** El despacho 44595560885, sobre `27413343`, sale con los cuatro trabajos en verde y los tres umbrales
+    en 0 en los dos modos. El 44575732882, sobre el mismo commit, no cuenta: la cuenta llegó a su límite de uso semanal
+    y dejó sesiones sin medir (sus umbrales medidos, en 0). Los anteriores (44355778768, 44411742438, 44557705231 y
+    44568601898) son la evidencia de las correcciones de arriba. H33 se puede lanzar con esta entrada.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
     listas y un texto:
