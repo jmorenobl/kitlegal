@@ -174,17 +174,9 @@ depende_de: [H32, H41.4]
       la de los paquetes.
     - **El presupuesto de líneas.** `partirElCuerpo` (`internal/app/skills_test.go`) no parte las líneas de esta región,
       como ya no parte las de la tabla de comandos.
-  - **De dónde sale cada texto que comprueba `internal/evals`.** Ninguno vive en Go:
-    - **la cola**, de la plantilla de `skills/<skill>/SKILL.md` del árbol que se mide, con la función del generador que
-      la busca: lo que sigue a `<motivo>. ` hasta el final de la línea;
-    - **el motivo fijo**, de `motivo_de_lo_no_declarado` de `data/cobertura.yaml` del mismo árbol;
-    - **y la norma y el precepto de lo regulado aparte**, de la eval, como hoy.
-
-    Los casos sin esos textos:
-    - **una eval de cobertura en una skill sin plantilla** es un defecto del conjunto, con su regla, y `make ci` no
-      pasa. El juicio nunca corre sin plantilla. El laboratorio no juzga la cobertura, y sus variantes de
-      `plazos-y-territorio` con las dos formas viejas no cambian;
-    - **sin `data/cobertura.yaml`, o con defectos**, el conjunto da el defecto del fichero, y el juicio no corre.
+  - **De dónde sale cada texto.** Ningún texto de la línea vive en Go ni lo comprueba `internal/evals`: el juicio
+    encuentra la línea por su etiqueta, como hoy, y en lo regulado aparte busca en ella la norma y el precepto de la
+    eval (ver «`no_cubierto` y `cobertura_sin_declarar`»). La plantilla, el motivo fijo y la cola guían la redacción.
 
     La sincronía comprueba que la prosa de cada skill con plantilla dice el motivo fijo tal cual, entre «». Antes junta
     los blancos seguidos, saltos de línea incluidos, porque el cuerpo va partido a 120 columnas. Si no lo dice, da su
@@ -283,48 +275,29 @@ depende_de: [H32, H41.4]
     - **Los mensajes de hoy.** Los que da el esquema a una eval `{norma, precepto}` mal escrita siguen igual: con un
       `if`/`then` sobre `fuera_de_lo_declarado`, no con `oneOf`. Un prototipo con `oneOf` cambiaba los de
       `TestFormatoDePlazos`.
-    - **La respuesta declarada** es la que lleva una línea `⚠ NO CUBIERTO:`, encontrada por su etiqueta como hoy, que
-      tras normalizarla contiene, también normalizadas:
-      - la cola, sin su punto final;
-      - y además, en lo regulado aparte, el identificador de la norma esperada y la cita de su precepto, como hoy;
-      - o, fuera de lo declarado, el motivo fijo.
-
-      La línea con `⚠ PLAZO:` no cuenta. El motivo no tiene que ir tras `: `: lo que une el asunto con el motivo es
-      texto libre del modelo, como el asunto, y el cero del ADR 0038 va en lo que el modelo copia, el motivo y la cola.
-      En el primer despacho del prototipo, una respuesta de la eval 04 con el motivo y la cola palabra por palabra
-      cayó por llevar el asunto unido con «porque es un plazo laboral y».
+    - **La respuesta declarada** es la que lleva una línea `⚠ NO CUBIERTO:`, encontrada por su etiqueta como hoy, con la
+      tolerancia de hoy (énfasis, `⚠️`). En lo regulado aparte, la línea lleva además el identificador de la norma
+      esperada y la cita de su precepto, como hoy. Fuera de lo declarado basta la línea. La línea con `⚠ PLAZO:` no
+      cuenta.
     - **El motivo del juicio** de una respuesta sin declarar es `declaración de no cubierto ausente: ` seguido de la
       norma esperada, como hoy, o, en una eval `fuera_de_lo_declarado`, de `fuera de lo declarado`.
-    - **La normalización**, sobre la línea y sobre lo que se busca en ella, y nada más:
-      - quita `**`, `__`, `*`, `_` y las comillas invertidas;
-      - quita el selector de presentación U+FE0F (`⚠️` vale como `⚠`);
-      - junta los blancos seguidos en un espacio;
-      - y pasa a minúsculas.
-    - **Lo que cuenta y lo que no.** La comprobación es de subcadena, así que vale lo que vaya antes o después en la
-      misma línea, también otro texto tras la cola o sin su punto final. No cuenta:
-      - la línea partida en dos;
-      - una palabra de la cola o del motivo cambiada, quitada o con otra tilde;
-      - y la cola sin el motivo, o el motivo sin la cola.
-
-      Sí cuenta cualquier unión entre el asunto y el motivo, con dos puntos, con una coma o con una frase.
-    - **Qué se comprueba literal, y qué no.** Solo lo que el modelo copia sin componerlo: la etiqueta, la cola, el
-      identificador y la cita, y un motivo que no depende gramaticalmente del asunto. Por eso el motivo fijo no lleva
-      verbo: con «no está en lo que kitlegal cubre», el modelo concordaba el verbo con un asunto plural («no están»), en
-      5 de 141 líneas de los sondeos y en 1 de 24 respuestas de los despachos, la que tumbó `consulta-juridica` en la
-      ejecución 44557705231 con la respuesta correcta. «fuera de lo que kitlegal cubre» lo contienen «está fuera de…»,
-      «están fuera de…», «queda fuera de…» y «son asuntos fuera de…». Lo prueba `TestMotivoSinConcordancia`, del
-      prototipo: esas cuatro cuentan, y «fuera de la cobertura de kitlegal» o la línea sin la cola, no. Lo que tiene
+    - **Qué se comprueba literal, y qué no.** Solo lo que el modelo copia sin componerlo: la etiqueta, el identificador
+      y la cita. La cola y el motivo los compone con un asunto que redacta él, y con tope 0 una comprobación palabra por
+      palabra tumbaba respuestas correctas. Los despachos de antes de lanzar lo mostraron tres veces, cada vez por una
+      parte distinta: el asunto unido al motivo sin `: ` (ejecución 44355778768), el verbo del motivo concordado con un
+      asunto plural, «no están» (44557705231), y la cola o el motivo dichos con otras palabras (44568601898). Por eso el
+      motivo fijo no lleva verbo, «fuera de lo que kitlegal cubre», y por eso no se comprueba. Lo prueba
+      `TestDeclaradaFueraDeLoDeclarado`, del prototipo, con las dos líneas del último despacho. Lo que tiene
       significado —que tras la línea no se dé de memoria un plazo, un órgano o una vía— no lo mide ningún guion; es una
-      clase del juez para otro hito (ver «Fuera»).
-    - **Si el motivo vuelve a caer** en el despacho de antes de lanzar por su redacción, con la respuesta correcta, no
-      se cambia el texto otra vez: fuera de lo declarado se comprueban solo la etiqueta y la cola, y se dice así aquí y
-      en el ADR 0058, punto 1.
+      clase del juez para otro hito (ver «Fuera»). Lo que sí protege la eval 04 sin modelo es que no pida
+      `plazos calcular`.
     - **Los umbrales.** Se calculan en toda skill con alguna eval de cobertura:
       - `cobertura_sin_declarar:<modelo>:<modo>` lo tienen `consulta-juridica` (evals 01 y 04) y `plazos-y-territorio`
         (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1). Su descripción en el informe, una
         constante de `internal/evals/umbrales.go` que no copia ningún texto de la línea, pasa a ser: «Respuestas de %s
-        en el modo %s sin la línea ⚠ NO CUBIERTO: con la cola de su plantilla y el motivo esperado, o con una línea
-        ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una declaración de no cubierto».
+        en el modo %s sin una línea ⚠ NO CUBIERTO: —en lo regulado aparte, con la norma que lo rige y la cita de su
+        precepto—, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una declaración de no
+        cubierto».
       - Con una eval de cobertura, `consulta-juridica` tiene umbrales de respuestas, y con ellos nace su
         `sin_activar:<modelo>:<modo>`, con 0 de tope, sobre las respuestas de sus cuatro evals (ADR 0058, punto 6). Su
         código no cambia: es el de las demás skills.
@@ -365,7 +338,10 @@ depende_de: [H32, H41.4]
   - **Lo generado.** Las referencias y las regiones se regeneran con `make skills-sync`.
 - **Fuera**:
   - cubrir algo que hoy no se cubre, o dejar de cubrir algo. Ninguna fila de `cubierto` más allá de las cuatro de
-    arriba, ninguna capacidad nueva (destinatarios y documentos son H35 y H37) y ningún cambio de texto en sus alcances;
+    arriba, ninguna capacidad nueva (destinatarios y documentos son H35 y H37) y ningún cambio de texto en sus alcances
+    salvo el de los plazos, que nombra el acceso a la información, que `data/plazos.yaml` ya calcula;
+  - una clase del juez que mida que, tras la línea `⚠ NO CUBIERTO:`, la respuesta no da de memoria un plazo, un órgano ni
+    una vía. Es significado, no forma (ADR 0037 y 0038), y va a la bitácora, para otro hito;
   - cambiar las filas de `regulados_aparte` (sus procedimientos, preceptos y normas) o quitarlas;
   - exponer o marcar con `⚠ NO VERIFICADO:` la norma que rige lo regulado aparte (ADR 0043, punto 7; ADR 0058, punto
     2);
@@ -406,17 +382,12 @@ depende_de: [H32, H41.4]
     - **`cobertura_sin_declarar`, con mutantes** de respuestas escritas como constantes en los tests. Cuentan como sin
       declarar, cada una con su motivo:
       - una respuesta sin la línea, en una eval fuera de lo declarado y en una de lo regulado aparte;
-      - la línea con una palabra de la cola cambiada, o sin la cola;
-      - fuera de lo declarado, con otro motivo;
       - en lo regulado aparte, sin la norma o sin la cita;
-      - la línea partida en dos;
+      - la línea partida en dos, con la etiqueta en una y la cita en otra;
       - la línea con `⚠ PLAZO:`.
 
-      No cuentan como sin declarar la línea entera, con negritas, con `⚠️`, en minúsculas, sin el punto final o con
-      texto detrás.
-    - **De dónde salen los textos**: un mutante con otra cola en la plantilla de la skill, y otro con otro motivo en
-      `data/cobertura.yaml`, cambian lo que la eval exige, sin tocar ningún `.go`. Una eval de cobertura en una skill
-      sin plantilla da el defecto del conjunto, y una prosa partida en dos líneas con el motivo dentro no da defecto.
+      No cuentan como sin declarar, fuera de lo declarado, la línea con la cola o el motivo dichos con otras palabras
+      (las dos del despacho 44568601898), ni la línea con negritas o con `⚠️`.
     - **La regla «frontera en dos materias»**: el conjunto de la rama la cumple, y un mutante sin la eval de un lado da
       su defecto.
     - **La vertical de ensayo** entra con su fila de `cubierto` y sus motivos, y su fila sale en la región de lo cubierto
@@ -432,8 +403,9 @@ depende_de: [H32, H41.4]
     - en `internal/app`, `TestSkillsDelRepositorio` (sus presupuestos de líneas de `consulta-juridica`): `partirElCuerpo`
       no parte la región de lo cubierto;
     - en `internal/evals`:
-      - con la línea vieja escrita como constante: `TestJuzgarPlazos`, `TestJuzgarLasLecturasSinServir` y
-        `TestUmbralesDePlazosYTerritorio`, y las de `informe_test.go`;
+      - `TestJuzgarPlazos`, `TestJuzgarLasLecturasSinServir`, `TestUmbralesDePlazosYTerritorio` y las de
+        `informe_test.go` siguen en verde, porque en lo regulado aparte la comprobación es la de hoy; sus constantes con
+        la línea vieja pasan a la plantilla;
       - `TestUmbralesDeLasSkills`, que cambia lo que comprueba. Su comentario fija que `consulta-juridica` va «sin
         `sin_activar`». Pasa a llevar `sin_activar` y `cobertura_sin_declarar` del modelo que decide en cada modo, los
         cuatro con `Decide: true` y delante de sus cuatro `fuera_de_lo_grabado` (ADR 0058, punto 6);
@@ -474,8 +446,8 @@ depende_de: [H32, H41.4]
 
   Las evals salen en verde en la medición del cierre, en los dos modos, con `cobertura_sin_declarar` en 0 en
   `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. Las primeras medidas son las
-  tres de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola, la normalización ni
-  los umbrales para que pasen: lo deja dicho para la persona.
+  de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola ni los umbrales para
+  que pasen: lo deja dicho para la persona.
 - **Aceptación**:
   - **e2e** (`testscript`) sobre `kitlegal skills install`:
     - el `SKILL.md` instalado de `consulta-juridica` y el de `plazos-y-territorio` llevan la plantilla, la misma línea
