@@ -54,8 +54,8 @@ sus formas y sus citas son las de la respuesta.
 ### 4. Lo que no cubre, con su línea
 
 Lo que la pregunta pide y no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la del
-procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el motivo «no está
-en lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que no ha pedido. Esta línea
+procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el motivo «fuera
+de lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que no ha pedido. Esta línea
 no es para lo que la ley regula aparte del procedimiento común: eso lo declara, con su propia línea, la skill de la
 capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de normativa para completarla va detrás,
 citado, con su marca: el texto citado es el de la norma; lo que no está verificado es que se aplique a este asunto. No

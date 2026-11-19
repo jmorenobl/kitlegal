@@ -102,7 +102,7 @@ Con el 3 del paso 9, en lugar de la línea del plazo, con cada línea del mensaj
 ```
 
 Lo no cubierto (paso 7 y regla 9) va con esta forma: en un asunto de la cobertura del paquete, la línea de su
-fila, entera; en otra materia, con el motivo «no está en lo que kitlegal cubre»:
+fila, entera; en otra materia, con el motivo «fuera de lo que kitlegal cubre»:
 
 ```text
 ⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.

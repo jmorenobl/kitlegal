@@ -127,7 +127,7 @@ type DeclaracionDeNoCubierto struct {
 
 const colaDeNoCubierto = "kitlegal no da sus plazos, órganos, vías ni escritos"
 
-const motivoDeLoNoDeclarado = "no está en lo que kitlegal cubre"
+const motivoDeLoNoDeclarado = "fuera de lo que kitlegal cubre"
 
 func normalizarLaLinea(linea string) string {
 	linea = strings.NewReplacer("*", "", "_", "", "`", "", "\ufe0f", "").Replace(linea)

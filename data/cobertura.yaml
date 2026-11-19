@@ -6,7 +6,7 @@
 # la entrada cuyo precepto aplicable se cita de lo grabado; la que no la lleva no la toma de ningún otro sitio, y la
 # declaración nombra el precepto de la LPAC. TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo grabado del
 # BOE que cada bloque existe y que cada identificador es el que resuelve su búsqueda grabada.
-motivo_de_lo_no_declarado: no está en lo que kitlegal cubre
+motivo_de_lo_no_declarado: fuera de lo que kitlegal cubre
 cubierto:
   - capacidad: normativa
     alcance: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha.
