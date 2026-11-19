@@ -340,8 +340,8 @@ depende_de: [H32, H41.4]
   - cubrir algo que hoy no se cubre, o dejar de cubrir algo. Ninguna fila de `cubierto` más allá de las cuatro de
     arriba, ninguna capacidad nueva (destinatarios y documentos son H35 y H37) y ningún cambio de texto en sus alcances
     salvo el de los plazos, que nombra el acceso a la información, que `data/plazos.yaml` ya calcula;
-  - una clase del juez que mida que, tras la línea `⚠ NO CUBIERTO:`, la respuesta no da de memoria un plazo, un órgano ni
-    una vía. Es significado, no forma (ADR 0037 y 0038), y va a la bitácora, para otro hito;
+  - una clase del juez que mida que, tras la línea `⚠ NO CUBIERTO:`, la respuesta no da de memoria un plazo, un órgano
+    ni una vía. Es significado, no forma (ADR 0037 y 0038), y va a la bitácora, para otro hito;
   - cambiar las filas de `regulados_aparte` (sus procedimientos, preceptos y normas) o quitarlas;
   - exponer o marcar con `⚠ NO VERIFICADO:` la norma que rige lo regulado aparte (ADR 0043, punto 7; ADR 0058, punto
     2);
@@ -445,9 +445,9 @@ depende_de: [H32, H41.4]
       Lo que cambia del `SKILL.md` lo ve la persona en el diff de la propuesta.
 
   Las evals salen en verde en la medición del cierre, en los dos modos, con `cobertura_sin_declarar` en 0 en
-  `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. Las primeras medidas son las
-  de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola ni los umbrales para
-  que pasen: lo deja dicho para la persona.
+  `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. Las primeras medidas son
+  las de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola ni los umbrales
+  para que pasen: lo deja dicho para la persona.
 - **Aceptación**:
   - **e2e** (`testscript`) sobre `kitlegal skills install`:
     - el `SKILL.md` instalado de `consulta-juridica` y el de `plazos-y-territorio` llevan la plantilla, la misma línea
