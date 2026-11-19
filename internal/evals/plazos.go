@@ -120,19 +120,6 @@ type DeclaracionDeNoCubierto struct {
 	// en su orden: la que lleva la forma legible dentro de los corchetes no es
 	// una de ellas.
 	Citas []Cita
-
-	// Linea: prototipo de H33, la línea normalizada.
-	Linea string
-}
-
-const colaDeNoCubierto = "kitlegal no da sus plazos, órganos, vías ni escritos"
-
-const motivoDeLoNoDeclarado = "fuera de lo que kitlegal cubre"
-
-func normalizarLaLinea(linea string) string {
-	linea = strings.NewReplacer("*", "", "_", "", "`", "", "\ufe0f", "").Replace(linea)
-
-	return strings.ToLower(strings.Join(strings.Fields(linea), " "))
 }
 
 // ExtraerNoCubierto devuelve una declaración por cada línea de la respuesta con
@@ -152,7 +139,6 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
 			declaraciones = append(declaraciones, DeclaracionDeNoCubierto{
 				Normas: formaDeIdentificador.FindAllString(linea, -1),
 				Citas:  citasEnLaFormaUnica(linea),
-				Linea:  normalizarLaLinea(linea),
 			})
 		}
 	}
@@ -166,12 +152,11 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
 // H32; FR-014).
 func (e NoCubiertoEsperado) declarada(declaraciones []DeclaracionDeNoCubierto) bool {
 	return slices.ContainsFunc(declaraciones, func(deUnaLinea DeclaracionDeNoCubierto) bool {
-		if !strings.Contains(deUnaLinea.Linea, colaDeNoCubierto) {
-			return false
-		}
-
+		// Fuera de lo declarado basta la línea: el modelo compone su asunto, su
+		// motivo y su cola, y lo que dicen lo juzga el significado, no un guion
+		// (ADR 0058, punto 1).
 		if e.FueraDeLoDeclarado {
-			return strings.Contains(deUnaLinea.Linea, motivoDeLoNoDeclarado)
+			return true
 		}
 
 		return slices.Contains(deUnaLinea.Normas, e.Norma) && slices.Contains(deUnaLinea.Citas, Cita(e.Precepto))
