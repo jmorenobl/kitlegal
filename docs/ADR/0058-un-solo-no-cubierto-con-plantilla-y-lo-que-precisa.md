@@ -38,12 +38,12 @@ o sin dejar el cierre en riesgo:
 
 ## Decisión
 
-1. **La línea es una plantilla, y su cola no nombra ninguna herramienta.** La línea es
-   `⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.`, la misma en todas las
-   materias y en toda skill que la lleve. El `<motivo>` dice por qué no está cubierto: fuera de lo declarado, un texto
-   fijo de `data/cobertura.yaml`; en lo regulado aparte, el precepto que lo dice y, si se cita de lo grabado, la norma
-   que lo rige. Qué se puede leer para completar la respuesta lo dice la skill, no la línea. Sustituye, en lo que
-   dice de la línea, la última viñeta del punto 4 del ADR 0044.
+1. **La línea es una plantilla, y su cola no nombra ninguna herramienta.** La línea es `⚠ NO CUBIERTO: <asunto>:
+   <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.`, la misma en todas las materias y en toda skill que
+   la lleve. El `<motivo>` dice por qué no está cubierto: fuera de lo declarado, un texto fijo de `data/cobertura.yaml`,
+   sin verbo que concordar con el asunto, porque se comprueba palabra por palabra; en lo regulado aparte, el precepto
+   que lo dice y, si se cita de lo grabado, la norma que lo rige. Qué se puede leer para completar la respuesta lo dice
+   la skill, no la línea. Sustituye, en lo que dice de la línea, la última viñeta del punto 4 del ADR 0044.
 2. **Lo leído para completar va marcado, y solo fuera de lo declarado.** `consulta-juridica` lleva la marca
    `⚠ NO VERIFICADO:` para lo que el agente lea con la skill de normativa tras su línea. El texto citado es el de la
    norma, y lo no verificado es que se aplique al asunto. En lo regulado aparte sigue el ADR 0043, punto 7: no se expone

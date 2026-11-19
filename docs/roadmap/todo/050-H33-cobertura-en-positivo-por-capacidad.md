@@ -82,7 +82,7 @@ depende_de: [H32, H41.4]
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
     listas y un texto:
-    - **`motivo_de_lo_no_declarado`, nuevo**: `no está en lo que kitlegal cubre`. Es el motivo de la línea fuera de lo
+    - **`motivo_de_lo_no_declarado`, nuevo**: `fuera de lo que kitlegal cubre`. Es el motivo de la línea fuera de lo
       declarado, y su única fuente (ver «De dónde sale cada texto»).
     - **`cubierto`, nueva**: lo que kitlegal cubre, una fila por capacidad y materia.
       - **Cada fila** lleva `capacidad` (una de `normativa`, `jurisprudencia`, `plazos` o `territorio`, el vocabulario de
@@ -128,7 +128,7 @@ depende_de: [H32, H41.4]
     - **Qué es lo no verificado.** El texto citado es el de la norma, leído con kitlegal y citado como en `normativa`. Lo
       no verificado es que se aplique a este asunto.
     - **El `<motivo>`**, según el caso:
-      - **fuera de lo declarado**: `no está en lo que kitlegal cubre`, el de `data/cobertura.yaml`;
+      - **fuera de lo declarado**: `fuera de lo que kitlegal cubre`, el de `data/cobertura.yaml`;
       - **lo regulado aparte con norma**: `se rige por <norma> (<identificador de la norma>), no por el procedimiento
         común (<precepto> [<identificador>, bloque <id>])`;
       - **lo regulado aparte sin norma**: `lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>,
@@ -201,7 +201,7 @@ depende_de: [H32, H41.4]
       >
       > Lo que la pregunta pide y no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la
       > del procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el
-      > motivo «no está en lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que
+      > motivo «fuera de lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que
       > no ha pedido. Esta línea no es para lo que la ley regula aparte del procedimiento común: eso lo declara, con su
       > propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de
       > normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está
@@ -224,7 +224,7 @@ depende_de: [H32, H41.4]
       `text` y sin la marca, detrás de este párrafo:
 
       > Lo no cubierto (paso 7 y regla 9) va con esta forma: en un asunto de la cobertura del paquete, la línea de su
-      > fila, entera; en otra materia, con el motivo «no está en lo que kitlegal cubre»:
+      > fila, entera; en otra materia, con el motivo «fuera de lo que kitlegal cubre»:
 
     - **Regla 9.** Su última frase pasa a ser: «Un plazo, un órgano o una vía de otra materia tampoco: su línea, sin
       darlos de memoria ni pedir `plazos calcular`.».
@@ -307,6 +307,18 @@ depende_de: [H32, H41.4]
       - y la cola sin el motivo, o el motivo sin la cola.
 
       Sí cuenta cualquier unión entre el asunto y el motivo, con dos puntos, con una coma o con una frase.
+    - **Qué se comprueba literal, y qué no.** Solo lo que el modelo copia sin componerlo: la etiqueta, la cola, el
+      identificador y la cita, y un motivo que no depende gramaticalmente del asunto. Por eso el motivo fijo no lleva
+      verbo: con «no está en lo que kitlegal cubre», el modelo concordaba el verbo con un asunto plural («no están»), en
+      5 de 141 líneas de los sondeos y en 1 de 24 respuestas de los despachos, la que tumbó `consulta-juridica` en la
+      ejecución 44557705231 con la respuesta correcta. «fuera de lo que kitlegal cubre» lo contienen «está fuera de…»,
+      «están fuera de…», «queda fuera de…» y «son asuntos fuera de…». Lo prueba `TestMotivoSinConcordancia`, del
+      prototipo: esas cuatro cuentan, y «fuera de la cobertura de kitlegal» o la línea sin la cola, no. Lo que tiene
+      significado —que tras la línea no se dé de memoria un plazo, un órgano o una vía— no lo mide ningún guion; es una
+      clase del juez para otro hito (ver «Fuera»).
+    - **Si el motivo vuelve a caer** en el despacho de antes de lanzar por su redacción, con la respuesta correcta, no
+      se cambia el texto otra vez: fuera de lo declarado se comprueban solo la etiqueta y la cola, y se dice así aquí y
+      en el ADR 0058, punto 1.
     - **Los umbrales.** Se calculan en toda skill con alguna eval de cobertura:
       - `cobertura_sin_declarar:<modelo>:<modo>` lo tienen `consulta-juridica` (evals 01 y 04) y `plazos-y-territorio`
         (07, 08 y 12). Sigue con 0 de tope, porque hay forma (ADR 0038, punto 1). Su descripción en el informe, una
