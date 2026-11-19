@@ -57,17 +57,27 @@ depende_de: [H32, H41.4]
     verde. Se compara con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que cae, `main`
     frente al prototipo), que lanza la persona. Si el prototipo cae más, es un defecto de esta entrada y se corrige
     antes de lanzar; si no, es la serie de `main`.
-  - **El orden de activación en la eval 17 de `normativa`.** En el primer despacho, la sesión que dio `sin_activar` en
-    la 17 activó `consulta-juridica` y `plazos-y-territorio`, y no `normativa`. Un sondeo intercalado (2026-11-18, eval
-    17, los dos modos, 160 sesiones por fila en ocho tandas alternas) lo confirmó: con `main`, `plazos-y-territorio`
-    antes que `normativa` 0 de 160 y ninguna sin `normativa`; con la frase anterior del §4, que decía «lleva la línea de
-    su fila, la de `plazos-y-territorio`», 92 de 160 y 35 sin `normativa` (Fisher unilateral, p ≈ 10⁻³⁶). Esas sesiones
-    leen `references/administrativo.md`, donde está la fila del plazo de acceso, y piden `kitlegal boe articulo` sin la
-    skill de normativa. La frase de hoy no nombra ninguna skill. El mismo sondeo con el prototipo corregido
-    (`30aa4929`) frente a `main`, con el criterio fijado antes de medir —`plazos-y-territorio` antes que `normativa` no
-    más que en `main` (Fisher unilateral, p ≥ 0,025) y ninguna sesión sin `normativa`—, lo cumple: 1 de 160 frente a 0
-    de 160 (p = 0,5), y las 160 activan `normativa` antes de pedir nada a kitlegal. Los despachos se cuentan desde
-    `30aa4929`.
+  - **La eval 17 de `normativa`, antes de los despachos.** Cuatro sondeos intercalados del laboratorio (eval 17,
+    `INSTALACION=producto`, Claude Code 2.1.326; `~/code/kitlegal-sondeos/h33*` de quien los lanzó) y un despacho:
+    - **El primer prototipo** (`65a0c850`), con un §4 que mandaba lo regulado aparte a «la línea de su fila, la de
+      `plazos-y-territorio`», activaba `plazos-y-territorio` sin `normativa` en 35 de 160 sesiones; `main`, en 0.
+    - **Sin esa mención** (`30aa4929`), un sondeo dio 1 de 160 con `plazos-y-territorio` delante, pero no validó el
+      texto: 76 de sus 160 respuestas declaraban `⚠ NO CUBIERTO:` el cómputo del plazo de acceso, que kitlegal calcula.
+      En el despacho siguiente (ejecución 44411742438) `normativa` cayó por `sin_activar` en la 17, y un sondeo de seis
+      rondas dio 15 de 120 con `plazos-y-territorio` delante, 2 sin `normativa` y 34 de 120 con ese `⚠ NO CUBIERTO:`
+      falso; `main`, 0 en los tres. Con el párrafo de entrada y la viñeta de los paquetes como hoy (`8a3a8f8f`), 9, 0
+      y 42.
+    - **El mecanismo.** La viñeta de los plazos de §3 omitía el acceso a la información, y el §4, con la línea
+      obligatoria, lo volvía una declaración: o la sesión la escribía, o iba a `plazos-y-territorio` a comprobarlo y
+      leía el artículo desde allí, sin `normativa`. Con `main`, la misma omisión en prosa no da ninguna. De ahí el
+      alcance de los plazos que trae esta entrada y la segunda frase de §4.
+    - **El laboratorio no reproduce la tasa del job**: con el mismo texto, 4 de 6 en el despacho frente a un 12,5 % en
+      el sondeo. Ni el cliente (nativo o de npm) ni la hora lo explican; queda sin explicar.
+    - **El sondeo que decide**, con el prototipo de hoy (`3ba19d30`) frente a `main`, en los dos modos, seis rondas de
+      20 intercaladas, y cuatro criterios fijados antes de medir, cada uno en 0, como `main`: respuestas con
+      `⚠ NO CUBIERTO:`; sesiones con `plazos-y-territorio` y sin `normativa`; sesiones que activan
+      `plazos-y-territorio` en un mensaje anterior al de `normativa`; y sesiones sin `normativa`. Si cumple, los tres
+      despachos se cuentan desde `3ba19d30`.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
@@ -96,7 +106,7 @@ depende_de: [H32, H41.4]
           - capacidad: jurisprudencia
             alcance: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
           - capacidad: plazos
-            alcance: solo los del procedimiento administrativo común y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
+            alcance: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
             materia: administrativo
           - capacidad: territorio
             alcance: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
@@ -154,10 +164,12 @@ depende_de: [H32, H41.4]
     - **Entre ellas**, una línea por fila de `cubierto`, en el orden del fichero: `- **<Capacidad>**: <alcance>`, con la
       primera letra de la capacidad en mayúscula. Dos filas de una capacidad dan dos líneas, como en la vertical de
       ensayo. `materia` no se escribe: el alcance ya dice a qué se ciñe.
-    - **Con las cuatro filas de arriba**, la región repite palabra por palabra las cuatro viñetas de hoy. Cada viñeta
-      queda en una sola línea, y ninguna frase de hoy se pierde: «No consulta ningún buscador…» (ADR 0036), «solo los
-      del procedimiento administrativo común» y «Lo que la ley regula aparte… lo declara `plazos-y-territorio` con su
-      línea» van en sus alcances.
+    - **Con las cuatro filas de arriba**, la región repite las cuatro viñetas de hoy, cada una en una sola línea, y
+      ninguna frase de hoy se pierde: «No consulta ningún buscador…» (ADR 0036), «solo los del procedimiento
+      administrativo común» y «Lo que la ley regula aparte… lo declara `plazos-y-territorio` con su línea» van en sus
+      alcances. Solo cambia la de los plazos, que nombra también los del acceso a la información pública:
+      `data/plazos.yaml` los calcula (`acceso-resolver`, `acceso-reclamar`), y la viñeta de hoy los omitía. Con la línea
+      obligatoria del §4, esa omisión hacía declarar no cubierto su cómputo (ver «Antes de lanzar»).
     - **Sin `data/cobertura.yaml`, o con defectos**, la región queda como está, y el defecto es el del fichero, como en
       la de los paquetes.
     - **El presupuesto de líneas.** `partirElCuerpo` (`internal/app/skills_test.go`) no parte las líneas de esta región,
@@ -178,37 +190,33 @@ depende_de: [H32, H41.4]
     los blancos seguidos, saltos de línea incluidos, porque el cuerpo va partido a 120 columnas. Si no lo dice, da su
     defecto. Sin `data/cobertura.yaml`, el defecto es el del fichero, como en la región.
   - **`consulta-juridica`**:
-    - **El párrafo de entrada** dice que la skill declara lo que no cubre con su línea, que es suya, y que las demás
-      líneas `⚠` las lleva cada capacidad.
+    - **El párrafo de entrada** no cambia. Un prototipo que decía en él que la skill declara lo que no cubre con su
+      línea adelantaba `plazos-y-territorio` en la eval 17 de `normativa` (ver «Antes de lanzar»).
     - **§3.** Las cuatro viñetas de las capacidades pasan a ser la región de lo cubierto. Las viñetas de los paquetes
       de materia, ya generadas, y la de lo que no tiene herramienta, escrita a mano, se quedan.
     - **§4** pasa a decir lo que no cubre con su línea.
-    - **El texto medido.** Del párrafo de entrada y de §4, el del prototipo, palabra por palabra:
-
-      > Esta skill no consulta nada: decide qué capacidad de kitlegal resuelve la pregunta, con qué skill, y qué cubre la
-      > base, y declara lo que no cubre con su línea (paso 4). Lo que responde cada capacidad —su protocolo, sus reglas,
-      > sus demás líneas `⚠` y sus órdenes de `kitlegal`, desde el `PATH` o con su herramienta— lo lleva la skill de esa
-      > capacidad: actívala y síguela.
+    - **El texto medido.** El de §4, del prototipo, palabra por palabra:
 
       > ### 4. Lo que no cubre, con su línea
       >
-      > Toda parte de la pregunta que no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es
-      > la del procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el
-      > motivo «no está en lo que kitlegal cubre». Esta línea no es para lo que la ley regula aparte del procedimiento
-      > común: eso lo declara, con su propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma.
-      > Lo que leas con la skill de normativa para completarla va detrás, citado, con su marca: el texto citado es el de
-      > la norma; lo que no está verificado es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni
-      > vía, ni apliques los de otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un
-      > asunto de otra materia: ese plazo no es el suyo.
+      > Lo que la pregunta pide y no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la
+      > del procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el
+      > motivo «no está en lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que
+      > no ha pedido. Esta línea no es para lo que la ley regula aparte del procedimiento común: eso lo declara, con su
+      > propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de
+      > normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está
+      > verificado es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de
+      > otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia:
+      > ese plazo no es el suyo.
 
-      La segunda frase es la que impide que una pregunta de lo regulado aparte, que también es «el plazo de una materia
-      que no es la del procedimiento común», reciba el motivo fijo y la lectura marcada de su norma (ADR 0043, punto 7).
-      En una eval de lo regulado aparte, la línea con el motivo fijo cuenta como sin declarar.
+      La segunda frase deja sin línea lo que nadie preguntó. La tercera es la que impide que una pregunta de lo regulado
+      aparte, que también es «el plazo de una materia que no es la del procedimiento común», reciba el motivo fijo y la
+      lectura marcada de su norma (ADR 0043, punto 7). En una eval de lo regulado aparte, la línea con el motivo fijo
+      cuenta como sin declarar.
 
       Detrás van la plantilla y la marca, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
-    - **La viñeta «Paquetes de materia»** de §3 dice ahora «—sus normas, una referencia en cada skill que la necesita,
-      lo que cubre y lo que la ley regula aparte—» (ADR 0058, punto 4).
-    - **El cuerpo** pasa de 3810 a 4406 caracteres. El resto del cuerpo y el frontmatter no cambian.
+    - **La viñeta «Paquetes de materia»** de §3 no cambia, por la misma razón que el párrafo de entrada.
+    - **El cuerpo** pasa de 3810 a 4483 caracteres. El resto del cuerpo y el frontmatter no cambian.
   - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto del prototipo, y nada más.
     - **Paso 7.** Tras «**ni `plazos calcular`** ni ninguna fecha (regla 9)» se añade: «; si es de otra materia, igual,
       con el motivo de lo no declarado».
