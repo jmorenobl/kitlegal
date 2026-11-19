@@ -42,6 +42,15 @@ type Eval struct {
 	// instalada (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003, FR-004).
 	NoSeActivan []string `yaml:"no_se_activan"`
 
+	// TambienLaResuelven son los nombres de otras skills del producto cuya
+	// activación cuenta como la de la skill de su carpeta, en el orden del
+	// fichero y sin repetir; vacío si la eval no los declara. Con cuatro skills,
+	// una pregunta puede tener dos rutas que el producto permite: la eval 17 de
+	// normativa, un plazo del acceso a la información que plazos-y-territorio
+	// cubre y lee con su paso 6 (ADR 0058, punto 7). La declara una persona; no
+	// cambia lo que la sesión tiene que hacer ni ningún tope.
+	TambienLaResuelven []string `yaml:"tambien_la_resuelven"`
+
 	// Reproduce es el nombre de la skill cuya consulta reproduce la eval, o
 	// vacío si no reproduce ninguna (FR-064).
 	Reproduce string `yaml:"reproduce"`
@@ -167,6 +176,12 @@ type Eval struct {
 
 // esDePlazo dice si la eval es una eval de plazo: si espera un plazo, que su
 // esquema no admite sin fecha.
+// activadaPor dice si la sesión activó la skill de la eval o alguna de las que
+// la eval dice que también la resuelven (TambienLaResuelven; ADR 0058, punto 7).
+func (e Eval) activadaPor(sesion Sesion, skill string) bool {
+	return sesion.Activada(skill) || slices.ContainsFunc(e.TambienLaResuelven, sesion.Activada)
+}
+
 func (e Eval) esDePlazo() bool {
 	return e.Plazo.Fecha != ""
 }

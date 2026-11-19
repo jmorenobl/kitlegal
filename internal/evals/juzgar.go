@@ -546,7 +546,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 		Modo:                       modo,
 		Activa:                     eval.Activa,
 		PorMateria:                 eval.PorMateria,
-		Activada:                   sesion.Activada(skill),
+		Activada:                   eval.activadaPor(sesion, skill),
 		Respuesta:                  sesion.Respuesta,
 		CodigoDeLaSesion:           &codigo,
 		FinDeLaSesion:              sesion.Fin,

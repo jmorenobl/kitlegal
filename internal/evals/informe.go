@@ -1482,7 +1482,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string, reconocedor r
 
 	if juzgada.leida {
 		codigo := juzgada.sesion.Codigo
-		juzgada.resultado.Activada = juzgada.sesion.Activada(e.Skill)
+		juzgada.resultado.Activada = eval.activadaPor(juzgada.sesion, e.Skill)
 		juzgada.resultado.Activaciones = activaciones
 		juzgada.resultado.Respuesta = juzgada.sesion.Respuesta
 		juzgada.resultado.CodigoDeLaSesion = &codigo

@@ -6,6 +6,11 @@ pregunta: "¿En qué plazo hay que resolver una solicitud de acceso a la informa
 activa: true
 informativa: true
 por_materia: true
+# El plazo del acceso a la información lo cubre también plazos-y-territorio (data/plazos.yaml, acceso-resolver), que lee
+# su precepto con su paso 6: su activación cuenta como la de normativa (ADR 0058, punto 7). En el sondeo de H33 sobre
+# 3ba19d30, 28 de 240 sesiones respondieron solo con ella, las 28 con «un mes» y la cita del art. 20.
+tambien_la_resuelven:
+  - plazos-y-territorio
 comandos:
   - applet: boe
     norma: BOE-A-2013-12887

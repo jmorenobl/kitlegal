@@ -497,6 +497,7 @@ func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConj
 		}{
 			{clave: "se_activan", nombres: eval.SeActivan},
 			{clave: "no_se_activan", nombres: eval.NoSeActivan},
+			{clave: "tambien_la_resuelven", nombres: eval.TambienLaResuelven},
 		} {
 			for _, nombre := range nombradas.nombres {
 				if !slices.Contains(skills, nombre) {
