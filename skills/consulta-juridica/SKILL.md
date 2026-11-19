@@ -40,7 +40,7 @@ sus formas y sus citas son las de la respuesta.
 <!-- lo que cubre la base: lo genera make skills-sync -->
 - **Normativa**: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha.
 - **Jurisprudencia**: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
-- **Plazos**: solo los del procedimiento administrativo común y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
+- **Plazos**: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
 - **Territorio**: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
 <!-- fin de lo que cubre la base -->
 - **Paquetes de materia**: lo que una materia trae a las skills de capacidad —sus normas, una referencia en cada skill
@@ -53,13 +53,14 @@ sus formas y sus citas son las de la respuesta.
 
 ### 4. Lo que no cubre, con su línea
 
-Toda parte de la pregunta que no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la del
+Lo que la pregunta pide y no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la del
 procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el motivo «no está
-en lo que kitlegal cubre». Esta línea no es para lo que la ley regula aparte del procedimiento común: eso lo declara,
-con su propia línea, la skill de la capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de
-normativa para completarla va detrás, citado, con su marca: el texto citado es el de la norma; lo que no está verificado
-es que se aplique a este asunto. No des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los
-del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
+en lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que no ha pedido. Esta línea
+no es para lo que la ley regula aparte del procedimiento común: eso lo declara, con su propia línea, la skill de la
+capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de normativa para completarla va detrás,
+citado, con su marca: el texto citado es el de la norma; lo que no está verificado es que se aplique a este asunto. No
+des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los del procedimiento común, ni pidas
+`kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
 
 ```text
 ⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
