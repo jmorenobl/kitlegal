@@ -9,10 +9,9 @@ description: >-
 
 # Consulta jurídica: qué la resuelve y qué cubre la base
 
-Esta skill no consulta nada: decide qué capacidad de kitlegal resuelve la pregunta, con qué skill, y qué cubre la
-base, y declara lo que no cubre con su línea (paso 4). Lo que responde cada capacidad —su protocolo, sus reglas,
-sus demás líneas `⚠` y sus órdenes de `kitlegal`, desde el `PATH` o con su herramienta— lo lleva la skill de esa
-capacidad: actívala y síguela.
+Esta skill no consulta nada ni responde por su cuenta: decide qué capacidad de kitlegal resuelve la pregunta, con qué
+skill, y qué cubre la base. Lo que responde cada capacidad —su protocolo, sus reglas, sus líneas `⚠` y sus órdenes de
+`kitlegal`, desde el `PATH` o con su herramienta— lo lleva la skill de esa capacidad: actívala y síguela.
 
 ## Método
 
@@ -45,7 +44,7 @@ sus formas y sus citas son las de la respuesta.
 - **Territorio**: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
 <!-- fin de lo que cubre la base -->
 - **Paquetes de materia**: lo que una materia trae a las skills de capacidad —sus normas, una referencia en cada skill
-  que la necesita, lo que cubre y lo que la ley regula aparte—. Los de hoy, con las skills que los llevan:
+  que la necesita y lo que la ley regula aparte—. Los de hoy, con las skills que los llevan:
 <!-- paquetes de la base: lo genera make skills-sync -->
 - lo administrativo: `plazos-y-territorio`.
 <!-- fin de los paquetes de la base -->
