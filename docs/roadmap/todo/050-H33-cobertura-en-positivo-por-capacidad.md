@@ -39,26 +39,20 @@ depende_de: [H32, H41.4]
     - **los tests del paso de comprobación de `scripts/evals.sh`** (`TestEvalsDelRepositorio` y
       `TestIdentificadoresDeLasNormas`), en verde con las cuatro evals. En `conjunto_test.go`, la cuenta de las evals de
       la entrega y el mutante de «no activación de cada capacidad», como dice «Controles».
-  - **Cómo.** Tres despachos del job en modo completa sobre la rama, uno tras otro: `gh workflow run evals.yml --ref
-    <rama>`. Miden las cuatro skills enteras, sin reutilizar nada. Cada uno tarda unos 35 minutos.
-  - **Qué despachos cuentan.** Tres seguidos, desde el último cambio del prototipo, sin elegir los mejores. Si uno no
-    cumple, se corrige y se vuelve a contar desde cero. El primero (ejecución 44355778768, sobre `f3b78ef4`) es
-    evidencia, no uno de los tres: tras él cambió la regla del motivo (ver «`no_cubierto` y
-    `cobertura_sin_declarar`»).
-  - **Se lanza solo si**, en los tres despachos:
-    - los cuatro trabajos salen en verde;
-    - y `cobertura_sin_declarar` de `consulta-juridica` y de `plazos-y-territorio`, y `sin_activar` de
-      `consulta-juridica`, salen en 0 en los dos modos.
-
-    Son 18, 27 y 36 respuestas por modo. Un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6): con 36
-    respuestas en tres despachos, `cobertura_sin_declarar` de `consulta-juridica` aún deja pasar una tasa de hasta el
-    8 %.
-  - **Un rojo fuera de esos tres umbrales**, en otra skill o en otra clase, no se decide relanzando hasta que salga
+  - **Cómo.** Un despacho del job en modo completa sobre la rama: `gh workflow run evals.yml --ref <rama>`. Mide las
+    cuatro skills enteras, sin reutilizar nada, y tarda unos 35 minutos. Va sobre el último cambio del prototipo; el
+    de la ejecución 44355778768, sobre `f3b78ef4`, y el de la 44411742438, sobre `30aa4929`, son evidencia.
+  - **Se lanza si** los cuatro trabajos salen en verde, con `cobertura_sin_declarar` de `consulta-juridica` y de
+    `plazos-y-territorio` y `sin_activar` de `consulta-juridica` en 0 en los dos modos. Son 6 y 9 respuestas por modo:
+    un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6), y lo que la protege es el cierre del run, que vuelve a
+    medir. Antes se pedían tres despachos seguidos; con los cuatro trabajos, son 12 veredictos, y un producto sin
+    defectos los pasaría unas 3 de cada 4 veces solo con los rojos sin motivo que admiten los umbrales en tasa.
+  - **Un rojo**, en esos tres umbrales o fuera de ellos, no se decide relanzando hasta que salga
     verde. Se compara con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que cae, `main`
     frente al prototipo), que lanza la persona. Si el prototipo cae más, es un defecto de esta entrada y se corrige
     antes de lanzar; si no, es la serie de `main`.
-  - **La eval 17 de `normativa`, antes de los despachos.** Cuatro sondeos intercalados del laboratorio (eval 17,
-    `INSTALACION=producto`, Claude Code 2.1.326; `~/code/kitlegal-sondeos/h33*` de quien los lanzó) y un despacho:
+  - **La eval 17 de `normativa`, antes del despacho.** Cinco sondeos intercalados del laboratorio (eval 17,
+    `INSTALACION=producto`, Claude Code 2.1.326; `~/code/kitlegal-sondeos/h33*` de quien los lanzó) y dos despachos:
     - **El primer prototipo** (`65a0c850`), con un §4 que mandaba lo regulado aparte a «la línea de su fila, la de
       `plazos-y-territorio`», activaba `plazos-y-territorio` sin `normativa` en 35 de 160 sesiones; `main`, en 0.
     - **Sin esa mención** (`30aa4929`), un sondeo dio 1 de 160 con `plazos-y-territorio` delante, pero no validó el
@@ -73,11 +67,17 @@ depende_de: [H32, H41.4]
       alcance de los plazos que trae esta entrada y la segunda frase de §4.
     - **El laboratorio no reproduce la tasa del job**: con el mismo texto, 4 de 6 en el despacho frente a un 12,5 % en
       el sondeo. Ni el cliente (nativo o de npm) ni la hora lo explican; queda sin explicar.
-    - **El sondeo que decide**, con el prototipo de hoy (`3ba19d30`) frente a `main`, en los dos modos, seis rondas de
-      20 intercaladas, y cuatro criterios fijados antes de medir, cada uno en 0, como `main`: respuestas con
-      `⚠ NO CUBIERTO:`; sesiones con `plazos-y-territorio` y sin `normativa`; sesiones que activan
-      `plazos-y-territorio` en un mensaje anterior al de `normativa`; y sesiones sin `normativa`. Si cumple, los tres
-      despachos se cuentan desde `3ba19d30`.
+    - **El último sondeo**, con el prototipo de hoy (`3ba19d30`) frente a `main` en los dos modos, 240 sesiones por
+      fila: 0 respuestas con `⚠ NO CUBIERTO:` en las dos filas. Pero, con lo cubierto ya completo, todas las sesiones
+      del prototipo activan `plazos-y-territorio`, y 28 de 240 responden solo con ella: las 28, con «un mes» y la cita
+      `[BOE-A-2013-12887, bloque a20]`, leída con el paso 6 de `plazos-y-territorio`, que lo permite. No es un defecto
+      de la respuesta, sino una segunda ruta que el producto permite, y `sin_activar` la contaba como si lo fuera. De
+      ahí `tambien_la_resuelven` (ADR 0058, punto 7, y «Evals»). El criterio del sondeo se cambia después de ver los
+      datos, y por eso se dice: la ruta la permite el paso 6, y las respuestas son correctas.
+    - **Lo que se aprende para medir** (`docs/USO.md` lo recoge): un criterio de sondeo o de umbral es un defecto que
+      vería quien usa kitlegal (una respuesta mala, una cita sin leer, una línea falsa), no la ruta entre skills. El
+      defecto real de estos sondeos, los `⚠ NO CUBIERTO:` falsos, no lo cazó ningún umbral, sino leer las
+      respuestas.
   - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
 - **Entrega**:
   - **`data/cobertura.yaml`**, validado contra `schemas/cobertura.yaml.json` y leído por `skills.LeerCobertura`, con dos
@@ -325,6 +325,13 @@ depende_de: [H32, H41.4]
     La regla la cumplen las cuatro evals de arriba. Pide normas sin `vertical`: el paquete que tome la Ley de Contrato
     de Seguro o el Estatuto de los Trabajadores tendrá que mover la eval de ese lado a otra norma sin paquete (ADR
     0058).
+  - **`tambien_la_resuelven`**, un campo nuevo del formato de eval (`schemas/eval.yaml.json`, en una tarea `[datos]`,
+    e `internal/evals/formato.go`): los nombres de otras skills del producto cuya activación cuenta como la de la skill
+    de la carpeta, para `Activada`, para el juicio de la eval y para `sin_activar`, cuyo tope sigue en 0 (ADR 0058,
+    punto 7). Cada nombre es una skill de `skills/`, con la regla «skills nombradas» de hoy. Lo lleva solo la eval 17 de
+    `normativa`, con `[plazos-y-territorio]` y un comentario que dice por qué. No cambia lo que la sesión tiene que
+    hacer: sus comandos y sus citas siguen siendo los de hoy. Lo prueban `TestActivadaPor` y
+    `TestSkillsNombradasEnTambienLaResuelven`, del prototipo.
   - **El trabajo de evals.** `consulta-juridica` pasa de 2 a 4 evals y sigue a concurrencia 1. Su peor caso pasa de
     8485 s a 15 013 s, y cabe en el tope de 352 minutos (21 120 s). La concurrencia de las demás no cambia.
   - **Documentación.**
@@ -332,12 +339,14 @@ depende_de: [H32, H41.4]
       defectos de la región, que hoy dice «las dos formas», y la fila de `consulta-juridica` en la tabla de las skills,
       que dice «en prosa» y «sin… líneas `⚠`».
     - `CONTRIBUTING.md`:
-      - la fila del campo `no_cubierto` en la tabla del formato de eval, con `fuera_de_lo_declarado`;
+      - la fila del campo `no_cubierto` en la tabla del formato de eval, con `fuera_de_lo_declarado`, y la de
+        `tambien_la_resuelven`, nueva;
       - la fila de `cobertura_sin_declarar` en la tabla de umbrales, con su descripción nueva;
       - y los umbrales de `consulta-juridica`, con los dos que nacen.
     - `.github/workflows/evals.yml`: el comentario del tope que da 8485 s y «sus dos evals» para `consulta-juridica`.
       Solo el comentario: sus valores no cambian.
     - `docs/HISTORIAL.md`: la viñeta del hito.
+    - `docs/USO.md`: una entrada de la bitácora con lo que la medida previa enseñó (ver «Antes de lanzar»).
     - `CHANGELOG.md`: «Cambiado».
     - `web/src/pages/como-se-evalua/index.astro`: la frase que anuncia H33 pasa a decir lo hecho.
     - El ADR 0058 ya va con esta entrada; el run no escribe ninguno.
@@ -361,7 +370,8 @@ depende_de: [H32, H41.4]
       cuenta (`TestUmbralesDePlazosYTerritorio/una-de-cobertura-con-una-fecha-suelta`). La eval 04 pasa con la línea y
       «puedes reclamar hasta el 30 de noviembre» en la prosa. Lo que la impide es el texto de §4, no un umbral;
   - cambiar el tope de `cobertura_sin_declarar` o de `sin_activar`, cómo cuentan los demás, o ningún otro umbral, límite
-    ni tope, más allá de los dos que nacen en `consulta-juridica` (ADR 0038, punto 1);
+    ni tope, más allá de los dos que nacen en `consulta-juridica` (ADR 0038, punto 1) y de las activaciones que
+    `tambien_la_resuelven` declara (ADR 0058, punto 7);
   - cambiar el job de evals más allá de lo que piden sus tests con las evals nuevas y del comentario de su tope: ni
     `VERSION_DE_CLAUDE_CODE`, ni `MODELO_DE_EVALS`, ni lo que instala (ADR 0031);
   - que el binario o un servidor detecte la materia de una pregunta o lea una respuesta. La frontera la decide la skill

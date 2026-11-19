@@ -3,7 +3,7 @@
 - **Estado**: propuesta (2026-11-18); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
 - **Fecha**: 2026-11-18
 - **Hito**: H33. Se escribe con su entrada (`docs/roadmap/todo/050-H33-cobertura-en-positivo-por-capacidad.md`, #277),
-  antes del run y fuera de él, en una sesión interactiva. Decide en seis puntos lo que la entrada necesita y que el ADR
+  antes del run y fuera de él, en una sesión interactiva. Decide en siete puntos lo que la entrada necesita y que el ADR
   0044 (punto 7) pide decidir con un ADR, en lugar de dejarlo a la entrada.
 
 ## Contexto y problema
@@ -29,6 +29,12 @@ o sin dejar el cierre en riesgo:
 - **`sin_activar` en `consulta-juridica`.** Con una eval de cobertura, el código de `internal/evals` da a la skill sus
   umbrales de respuestas, y entre ellos `sin_activar`, con 0 de tope. Hoy no lo tiene, y la serie es corta: en el job de la
   v0.10.1, las 12 sesiones del modelo que decide la activaron, y en el cierre de H41.4, sus 12 también.
+- **Dos rutas válidas para una pregunta.** Al medir el prototipo antes de lanzar salió el séptimo. Con lo cubierto de
+  los plazos completo —el acceso a la información, que `data/plazos.yaml` calcula—, la eval 17 de `normativa` («¿En qué
+  plazo hay que resolver una solicitud de acceso…?») la resuelve también `plazos-y-territorio`, que lee el precepto con
+  su paso 6. En un sondeo de 240 sesiones, 28 respondieron solo con ella, las 28 bien y citadas, y `sin_activar` de
+  `normativa` las contaba como sin activar. Con una sola skill instalada, «activó la skill» era «usó el producto»; con
+  cuatro (ADR 0048), puede ser elegir entre dos rutas que el producto permite.
 
 ## Decisión
 
@@ -55,9 +61,18 @@ o sin dejar el cierre en riesgo:
 6. **`sin_activar` nace en `consulta-juridica`, con 0 de tope**, como en las demás skills con umbrales de respuestas:
    activarse es un hecho de la sesión (ADR 0038, punto 1). No se le hace una excepción en el código, que sería un caso
    especial por skill. El riesgo de un cierre en rojo por un umbral sin serie lo reduce, sin quitarlo, la medida de antes
-   de lanzar que fija la entrada: tres ejecuciones completas del job sobre el prototipo, y si una sale por encima de 0,
-   H33 no se lanza. Con 36 respuestas por modo en `sin_activar`, un 0 no descarta una tasa de fondo del 2 %; si el
-   cierre cae por él, es la serie que ve la persona (ADR 0038, punto 5), no un defecto que el run repare.
+   de lanzar que fija la entrada: una ejecución completa del job sobre el prototipo, y un rojo se compara con `main`.
+   Con 12 respuestas por modo en `sin_activar`, un 0 no descarta una tasa de fondo baja; si el cierre cae por él, es la
+   serie que ve la persona (ADR 0038, punto 5), no un defecto que el run repare.
+7. **Una eval puede declarar otras skills que también la resuelven** (`tambien_la_resuelven`). Su activación cuenta
+   como la de la skill de la eval, en el juicio y en `sin_activar`, cuyo tope sigue en 0: lo que sigue siendo un
+   defecto es responder sin ninguna skill del producto que la resuelva. Lo declara una persona en el fichero de la
+   eval, con un comentario que dice por qué; cada nombre es una skill de `skills/`. No cambia lo que la sesión tiene que
+   hacer —sus comandos y sus citas— ni ningún tope, y la ruta que tomó cada sesión sigue en el informe. Lo lleva la eval
+   17 de `normativa`, con `plazos-y-territorio`. Es un cambio del criterio hecho tras ver los datos, y por eso se dice:
+   la ruta la permite el paso 6 de `plazos-y-territorio`, y las respuestas eran correctas. Precisa el punto 6 del ADR
+   0038 y el ADR 0054 (opción 1), que rechazó dar un margen a `sin_activar`: esto no es un margen, sino qué skill
+   cuenta.
 
 ## Consecuencias
 
@@ -69,6 +84,8 @@ o sin dejar el cierre en riesgo:
   no el cierre del run.
 - **La regla «frontera en dos materias»** pide dos normas sin `vertical`. El paquete que tome la Ley de Contrato de Seguro
   o el Estatuto de los Trabajadores tendrá que mover la eval de ese lado a otra norma sin paquete.
+- **`sin_activar` mide si se usó el producto, no qué skill eligió el modelo**, en las evals que lo declaran. Una
+  pregunta con dos rutas ya no tumba un cierre por la ruta.
 - **Lo que falta medir sigue en la bitácora.** Una línea de no cubierto de más en una pregunta cubierta, y una fecha
   contada a mano en la prosa de una respuesta que lleva la línea, no los decide ningún umbral. La entrada los deja como
   límites conocidos.
