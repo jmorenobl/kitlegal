@@ -22,8 +22,8 @@ depende_de: [H32, H41.4]
     de `references/administrativo.md`.
 - **Decisiones que esta entrada aplica**: el ADR 0058, que va en la misma propuesta y precisa los ADR 0044 y 0048. El
   run no lo cambia ni escribe otro.
-- **Antes de lanzar** (lo hace la persona, no el run): medir la plantilla con un modelo. Nadie la ha medido, y el cierre
-  la congela con 0 de tope.
+- **Antes de lanzar** (lo hizo la persona, no el run; hecho, y queda como registro): medir la plantilla con un modelo,
+  porque el cierre la congela con 0 de tope. El run no repite nada de este bloque; su resultado, al final.
   - **El prototipo** es una rama que no se fusiona ni lleva propuesta de cambio. Lleva lo de «Entrega» que cambia lo
     que ve o hace una sesión:
     - los textos de las dos skills y de `administrativo.md`;
@@ -40,17 +40,17 @@ depende_de: [H32, H41.4]
       `TestIdentificadoresDeLasNormas`), en verde con las cuatro evals. En `conjunto_test.go`, la cuenta de las evals de
       la entrega y el mutante de «no activación de cada capacidad», como dice «Controles».
   - **Cómo.** Un despacho del job en modo completa sobre la rama: `gh workflow run evals.yml --ref <rama>`. Mide las
-    cuatro skills enteras, sin reutilizar nada, y tarda unos 35 minutos. Va sobre el último cambio del prototipo; el
+    cuatro skills enteras, sin reutilizar nada, y tarda unos 35 minutos. Fue sobre el último cambio del prototipo; el
     de la ejecución 44355778768, sobre `f3b78ef4`, y el de la 44411742438, sobre `30aa4929`, son evidencia.
-  - **Se lanza si** los cuatro trabajos salen en verde, con `cobertura_sin_declarar` de `consulta-juridica` y de
+  - **Se lanzaba si** los cuatro trabajos salían en verde, con `cobertura_sin_declarar` de `consulta-juridica` y de
     `plazos-y-territorio` y `sin_activar` de `consulta-juridica` en 0 en los dos modos. Son 6 y 9 respuestas por modo:
     un 0 no descarta una tasa de fondo baja (ADR 0058, punto 6), y lo que la protege es el cierre del run, que vuelve a
-    medir. Antes se pedían tres despachos seguidos; con los cuatro trabajos, son 12 veredictos, y un producto sin
+    medir. Al principio se pedían tres despachos seguidos; con los cuatro trabajos, son 12 veredictos, y un producto sin
     defectos los pasaría unas 3 de cada 4 veces solo con los rojos sin motivo que admiten los umbrales en tasa.
-  - **Un rojo**, en esos tres umbrales o fuera de ellos, no se decide relanzando hasta que salga
-    verde. Se compara con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que cae, `main`
-    frente al prototipo), que lanza la persona. Si el prototipo cae más, es un defecto de esta entrada y se corrige
-    antes de lanzar; si no, es la serie de `main`.
+  - **Un rojo**, en esos tres umbrales o fuera de ellos, no se decidía relanzando hasta que saliera verde. Se
+    comparaba con `main` en un sondeo con filas intercaladas (`INSTALACION=producto`, la eval que caía, `main` frente
+    al prototipo), que lanzaba la persona. Si el prototipo caía más, era un defecto de esta entrada y se corregía antes
+    de lanzar; si no, era la serie de `main`.
   - **La eval 17 de `normativa`, antes del despacho.** Cinco sondeos intercalados del laboratorio (eval 17,
     `INSTALACION=producto`, Claude Code 2.1.326; `~/code/kitlegal-sondeos/h33*` de quien los lanzó) y dos despachos:
     - **El primer prototipo** (`65a0c850`), con un §4 que mandaba lo regulado aparte a «la línea de su fila, la de
@@ -74,11 +74,12 @@ depende_de: [H32, H41.4]
       de la respuesta, sino una segunda ruta que el producto permite, y `sin_activar` la contaba como si lo fuera. De
       ahí `tambien_la_resuelven` (ADR 0058, punto 7, y «Evals»). El criterio del sondeo se cambia después de ver los
       datos, y por eso se dice: la ruta la permite el paso 6, y las respuestas son correctas.
-    - **Lo que se aprende para medir** (`docs/USO.md` lo recoge): un criterio de sondeo o de umbral es un defecto que
-      vería quien usa kitlegal (una respuesta mala, una cita sin leer, una línea falsa), no la ruta entre skills. El
-      defecto real de estos sondeos, los `⚠ NO CUBIERTO:` falsos, no lo cazó ningún umbral, sino leer las
-      respuestas.
-  - **Si no**, se corrige esta entrada con lo que muestren las respuestas, y se vuelve a medir.
+    - **Lo que se aprende para medir** (lo recogerá `docs/USO.md`, en la entrega de este hito): un criterio de sondeo o
+      de umbral es un defecto que vería quien usa kitlegal (una respuesta mala, una cita sin leer, una línea falsa), no
+      la ruta entre skills. El defecto real de estos sondeos, los `⚠ NO CUBIERTO:` falsos, no lo cazó ningún umbral,
+      sino leer las respuestas.
+  - **Si no**, se corregía esta entrada con lo que mostraran las respuestas y se volvía a medir; así salieron las
+    correcciones de arriba.
   - **Resultado.** El despacho 44595560885, sobre `27413343`, sale con los cuatro trabajos en verde y los tres umbrales
     en 0 en los dos modos. El 44575732882, sobre el mismo commit, no cuenta: la cuenta llegó a su límite de uso semanal
     y dejó sesiones sin medir (sus umbrales medidos, en 0). Los anteriores (44355778768, 44411742438, 44557705231 y
@@ -158,6 +159,9 @@ depende_de: [H32, H41.4]
       - una región en una skill sin plantilla;
       - una región en una referencia sin sus dos motivos, uno de cada;
       - un marcador que la tabla no conoce.
+
+      Sus mensajes son los de hoy en `docs/SKILLS.md`, con «la plantilla» donde dicen «las dos formas», y el de los
+      motivos, en la misma forma, con «sin sus dos motivos».
     - **Una fila sin región** sigue dando su defecto en cada skill con plantilla, que ahora son `consulta-juridica` y
       `plazos-y-territorio`.
   - **La región de lo cubierto**, nueva, en el `SKILL.md` que lleva sus marcas, hoy solo `consulta-juridica`. Es una
@@ -212,7 +216,7 @@ depende_de: [H32, H41.4]
 
       Detrás van la plantilla y la marca, en un bloque `text`, y el párrafo «Por qué» de hoy, sin cambios.
     - **La viñeta «Paquetes de materia»** de §3 no cambia, por la misma razón que el párrafo de entrada.
-    - **El cuerpo** pasa de 3810 a 4483 caracteres. El resto del cuerpo y el frontmatter no cambian.
+    - **El cuerpo** pasa de 3810 a 4481 caracteres. El resto del cuerpo y el frontmatter no cambian.
   - **`plazos-y-territorio`**: tres cambios del cuerpo, con el texto del prototipo, y nada más.
     - **Paso 7.** Tras «**ni `plazos calcular`** ni ninguna fecha (regla 9)» se añade: «; si es de otra materia, igual,
       con el motivo de lo no declarado».
@@ -225,11 +229,12 @@ depende_de: [H32, H41.4]
     - **Regla 9.** Su última frase pasa a ser: «Un plazo, un órgano o una vía de otra materia tampoco: su línea, sin
       darlos de memoria ni pedir `plazos calcular`.».
     - **Lo que no cambia.** Las órdenes de leer (ADR 0052 y 0053), el frontmatter y lo demás del cuerpo.
-    - **El tope.** Con los tres cambios, el cuerpo baja de 10 882 a 10 688 caracteres, frente a 11 000 de máximo (ADR
+    - **El tope.** Con los tres cambios, el cuerpo baja de 10 882 a 10 686 caracteres, frente a 11 000 de máximo (ADR
       0046). Cada paquete nuevo suma una línea de 58 caracteres más dos veces su nombre: la de la vertical de ensayo
-      mide 70, y con ella el cuerpo queda en 10 758. Desde ahí caben tres más de 70. Si la implementación necesita más texto, no puede dejar menos de 140 caracteres libres. Lo que sobre
-      va a `administrativo.md` o a `calculo_de_plazos.md`, como movimiento declarado en
-      `TestSkillsDelProductoDesdeControl`. No se acorta otro texto del cuerpo.
+      mide 70, y con ella el cuerpo queda en 10 756. Desde ahí caben tres más de 70. Si la implementación necesita más
+      texto, no puede dejar menos de 140 caracteres libres. Lo que sobre va a `administrativo.md` o a
+      `calculo_de_plazos.md`, como movimiento declarado en `TestSkillsDelProductoDesdeControl`. No se acorta otro texto
+      del cuerpo.
   - **`administrativo.md`.** Gana, en «Lo que la ley regula aparte», delante de la región, la frase «Los motivos de la
     línea; el primero es el de la fila con norma:» y los dos motivos en un bloque `text`. Lo demás escrito a mano no
     cambia, y la tabla se regenera.
@@ -291,7 +296,7 @@ depende_de: [H32, H41.4]
       parte distinta: el asunto unido al motivo sin `: ` (ejecución 44355778768), el verbo del motivo concordado con un
       asunto plural, «no están» (44557705231), y la cola o el motivo dichos con otras palabras (44568601898). Por eso el
       motivo fijo no lleva verbo, «fuera de lo que kitlegal cubre», y por eso no se comprueba. Lo prueba
-      `TestDeclaradaFueraDeLoDeclarado`, del prototipo, con las dos líneas del último despacho. Lo que tiene
+      un test con las dos líneas del último despacho, que van literales en «Controles». Lo que tiene
       significado —que tras la línea no se dé de memoria un plazo, un órgano o una vía— no lo mide ningún guion; es una
       clase del juez para otro hito (ver «Fuera»). Lo que sí protege la eval 04 sin modelo es que no pida
       `plazos calcular`.
@@ -349,7 +354,8 @@ depende_de: [H32, H41.4]
   - cambiar las filas de `regulados_aparte` (sus procedimientos, preceptos y normas) o quitarlas;
   - exponer o marcar con `⚠ NO VERIFICADO:` la norma que rige lo regulado aparte (ADR 0043, punto 7; ADR 0058, punto
     2);
-  - cambiar `normativa` o `jurisprudencia`, o una `description` de cualquier skill (ADR 0055 y 0057);
+  - cambiar `skills/normativa` o `skills/jurisprudencia`, o una `description` de cualquier skill (ADR 0055 y 0057).
+    De sus evals, solo la 17 de `normativa` cambia, y solo para ganar `tambien_la_resuelven` («Evals»);
   - cambiar en `consulta-juridica`, `plazos-y-territorio` o `administrativo.md` algo distinto de lo que dice «Entrega»;
   - un umbral o una clase del juez para `⚠ NO VERIFICADO:`. Saber si una frase vino de una lectura pide leer su
     significado, y una clase del juez solo decide medida contra casos etiquetados (ADR 0037);
@@ -390,8 +396,13 @@ depende_de: [H32, H41.4]
       - la línea partida en dos, con la etiqueta en una y la cita en otra;
       - la línea con `⚠ PLAZO:`.
 
-      No cuentan como sin declarar, fuera de lo declarado, la línea con la cola o el motivo dichos con otras palabras
-      (las dos del despacho 44568601898), ni la línea con negritas o con `⚠️`.
+      No cuentan como sin declarar, fuera de lo declarado, la línea con negritas o con `⚠️`, ni la línea con la cola
+      o el motivo dichos con otras palabras. De estas, las dos del despacho 44568601898, literales:
+
+      ```text
+      ⚠ NO CUBIERTO: a quién reclamar y qué escrito presentar. Está fuera de lo que kitlegal cubre, que no da plazos, órganos, vías ni escritos para esto.
+      ⚠ NO CUBIERTO: el día en que vence el plazo: es un plazo laboral. kitlegal no da sus plazos, órganos, vías ni escritos.
+      ```
     - **La regla «frontera en dos materias»**: el conjunto de la rama la cumple, y un mutante sin la eval de un lado da
       su defecto.
     - **La vertical de ensayo** entra con su fila de `cubierto` y sus motivos, y su fila sale en la región de lo cubierto
@@ -429,7 +440,8 @@ depende_de: [H32, H41.4]
       ser la línea de arriba en su fila de la tabla. Lo demás del guion no cambia: las 33 filas de `c991808` siguen con
       sus datos en la referencia.
     - **`h32-capacidades.txtar`** (de H32). En su `formas.txt`, la fila `plazos-y-territorio|⚠ NO CUBIERTO:|2` pasa a
-      `|1`. El total sigue en `formas: 16 de 16`: no mira `consulta-juridica`, y `plazos-y-territorio` no lleva la marca.
+      `|1`, y su comentario de cabecera, que dice «dos en ⚠ NO CUBIERTO:», pasa a decir una, la plantilla. El total
+      sigue en `formas: 16 de 16`: no mira `consulta-juridica`, y `plazos-y-territorio` no lleva la marca.
     - **`TestSkillsDelProductoDesdeControl`**, el subtest de `plazos-y-territorio` (de H41, H41.1 y H41.4):
       - la declaración de `plazos-y-territorio` gana los tres cambios del cuerpo de arriba;
       - y gana un cambio en lo escrito a mano de `administrativo.md`, los motivos. Hoy la declaración solo admite cambios
@@ -443,15 +455,16 @@ depende_de: [H32, H41.4]
       `ab951c22`, y no hay en el repositorio texto de esa base sobre el que declarar cambios.
       - La huella pasa a ser la del `SKILL.md` que entrega H33, con sus dos regiones generadas reducidas a sus marcas,
         para que regenerar la lista de lo cubierto o la de los paquetes no la mueva.
-      - El nombre de la base en los mensajes pasa a ser el de H33.
+      - El nombre de la base en los mensajes pasa a ser «la entrega de H33»: donde hoy dicen «de la base de la rama
+        (ab951c22)», dicen «de la entrega de H33».
       - Sus mutantes siguen dando su defecto exacto.
 
       Lo que cambia del `SKILL.md` lo ve la persona en el diff de la propuesta.
 
   Las evals salen en verde en la medición del cierre, en los dos modos, con `cobertura_sin_declarar` en 0 en
   `consulta-juridica` y en `plazos-y-territorio` y `sin_activar` en 0 en `consulta-juridica`. Las primeras medidas son
-  las de «Antes de lanzar». Si en el cierre caen, la reparación no toca la plantilla, el motivo, la cola ni los umbrales
-  para que pasen: lo deja dicho para la persona.
+  las de «Antes de lanzar». Si en el cierre caen, la reparación no toca para que pasen ningún texto de las skills ni de
+  `administrativo.md`, ni las evals ni los umbrales: lo deja dicho para la persona.
 - **Aceptación**:
   - **e2e** (`testscript`) sobre `kitlegal skills install`:
     - el `SKILL.md` instalado de `consulta-juridica` y el de `plazos-y-territorio` llevan la plantilla, la misma línea

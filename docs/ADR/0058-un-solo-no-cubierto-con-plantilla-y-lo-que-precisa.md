@@ -9,9 +9,9 @@
 ## Contexto y problema
 
 El ADR 0044, punto 4, pide que H33 dé a todas las materias un único `⚠ NO CUBIERTO:` que diga también con qué
-herramienta busca el agente lo que falta. Al escribir la entrada, y en dos revisiones independientes con un prototipo
-fuera del repositorio, salieron cinco puntos en los que la entrada no puede seguir lo escrito sin reabrir otra decisión
-o sin dejar el cierre en riesgo:
+herramienta busca el agente lo que falta. Al escribir la entrada, y en dos revisiones independientes con un prototipo,
+salieron seis puntos en los que la entrada no puede seguir lo escrito sin reabrir otra decisión o sin dejar el cierre
+en riesgo:
 
 - **Nombrar la herramienta en la línea.** La línea se repite en las nueve filas de lo regulado aparte. Tras ellas no se
   expone la norma que rige el procedimiento (ADR 0043, punto 7, que nació de una sesión que leyó los arts. 223 y 235 LGT
@@ -29,12 +29,12 @@ o sin dejar el cierre en riesgo:
 - **`sin_activar` en `consulta-juridica`.** Con una eval de cobertura, el código de `internal/evals` da a la skill sus
   umbrales de respuestas, y entre ellos `sin_activar`, con 0 de tope. Hoy no lo tiene, y la serie es corta: en el job de la
   v0.10.1, las 12 sesiones del modelo que decide la activaron, y en el cierre de H41.4, sus 12 también.
-- **Dos rutas válidas para una pregunta.** Al medir el prototipo antes de lanzar salió el séptimo. Con lo cubierto de
-  los plazos completo —el acceso a la información, que `data/plazos.yaml` calcula—, la eval 17 de `normativa` («¿En qué
-  plazo hay que resolver una solicitud de acceso…?») la resuelve también `plazos-y-territorio`, que lee el precepto con
-  su paso 6. En un sondeo de 240 sesiones, 28 respondieron solo con ella, las 28 bien y citadas, y `sin_activar` de
-  `normativa` las contaba como sin activar. Con una sola skill instalada, «activó la skill» era «usó el producto»; con
-  cuatro (ADR 0048), puede ser elegir entre dos rutas que el producto permite.
+- **Dos rutas válidas para una pregunta.** Al medir el prototipo antes de lanzar salió otro, que decide el punto 7. Con
+  lo cubierto de los plazos completo —el acceso a la información, que `data/plazos.yaml` calcula—, la eval 17 de
+  `normativa` («¿En qué plazo hay que resolver una solicitud de acceso…?») la resuelve también `plazos-y-territorio`,
+  que lee el precepto con su paso 6. En un sondeo de 240 sesiones, 28 respondieron solo con ella, las 28 bien y citadas,
+  y `sin_activar` de `normativa` las contaba como sin activar. Con una sola skill instalada, «activó la skill» era «usó
+  el producto»; con cuatro (ADR 0048), puede ser elegir entre dos rutas que el producto permite.
 
 ## Decisión
 
@@ -66,20 +66,20 @@ o sin dejar el cierre en riesgo:
    especial por skill. El riesgo de un cierre en rojo por un umbral sin serie lo reduce, sin quitarlo, la medida de antes
    de lanzar que fija la entrada: una ejecución completa del job sobre el prototipo, y un rojo se compara con `main`.
    Con 12 respuestas por modo en `sin_activar`, un 0 no descarta una tasa de fondo baja; si el cierre cae por él, es la
-   serie que ve la persona (ADR 0038, punto 5), no un defecto que el run repare.
+   serie que ve la persona (ADR 0038, punto 6), no un defecto que el run repare.
 7. **Una eval puede declarar otras skills que también la resuelven** (`tambien_la_resuelven`). Su activación cuenta
    como la de la skill de la eval, en el juicio y en `sin_activar`, cuyo tope sigue en 0: lo que sigue siendo un
    defecto es responder sin ninguna skill del producto que la resuelva. Lo declara una persona en el fichero de la
    eval, con un comentario que dice por qué; cada nombre es una skill de `skills/`. No cambia lo que la sesión tiene que
    hacer —sus comandos y sus citas— ni ningún tope, y la ruta que tomó cada sesión sigue en el informe. Lo lleva la eval
    17 de `normativa`, con `plazos-y-territorio`. Es un cambio del criterio hecho tras ver los datos, y por eso se dice:
-   la ruta la permite el paso 6 de `plazos-y-territorio`, y las respuestas eran correctas. Precisa el punto 6 del ADR
+   la ruta la permite el paso 6 de `plazos-y-territorio`, y las respuestas eran correctas. Precisa el punto 1 del ADR
    0038 y el ADR 0054 (opción 1), que rechazó dar un margen a `sin_activar`: esto no es un margen, sino qué skill
    cuenta.
 
 ## Consecuencias
 
-- **La cola es más corta.** El cuerpo de `plazos-y-territorio` baja de 10 882 a 10 688 caracteres, con sitio para la
+- **La cola es más corta.** El cuerpo de `plazos-y-territorio` baja de 10 882 a 10 686 caracteres, con sitio para la
   línea de cuatro paquetes, contando el de ensayo de los tests.
 - **Las nueve filas de lo regulado aparte dejan de decir «no calcula sus plazos ni sus recursos»**, y pasan a decir que
   kitlegal no da sus plazos, órganos, vías ni escritos. Lo que hace la skill tras la línea no cambia.
@@ -95,9 +95,9 @@ o sin dejar el cierre en riesgo:
 
 ## Validación
 
-- **Los textos, los caracteres y las suites** se comprobaron en un prototipo fuera del repositorio, sobre `3963b85e`.
-  Llevaba la plantilla, el generador, la región de lo cubierto, el formato de eval, las evals 01, 03 y 04 y la vertical
-  de ensayo con su fila y sus motivos. Con `go test ./...` y `-tags=integration`, solo cayeron los tests que la entrada
-  enumera.
+- **Los textos, los caracteres y las suites** se comprobaron en un prototipo sobre `3963b85e`, en la rama
+  `h33-prototipo`, que no se fusiona. Llevaba la plantilla, el generador, la región de lo cubierto, el formato de eval,
+  las evals 01, 03 y 04 y la vertical de ensayo con su fila y sus motivos. Con `go test ./...` y `-tags=integration`,
+  solo cayeron los tests que la entrada enumera.
 - **`sin_activar` en `consulta-juridica`** salió en el prototipo con `Decide: true` y 0 de tope en los dos modos
   (`TestUmbralesDeLasSkills`).
