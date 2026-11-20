@@ -197,6 +197,7 @@ func TestRegiones(t *testing.T) {
 	t.Run("editada-a-mano", probarLaRegionEditadaAMano)
 	t.Run("plantilla-cambiada-sin-regenerar", probarLaPlantillaCambiadaSinRegenerar)
 	t.Run("motivo-cambiado-sin-regenerar", probarElMotivoCambiadoSinRegenerar)
+	t.Run("motivos-entre-otras-lineas", probarLosMotivosEntreOtrasLineas)
 	t.Run("defectos", probarLosDefectosDeLasRegiones)
 	t.Run("datos-que-no-se-leen", probarLosDatosQueNoSeLeen)
 	t.Run("datos-de-las-marcas", probarLosDatosDeLasMarcas)
@@ -229,6 +230,25 @@ func probarLaSincroniaDeLasRegiones(t *testing.T) {
 		"los encabezados de los recursos y plazos: %s", plazos)
 	assert.Contains(t, plazos, filaDeLaReposicion)
 	assert.Contains(t, plazos, filaDelContencioso)
+}
+
+// probarLosMotivosEntreOtrasLineas fija que los motivos de la línea son solo las
+// líneas del bloque text que llevan <precepto> y no empiezan por ⚠: un aviso del
+// paquete con <precepto> y una nota sin él, en el mismo bloque, no cuentan como
+// motivo, y la región es la misma que sin ellos.
+func probarLosMotivosEntreOtrasLineas(t *testing.T) {
+	t.Parallel()
+
+	raiz := arbolDeRegiones(t)
+	cambiarFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), "```text\n"+motivoConNorma,
+		"```text\n  ⚠ Un aviso del paquete que cita <precepto>.\nUna nota del paquete, sin marcadores.\n"+motivoConNorma)
+
+	regenerado := regenerar(t, raiz, nil)
+	assert.Empty(t, presentarDefectos(regenerado.Defectos()))
+	require.NoError(t, skills.Escribir(raiz, regenerado))
+
+	assert.Contains(t, leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz)),
+		inicioDeLaCobertura+tablaDeLaCobertura+finDeLaCobertura, "la cobertura, con los dos motivos de siempre")
 }
 
 // probarLaRegionEditadaAMano fija que lo editado a mano entre las marcas de una
