@@ -170,7 +170,9 @@ De dentro afuera, con `make ci` en verde tras cada tarea:
    `TestLeerCobertura`, en una sola tarea porque el test lee el fichero del repositorio.
 4. `[datos]` La plantilla y los motivos, en una sola tarea porque, con el generador nuevo y la skill de hoy, la región
    de `administrativo.md` da su defecto:
-   - el generador de `regiones.go` y `sincronia.go`, con `TestRegiones` y `TestRegionDeLaCobertura`;
+   - el generador de `regiones.go` y `sincronia.go`, con `TestRegiones` y `TestRegionDeLaCobertura`; el `SKILL.md`
+     sintético de `TestRegiones`, con la plantilla, dice ya en su prosa el motivo, «fuera de lo que kitlegal cubre»,
+     para que el defecto del motivo del paso 5 no cambie sus casos;
    - el `SKILL.md` de `plazos-y-territorio` y `administrativo.md`, regenerada;
    - los dos guiones de H32 y el `ensayo.md` de la vertical, con sus motivos;
    - la declaración y `sinLoGenerado` de `TestSkillsDelProductoDesdeControl`.
