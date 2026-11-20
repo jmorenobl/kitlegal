@@ -1,13 +1,17 @@
 {
-  "id": "T001",
-  "texto": "T001 [aceptacion] [US5] Escribir, a partir del spec y de contracts/aceptacion.md §2, sin código de producto, el guion testscript specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar, byte a byte el bloque `text` de §2 con su salto de línea final: la cabecera de comentarios con la línea `# Cubre: US5 · FR-004, FR-007, FR-010, FR-025 · SC-001, SC-002, SC-003, SC-005`; `exec kitlegal skills install --dir destino --json`; los `grep` literales de la plantilla sola en su bloque en `plazos-y-territorio` (con `-count=1` y el `! grep` de la marca), de la plantilla seguida de la marca en `consulta-juridica` (con `-count=1`), los dos `! grep` de «procedimiento común» en la línea de la plantilla, el de la región de lo cubierto con sus dos marcas y sus cuatro líneas, el `exec awk -f filas.awk` con `stdout '^filas: 9 de 9, 2 con norma$'`, el de la fila de los tributos y el `! grep` del tope de 10 860 caracteres del cuerpo (diez `(?s:.){1000}` y un `(?s:.){861}`); y la sección `-- filas.awk --` tal cual. Cubre la historia 5 entera (FR-025) y lo instalado de FR-004, FR-007 y FR-010 (SC-001, SC-002, SC-003, SC-005); afirma solo lo que el spec fija byte a byte (contracts/aceptacion.md §1). Sin evals en esta tarea: las de la frontera (01, 03 y 04 de `consulta-juridica`, 17 de `normativa`) llevan `fuera_de_lo_declarado` y `tambien_la_resuelven`, claves que el esquema de eval de hoy rechaza, y dejarían `make ci` en rojo; las escribe T007, tras el formato de T006 (research D18). Hoy falla por su primera aserción, el `grep` de la plantilla de `plazos-y-territorio` (research V7b); lo comprueba el workflow (rojo primero), y la tarea no deja ningún otro fichero cambiado.",
+  "id": "T002",
+  "texto": "T002 [datos] La entrada del art. 59 del Estatuto de los Trabajadores en el manifiesto de grabación de H9, sin código ni test nuevos (FR-018; contracts/evals.md §6; research D11, V5, V6, V14; plan.md «Datos externos»). **Manifiesto**: internal/evals/testdata/grabaciones.json (`\"fuente\": \"boe.legislacion-consolidada\"`, con fila «Revisado» 2026-09-13 en `docs/SOURCES.md` de `main`), al final de su lista `normas`, la entrada de contracts/evals.md §6 byte a byte: `{\"busqueda\": \"estatuto de los trabajadores\", \"titulo_empieza_por\": \"Real Decreto Legislativo 2/2015,\", \"bloques\": [\"a59\"], \"para\": \"…\"}` con el `para` de §6; nada más del fichero cambia. **Test de grabación**: el de hoy, `TestGrabarEvals` (`//go:build grabacion`, internal/evals/grabacion_test.go), sin cambios: sirve primero desde lo grabado en H4 y H5 y solo pide a la fuente, por el cliente HTTP único del proyecto y con GET, el bloque `a59`. Tras el commit, el paso `grabar_datos` del workflow lo graba en la carpeta `boe.legislacion-consolidada` del `testdata` del paquete; la tarea no graba nada. **Verificación**, sin cambiar otro fichero: `make ci` en verde con la entrada sin grabar (`TestGrabacionesSinSolape` y la verificación de las normas de la cobertura siguen en verde, research V6); `grep -c '\"titulo_empieza_por\": \"Real Decreto Legislativo 2/2015,\", \"bloques\": \\[\"a59\"\\]' internal/evals/testdata/grabaciones.json` da `1` (quickstart, escenario 7).",
   "intento": 1,
-  "datos": false,
-  "aceptacion": true,
-  "base": "3d7d7f99dbe09286169703b12fb8c86e00547f42",
+  "datos": true,
+  "aceptacion": false,
+  "base": "cbf7d3bae7d4b77d99671b4346f7392712fcee74",
   "rutas": [
-    "contracts/aceptacion.md",
-    "specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar"
+    "2/2015",
+    "contracts/evals.md",
+    "docs/SOURCES.md",
+    "internal/evals/grabacion_test.go",
+    "internal/evals/testdata/grabaciones.json",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
