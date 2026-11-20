@@ -38,25 +38,37 @@ const (
 	// declaracionDeLaLGT es la declaración de no cubierto con la norma que rige
 	// el procedimiento, y declaracionSinNorma, la de un procedimiento sin norma
 	// propia, con la LPAC; las dos, con la cita del precepto de su fila en la
-	// misma línea (contracts/forma-de-cita.md §3 de H32).
-	declaracionDeLaLGT = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General Tributaria " +
-		"(" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos " +
-		"(DA 1ª.2.a LPAC " + citaDeLaDAPrimera + ")."
-	declaracionSinNorma = "⚠ NO CUBIERTO: la aplicación de los tributos lo regula aparte la ley, no el procedimiento " +
-		"común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC " + citaDeLaDAPrimera + ")."
+	// misma línea (contracts/forma-de-cita.md §3 de H32), en la plantilla de H33
+	// con los datos de la fila de los tributos de data/cobertura.yaml: la primera,
+	// la línea que genera su región en la referencia del paquete
+	// (contracts/skills.md §2 y §3 de H33; FR-004, FR-021).
+	declaracionDeLaLGT = "⚠ NO CUBIERTO: " + procedimientoDeLosTributos + ": se rige por Ley 58/2003, General " +
+		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común (DA 1ª.2.a LPAC " + citaDeLaDAPrimera +
+		"). " + colaDeLaPlantilla
+	declaracionSinNorma = "⚠ NO CUBIERTO: " + procedimientoDeLosTributos + ": lo regula aparte la ley, no el " +
+		"procedimiento común (DA 1ª.2.a LPAC " + citaDeLaDAPrimera + "). " + colaDeLaPlantilla
 
 	// declaracionDeLaLGTSinLaCita es declaracionDeLaLGT sin la cita del
 	// precepto: la de c991808, con la norma que rige y el precepto por su nombre.
-	declaracionDeLaLGTSinLaCita = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General " +
-		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
-		"recursos (DA 1ª.2.a LPAC)."
+	declaracionDeLaLGTSinLaCita = "⚠ NO CUBIERTO: " + procedimientoDeLosTributos + ": se rige por Ley 58/2003, " +
+		"General Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común (DA 1ª.2.a LPAC). " +
+		colaDeLaPlantilla
 
 	// declaracionDeLaLGTConLaFormaLegible es declaracionDeLaLGT con la forma
 	// legible del precepto dentro de los corchetes, delante del identificador:
 	// la pareja la extrae ExtraerCitas, pero no es la forma única.
-	declaracionDeLaLGTConLaFormaLegible = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General " +
-		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
-		"recursos [DA 1ª.2.a LPAC, " + lpacDeLasCoberturas + ", bloque " + bloqueDeLasCoberturas + "]."
+	declaracionDeLaLGTConLaFormaLegible = "⚠ NO CUBIERTO: " + procedimientoDeLosTributos + ": se rige por Ley " +
+		"58/2003, General Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común [DA 1ª.2.a LPAC, " +
+		lpacDeLasCoberturas + ", bloque " + bloqueDeLasCoberturas + "]. " + colaDeLaPlantilla
+
+	// procedimientoDeLosTributos es el asunto de la fila de los tributos de
+	// data/cobertura.yaml, y colaDeLaPlantilla, la cola de la plantilla de la
+	// línea ⚠ NO CUBIERTO: de las skills (contracts/skills.md §1 y §2 de H33).
+	// Solo los tests los escriben: ningún texto de la línea vive en el código del
+	// paquete (FR-013).
+	procedimientoDeLosTributos = "aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
+		"administrativa"
+	colaDeLaPlantilla = "kitlegal no da sus plazos, órganos, vías ni escritos."
 
 	// avisoDeLosLocales es el texto del aviso faltan-festivos-locales de plazos,
 	// tal como lo da data (contracts/applet-plazos.md §5 de H9).
@@ -368,6 +380,129 @@ func evalDeCoberturaSintetica() Eval {
 			Norma:    lgtDeLasCoberturas,
 			Precepto: CitaEsperada{Norma: lpacDeLasCoberturas, Bloque: bloqueDeLasCoberturas},
 		},
+	}
+}
+
+// evalFueraDeLoDeclaradoSintetica es una eval de cobertura fuera de lo
+// declarado, como la 04 de consulta-juridica: activa la skill, prohíbe plazos
+// calcular y espera la línea ⚠ NO CUBIERTO: sin norma ni precepto
+// (contracts/evals.md §1 y §5 de H33; FR-012).
+func evalFueraDeLoDeclaradoSintetica() Eval {
+	return Eval{
+		Fichero: "04-despido-plazo.yaml",
+		Pregunta: "Me despidieron el 2 de noviembre de 2026. ¿Qué dice el Estatuto de los Trabajadores del plazo " +
+			"para reclamar y hasta qué día puedo hacerlo?",
+		Activa:     true,
+		Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
+		NoCubierto: NoCubiertoEsperado{FueraDeLoDeclarado: true},
+	}
+}
+
+// TestJuzgarLaDeclaracionDeNoCubierto fija, con juzgarElPlazo sobre respuestas
+// constantes, cuándo una respuesta declara lo no cubierto en las dos variantes
+// de la eval de cobertura (contracts/evals.md §2 de H33; FR-013; SC-008). Fuera
+// de lo declarado basta una línea ⚠ NO CUBIERTO:, encontrada por su etiqueta
+// con la tolerancia de hoy —las negritas, ⚠️— y con el asunto, el motivo y la
+// cola que componga el modelo, como las dos del despacho 44568601898; sin ella,
+// o con solo una línea ⚠ PLAZO:, que no es una declaración, no, con el motivo
+// de la declaración ausente seguido de fuera de lo declarado. En lo regulado
+// aparte la línea lleva además, en esa misma línea, la norma que lo rige y la
+// cita de su precepto: sin la línea, sin la norma, sin la cita, partida en dos o
+// con el motivo de fuera de lo declarado en lugar de la norma y la cita, no, con
+// el motivo seguido de la norma. Cada línea del plazo da su motivo, como hoy.
+func TestJuzgarLaDeclaracionDeNoCubierto(t *testing.T) {
+	t.Parallel()
+
+	const (
+		// citaDel59 es la del art. 59 del Estatuto de los Trabajadores, la que
+		// lee la 04 de consulta-juridica.
+		citaDel59 = "[Estatuto de los Trabajadores, art. 59, BOE-A-2015-11430, bloque a59]"
+
+		ausenteFuera  = "declaración de no cubierto ausente: fuera de lo declarado"
+		ausenteAparte = "declaración de no cubierto ausente: " + lgtDeLasCoberturas
+	)
+
+	fuera := evalFueraDeLoDeclaradoSintetica()
+	aparte := evalDeCoberturaSintetica()
+
+	casos := []struct {
+		nombre    string
+		eval      Eval
+		respuesta string
+		declarada bool
+		motivos   []string
+	}{
+		{
+			nombre: "fuera-sin-la-linea", eval: fuera,
+			respuesta: "El plazo para reclamar por despido es de veinte días hábiles " + citaDel59 + ".",
+			motivos:   []string{ausenteFuera},
+		},
+		{
+			nombre: "fuera-con-solo-la-linea-del-plazo", eval: fuera,
+			respuesta: "⚠ PLAZO: 2026-12-02 — reclamación por despido " + citaDel59,
+			motivos:   []string{ausenteFuera, "línea del plazo en un asunto no cubierto: 2026-12-02"},
+		},
+		{
+			nombre: "fuera-con-negritas", eval: fuera,
+			respuesta: "**⚠ NO CUBIERTO:** el día en que vence el plazo: fuera de lo que kitlegal cubre. " +
+				colaDeLaPlantilla,
+			declarada: true,
+		},
+		{
+			nombre: "fuera-con-la-marca-de-emoji", eval: fuera,
+			respuesta: "⚠️ NO CUBIERTO: el día en que vence el plazo: fuera de lo que kitlegal cubre. " + colaDeLaPlantilla,
+			declarada: true,
+		},
+		{
+			nombre: "fuera-con-la-cola-del-despacho", eval: fuera,
+			respuesta: "⚠ NO CUBIERTO: a quién reclamar y qué escrito presentar. Está fuera de lo que kitlegal cubre, " +
+				"que no da plazos, órganos, vías ni escritos para esto.",
+			declarada: true,
+		},
+		{
+			nombre: "fuera-con-el-motivo-del-despacho", eval: fuera,
+			respuesta: "⚠ NO CUBIERTO: el día en que vence el plazo: es un plazo laboral. kitlegal no da sus plazos, " +
+				"órganos, vías ni escritos.",
+			declarada: true,
+		},
+		{
+			nombre: "aparte-sin-la-linea", eval: aparte,
+			respuesta: "Tienes un mes para recurrir la liquidación.",
+			motivos:   []string{ausenteAparte},
+		},
+		{
+			nombre: "aparte-sin-la-norma", eval: aparte,
+			respuesta: strings.Replace(declaracionDeLaLGT, " ("+lgtDeLasCoberturas+")", "", 1),
+			motivos:   []string{ausenteAparte},
+		},
+		{
+			nombre: "aparte-sin-la-cita", eval: aparte,
+			respuesta: declaracionDeLaLGTSinLaCita,
+			motivos:   []string{ausenteAparte},
+		},
+		{
+			nombre: "aparte-partida-en-dos", eval: aparte,
+			respuesta: strings.Replace(declaracionDeLaLGT, " (DA 1ª.2.a LPAC ", "\n(DA 1ª.2.a LPAC ", 1),
+			motivos:   []string{ausenteAparte},
+		},
+		{
+			nombre: "aparte-con-el-motivo-de-fuera-de-lo-declarado", eval: aparte,
+			respuesta: "⚠ NO CUBIERTO: " + procedimientoDeLosTributos + ": fuera de lo que kitlegal cubre. " +
+				colaDeLaPlantilla,
+			motivos: []string{ausenteAparte},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			var resultado ResultadoDeEval
+			resultado.juzgarElPlazo(caso.eval, caso.respuesta)
+
+			assert.Equal(t, caso.declarada, resultado.NoCubiertoDeclarado, "la respuesta declara lo no cubierto")
+			assert.Equal(t, caso.motivos, resultado.Motivos)
+		})
 	}
 }
 

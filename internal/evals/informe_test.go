@@ -6675,9 +6675,10 @@ const (
 	redaccionAFechaDel128 = "⚠ REDACCIÓN A FECHA: art. 128 de la Ley 29/1998 [BOE-A-1998-16718, bloque a128]: se " +
 		"cita la redacción vigente el 2026-06-15, la de fecha de vigencia 20100504."
 
-	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: el procedimiento sancionador en materia de tráfico se rige por la " +
-		"Ley sobre Tráfico (BOE-A-2015-11722), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
-		"recursos (DA 1ª.2.c LPAC " + citaDeLaDAPrimera + ")."
+	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: procedimientos sancionadores en materia de tráfico y seguridad " +
+		"vial: se rige por texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial " +
+		"(BOE-A-2015-11722), no por el procedimiento común (DA 1ª.2.c LPAC " + citaDeLaDAPrimera + "). " +
+		colaDeLaPlantilla
 
 	// declaracionDelPlazoSinCalcular es la de la eval de vigencia, con la norma
 	// que espera (ADR 0042).
@@ -7444,15 +7445,16 @@ func umbralPlazoSinFecha(modelo string, modo Modo, sinFecha, respuestas int) Umb
 
 // umbralCoberturaSinDeclarar es el umbral de las respuestas del modelo que
 // decide en un modo, de las evals de cobertura, sin la declaración de no
-// cubierto con la norma esperada o con una línea del plazo, tal como lo fija
+// cubierto —en lo regulado aparte, con la norma que lo rige y la cita de su
+// precepto— o con una línea del plazo, tal como lo fija
 // contracts/evals-legal-core.md §3 de H9, con sus valores escritos a mano: 0 y
-// decidiendo (FR-054 de H9).
+// decidiendo (FR-054 de H9), y desde H33 con la descripción de FR-014.
 func umbralCoberturaSinDeclarar(modelo string, modo Modo, sinDeclarar, respuestas int) Umbral {
 	return Umbral{
 		Nombre: "cobertura_sin_declarar:" + modelo + ":" + string(modo),
-		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " sin la línea ⚠ NO CUBIERTO: con " +
-			"la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una " +
-			"declaración de no cubierto",
+		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " sin una línea ⚠ NO CUBIERTO: " +
+			"—en lo regulado aparte, con la norma que lo rige y la cita de su precepto—, o con una línea ⚠ PLAZO:, " +
+			"sobre sus respuestas medidas en las evals que esperan una declaración de no cubierto",
 		Medida:      float64(sinDeclarar),
 		Total:       &respuestas,
 		Comparacion: "<=",

@@ -480,13 +480,14 @@ func ComprobarConjunto(evals []Eval, normas map[string]NormaConocida, reglas []R
 // en sus defectos.
 const reglaDeLasSkillsNombradas = "skills nombradas"
 
-// ComprobarLasSkillsNombradas comprueba que cada nombre de se_activan y de
-// no_se_activan de las evals es una de las skills dadas, las de skills/: con un
-// nombre retirado, el juicio de la eval dejaría de comprobar nada sin avisar
-// (contracts/evals.md §4 de H32; data-model §8 de H32; FR-037). Devuelve un
-// defecto por cada nombre que no lo es, en el orden de las evals y, en cada una,
-// los de se_activan delante de los de no_se_activan, y ninguno si lo son todos.
-// No lee ficheros.
+// ComprobarLasSkillsNombradas comprueba que cada nombre de se_activan, de
+// no_se_activan y, desde H33, de tambien_la_resuelven de las evals es una de las
+// skills dadas, las de skills/: con un nombre retirado, el juicio de la eval
+// dejaría de comprobar nada sin avisar (contracts/evals.md §4 de H32; data-model
+// §8 de H32; FR-037; contracts/evals.md §3 de H33; FR-015). Devuelve un defecto
+// por cada nombre que no lo es, en el orden de las evals y, en cada una, los de
+// se_activan, los de no_se_activan y los de tambien_la_resuelven, en ese orden,
+// y ninguno si lo son todos. No lee ficheros.
 func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConjunto {
 	var defectos []DefectoDelConjunto
 
@@ -497,6 +498,7 @@ func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConj
 		}{
 			{clave: "se_activan", nombres: eval.SeActivan},
 			{clave: "no_se_activan", nombres: eval.NoSeActivan},
+			{clave: "tambien_la_resuelven", nombres: eval.TambienLaResuelven},
 		} {
 			for _, nombre := range nombradas.nombres {
 				if !slices.Contains(skills, nombre) {

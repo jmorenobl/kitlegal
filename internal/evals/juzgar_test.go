@@ -4058,8 +4058,9 @@ const (
 
 	respuestaDeLa11 = "Hasta el martes 13 de octubre de 2026.\n\n" + lineaDelPlazo + "\n\nNo he podido leer la " +
 		"redacción del art. 124 vigente el 2026-09-09: el BOE no respondió."
-	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la ley, no el " +
-		"procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.b LPAC " + citaDeLaDAPrimera + ")."
+	respuestaDeLa12 = "⚠ NO CUBIERTO: gestión, inspección, liquidación, recaudación, impugnación y revisión en " +
+		"materia de Seguridad Social y desempleo: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.b LPAC " +
+		citaDeLaDAPrimera + "). " + colaDeLaPlantilla
 
 	normaDeLaLRJSP = "BOE-A-2015-10566"
 	citaDel25      = "[Ley 40/2015, art. 25, BOE-A-2015-10566, bloque a25]"

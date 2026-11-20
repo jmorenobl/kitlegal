@@ -1598,6 +1598,75 @@ func TestFormatoDePlazos(t *testing.T) {
 	})
 }
 
+// TestFormatoDeLaCobertura fija las dos variantes de no_cubierto desde H33
+// (contracts/evals.md §1 de H33; data-model §4 de H33; FR-012; SC-008): la de lo
+// regulado aparte, {norma, precepto}, y la de fuera de lo declarado,
+// {fuera_de_lo_declarado: true}, se leen enteras y hacen de la eval una eval de
+// cobertura; las dos a la vez, el mutante de FR-012, se rechazan con un defecto
+// en no_cubierto. Los mensajes de una {norma, precepto} mal escrita los fija
+// TestFormatoDePlazos, que no cambia (research V4 de H33).
+func TestFormatoDeLaCobertura(t *testing.T) {
+	t.Parallel()
+
+	const (
+		activa        = preguntaDelPlazo + "activa: true\n"
+		preguntaLeida = "¿Hasta cuándo puedo presentar el recurso de reposición?"
+	)
+
+	prohibidos := []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}}
+
+	casos := []struct {
+		nombre    string
+		documento string
+		leida     Eval
+		error     string
+	}{
+		{
+			nombre:    "lo-regulado-aparte",
+			documento: activa + prohibidoElCalculo + noCubiertoPorLaLGT,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true, Prohibidos: prohibidos,
+				NoCubierto: NoCubiertoEsperado{
+					Norma:    "BOE-A-2003-23186",
+					Precepto: CitaEsperada{Norma: "BOE-A-2015-10565", Bloque: "daprimera"},
+				},
+			},
+		},
+		{
+			nombre:    "fuera-de-lo-declarado",
+			documento: activa + prohibidoElCalculo + "no_cubierto:\n  fuera_de_lo_declarado: true\n",
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true, Prohibidos: prohibidos,
+				NoCubierto: NoCubiertoEsperado{FueraDeLoDeclarado: true},
+			},
+		},
+		{
+			nombre: "las-dos-a-la-vez",
+			documento: activa + prohibidoElCalculo + "no_cubierto:\n  fuera_de_lo_declarado: true\n" +
+				"  norma: BOE-A-2003-23186\n" + preceptoDeLaDAPrimera,
+			error: nombreDeEval + ": no_cubierto, línea 7: 'not' failed",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leida, err := LeerEval(nombreDeEval, []byte(caso.documento))
+			if caso.error != "" {
+				require.EqualError(t, err, caso.error)
+				assert.Zero(t, leida, "una eval mal formada no se entrega a medias")
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.leida, leida)
+			assert.True(t, leida.esDeCobertura(), "la eval es de cobertura")
+		})
+	}
+}
+
 // casoDeLecturaDeEval es un documento de eval y lo que LeerEval tiene que dar de
 // él: sin error ni fragmentos, la eval leída; con ellos, la eval vacía y un error
 // que es el error dado o que contiene cada fragmento.
