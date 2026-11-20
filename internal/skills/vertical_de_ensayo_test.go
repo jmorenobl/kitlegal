@@ -42,6 +42,12 @@ const lineaDelEnsayo = "- Si la pregunta es de lo ensayo, lee [ensayo](reference
 // (contracts/paquetes.md §4).
 const lineaDelEnsayoEnLaEntrada = "- lo ensayo: `jurisprudencia`, `normativa`, `plazos-y-territorio`.\n"
 
+// lineaDeLoCubiertoDelEnsayo es la de la fila de lo cubierto de la vertical en la
+// región de lo que cubre la base de la skill de entrada: la segunda de los
+// plazos, detrás de las cuatro del repositorio (contracts/datos-y-regiones.md
+// §6 de H33).
+const lineaDeLoCubiertoDelEnsayo = "- **Plazos**: los de ensayo del molde de los paquetes."
+
 // filaDelEnsayo es el principio de la fila de la cobertura de la vertical en la
 // tabla generada de su referencia de plazos-y-territorio, y citaDelEnsayo, la
 // forma legible de su precepto, en la primera norma, que no tiene abreviatura
@@ -98,7 +104,7 @@ func TestVerticalDeEnsayo(t *testing.T) {
 	assert.NotEmpty(t, cambiados, "la vertical cambia la copia")
 	assert.Empty(t, ficherosGo(cambiados), "el diff de la copia no tiene ningún .go")
 	assert.Empty(t, skillsCambiadasFueraDeLasMarcas(t, raiz),
-		"ningún SKILL.md cambia fuera de las marcas de los paquetes")
+		"ningún SKILL.md cambia fuera de las marcas de los paquetes y de lo cubierto")
 	assert.Equal(t, delRepositorio, huellasDe(t, arbolDelRepositorio),
 		"skills/, data/ y evals/normativa/ del repositorio no cambian")
 
@@ -119,9 +125,13 @@ func TestVerticalDeEnsayo(t *testing.T) {
 
 // comprobarLoSincronizado comprueba que la sincronía ha enlazado la vertical en
 // la copia de raíz: la línea de su enlace entre las marcas de cada skill de
-// capacidad, la suya en la lista de la skill de entrada y la fila de su
-// cobertura en la región, vacía en la vertical, de su referencia de
-// plazos-y-territorio. Sin ellas, lo demás del test pasaría en vacío.
+// capacidad, la suya en la lista de la skill de entrada, la de su fila de lo
+// cubierto como última de la región de lo que cubre la base de la skill de
+// entrada, detrás de la del territorio —dos filas de una capacidad dan dos
+// líneas (FR-007 de H33)—, y la fila de su cobertura en la región, vacía en la
+// vertical, de su referencia de plazos-y-territorio. Sin ellas, lo demás del test
+// pasaría en vacío. Que cada cuerpo siga en sus 11 000 caracteres con la
+// vertical (10 756 el de plazos-y-territorio) lo exige la sincronía sin defectos.
 func comprobarLoSincronizado(t *testing.T, raiz string) {
 	t.Helper()
 
@@ -131,9 +141,17 @@ func comprobarLoSincronizado(t *testing.T, raiz string) {
 			"%s enlaza la referencia de la vertical entre sus marcas", skill)
 	}
 
-	_, dentro := partirPorLasMarcas(leerFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md")))
+	entrada := leerFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md"))
+	_, dentro := partirPorLasMarcas(entrada)
 	assert.Contains(t, strings.Split(dentro, "\n"), strings.TrimSuffix(lineaDelEnsayoEnLaEntrada, "\n"),
 		"la skill de entrada lista la vertical")
+
+	cubierto := lineasEntreLasMarcasDeLoCubierto(t, entrada)
+	require.GreaterOrEqual(t, len(cubierto), 2, "la región de lo cubierto de la skill de entrada")
+	assert.Equal(t, lineaDeLoCubiertoDelEnsayo, cubierto[len(cubierto)-1],
+		"la fila de lo cubierto de la vertical es la última línea de la región")
+	assert.True(t, strings.HasPrefix(cubierto[len(cubierto)-2], "- **Territorio**: "),
+		"la fila de la vertical va detrás de la del territorio: %s", cubierto[len(cubierto)-2])
 
 	referencia := leerFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "references", "ensayo.md"))
 	fila, hay := filaQueEmpiezaPor(referencia, filaDelEnsayo)
@@ -180,35 +198,69 @@ func copiaDelRepositorio(t *testing.T) string {
 }
 
 // instalarLaVertical instala la vertical de ensayo en la copia de raíz como lo
-// haría quien escribe un paquete: añade sus normas a data/normas.yaml y su fila a
-// data/cobertura.yaml, y copia sus ficheros de skills/ y de evals/, que no pueden
-// pisar ninguno de la copia (os.CopyFS no sobrescribe).
+// haría quien escribe un paquete: añade sus normas a data/normas.yaml y sus filas
+// de lo cubierto y de lo regulado aparte a data/cobertura.yaml, y copia sus
+// ficheros de skills/ y de evals/, que no pueden pisar ninguno de la copia
+// (os.CopyFS no sobrescribe).
 func instalarLaVertical(t *testing.T, raiz string) {
 	t.Helper()
 
 	anadirEntradas(t, raiz, "normas.yaml", "normas")
-	anadirEntradas(t, raiz, "cobertura.yaml", "regulados_aparte")
+	anadirEntradas(t, raiz, "cobertura.yaml", "cubierto", "regulados_aparte")
 
 	for _, carpeta := range []string{"skills", "evals"} {
 		require.NoError(t, os.CopyFS(filepath.Join(raiz, carpeta), os.DirFS(filepath.Join(verticalDeEnsayo, carpeta))))
 	}
 }
 
-// anadirEntradas añade al fichero de data/ de la copia de raíz las entradas del
-// de la vertical: lo que este lleva tras la línea de su clave, que en los dos es
-// la única de primer nivel y va al final.
-func anadirEntradas(t *testing.T, raiz, fichero, clave string) {
+// anadirEntradas añade al fichero de data/ de la copia de raíz las entradas de
+// cada clave del de la vertical, en su orden, al final del bloque de esa misma
+// clave en la copia (research D17 de H33): cubierto va en medio de
+// data/cobertura.yaml, y una segunda clave al final la rechazaría el lector. Las
+// entradas de una clave, en los dos ficheros, son las líneas sangradas que siguen
+// a la suya, que es de primer nivel; su bloque acaba en la primera línea que no
+// lo es.
+func anadirEntradas(t *testing.T, raiz, fichero string, claves ...string) {
 	t.Helper()
 
-	_, entradas, hay := strings.Cut(leerFicheroDePrueba(t, filepath.Join(verticalDeEnsayo, "data", fichero)),
-		"\n"+clave+":\n")
-	require.True(t, hay, "data/%s de la vertical lleva sus entradas bajo %s:", fichero, clave)
-
+	deLaVertical := leerFicheroDePrueba(t, filepath.Join(verticalDeEnsayo, "data", fichero))
 	ruta := filepath.Join(raiz, "data", fichero)
 	copiado := leerFicheroDePrueba(t, ruta)
 	require.True(t, strings.HasSuffix(copiado, "\n"), "data/%s del repositorio termina en un salto de línea", fichero)
 
-	escribirFicheroDePrueba(t, ruta, copiado+entradas)
+	for _, clave := range claves {
+		_, entradas := bloqueDeLaClave(t, deLaVertical, clave)
+		require.NotEmpty(t, entradas, "data/%s de la vertical lleva sus entradas bajo %s:", fichero, clave)
+
+		fin, _ := bloqueDeLaClave(t, copiado, clave)
+		copiado = copiado[:fin] + entradas + copiado[fin:]
+	}
+
+	escribirFicheroDePrueba(t, ruta, copiado)
+}
+
+// bloqueDeLaClave es, en el texto YAML, el byte en que acaba el bloque de la
+// clave de primer nivel —el que sigue a su última línea sangrada— y las líneas
+// sangradas de ese bloque, cada una con su salto. El texto lleva la clave en una
+// línea, una sola vez.
+func bloqueDeLaClave(t *testing.T, texto, clave string) (int, string) {
+	t.Helper()
+
+	linea := clave + ":\n"
+	require.Equal(t, 1, strings.Count("\n"+texto, "\n"+linea), "la clave %s, una vez en su línea", clave)
+
+	comienzo := strings.Index("\n"+texto, "\n"+linea) + len(linea)
+	fin := comienzo
+
+	for resto := range strings.Lines(texto[comienzo:]) {
+		if !strings.HasPrefix(resto, " ") {
+			break
+		}
+
+		fin += len(resto)
+	}
+
+	return fin, texto[comienzo:fin]
 }
 
 // descripcionesDeProduccion son las descripciones de los verbos de los applets
@@ -325,8 +377,9 @@ func ficherosGo(rutas []string) []string {
 
 // skillsCambiadasFueraDeLasMarcas son las rutas, relativas a la raíz, de los
 // SKILL.md de la copia de raíz que no son los del repositorio fuera de las
-// marcas de los paquetes de §2 y §4 de contracts/paquetes.md. Un paquete no
-// añade ni quita skills.
+// marcas de los paquetes de §2 y §4 de contracts/paquetes.md y de las de lo que
+// cubre la base (contracts/datos-y-regiones.md §3 de H33). Un paquete no añade
+// ni quita skills.
 func skillsCambiadasFueraDeLasMarcas(t *testing.T, raiz string) []string {
 	t.Helper()
 
@@ -352,7 +405,8 @@ func skillsCambiadasFueraDeLasMarcas(t *testing.T, raiz string) []string {
 }
 
 // partirPorLasMarcas separa un SKILL.md en lo que va fuera de las marcas de los
-// paquetes, con las líneas de las marcas, y lo que va entre ellas.
+// paquetes y de lo que cubre la base, con las líneas de las marcas, y lo que va
+// entre ellas.
 func partirPorLasMarcas(contenido string) (fuera, dentro string) {
 	var (
 		deFuera, deDentro strings.Builder
@@ -361,11 +415,11 @@ func partirPorLasMarcas(contenido string) (fuera, dentro string) {
 
 	for linea := range strings.Lines(contenido) {
 		switch linea {
-		case inicioDeLosPaquetes, inicioDeLosPaquetesDeLaBase:
+		case inicioDeLosPaquetes, inicioDeLosPaquetesDeLaBase, inicioDeLoCubierto:
 			enLaRegion = true
 
 			deFuera.WriteString(linea)
-		case finDeLosPaquetes, finDeLosPaquetesDeLaBase:
+		case finDeLosPaquetes, finDeLosPaquetesDeLaBase, finDeLoCubierto:
 			enLaRegion = false
 
 			deFuera.WriteString(linea)

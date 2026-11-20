@@ -37,14 +37,12 @@ sus formas y sus citas son las de la respuesta.
 
 ### 3. Qué cubre la base
 
-- **Normativa**: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en
-  cualquier fecha.
-- **Jurisprudencia**: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar
-  el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
-- **Plazos**: solo los del procedimiento administrativo común y la interposición del recurso contencioso-
-  administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo
-  declara `plazos-y-territorio` con su línea.
+<!-- lo que cubre la base: lo genera make skills-sync -->
+- **Normativa**: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha.
+- **Jurisprudencia**: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
+- **Plazos**: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
 - **Territorio**: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
+<!-- fin de lo que cubre la base -->
 - **Paquetes de materia**: lo que una materia trae a las skills de capacidad —sus normas, una referencia en cada skill
   que la necesita y lo que la ley regula aparte—. Los de hoy, con las skills que los llevan:
 <!-- paquetes de la base: lo genera make skills-sync -->
@@ -53,14 +51,21 @@ sus formas y sus citas son las de la respuesta.
 - **Sin herramienta, no cubiertos**: los documentos —escritos, recursos, reclamaciones, solicitudes— y los
   destinatarios —a quién se reclama, qué órgano resuelve, ante quién se presenta—.
 
-### 4. Lo que no cubre, en prosa
+### 4. Lo que no cubre, con su línea
 
-Si la pregunta pide algo que la base no cubre —el plazo de una materia que no es la del procedimiento administrativo
-común, a quién reclamar, qué vía seguir, un escrito—, dilo en la respuesta con tus palabras: qué parte no está
-cubierta. Apóyate solo en la norma que hayas leído con kitlegal en esta conversación, citada como la cita la skill de
-normativa, `<forma legible> [<identificador>, bloque <id>]`. No des de memoria ningún plazo, órgano ni vía, ni
-apliques los de otra materia o los del procedimiento común, ni pidas `kitlegal plazos calcular` para un asunto de
-otra materia: ese plazo no es el suyo.
+Lo que la pregunta pide y no resuelve ninguna capacidad de la lista del 3 —el plazo de una materia que no es la del
+procedimiento administrativo común, a quién reclamar, qué vía seguir, un escrito— lleva su línea, con el motivo «fuera
+de lo que kitlegal cubre». Lo que no pide no lleva ninguna, tampoco el cómputo de una fecha que no ha pedido. Esta línea
+no es para lo que la ley regula aparte del procedimiento común: eso lo declara, con su propia línea, la skill de la
+capacidad que lo pide, y tras ella no leas su norma. Lo que leas con la skill de normativa para completarla va detrás,
+citado, con su marca: el texto citado es el de la norma; lo que no está verificado es que se aplique a este asunto. No
+des de memoria ningún plazo, órgano ni vía, ni apliques los de otra materia o los del procedimiento común, ni pidas
+`kitlegal plazos calcular` para un asunto de otra materia: ese plazo no es el suyo.
+
+```text
+⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
+⚠ NO VERIFICADO: <lo encontrado>: <forma legible> [<identificador>, bloque <id>]; kitlegal no ha comprobado que se aplique a este asunto.
+```
 
 Por qué: quien pregunta va a actuar con lo que lee; un plazo o un órgano dicho de memoria puede ser de otra materia o
 haber cambiado, y lo que la base no cubre nadie lo ha comprobado aquí. Decirlo le deja buscarlo donde sí está.

@@ -302,6 +302,8 @@ const (
 var regionesGeneradas = []struct{ inicio, fin string }{
 	{inicio: inicioDeLosPaquetes, fin: finDeLosPaquetes},
 	{inicio: inicioDeLaRegionGenerada, fin: finDeLaRegionGenerada},
+	{inicio: "<!-- lo que cubre la base: ", fin: "<!-- fin de lo que cubre la base -->"},
+	{inicio: "<!-- paquetes de la base: ", fin: "<!-- fin de los paquetes de la base -->"},
 }
 
 // cambioDelCuerpo es un cambio del cuerpo del SKILL.md de una skill del producto

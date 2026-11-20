@@ -179,11 +179,18 @@ func (d *Deriva) Error() string {
 //     tienen su referencia (paquetes.regenerar; contracts/paquetes.md §2 y §4 de
 //     H32); la referencia de un paquete en una skill sin esas marcas, o unas
 //     marcas que no van en pareja, son un defecto;
+//   - con el frontmatter sin defectos, SKILL.md lleva entre las marcas de lo
+//     que cubre la base una línea por fila de lo cubierto de data/cobertura.yaml
+//     (regenerarLoCubierto; contracts/datos-y-regiones.md §3 de H33);
 //   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
 //     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
-//   - con el frontmatter sin defectos, cada referencia a mano lleva entre las
-//     marcas de cada región suya la tabla de su generador desde data/, y
-//     nada más cambia (contracts/paquetes.md §3 de H32; datosDeLasRegiones);
+//   - con el frontmatter sin defectos, un SKILL.md con la plantilla ⚠ NO
+//     CUBIERTO: dice en su prosa el motivo de lo no declarado de
+//     data/cobertura.yaml entre comillas angulares (comprobarElMotivo;
+//     contracts/datos-y-regiones.md §4 de H33), y cada referencia a mano lleva
+//     entre las marcas de cada región suya la tabla de su generador desde
+//     data/, y nada más cambia (contracts/paquetes.md §3 de H32;
+//     datosDeLasRegiones);
 //   - references/ solo lleva ficheros regulares .md, y cada referencia, generada
 //     o a mano, está enlazada desde ese cuerpo, no enlaza otra y, con más de 100
 //     líneas, abre con su índice (defectosDeReferences);
@@ -324,17 +331,14 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 	if len(deFrontmatter) == 0 {
 		regenerada.Contenido, deLaRegion = contenidoRegenerado(skill, deKitlegal, descripciones)
 
-		var (
-			delRepositorio           paquetes
-			deLasMarcas, deLasNormas []*DefectoDeSkill
-		)
+		var deLasMarcas, deSusDatos []*DefectoDeSkill
 
-		delRepositorio, err = losPaquetes()
+		regenerada.Contenido, deLasMarcas, deSusDatos, err = conLasRegionesDeLosDatos(nombre, regenerada.Contenido,
+			losPaquetes, datos)
 		if err != nil {
 			return SkillRegenerada{}, regionesDeLaSkill{}, err
 		}
 
-		regenerada.Contenido, deLasMarcas, deLasNormas = delRepositorio.regenerar(nombre, regenerada.Contenido)
 		deLaRegion = append(deLaRegion, deLasMarcas...)
 
 		regenerada.Referencias, deLosDatos, err = referenciasGeneradas(raiz, nombre, deKitlegal.Referencias)
@@ -348,7 +352,7 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 		}
 
 		regenerada.AManoConRegiones = tablas.referencias
-		deLosDatos = sinRepetir(sinRepetir(deLosDatos, deLasNormas), tablas.deLosDatos)
+		deLosDatos = sinRepetir(sinRepetir(deLosDatos, deSusDatos), tablas.deLosDatos)
 	}
 
 	deReferences, err := defectosDeReferences(raiz, regenerada, conLasRegiones(aMano, tablas.referencias),
@@ -364,6 +368,32 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 	}
 
 	return regenerada, tablas, nil
+}
+
+// conLasRegionesDeLosDatos es el SKILL.md de contenido de la skill de nombre con
+// cada región que sale de data/ regenerada, en este orden: las de los paquetes
+// de materia, con los paquetes del repositorio que da losPaquetes
+// (paquetes.regenerar), y después la de lo que cubre la base, con los datos de
+// cada región (regenerarLoCubierto). Da también los defectos de sus marcas, con
+// SKILL.md delante y en ese orden, y los de los YAML de data/ de los que salen,
+// con su fichero delante y cada uno una vez. El error queda para lo que no se
+// puede leer.
+func conLasRegionesDeLosDatos(nombre string, contenido []byte, losPaquetes func() (paquetes, error),
+	datos *datosDeLasRegiones,
+) (regenerado []byte, deLasMarcas, deLosDatos []*DefectoDeSkill, err error) {
+	delRepositorio, err := losPaquetes()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	regenerado, deLasMarcas, deLasNormas := delRepositorio.regenerar(nombre, contenido)
+
+	regenerado, deLoCubierto, deSusDatos, err := datos.regenerarLoCubierto(nombre, regenerado)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return regenerado, append(deLasMarcas, deLoCubierto...), sinRepetir(deLasNormas, deSusDatos), nil
 }
 
 // referenciasAManoRegeneradas son las referencias a mano de la skill del

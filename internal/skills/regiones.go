@@ -584,7 +584,9 @@ type regionesDeLaSkill struct {
 // regenerar regenera cada región de las referencias a mano de la skill, con su
 // SKILL.md regenerado (contracts/paquetes.md §3; research D4 y D6 de H32;
 // contracts/datos-y-regiones.md §5 de H33): entre las marcas de cada región, la
-// tabla de su generador, y nada fuera de ellas. Es un defecto de la referencia,
+// tabla de su generador, y nada fuera de ellas (regenerarLaReferencia). Antes, en
+// una skill con la plantilla ⚠ NO CUBIERTO:, comprueba que su prosa dice el
+// motivo de lo no declarado (comprobarElMotivo). Es un defecto de la referencia,
 // con su fichero, cada defecto de sus marcas; los de una región de la cobertura
 // (defectosDeLaCobertura); y una región sin uno de sus YAML de data/. Los
 // defectos de un YAML de data/ que no se lee son de ese fichero. El error queda
@@ -593,68 +595,125 @@ func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Ref
 	plantilla, conPlantilla := plantillaDelCuerpo(skillMd)
 	resultado := regionesDeLaSkill{conPlantilla: conPlantilla}
 
+	if conPlantilla {
+		if err := d.comprobarElMotivo(skill, skillMd, &resultado); err != nil {
+			return regionesDeLaSkill{}, fmt.Errorf("%s: %s: %w", skill, ficheroDeLaSkill, err)
+		}
+	}
+
 	for _, referencia := range aMano {
-		ruta := rutaDeLaReferencia(referencia)
-		defectos := len(resultado.deLasMarcas) + len(resultado.deLosDatos)
-
-		defecto := func(texto string) {
-			resultado.deLasMarcas = append(resultado.deLasMarcas, &DefectoDeSkill{Skill: skill, Defecto: ruta + ": " + texto})
+		if err := d.regenerarLaReferencia(skill, referencia, plantilla, &resultado); err != nil {
+			return regionesDeLaSkill{}, err
 		}
-
-		region := contextoDeLaRegion{paquete: strings.TrimSuffix(referencia.Fichero, extensionDeLasReferencias)}
-
-		encontradas, deLasMarcas := regionesDeLaReferencia(referencia.Contenido)
-		for _, texto := range deLasMarcas {
-			defecto(texto)
-		}
-
-		if slices.ContainsFunc(encontradas, func(encontrada regionEncontrada) bool {
-			return encontrada.generador == generadorDeLaCobertura
-		}) {
-			resultado.cubiertos = append(resultado.cubiertos, region.paquete)
-		}
-
-		if len(encontradas) == 0 || len(deLasMarcas) > 0 {
-			continue
-		}
-
-		tablas := make([][]byte, len(encontradas))
-
-		for posicion, encontrada := range encontradas {
-			if encontrada.generador == generadorDeLaCobertura {
-				linea, defectosDeLaRegion, conLinea := defectosDeLaCobertura(plantilla, conPlantilla, referencia.Contenido)
-				for _, texto := range defectosDeLaRegion {
-					defecto(texto)
-				}
-
-				if !conLinea {
-					continue
-				}
-
-				region.linea = linea
-			}
-
-			tabla, err := d.tabla(skill, ruta, encontrada.generador, region, &resultado)
-			if err != nil {
-				return regionesDeLaSkill{}, fmt.Errorf("%s: %s: %w", skill, ruta, err)
-			}
-
-			tablas[posicion] = tabla
-		}
-
-		if len(resultado.deLasMarcas)+len(resultado.deLosDatos) > defectos {
-			continue
-		}
-
-		contenido := referencia.Contenido
-		for posicion, encontrada := range slices.Backward(encontradas) {
-			contenido = encontrada.entre.sustituir(contenido, tablas[posicion])
-		}
-
-		resultado.referencias = append(resultado.referencias, Referencia{Fichero: referencia.Fichero, Contenido: contenido})
 	}
 
 	return resultado, nil
+}
+
+// regenerarLaReferencia regenera cada región de la referencia a mano de la skill,
+// con la plantilla de su SKILL.md si resultado dice que la tiene, y anota en
+// resultado si es la de un paquete con la región de la cobertura, los defectos
+// de cada región suya y, sin ninguno, la referencia regenerada. El error queda
+// para lo que no se puede leer.
+func (d *datosDeLasRegiones) regenerarLaReferencia(skill string, referencia Referencia, plantilla string,
+	resultado *regionesDeLaSkill,
+) error {
+	ruta := rutaDeLaReferencia(referencia)
+	defectos := len(resultado.deLasMarcas) + len(resultado.deLosDatos)
+
+	defecto := func(texto string) {
+		resultado.deLasMarcas = append(resultado.deLasMarcas, &DefectoDeSkill{Skill: skill, Defecto: ruta + ": " + texto})
+	}
+
+	region := contextoDeLaRegion{paquete: strings.TrimSuffix(referencia.Fichero, extensionDeLasReferencias)}
+
+	encontradas, deLasMarcas := regionesDeLaReferencia(referencia.Contenido)
+	for _, texto := range deLasMarcas {
+		defecto(texto)
+	}
+
+	if slices.ContainsFunc(encontradas, func(encontrada regionEncontrada) bool {
+		return encontrada.generador == generadorDeLaCobertura
+	}) {
+		resultado.cubiertos = append(resultado.cubiertos, region.paquete)
+	}
+
+	if len(encontradas) == 0 || len(deLasMarcas) > 0 {
+		return nil
+	}
+
+	tablas := make([][]byte, len(encontradas))
+
+	for posicion, encontrada := range encontradas {
+		if encontrada.generador == generadorDeLaCobertura {
+			linea, defectosDeLaRegion, conLinea := defectosDeLaCobertura(plantilla, resultado.conPlantilla,
+				referencia.Contenido)
+			for _, texto := range defectosDeLaRegion {
+				defecto(texto)
+			}
+
+			if !conLinea {
+				continue
+			}
+
+			region.linea = linea
+		}
+
+		tabla, err := d.tabla(skill, ruta, encontrada.generador, region, resultado)
+		if err != nil {
+			return fmt.Errorf("%s: %s: %w", skill, ruta, err)
+		}
+
+		tablas[posicion] = tabla
+	}
+
+	if len(resultado.deLasMarcas)+len(resultado.deLosDatos) > defectos {
+		return nil
+	}
+
+	contenido := referencia.Contenido
+	for posicion, encontrada := range slices.Backward(encontradas) {
+		contenido = encontrada.entre.sustituir(contenido, tablas[posicion])
+	}
+
+	resultado.referencias = append(resultado.referencias, Referencia{Fichero: referencia.Fichero, Contenido: contenido})
+
+	return nil
+}
+
+// comprobarElMotivo anota en el resultado el defecto del SKILL.md de la skill,
+// que tiene la plantilla ⚠ NO CUBIERTO:, cuya prosa no dice el motivo de lo no
+// declarado de data/cobertura.yaml entre comillas angulares, con cada tramo de
+// blancos de los dos —saltos de línea incluidos— reducido a un espacio
+// (contracts/datos-y-regiones.md §4; research D3 de H33): el motivo que la
+// plantilla lleva en lo que no está declarado lo dice la skill tal cual. Sin
+// data/cobertura.yaml, el defecto es el de la plantilla sin él; con defectos en
+// él, los suyos. El error queda para lo que no se puede leer.
+func (d *datosDeLasRegiones) comprobarElMotivo(skill string, skillMd []byte, resultado *regionesDeLaSkill) error {
+	cobertura, err := usar(d.cobertura, ficheroDeLaCobertura)
+	if err != nil {
+		return resultado.anotarLosDatos(skill,
+			ficheroDeLaSkill+": la plantilla "+strings.TrimSuffix(etiquetaDeNoCubierto, " "), err)
+	}
+
+	if strings.Contains(conLosBlancosReducidos(string(skillMd)),
+		"«"+conLosBlancosReducidos(cobertura.MotivoDeLoNoDeclarado)+"»") {
+		return nil
+	}
+
+	resultado.deLasMarcas = append(resultado.deLasMarcas, &DefectoDeSkill{
+		Skill: skill,
+		Defecto: ficheroDeLaSkill + ": la prosa no dice el motivo de lo no declarado, «" +
+			cobertura.MotivoDeLoNoDeclarado + "»",
+	})
+
+	return nil
+}
+
+// conLosBlancosReducidos es el texto con cada tramo de blancos, saltos de línea
+// incluidos, reducido a un espacio, y sin los de sus dos extremos.
+func conLosBlancosReducidos(texto string) string {
+	return strings.Join(strings.Fields(texto), " ")
 }
 
 // defectosDeLaCobertura son la línea de la región de la cobertura de una
@@ -705,27 +764,50 @@ func (d *datosDeLasRegiones) tabla(skill, ruta, nombre string, region contextoDe
 	generador := generadoresDeRegiones[nombre]
 
 	filas, err := generador.filas(d, region)
-
-	var deLosDatos *defectoDeLosDatos
-
-	switch {
-	case errors.As(err, &deLosDatos) && deLosDatos.causa == nil:
-		resultado.deLasMarcas = append(resultado.deLasMarcas, &DefectoDeSkill{
-			Skill:   skill,
-			Defecto: ruta + ": la región " + nombre + " sin " + carpetaDeLosDatos + "/" + deLosDatos.fichero,
-		})
-
-		return nil, nil
-	case errors.As(err, &deLosDatos):
-		resultado.deLosDatos = sinRepetir(resultado.deLosDatos,
-			defectosDelError(skill, carpetaDeLosDatos+"/"+deLosDatos.fichero, deLosDatos.causa))
-
-		return nil, nil
-	case err != nil:
-		return nil, err
+	if err != nil {
+		return nil, resultado.anotarLosDatos(skill, ruta+": la región "+nombre, err)
 	}
 
 	return slices.Concat([]byte(encabezadoDeLaTabla(generador.encabezados)), filas), nil
+}
+
+// anotarLosDatos anota en el resultado los defectos de la skill que da err, lo
+// que impide salir de los YAML de data/ a lo que lo pide —una región o la
+// plantilla, con su fichero delante— (defectosDeLosDatosQueFaltan), y devuelve el
+// error que no es de los datos.
+func (r *regionesDeLaSkill) anotarLosDatos(skill, loQueLoPide string, err error) error {
+	deLasMarcas, deLosDatos, err := defectosDeLosDatosQueFaltan(skill, loQueLoPide, err)
+
+	r.deLasMarcas = append(r.deLasMarcas, deLasMarcas...)
+	r.deLosDatos = sinRepetir(r.deLosDatos, deLosDatos)
+
+	return err
+}
+
+// defectosDeLosDatosQueFaltan son los defectos de la skill que da err, lo que
+// impide salir de los YAML de data/ a lo que lo pide: sin uno de ellos, «<lo que
+// lo pide> sin data/<fichero>», que va con los de las marcas; con defectos en él,
+// los de su lector, con su fichero delante, que van con los de los datos. El
+// error que no es un *defectoDeLosDatos es lo que no se puede leer, y se devuelve
+// sin defectos; sin err, no hay nada.
+func defectosDeLosDatosQueFaltan(skill, loQueLoPide string, err error) (
+	deLasMarcas, deLosDatos []*DefectoDeSkill, deLectura error,
+) {
+	var queFalla *defectoDeLosDatos
+
+	switch {
+	case err == nil:
+		return nil, nil, nil
+	case errors.As(err, &queFalla) && queFalla.causa == nil:
+		return []*DefectoDeSkill{{
+			Skill:   skill,
+			Defecto: loQueLoPide + " sin " + carpetaDeLosDatos + "/" + queFalla.fichero,
+		}}, nil, nil
+	case errors.As(err, &queFalla):
+		return nil, defectosDelError(skill, carpetaDeLosDatos+"/"+queFalla.fichero, queFalla.causa), nil
+	default:
+		return nil, nil, err
+	}
 }
 
 // filasSinRegion son los defectos de las filas de data/cobertura.yaml que

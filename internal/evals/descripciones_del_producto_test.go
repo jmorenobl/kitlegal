@@ -344,34 +344,37 @@ func cambiarElSkill(t *testing.T, raiz, skill, de, a string) {
 	require.NoError(t, escribirFichero(ruta, []byte(cambiado)))
 }
 
-// consultaJuridica es la skill de skills/ que viene de la base de la rama salvo
-// las líneas de la clave description (FR-003; contracts/controles.md §2), y
-// baseDeLaRama, esa base abreviada, como la nombran sus defectos.
+// consultaJuridica es la skill de skills/ que es la de la entrega de H33 salvo
+// las líneas de la clave description y lo generado entre sus marcas (FR-003 de
+// H41.4; FR-008 y FR-020 de H33; contracts/controles.md §4 de H33), y
+// laEntrega, esa entrega, como la nombran sus defectos.
 const (
 	consultaJuridica = "consulta-juridica"
-	baseDeLaRama     = "ab951c22"
+	laEntrega        = "la entrega de H33"
 )
 
 // huellasDeConsultaJuridicaEnLaBase son los ficheros de skills/consulta-juridica/
-// en la base de la rama, ab951c227e1fc8acac8bd6b23534e275e4a36a76 (git merge-base
-// main HEAD; research V3), por su ruta relativa a la skill, con la SHA-256 en
+// en la entrega de H33, por su ruta relativa a la skill, con la SHA-256 en
 // hexadecimal de su contenido; la del SKILL.md, de su contenido sin las líneas de
-// la clave description, las que da descripcionYCuerpo (contracts/controles.md
-// §2.1). Las rutas son las de git ls-tree -r --name-only ab951c22
-// skills/consulta-juridica, y la huella se calculó sobre git show
-// ab951c22:skills/consulta-juridica/SKILL.md dos veces, con la regla de
-// lineasDelSkill y con awk y sha256sum. Se fijan aquí y no se leen con git
-// porque el make ci del cierre no garantiza el historial (research D2).
+// la clave description, las que da descripcionYCuerpo, y con la región generada
+// de lo que cubre la base y la de los paquetes de la base, cada una reducida a
+// sus marcas, como lo hace conLasRegionesGeneradasReducidas (research D14 de
+// H33): lo de entre las marcas lo fija la comparación de make
+// skills-check (TestSkillsDelRepositorio). La huella se calculó sobre el
+// SKILL.md que entrega H33 dos veces, con el código de este test y con awk y
+// sha256sum, y las dos dieron la misma. Se fija aquí y no se lee con git porque
+// el make ci del cierre no garantiza el historial (research D2 de H41.4).
 var huellasDeConsultaJuridicaEnLaBase = map[string]string{
-	ficheroDeLaSkill: "bd089909060d0fd82c1c6d2ee4ae148f6f0a1b2b7d7eefd476d164dc610a205a",
+	ficheroDeLaSkill: "a76bad94008d5b5bf41a7b965e0c72de72e867ef5481ed7e665b43dd8142f36f",
 }
 
 // defectoDeConsultaJuridica compara los ficheros de skills/consulta-juridica/ de
-// la raíz con los de la base de la rama, huellasDeConsultaJuridicaEnLaBase, el
-// SKILL.md sin las líneas de la clave description (FR-003; contracts/controles.md
-// §2.2): en orden de ruta sobre la unión de las dos listas, da el primero que
-// falta, sobra o difiere, o la cadena vacía. El error, sin defecto, es el de
-// leerLosFicheros: un defecto inesperado (ADR 0023).
+// la raíz con los de la entrega de H33, huellasDeConsultaJuridicaEnLaBase, el
+// SKILL.md sin las líneas de la clave description y con cada región generada
+// reducida a sus marcas (FR-003 de H41.4; contracts/controles.md §4 de H33): en
+// orden de ruta sobre la unión de las dos listas, da el primero que falta, sobra
+// o difiere, o la cadena vacía. El error, sin defecto, es el de leerLosFicheros o
+// el de una región generada sin cerrar: un defecto inesperado (ADR 0023).
 func defectoDeConsultaJuridica(raiz string) (string, error) {
 	directorio := path.Join(directorioDeLasSkills, consultaJuridica)
 
@@ -386,6 +389,11 @@ func defectoDeConsultaJuridica(raiz string) (string, error) {
 		texto := string(contenido)
 		if ruta == ficheroDeLaSkill {
 			_, texto = descripcionYCuerpo(texto)
+
+			texto, err = conLasRegionesGeneradasReducidas(texto)
+			if err != nil {
+				return "", fmt.Errorf("%s: %w", path.Join(directorio, ruta), err)
+			}
 		}
 
 		huellas[ruta] = sha256DeTexto(texto)
@@ -401,22 +409,31 @@ func defectoDeConsultaJuridica(raiz string) (string, error) {
 
 		switch {
 		case !estaEnLaRaiz:
-			return fmt.Sprintf("%s falta: está en la base de la rama (%s)", completa, baseDeLaRama), nil
+			return fmt.Sprintf("%s falta: está en %s", completa, laEntrega), nil
 		case !estaEnLaBase:
-			return fmt.Sprintf("%s sobra: no está en la base de la rama (%s)", completa, baseDeLaRama), nil
+			return fmt.Sprintf("%s sobra: no está en %s", completa, laEntrega), nil
 		case enLaRaiz != enLaBase:
-			return fmt.Sprintf("%s difiere de la base de la rama (%s)", completa, baseDeLaRama), nil
+			return fmt.Sprintf("%s difiere de %s", completa, laEntrega), nil
 		}
 	}
 
 	return "", nil
 }
 
+// conLasRegionesGeneradasReducidas es el texto de un SKILL.md con cada región
+// que genera make skills-sync, las de regionesGeneradas, reducida a sus marcas;
+// una región sin su marca de fin es un error.
+func conLasRegionesGeneradasReducidas(texto string) (string, error) {
+	return conLasRegionesReducidas(texto, finDeUnaRegionDelSkillMd)
+}
+
 // TestConsultaJuridicaDesdeLaBase comprueba que skills/consulta-juridica/ es la
-// de la base de la rama salvo las líneas de la clave description (FR-003; SC-002;
-// contracts/controles.md §2.3): la rama, sin defecto; cada mutante, un byte o un
-// fichero de diferencia fuera de la clave, la medida pasada del umbral de 0, con
-// su defecto exacto (ADR 0029); y el que solo cambia la clave, sin defecto.
+// de la entrega de H33 salvo las líneas de la clave description y lo generado
+// entre sus marcas (FR-003 y SC-002 de H41.4; FR-020 de H33; contracts/
+// controles.md §4 de H33): la rama, sin defecto; cada mutante, un byte o un
+// fichero de diferencia fuera de la clave y de lo generado, la medida pasada del
+// umbral de 0, con su defecto exacto (ADR 0029); y el que solo cambia la clave,
+// sin defecto.
 func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
 	t.Parallel()
 
@@ -441,7 +458,7 @@ func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
 
 				cambiarElSkill(t, raiz, consultaJuridica, "## Método", "## Métodos")
 			},
-			esperado: "skills/consulta-juridica/SKILL.md difiere de la base de la rama (ab951c22)",
+			esperado: "skills/consulta-juridica/SKILL.md difiere de la entrega de H33",
 		},
 		{
 			nombre: "name",
@@ -450,7 +467,7 @@ func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
 
 				cambiarElSkill(t, raiz, consultaJuridica, "name: consulta-juridica", "name: consulta-juridico")
 			},
-			esperado: "skills/consulta-juridica/SKILL.md difiere de la base de la rama (ab951c22)",
+			esperado: "skills/consulta-juridica/SKILL.md difiere de la entrega de H33",
 		},
 		{
 			nombre: "un fichero de más",
@@ -461,7 +478,7 @@ func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
 				require.NoError(t, os.Mkdir(referencias, 0o700))
 				require.NoError(t, escribirFichero(filepath.Join(referencias, "otra.md"), []byte("# Otra\n")))
 			},
-			esperado: "skills/consulta-juridica/references/otra.md sobra: no está en la base de la rama (ab951c22)",
+			esperado: "skills/consulta-juridica/references/otra.md sobra: no está en la entrega de H33",
 		},
 		{
 			nombre: "un fichero de menos",
@@ -470,7 +487,7 @@ func TestConsultaJuridicaDesdeLaBase(t *testing.T) {
 
 				require.NoError(t, os.Remove(filepath.Join(raiz, directorioDeLasSkills, consultaJuridica, ficheroDeLaSkill)))
 			},
-			esperado: "skills/consulta-juridica/SKILL.md falta: está en la base de la rama (ab951c22)",
+			esperado: "skills/consulta-juridica/SKILL.md falta: está en la entrega de H33",
 		},
 		{
 			nombre: "solo la clave",

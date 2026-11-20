@@ -845,15 +845,23 @@ func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCo
 // partirElCuerpo convierte en saltos de línea, de uno en uno y desde el
 // principio, los espacios de las líneas de prosa del cuerpo del SKILL.md de la
 // skill hasta que el cuerpo tiene las líneas dadas. Una línea de prosa está
-// fuera de la región generada y no lleva corchete, comilla invertida, virgulilla
-// ni barra vertical, con los que podría ser parte de un enlace, de un código o de
-// un bloque de código, o de una tabla; las marcas de
-// la región tampoco lo son, ni otra línea que empieza por <!--, como las marcas
-// de los paquetes, que partidas dejarían de serlo. Cada espacio es un carácter y
-// cada salto otro, así que el cuerpo conserva sus caracteres, y lo regenerado no
-// cambia. Si los espacios no bastan, las líneas que faltan son líneas en blanco
-// al final, de un carácter cada una, lejos de los 11 000.
+// fuera de la región generada de la tabla de comandos y de la de lo que cubre la
+// base, cuyas líneas son una por fila (research D16 de H33), y no lleva corchete,
+// comilla invertida, virgulilla ni barra vertical, con los que podría ser parte
+// de un enlace, de un código o de un bloque de código, o de una tabla; las marcas
+// de una y otra tampoco lo son, ni otra línea que empieza por <!--, como las
+// marcas de los paquetes, que partidas dejarían de serlo. Cada espacio es un
+// carácter y cada salto otro, así que el cuerpo conserva sus caracteres, y lo
+// regenerado no cambia. Si los espacios no bastan, las líneas que faltan son
+// líneas en blanco al final, de un carácter cada una, lejos de los 11 000.
 func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
+	// Las marcas de la región de lo que cubre la base (contracts/datos-y-regiones.md
+	// §3 de H33).
+	const (
+		inicioDeLoCubierto = "<!-- lo que cubre la base: lo genera make skills-sync -->"
+		finDeLoCubierto    = "<!-- fin de lo que cubre la base -->"
+	)
+
 	return func(t *testing.T, copia string) {
 		t.Helper()
 
@@ -864,18 +872,18 @@ func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 		require.GreaterOrEqual(t, faltan, 0, "el cuerpo de SKILL.md no tiene ya más de %d líneas", lineas)
 
 		var (
-			partido   strings.Builder
-			enLaTabla bool
+			partido     strings.Builder
+			enUnaRegion bool
 		)
 
 		for linea := range strings.Lines(cuerpo) {
 			switch strings.TrimSuffix(linea, "\n") {
-			case inicioDeLaTablaDeComandos:
-				enLaTabla = true
-			case finDeLaTablaDeComandos:
-				enLaTabla = false
+			case inicioDeLaTablaDeComandos, inicioDeLoCubierto:
+				enUnaRegion = true
+			case finDeLaTablaDeComandos, finDeLoCubierto:
+				enUnaRegion = false
 			default:
-				for !enLaTabla && !strings.HasPrefix(linea, "<!--") && !strings.ContainsAny(linea, "[`~|") && faltan > 0 &&
+				for !enUnaRegion && !strings.HasPrefix(linea, "<!--") && !strings.ContainsAny(linea, "[`~|") && faltan > 0 &&
 					strings.Contains(linea, " ") {
 					linea = strings.Replace(linea, " ", "\n", 1)
 					faltan--
