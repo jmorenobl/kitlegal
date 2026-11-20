@@ -255,13 +255,16 @@ const (
 )
 
 // Lo que fijan las reglas del conjunto de evals de la skill de entrada
-// (contracts/evals.md §4 de H32; FR-035 a FR-037): al menos sus dos evals, y el
-// comando que prohíbe la de una materia sin paquete, la que con una materia que
-// la base no cubre no pide un plazo de otra.
+// (contracts/evals.md §4 de H32; FR-035 a FR-037 de H32): al menos sus dos
+// evals, y el comando que prohíbe la de una materia sin paquete, la que con una
+// materia que la base no cubre no pide un plazo de otra; y, desde H33
+// (contracts/evals.md §4 de H33; FR-017), al menos dos normas sin vertical con
+// una eval activa a cada lado de la frontera de lo cubierto.
 const (
 	minimoDeEvalsDeConsultaJuridica = 2
 	appletDelPlazoProhibido         = "plazos"
 	verboDelPlazoProhibido          = "calcular"
+	minimoDeNormasEnLaFrontera      = 2
 )
 
 // sinBinarioNiServidorDelConjunto son las evals sin binario ni servidor que
@@ -381,11 +384,14 @@ func ReglasDeJurisprudencia() []ReglaDelConjunto {
 // ReglasDeConsultaJuridica son las reglas del conjunto de evals de la skill de
 // entrada de contracts/evals.md §4 de H32, en su orden: al menos dos evals; una
 // activa que prohíbe plazos calcular y cita una norma de data/normas.yaml sin
-// vertical, la de una materia que la base no cubre (FR-035); y una activa con
-// un solo nombre en se_activan, el de una skill de capacidad, y las demás de
-// capacidad en no_se_activan, la de una pregunta de una sola capacidad
-// (FR-036). Las skills de capacidad son las dadas, las de skills/ que declaran
-// kitlegal-applets. Cada llamada devuelve un juego nuevo.
+// vertical, la de una materia que la base no cubre (FR-035 de H32); y una
+// activa con un solo nombre en se_activan, el de una skill de capacidad, y las
+// demás de capacidad en no_se_activan, la de una pregunta de una sola capacidad
+// (FR-036 de H32). Detrás, desde H33, la de contracts/evals.md §4 de H33: al
+// menos dos normas de data/normas.yaml sin vertical con una eval activa a cada
+// lado de la frontera, la de dentro de lo cubierto y la de fuera de lo
+// declarado (FR-017). Las skills de capacidad son las dadas, las de skills/ que
+// declaran kitlegal-applets. Cada llamada devuelve un juego nuevo.
 func ReglasDeConsultaJuridica(capacidades []string) []ReglaDelConjunto {
 	capacidades = slices.Clone(capacidades)
 
@@ -395,6 +401,7 @@ func ReglasDeConsultaJuridica(capacidades []string) []ReglaDelConjunto {
 		{nombre: "una sola capacidad", incumplimiento: func(conjunto *conjuntoAComprobar) string {
 			return incumplimientoDeUnaSolaCapacidad(conjunto, capacidades)
 		}},
+		{nombre: "frontera en dos materias", incumplimiento: incumplimientoDeLaFronteraEnDosMaterias},
 	}
 }
 
@@ -480,13 +487,14 @@ func ComprobarConjunto(evals []Eval, normas map[string]NormaConocida, reglas []R
 // en sus defectos.
 const reglaDeLasSkillsNombradas = "skills nombradas"
 
-// ComprobarLasSkillsNombradas comprueba que cada nombre de se_activan y de
-// no_se_activan de las evals es una de las skills dadas, las de skills/: con un
-// nombre retirado, el juicio de la eval dejaría de comprobar nada sin avisar
-// (contracts/evals.md §4 de H32; data-model §8 de H32; FR-037). Devuelve un
-// defecto por cada nombre que no lo es, en el orden de las evals y, en cada una,
-// los de se_activan delante de los de no_se_activan, y ninguno si lo son todos.
-// No lee ficheros.
+// ComprobarLasSkillsNombradas comprueba que cada nombre de se_activan, de
+// no_se_activan y, desde H33, de tambien_la_resuelven de las evals es una de las
+// skills dadas, las de skills/: con un nombre retirado, el juicio de la eval
+// dejaría de comprobar nada sin avisar (contracts/evals.md §4 de H32; data-model
+// §8 de H32; FR-037; contracts/evals.md §3 de H33; FR-015). Devuelve un defecto
+// por cada nombre que no lo es, en el orden de las evals y, en cada una, los de
+// se_activan, los de no_se_activan y los de tambien_la_resuelven, en ese orden,
+// y ninguno si lo son todos. No lee ficheros.
 func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConjunto {
 	var defectos []DefectoDelConjunto
 
@@ -497,6 +505,7 @@ func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConj
 		}{
 			{clave: "se_activan", nombres: eval.SeActivan},
 			{clave: "no_se_activan", nombres: eval.NoSeActivan},
+			{clave: "tambien_la_resuelven", nombres: eval.TambienLaResuelven},
 		} {
 			for _, nombre := range nombradas.nombres {
 				if !slices.Contains(skills, nombre) {
@@ -926,19 +935,8 @@ func incumplimientoDelMinimoDeConsultaJuridica(conjunto *conjuntoAComprobar) str
 // norma que no está en la tabla no es una norma sin vertical de ella. Nombra
 // las evals activas.
 func incumplimientoDeLaMateriaSinPaquete(conjunto *conjuntoAComprobar) string {
-	prohibeElPlazo := func(prohibido ComandoProhibido) bool {
-		return prohibido.Applet == appletDelPlazoProhibido && prohibido.Verbo == verboDelPlazoProhibido
-	}
-
-	sinVertical := func(norma string) bool {
-		conocida, esta := conjunto.normas[norma]
-
-		return esta && conocida.Vertical == ""
-	}
-
 	if slices.ContainsFunc(conjunto.evals, func(eval Eval) bool {
-		return eval.Activa && slices.ContainsFunc(eval.Prohibidos, prohibeElPlazo) &&
-			slices.ContainsFunc(normasCitadas(eval), sinVertical)
+		return eval.Activa && prohibeElPlazo(eval) && slices.ContainsFunc(normasCitadas(eval), conjunto.sinVertical)
 	}) {
 		return ""
 	}
@@ -946,6 +944,71 @@ func incumplimientoDeLaMateriaSinPaquete(conjunto *conjuntoAComprobar) string {
 	return fmt.Sprintf("ninguna eval activa prohíbe %s %s y cita una norma de data/normas.yaml sin vertical; "+
 		"evals activas: %s", appletDelPlazoProhibido, verboDelPlazoProhibido,
 		conjunto.ficheros(conjunto.posicionesDeLasQue(func(eval Eval) bool { return eval.Activa })))
+}
+
+// incumplimientoDeLaFronteraEnDosMaterias: al menos dos normas de
+// data/normas.yaml sin vertical tienen una eval activa a cada lado de la
+// frontera de lo cubierto (normasDeLaFrontera; FR-017 de H33). La regla no
+// nombra ninguna norma ni materia: si un paquete trae una de ellas, sus evals
+// pasan a otra norma sin paquete, sin cambiar este código (principio X;
+// research D10 de H33). Nombra las normas que lo cumplen y las evals activas.
+func incumplimientoDeLaFronteraEnDosMaterias(conjunto *conjuntoAComprobar) string {
+	frontera := normasDeLaFrontera(conjunto)
+	if len(frontera) >= minimoDeNormasEnLaFrontera {
+		return ""
+	}
+
+	return fmt.Sprintf("hay %d normas de data/normas.yaml sin vertical con una eval activa a cada lado de la "+
+		"frontera y el conjunto lleva al menos %d: %s; evals activas: %s", len(frontera), minimoDeNormasEnLaFrontera,
+		enumerar(frontera, "ninguna"),
+		conjunto.ficheros(conjunto.posicionesDeLasQue(func(eval Eval) bool { return eval.Activa })))
+}
+
+// normasDeLaFrontera son, ordenadas, las normas de data/normas.yaml sin
+// vertical que cita (normasCitadas) una eval activa que no es de cobertura, la
+// de dentro de lo cubierto, y también otra activa de cobertura con
+// fuera_de_lo_declarado que prohíbe plazos calcular, la de fuera de lo
+// declarado (contracts/evals.md §4 de H33). Una eval de cobertura de lo regulado
+// aparte no es de ninguno de los dos lados.
+func normasDeLaFrontera(conjunto *conjuntoAComprobar) []string {
+	dentro, fuera := map[string]bool{}, map[string]bool{}
+
+	for _, eval := range conjunto.evals {
+		var lado map[string]bool
+
+		switch {
+		case !eval.Activa:
+			continue
+		case !eval.esDeCobertura():
+			lado = dentro
+		case eval.NoCubierto.FueraDeLoDeclarado && prohibeElPlazo(eval):
+			lado = fuera
+		default:
+			continue
+		}
+
+		for _, norma := range normasCitadas(eval) {
+			lado[norma] = true
+		}
+	}
+
+	var frontera []string
+
+	for _, norma := range slices.Sorted(maps.Keys(conjunto.normas)) {
+		if dentro[norma] && fuera[norma] && conjunto.sinVertical(norma) {
+			frontera = append(frontera, norma)
+		}
+	}
+
+	return frontera
+}
+
+// prohibeElPlazo dice si la eval prohíbe plazos calcular, el comando que no
+// pide la de una materia sin paquete (FR-035 de H32).
+func prohibeElPlazo(eval Eval) bool {
+	return slices.ContainsFunc(eval.Prohibidos, func(prohibido ComandoProhibido) bool {
+		return prohibido.Applet == appletDelPlazoProhibido && prohibido.Verbo == verboDelPlazoProhibido
+	})
 }
 
 // incumplimientoDeUnaSolaCapacidad: al menos una eval activa declara en
@@ -1144,6 +1207,14 @@ func (c *conjuntoAComprobar) nombres(posiciones []int) []string {
 	}
 
 	return nombres
+}
+
+// sinVertical dice si la norma es una de data/normas.yaml sin vertical. Una
+// norma que no está en la tabla no es una norma sin vertical de ella.
+func (c *conjuntoAComprobar) sinVertical(norma string) bool {
+	conocida, esta := c.normas[norma]
+
+	return esta && conocida.Vertical == ""
 }
 
 // normasQueCumplen son los identificadores de las normas conocidas que cumplen la

@@ -160,9 +160,9 @@ const (
 		"piden cita cotejar"
 	descripcionDelUmbralDePlazoSinFecha = "Respuestas de %s en el modo %s sin la línea ⚠ PLAZO: con la fecha " +
 		"esperada, sobre sus respuestas medidas en las evals que esperan un plazo"
-	descripcionDelUmbralDeCoberturaSinDeclarar = "Respuestas de %s en el modo %s sin la línea ⚠ NO CUBIERTO: con " +
-		"la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una " +
-		"declaración de no cubierto"
+	descripcionDelUmbralDeCoberturaSinDeclarar = "Respuestas de %s en el modo %s sin una línea ⚠ NO CUBIERTO: " +
+		"—en lo regulado aparte, con la norma que lo rige y la cita de su precepto—, o con una línea ⚠ PLAZO:, " +
+		"sobre sus respuestas medidas en las evals que esperan una declaración de no cubierto"
 	descripcionDelUmbralDeVigenciaSinDeclarar = "Respuestas de %s en el modo %s sin la línea ⚠ PLAZO SIN CALCULAR: " +
 		"con la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan un " +
 		"plazo sin calcular"

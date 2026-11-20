@@ -502,19 +502,28 @@ func regionDeLaReferenciaDelRepositorio(t *testing.T, generador string) string {
 }
 
 // filaDeLosTributos es la fila de la aplicación de los tributos en la región de
-// la cobertura, byte a byte la de contracts/paquetes.md §3 de H32 (US2,
-// escenario 3).
+// la cobertura, byte a byte la del spec de H33 (historia 3, escenario 1): la
+// plantilla con el motivo de la fila con norma.
 const filaDeLosTributos = "| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
 	"administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
-	"administrativa se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común: " +
-	"kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |\n"
+	"administrativa: se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común " +
+	"(DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |\n"
+
+// Las filas de la región de la cobertura del paquete de lo administrativo (SC-002
+// de H33): nueve, cada una «| <procedimiento> | ⚠ NO CUBIERTO: <procedimiento>:
+// <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos. |».
+const (
+	filasDeLaCoberturaDelPaquete = 9
+	finDeLaPlantillaEnLaFila     = ". kitlegal no da sus plazos, órganos, vías ni escritos. |"
+)
 
 // TestRegionDeLaCobertura fija la región cobertura_por_materia de la referencia
 // de lo administrativo del repositorio (contracts/paquetes.md §3; research D6;
-// FR-012 de H32), sobre una copia de plazos-y-territorio y de data/: la sincronía
-// da una fila por entrada de data/cobertura.yaml, todas del paquete, con la línea
-// de los tributos byte a byte la del contrato, y la referencia del repositorio es
-// la que genera; y su mutante, la forma del cuerpo cambiada sin regenerar, da la
+// FR-012 de H32; FR-006, SC-002 de H33), sobre una copia de plazos-y-territorio y
+// de data/: la sincronía da una fila por entrada de data/cobertura.yaml, las
+// nueve del paquete, cada una la plantilla con el motivo de su caso y la de los
+// tributos byte a byte la del spec, y la referencia del repositorio es la que
+// genera; y su mutante, la plantilla del cuerpo cambiada sin regenerar, da la
 // deriva de la referencia.
 func TestRegionDeLaCobertura(t *testing.T) {
 	t.Parallel()
@@ -537,16 +546,26 @@ func TestRegionDeLaCobertura(t *testing.T) {
 
 	cobertura, err := skills.LeerCobertura(leerDatosDelRepositorio(t, "cobertura.yaml"))
 	require.NoError(t, err)
-	assert.Equal(t, 2+len(cobertura.ReguladosAparte),
-		strings.Count(regionDeLaReferenciaDelRepositorio(t, "cobertura_por_materia"), "\n"),
+
+	region := regionDeLaReferenciaDelRepositorio(t, "cobertura_por_materia")
+	assert.Equal(t, 2+len(cobertura.ReguladosAparte), strings.Count(region, "\n"),
 		"los encabezados y una fila por entrada de data/cobertura.yaml")
+
+	filas := strings.Split(strings.TrimSuffix(region, "\n"), "\n")[2:]
+	assert.Len(t, filas, filasDeLaCoberturaDelPaquete, "las filas del paquete")
+
+	for _, fila := range filas {
+		procedimiento, _, _ := strings.Cut(strings.TrimPrefix(fila, "| "), " | ")
+		assert.True(t, strings.HasPrefix(fila, "| "+procedimiento+" | ⚠ NO CUBIERTO: "+procedimiento+": ") &&
+			strings.HasSuffix(fila, finDeLaPlantillaEnLaFila), "la fila es la plantilla con su motivo: %s", fila)
+	}
 
 	derivas, err := skills.Comparar(raiz, regenerado)
 	require.NoError(t, err)
 	assert.Empty(t, derivas, "la referencia del repositorio es la que genera la sincronía")
 
 	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"),
-		"kitlegal no calcula sus plazos ni sus recursos (<precepto>", "kitlegal no calcula sus plazos (<precepto>")
+		"kitlegal no da sus plazos, órganos, vías ni escritos.", "kitlegal no da sus plazos.")
 
 	assert.Equal(t, []*skills.Deriva{
 		{Skill: "plazos-y-territorio", Ruta: "references/administrativo.md", Clase: skills.DerivaContenidoDistinto},

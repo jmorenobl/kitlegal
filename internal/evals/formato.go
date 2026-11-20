@@ -42,6 +42,18 @@ type Eval struct {
 	// instalada (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003, FR-004).
 	NoSeActivan []string `yaml:"no_se_activan"`
 
+	// TambienLaResuelven son los nombres de otras skills del producto cuya
+	// activación cuenta como la de la skill de su carpeta (activadaPor), para
+	// Activada, para el juicio de la eval y para sin_activar, en el orden del
+	// fichero y sin repetir; vacío si la eval no los declara. Cada uno es una
+	// skill de skills/ (ComprobarLasSkillsNombradas). Una pregunta puede tener
+	// dos rutas que el producto permite: la 17 de normativa, un plazo del acceso
+	// a la información que plazos-y-territorio también cubre. No cambia lo que la
+	// sesión tiene que hacer, ni se_activan, ni no_se_activan, ni ningún tope
+	// (contracts/evals.md §3 de H33; data-model §4 de H33; FR-015; ADR 0058,
+	// punto 7).
+	TambienLaResuelven []string `yaml:"tambien_la_resuelven"`
+
 	// Reproduce es el nombre de la skill cuya consulta reproduce la eval, o
 	// vacío si no reproduce ninguna (FR-064).
 	Reproduce string `yaml:"reproduce"`
@@ -172,9 +184,18 @@ func (e Eval) esDePlazo() bool {
 }
 
 // esDeCobertura dice si la eval es una eval de cobertura: si espera una
-// declaración de no cubierto, que su esquema no admite sin norma.
+// declaración de no cubierto, la de lo regulado aparte, que su esquema no admite
+// sin norma, o la de fuera de lo declarado (contracts/evals.md §1 de H33;
+// FR-012).
 func (e Eval) esDeCobertura() bool {
-	return e.NoCubierto.Norma != ""
+	return e.NoCubierto.Norma != "" || e.NoCubierto.FueraDeLoDeclarado
+}
+
+// activadaPor dice si la sesión activó la skill de la carpeta de la eval o
+// alguna de las que la eval dice que también la resuelven (TambienLaResuelven;
+// contracts/evals.md §3 de H33; FR-015; ADR 0058, punto 7).
+func (e Eval) activadaPor(sesion Sesion, skill string) bool {
+	return sesion.Activada(skill) || slices.ContainsFunc(e.TambienLaResuelven, sesion.Activada)
 }
 
 // esDeVigencia dice si la eval es una eval de vigencia: si espera la
@@ -212,8 +233,15 @@ type NoCubiertoEsperado struct {
 	// Precepto es el de la LPAC que lo regula aparte, el de su fila de
 	// data/cobertura.yaml por su norma y su bloque, cuya cita tiene que llevar
 	// esa misma línea (contracts/forma-de-cita.md §4 de H32; FR-014). El
-	// esquema no admite una eval de cobertura sin él.
+	// esquema no admite una eval de lo regulado aparte sin él.
 	Precepto CitaEsperada `yaml:"precepto"`
+
+	// FueraDeLoDeclarado dice que la eval espera la línea ⚠ NO CUBIERTO: de un
+	// asunto fuera de lo que kitlegal declara cubierto, que basta con su
+	// etiqueta: el modelo compone su asunto, su motivo y su cola. El esquema solo
+	// lo admite verdadero y nunca con Norma ni con Precepto
+	// (contracts/evals.md §1 y §2 de H33; data-model §4 de H33; FR-012, FR-013).
+	FueraDeLoDeclarado bool `yaml:"fuera_de_lo_declarado"`
 }
 
 // PlazoSinCalcularEsperado es lo que una eval de vigencia espera de la

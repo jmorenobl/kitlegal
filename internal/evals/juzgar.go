@@ -142,7 +142,9 @@ type ResultadoDeEval struct {
 	Decide bool `json:"decide"`
 
 	// Activa dice si la eval espera que la skill se active, y Activada, si la
-	// sesión la activó: la activación coincide si son iguales.
+	// sesión la activó, a ella o, desde H33, a alguna de las que la eval dice que
+	// también la resuelven (Eval.activadaPor; FR-015): la activación coincide si
+	// son iguales.
 	Activa   bool `json:"activa"`
 	Activada bool `json:"activada"`
 
@@ -538,6 +540,10 @@ func modoSinServidor(eval Eval) Modo {
 // sin activar impide pasar: los comandos de la eval no prueban que se activó. Una
 // eval sin se_activan se juzga como antes (contracts/evals.md §2 de H32;
 // research D14 de H32; FR-036).
+//
+// Desde H33, la activación de la skill la da Eval.activadaPor: la de una skill de
+// tambien_la_resuelven cuenta como la de la skill. SeActivan y NoSeActivan se
+// juzgan como antes (contracts/evals.md §3 de H33; research D8 de H33; FR-015).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -546,7 +552,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 		Modo:                       modo,
 		Activa:                     eval.Activa,
 		PorMateria:                 eval.PorMateria,
-		Activada:                   sesion.Activada(skill),
+		Activada:                   eval.activadaPor(sesion, skill),
 		Respuesta:                  sesion.Respuesta,
 		CodigoDeLaSesion:           &codigo,
 		FinDeLaSesion:              sesion.Fin,

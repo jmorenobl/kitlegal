@@ -6675,9 +6675,10 @@ const (
 	redaccionAFechaDel128 = "⚠ REDACCIÓN A FECHA: art. 128 de la Ley 29/1998 [BOE-A-1998-16718, bloque a128]: se " +
 		"cita la redacción vigente el 2026-06-15, la de fecha de vigencia 20100504."
 
-	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: el procedimiento sancionador en materia de tráfico se rige por la " +
-		"Ley sobre Tráfico (BOE-A-2015-11722), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
-		"recursos (DA 1ª.2.c LPAC " + citaDeLaDAPrimera + ")."
+	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: procedimientos sancionadores en materia de tráfico y seguridad " +
+		"vial: se rige por texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial " +
+		"(BOE-A-2015-11722), no por el procedimiento común (DA 1ª.2.c LPAC " + citaDeLaDAPrimera + "). " +
+		colaDeLaPlantilla
 
 	// declaracionDelPlazoSinCalcular es la de la eval de vigencia, con la norma
 	// que espera (ADR 0042).
@@ -7137,11 +7138,15 @@ func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]
 // cambiar ningún valor: normativa con los diecinueve de boe-legislacion,
 // jurisprudencia con sus diecinueve y plazos-y-territorio con los dieciocho de
 // legal-core; y consulta-juridica, la de entrada, sin juez, sentencias ni evals
-// de plazo, de cobertura, de vigencia o con una redacción fechada, solo con
-// fuera_de_lo_grabado de cada modelo y cada modo del plan del job, que no
-// decide, sin sin_activar ni lectura_sin_intentar; y, con la descripción en el
-// informe, como las otras tres, además el de su clase,
-// habla_en_primera_o_segunda_persona, que decide.
+// de plazo, de vigencia o con una redacción fechada, con fuera_de_lo_grabado de
+// cada modelo y cada modo del plan del job, que no decide, y sin
+// lectura_sin_intentar; y, con la descripción en el informe, como las otras
+// tres, además el de su clase, habla_en_primera_o_segunda_persona, que decide.
+// Desde H33 (contracts/evals.md §3 de H33; research V12 de H33; FR-014;
+// SC-007), con sus dos evals de cobertura fuera de lo declarado, consulta-juridica
+// lleva delante, de cada modo, sin_activar, sobre 12 respuestas, y
+// cobertura_sin_declarar, sobre 6, del modelo que decide, los cuatro decidiendo
+// con 0.
 func TestUmbralesDeLasSkills(t *testing.T) {
 	t.Parallel()
 
@@ -7287,22 +7292,50 @@ const skillDeConsultaJuridica = "consulta-juridica"
 // probarLosUmbralesDeLaEntrada es el subtest de consulta-juridica de
 // TestUmbralesDeLasSkills (contracts/evals.md §7 de H32; research V16 de H32):
 // con sus evals del repositorio, el plan del job, el objetivo de duración que le
-// da su definición y sin sesiones, como jurisprudencia, sus umbrales son los
-// cuatro fuera_de_lo_grabado del plan, uno por modelo y modo, ninguno
-// decidiendo; y, con su descripción en el informe, juzgada sin marcar, además
-// el de la descripción, detrás, que decide.
+// da su definición y sin sesiones, como jurisprudencia, sus umbrales son, desde
+// H33, de cada modo, sin_activar y cobertura_sin_declarar del modelo que
+// decide, los cuatro decidiendo con 0, porque dos de sus evals son de cobertura
+// fuera de lo declarado (contracts/evals.md §3 de H33; research V12 de H33;
+// FR-014; SC-007); y, detrás, los cuatro fuera_de_lo_grabado del plan, uno por
+// modelo y modo, ninguno decidiendo; con su descripción en el informe, juzgada
+// sin marcar, además el de la descripción, detrás, que decide. Con las sesiones
+// del plan, que activan la skill y, en las de cobertura, declaran lo no
+// cubierto con la plantilla, sin_activar es de 12 respuestas por modo, las de
+// sus cuatro evals, y cobertura_sin_declarar de 6, las de las dos de cobertura.
 func probarLosUmbralesDeLaEntrada(t *testing.T, delJob DefinicionDelJob) {
 	t.Helper()
 
 	ajustes, esta := delJob.PorSkill[skillDeConsultaJuridica]
 	require.True(t, esta, "la definición del job tiene los ajustes de %s", skillDeConsultaJuridica)
 
-	deLasRespuestas := []Umbral{
-		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoOrden, 0, 0),
-		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoOrden, 0, 0),
-		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoHerramienta, 0, 0),
-		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoHerramienta, 0, 0),
+	// Las respuestas de cada modo del modelo que decide en las evals que activan
+	// la skill, las cuatro, y en las de cobertura, la 01 y la 04; y las sesiones
+	// de cada modelo en cada modo: tres por eval.
+	const (
+		respuestasPorModo            = 12
+		respuestasDeCoberturaPorModo = 6
+		sesionesPorModeloYModo       = 12
+	)
+
+	umbralesConSesiones := func(sesiones int) []Umbral {
+		var umbrales []Umbral
+
+		for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+			umbrales = append(umbrales,
+				umbralSinActivar(modeloSonnet55, modo, 0, respuestasPorModo, true),
+				umbralCoberturaSinDeclarar(modeloSonnet55, modo, 0, respuestasDeCoberturaPorModo))
+		}
+
+		for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+			for _, modelo := range []string{modeloSonnet55, modeloHaiku45} {
+				umbrales = append(umbrales, umbralDeFueraDeLoGrabado(modelo, modo, 0, sesiones))
+			}
+		}
+
+		return umbrales
 	}
+
+	deLasRespuestas := umbralesConSesiones(0)
 
 	conLaDescripcion := func(entradas *InformeAEscribir) {
 		entradas.descripcion = &DescripcionInformada{
@@ -7316,15 +7349,18 @@ func probarLosUmbralesDeLaEntrada(t *testing.T, delJob DefinicionDelJob) {
 		nombre   string
 		cambios  []func(*InformeAEscribir)
 		umbrales []Umbral
-		deciden  []string
 	}{
 		{nombre: "sin-la-descripcion", umbrales: deLasRespuestas},
 		{
 			nombre:   "con-la-descripcion",
 			cambios:  []func(*InformeAEscribir){conLaDescripcion},
 			umbrales: append(slices.Clone(deLasRespuestas), umbralDeLaDescripcionEsperado(0, 1)),
-			deciden:  []string{claseHablaEnPrimeraOSegundaPersona},
 		},
+	}
+
+	deLasRespuestasQueDeciden := []string{
+		"sin_activar:claude-sonnet-5-5:orden", "cobertura_sin_declarar:claude-sonnet-5-5:orden",
+		"sin_activar:claude-sonnet-5-5:herramienta", "cobertura_sin_declarar:claude-sonnet-5-5:herramienta",
 	}
 
 	for _, caso := range casos {
@@ -7342,8 +7378,42 @@ func probarLosUmbralesDeLaEntrada(t *testing.T, delJob DefinicionDelJob) {
 			}
 		}
 
-		assert.Equal(t, caso.deciden, deciden, "%s: solo decide el de la descripción", caso.nombre)
+		esperados := slices.Clone(deLasRespuestasQueDeciden)
+		if caso.cambios != nil {
+			esperados = append(esperados, claseHablaEnPrimeraOSegundaPersona)
+		}
+
+		assert.Equal(t, esperados, deciden,
+			"%s: deciden los cuatro de las respuestas y, si el informe la lleva, el de la descripción", caso.nombre)
 	}
+
+	t.Run("con-las-sesiones-del-plan", func(t *testing.T) {
+		t.Parallel()
+
+		conjunto, err := LeerConjunto(evalsDeConsultaJuridica)
+		require.NoError(t, err)
+		require.Empty(t, conjunto.MalFormados)
+
+		modelos := map[string]modeloDeUnaEval{}
+
+		for _, eval := range conjunto.Evals {
+			respuesta := "Lo que dice la norma, con su cita."
+			if eval.esDeCobertura() {
+				respuesta += "\n\n⚠ NO CUBIERTO: a quién reclamar y qué escrito presentar. Está fuera de lo que " +
+					"kitlegal cubre, que no da plazos, órganos, vías ni escritos para esto."
+			}
+
+			modelos[eval.Fichero] = modeloDeUnaEval{activa: true, respuesta: respuesta}
+		}
+
+		sesiones := escribirLasSesionesDelPlan(t, skillDeConsultaJuridica, conjunto.Evals, modelos,
+			func(_ SesionPlanificada, modelo modeloDeUnaEval) modeloDeUnaEval { return modelo })
+
+		leido := informeDelPlanDelJob(t, skillDeConsultaJuridica, evalsDeConsultaJuridica, sesiones,
+			ajustes.ObjetivoDeDuracion, nuevoVotanteDelInforme(t))
+
+		exigirUmbrales(t, leido, umbralesConSesiones(sesionesPorModeloYModo))
+	})
 }
 
 // formaDeLosUmbrales son los umbrales sin lo que sale de las respuestas —su
@@ -7444,15 +7514,16 @@ func umbralPlazoSinFecha(modelo string, modo Modo, sinFecha, respuestas int) Umb
 
 // umbralCoberturaSinDeclarar es el umbral de las respuestas del modelo que
 // decide en un modo, de las evals de cobertura, sin la declaración de no
-// cubierto con la norma esperada o con una línea del plazo, tal como lo fija
+// cubierto —en lo regulado aparte, con la norma que lo rige y la cita de su
+// precepto— o con una línea del plazo, tal como lo fija
 // contracts/evals-legal-core.md §3 de H9, con sus valores escritos a mano: 0 y
-// decidiendo (FR-054 de H9).
+// decidiendo (FR-054 de H9), y desde H33 con la descripción de FR-014.
 func umbralCoberturaSinDeclarar(modelo string, modo Modo, sinDeclarar, respuestas int) Umbral {
 	return Umbral{
 		Nombre: "cobertura_sin_declarar:" + modelo + ":" + string(modo),
-		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " sin la línea ⚠ NO CUBIERTO: con " +
-			"la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una " +
-			"declaración de no cubierto",
+		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " sin una línea ⚠ NO CUBIERTO: " +
+			"—en lo regulado aparte, con la norma que lo rige y la cita de su precepto—, o con una línea ⚠ PLAZO:, " +
+			"sobre sus respuestas medidas en las evals que esperan una declaración de no cubierto",
 		Medida:      float64(sinDeclarar),
 		Total:       &respuestas,
 		Comparacion: "<=",

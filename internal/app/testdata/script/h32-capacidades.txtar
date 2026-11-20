@@ -7,9 +7,9 @@
 # Cubre: US2 · FR-006 · SC-017.
 #
 # Las formas son las «sí» de contracts/reparto.md §5, en formas.txt: la skill, la
-# etiqueta y cuántas líneas la llevan como mínimo, dos en ⚠ NO CUBIERTO:, que
-# tiene la forma con la norma que lo rige y la forma sin ella. Cuenta una línea
-# de un bloque text que, sin los blancos del principio, empieza por la etiqueta.
+# etiqueta y cuántas líneas la llevan como mínimo, una en ⚠ NO CUBIERTO:, la
+# plantilla. Cuenta una línea de un bloque text que, sin los blancos del
+# principio, empieza por la etiqueta.
 # Las etiquetas de aviso de la regla 3 de normativa no son líneas enteras y no
 # las mira este guion, sino avisos-de-la-skill (reparto.md §5).
 #
@@ -44,7 +44,7 @@ plazos-y-territorio|⚠ REDACCIÓN A FECHA:|1
 plazos-y-territorio|⚠ REDACCIÓN DE HOY:|1
 plazos-y-territorio|⚠ PLAZO:|1
 plazos-y-territorio|⚠ PLAZO SIN CALCULAR:|1
-plazos-y-territorio|⚠ NO CUBIERTO:|2
+plazos-y-territorio|⚠ NO CUBIERTO:|1
 plazos-y-territorio|⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS:|1
 plazos-y-territorio|⚠ FALTAN FESTIVOS LOCALES:|1
 plazos-y-territorio|⚠ DÍAS DEL ART. 183 LOPJ:|1

@@ -1,0 +1,20 @@
+# Eval de la skill de entrada fuera de lo cubierto, de una materia sin paquete (laboral): la sesión lee el art. 59 del
+# Estatuto de los Trabajadores en la fecha del despido y lo cita, no pide plazos calcular, y declara con la plantilla y
+# el motivo de lo no declarado el día en que vence el plazo. El otro lado de la frontera, en la misma norma, es la 02
+# (regla «frontera en dos materias»; ADR 0058). Sin lecturas (ADR 0043, punto 2).
+pregunta: "Me despidieron el 2 de noviembre de 2026. ¿Qué dice el Estatuto de los Trabajadores del plazo para reclamar y hasta qué día puedo hacerlo?"
+activa: true
+no_se_activan: [jurisprudencia]
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-11430
+    bloque: a59
+    fecha: "2026-11-02"
+citas:
+  - norma: BOE-A-2015-11430
+    bloque: a59
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  fuera_de_lo_declarado: true

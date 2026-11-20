@@ -83,6 +83,12 @@ const (
 	motivoDeLineaDelPlazoSinLaRedaccion = "línea del plazo en un plazo sin calcular: "
 )
 
+// motivoFueraDeLoDeclarado es lo que sigue al motivo de la declaración de no
+// cubierto ausente en una eval de fuera de lo declarado, que no espera ninguna
+// norma. No es texto de la línea ⚠ NO CUBIERTO: (contracts/evals.md §2 de H33;
+// FR-013).
+const motivoFueraDeLoDeclarado = "fuera de lo declarado"
+
 // ExtraerLineasDelPlazo devuelve la fecha de cada línea del plazo de la
 // respuesta en su forma fija —la marca, la etiqueta PLAZO y los dos puntos, con
 // la tolerancia de las etiquetas de los avisos, la fecha AAAA-MM-DD justo detrás
@@ -146,14 +152,32 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
 	return declaraciones
 }
 
-// declarada dice si alguna de las declaraciones lleva, en su misma línea, el
-// identificador de la norma esperada y la cita de su precepto en la forma única,
-// la pareja exacta de su norma y su bloque (contracts/forma-de-cita.md §4 de
-// H32; FR-014).
+// declarada dice si la respuesta declara lo no cubierto con sus declaraciones,
+// las de ExtraerNoCubierto. Fuera de lo declarado basta una: el modelo compone
+// el asunto, el motivo y la cola de la línea, y solo su etiqueta es literal
+// (contracts/evals.md §2 de H33; FR-013; ADR 0058, punto 1). En lo regulado
+// aparte, alguna tiene que llevar, en su misma línea, el identificador de la
+// norma esperada y la cita de su precepto en la forma única, la pareja exacta de
+// su norma y su bloque (contracts/forma-de-cita.md §4 de H32; FR-014).
 func (e NoCubiertoEsperado) declarada(declaraciones []DeclaracionDeNoCubierto) bool {
+	if e.FueraDeLoDeclarado {
+		return len(declaraciones) > 0
+	}
+
 	return slices.ContainsFunc(declaraciones, func(deUnaLinea DeclaracionDeNoCubierto) bool {
 		return slices.Contains(deUnaLinea.Normas, e.Norma) && slices.Contains(deUnaLinea.Citas, Cita(e.Precepto))
 	})
+}
+
+// loQueFalta es lo que sigue al motivo de la declaración de no cubierto ausente:
+// la norma esperada en lo regulado aparte, y motivoFueraDeLoDeclarado fuera de
+// lo declarado, que no espera ninguna (contracts/evals.md §2 de H33; FR-013).
+func (e NoCubiertoEsperado) loQueFalta() string {
+	if e.FueraDeLoDeclarado {
+		return motivoFueraDeLoDeclarado
+	}
+
+	return e.Norma
 }
 
 // ExtraerPlazoSinCalcular devuelve cada identificador BOE-A-… de las líneas de
@@ -224,12 +248,15 @@ func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
 // En las dos anota las fechas de sus líneas del plazo (ExtraerLineasDelPlazo).
 // En una de plazo, anota si alguna lleva la fecha esperada, con el motivo plazo
 // ausente si no, y cada aviso esperado cuya forma fija no lleva la respuesta
-// (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si alguna
-// declaración de no cubierto lleva en su misma línea la norma esperada y la
-// cita de su precepto en la forma única (ExtraerNoCubierto;
-// contracts/forma-de-cita.md §4 de H32;
-// FR-014), con el motivo de la declaración ausente si no, y una línea del
-// plazo, de la fecha que sea, lleva el suyo. En una de vigencia, lo mismo con la
+// (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si la
+// respuesta declara lo no cubierto (NoCubiertoEsperado.declarada): en lo
+// regulado aparte, si alguna declaración lleva en su misma línea la norma
+// esperada y la cita de su precepto en la forma única (ExtraerNoCubierto;
+// contracts/forma-de-cita.md §4 de H32; FR-014), y fuera de lo declarado, si
+// lleva alguna (contracts/evals.md §2 de H33; FR-013); si no, con el motivo de
+// la declaración ausente seguido de la norma esperada o de
+// motivoFueraDeLoDeclarado; y una línea del plazo, de la fecha que sea, lleva
+// el suyo. En una de vigencia, lo mismo con la
 // declaración de un plazo sin calcular con la norma esperada
 // (ExtraerPlazoSinCalcular; ADR 0042). Las demás evals no se juzgan aquí y
 // dejan vacío todo.
@@ -253,7 +280,7 @@ func (r *ResultadoDeEval) juzgarElPlazo(eval Eval, respuesta string) {
 	if eval.esDeCobertura() {
 		r.NoCubiertoDeclarado = eval.NoCubierto.declarada(ExtraerNoCubierto(respuesta))
 		if !r.NoCubiertoDeclarado {
-			r.Motivos = append(r.Motivos, motivoDeNoCubiertoAusente+eval.NoCubierto.Norma)
+			r.Motivos = append(r.Motivos, motivoDeNoCubiertoAusente+eval.NoCubierto.loQueFalta())
 		}
 
 		for _, fecha := range r.LineasDelPlazo {

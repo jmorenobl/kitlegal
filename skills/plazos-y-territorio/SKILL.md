@@ -47,7 +47,8 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    `kitlegal boe articulo <identificador> <id> --json` o sus herramientas, citado como un precepto del plazo.
 7. **¿Hay plazo?** Con lo que ya dice la conversación del acto, la administración y la materia, **antes de preguntar
    nada**, ni el municipio ni la fecha. Si el asunto está en la cobertura de su paquete, la línea `⚠ NO CUBIERTO:` de
-   su fila, entera, **ni `plazos calcular`** ni ninguna fecha (regla 9). Si no dice la materia, **no la preguntes ni
+   su fila, entera, **ni `plazos calcular`** ni ninguna fecha (regla 9); si es de otra materia, igual, con el motivo de
+   lo no declarado. Si no dice la materia, **no la preguntes ni
    detengas la respuesta**: sigue con el 8, y al responder di que la fecha no vale si la ley regula el asunto aparte,
    nombrando esos asuntos solo con la referencia. Un acto presunto no tiene fecha: ningún plazo. Antes del 8, lee
    [calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el plazo sin calcular y la
@@ -100,12 +101,11 @@ Con el 3 del paso 9, en lugar de la línea del plazo, con cada línea del mensaj
 ⚠ PLAZO SIN CALCULAR: <tipo> que empieza el <AAAA-MM-DD>: kitlegal no lo calcula, porque lo cuenta con preceptos que ese día no decían lo que dicen hoy: [<identificador>, bloque <id>], apartado <apartado>, desde el <AAAA-MM-DD>; <…>.
 ```
 
-Lo no cubierto (paso 7) es la línea de su fila en la referencia del paquete, que es esta forma con sus datos: la
-primera si la entrada trae la norma que lo rige; si no, la segunda:
+Lo no cubierto (paso 7 y regla 9) va con esta forma: en un asunto de la cobertura del paquete, la línea de su
+fila, entera; en otra materia, con el motivo «fuera de lo que kitlegal cubre»:
 
 ```text
-⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador de la norma>), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto> [<identificador>, bloque <id>]).
-⚠ NO CUBIERTO: <procedimiento> lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto> [<identificador>, bloque <id>]).
+⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
 ```
 
 Los avisos de `data.avisos`, cada uno con su `texto`, que empieza así:
@@ -177,4 +177,4 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    tampoco para «comprobarla».
 9. **Lo que la ley regula aparte no recibe el plazo del común.** Si el asunto está en la cobertura de un paquete, se
    declara no cubierto, falle o no una lectura; ni se pide un plazo ni se exponen los de la norma que lo rige. Un
-   plazo, un órgano o una vía de otra materia no están cubiertos: dilo, sin darlos de memoria.
+   plazo, un órgano o una vía de otra materia tampoco: su línea, sin darlos de memoria ni pedir `plazos calcular`.

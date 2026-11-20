@@ -52,7 +52,7 @@ en el `kitlegal-applets` de exactamente una skill de capacidad, y la de entrada 
 
 | Skill | Clase | Capacidad | Lo que hace |
 |---|---|---|---|
-| `consulta-juridica` | entrada | ninguna | Dice qué tipo de pregunta es, qué capacidad y qué skill la resuelven, qué cubre la base —por capacidad y por paquete— y, en prosa, lo que no cubre; sin applets, referencias ni líneas `⚠` |
+| `consulta-juridica` | entrada | ninguna | Dice qué tipo de pregunta es, qué capacidad y qué skill la resuelven y qué cubre la base —por capacidad, en la región de lo cubierto, y por paquete—, y declara lo que no cubre con la plantilla `⚠ NO CUBIERTO:` y, con `⚠ NO VERIFICADO:`, lo que lee para completarla; sin applets ni referencias |
 | `normativa` | capacidad | normativa: `kitlegal boe` y `kitlegal graph check` | Lee y cita una norma consolidada del BOE, hoy o en una fecha |
 | `jurisprudencia` | capacidad | jurisprudencia: `kitlegal cita` | Prepara la consulta de una sentencia y coteja el documento que trae la persona |
 | `plazos-y-territorio` | capacidad | plazos y territorio: `kitlegal plazos` y `kitlegal territorio` | Sitúa un municipio y cuenta los plazos que cuenta `kitlegal plazos` |
@@ -73,7 +73,8 @@ el método— queda en una skill de capacidad o en la de entrada; lo de una mate
 - las reglas invariantes;
 - las formas fijas que las evals comprueban sin modelo en la respuesta, las líneas `⚠` (`⚠ SIN CONSULTA AL BOE:`,
   `⚠ SENTENCIA NO COMPROBADA:`, `⚠ NO CUBIERTO:`, las de aviso, las de la redacción en una fecha, las del plazo…),
-  cada una tal cual, en un bloque `text`;
+  cada una tal cual, en un bloque `text`, y las marcas que la acompañan aunque ninguna eval las compruebe
+  (`⚠ NO VERIFICADO:`, abajo, «La plantilla de lo no cubierto»);
 - la tabla de comandos, que `make skills-sync` genera entre sus marcas desde `--describe` del binario y no se edita;
   `kitlegal-sin-fila`, en `metadata`, deja fuera de ella los verbos que la skill no deja usar, nombrados por su
   herramienta (`graph_show graph_stats`): el nombre que no quita nada es un defecto;
@@ -245,7 +246,7 @@ Una materia entra en la base como un paquete de ficheros, no como una skill ni c
 | Su nombre | El valor `vertical: <nombre>` de sus normas en `data/normas.yaml`: un adjetivo, porque el enlace dice «lo <nombre>», con la forma `^[a-z][a-z0-9-]*$` | La persona que añade la materia |
 | Sus normas | Las entradas de `data/normas.yaml` con `vertical: <nombre>` | Ídem; el identificador y el título, de lo grabado (`TestIdentificadoresDeLasNormas`) |
 | Una referencia por skill de capacidad que la necesite | `skills/<skill>/references/<nombre>.md`, en `references/` plano (§4) | A mano, con las tablas de `data/` en regiones generadas |
-| Sus filas de cobertura | Las de `data/cobertura.yaml` cuyo `precepto.norma` es una norma del paquete | La persona |
+| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuyo `precepto.norma` es una norma del paquete y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
 | Sus evals | `evals/<skill>/NN-*.yaml` de la skill que hereda su pregunta | La persona |
 
 No hay fichero que declare el paquete: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la
@@ -268,6 +269,23 @@ pone `make ci` en rojo. `consulta-juridica` lleva, en «3. Qué cubre la base»,
 una línea por paquete con las skills de capacidad que tienen su referencia:
 ``- lo administrativo: `plazos-y-territorio`.``
 
+**La región de lo cubierto** (H33; ADR 0058). Lo que cubre la base se declara en positivo, por capacidad y materia, en
+`cubierto` de `data/cobertura.yaml`: cada fila, una `capacidad` (`normativa`, `jurisprudencia`, `plazos` o
+`territorio`), su `alcance` y, si solo vale para una materia, su `materia`, que es el `vertical` de alguna norma de
+`data/normas.yaml`. Hoy son cuatro filas, una por capacidad, y la de los plazos lleva `materia: administrativo`. El
+`SKILL.md` que lleva, cada una sola en su línea, las marcas `<!-- lo que cubre la base: lo genera make skills-sync -->`
+y `<!-- fin de lo que cubre la base -->` —hoy solo `consulta-juridica`, en «3. Qué cubre la base», delante de los
+paquetes de la base— recibe entre ellas una línea por fila, en su orden, con la capacidad con su primera letra en
+mayúscula y sin la materia:
+
+```text
+- **Plazos**: solo los del procedimiento administrativo común, …
+```
+
+Dos filas de una capacidad dan dos líneas. La sincronía la regenera después de las regiones de los paquetes y antes
+de medir el cuerpo, y la región cuenta en su presupuesto (§3). Un paquete que cubre más que la base añade su fila a
+`cubierto`, con su `materia`, y la línea llega al cuerpo sin editar ningún `SKILL.md`.
+
 **Las regiones generadas.** Una referencia a mano puede llevar una región por cada generador que la admite, entre dos
 marcas:
 
@@ -283,32 +301,66 @@ las evals sabe qué datos carga la skill (ADR 0045). Admiten región tres genera
 
 | Generador | Datos | Filas |
 |---|---|---|
-| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de la cobertura cuyo precepto es de una norma del paquete del fichero; columnas `Procedimiento` y `Línea que da la respuesta` |
+| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` cuyo precepto es de una norma del paquete del fichero; columnas `Procedimiento` y `Línea que da la respuesta` |
 | `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Todos los tipos de plazo, con el precepto en la forma única |
 | `leyes_vertebrales` | `data/normas.yaml` | Las normas con `vertebral: true` |
 
 El precepto se escribe en su **forma legible**: `art. <apartado>` si el apartado empieza por cifra, el apartado si no,
 y la abreviatura de su norma (sin abreviatura, su título hasta la primera coma), y detrás la cita:
-`art. 124.1 LPAC [BOE-A-2015-10565, bloque a124]`, `DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]`. **La línea de
-cada fila de la cobertura** es la línea `⚠ NO CUBIERTO:` entera, lista para copiar («Templates for output format»): la
-forma del bloque `text` del `SKILL.md` de la skill —la que lleva `<norma>` si la fila trae la norma que lo rige; la otra
-si no— con `<procedimiento>`, `<norma>`, `<identificador de la norma>`, `<precepto>`, `<identificador>` e `<id>`
-sustituidos por los datos de la fila. Así la sesión no elige entre dos plantillas, y el cuerpo conserva la forma con
-sus marcadores. Toda fila de `data/cobertura.yaml` la genera alguna región.
+`art. 124.1 LPAC [BOE-A-2015-10565, bloque a124]`, `DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]`.
+
+**La plantilla de lo no cubierto** (H33; ADR 0058). Lo no cubierto se declara con una sola línea, igual en todas las
+materias. Su plantilla es la única línea de los bloques `text` del `SKILL.md` que, sin sus blancos del principio,
+empieza por `⚠ NO CUBIERTO: ` y lleva `<motivo>`; con ninguna o con más de una, la skill no tiene plantilla. La llevan
+`consulta-juridica` y `plazos-y-territorio`, la misma línea byte a byte (`formas-compartidas`):
+
+```text
+⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.
+```
+
+Fuera de lo declarado, el motivo es el fijo, `motivo_de_lo_no_declarado` de `data/cobertura.yaml` («fuera de lo que
+kitlegal cubre», sin verbo, para que no concuerde con el asunto), y la prosa de cada skill con plantilla lo dice entre
+comillas angulares; sin él, la sincronía da un defecto. `consulta-juridica` lleva además, detrás de la plantilla y en su
+mismo bloque, la marca de lo que la sesión lee con la skill de normativa para completar la línea: el texto citado es el
+de la norma, y lo que no está verificado es que se aplique a ese asunto. Ninguna eval ni ningún umbral la comprueba.
+
+```text
+⚠ NO VERIFICADO: <lo encontrado>: <forma legible> [<identificador>, bloque <id>]; kitlegal no ha comprobado que se aplique a este asunto.
+```
+
+**Los motivos de lo regulado aparte** van en la referencia del paquete que lleva la región de la cobertura, no en el
+`SKILL.md`: las dos líneas de sus bloques `text` que, sin sus blancos del principio, llevan `<precepto>` y no empiezan
+por `⚠`, una con `<norma>` —la de la fila que trae la norma que lo rige— y otra sin ella. En
+`plazos-y-territorio/references/administrativo.md`:
+
+```text
+se rige por <norma> (<identificador de la norma>), no por el procedimiento común (<precepto> [<identificador>, bloque <id>])
+lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])
+```
+
+**La línea de cada fila de la cobertura** es la línea `⚠ NO CUBIERTO:` entera, lista para copiar («Templates for
+output format»): la plantilla con `<motivo>` sustituido por el motivo de su caso —el que lleva `<norma>` si la fila trae
+la norma que lo rige; el otro si no— y, en una sola pasada, `<asunto>` y `<procedimiento>` por el procedimiento de la
+fila, `<norma>`, `<identificador de la norma>`, `<precepto>`, `<identificador>` e `<id>` por sus datos. Así la sesión no
+compone la línea, y el cuerpo conserva la plantilla con sus marcadores. Toda fila de `regulados_aparte` la genera
+alguna región.
 
 **El paquete de lo administrativo** es el primero: `vertical: administrativo` en diez normas —LPAC, LRJSP, LRJPAC,
 LTAIBG, LRBRL, LCSP, LGS, LGP, TRLRHL y LJCA—; su única referencia, `plazos-y-territorio/references/administrativo.md`,
 con la prosa de lo que solo pide el procedimiento común (lo que la ley regula aparte, el acto presunto, el silencio, la
-reclamación del art. 24.2 LTAIBG) y las tres regiones; y las nueve filas de la cobertura, con su precepto en la LPAC.
+reclamación del art. 24.2 LTAIBG), los dos motivos y las tres regiones; las nueve filas de `regulados_aparte`, con su
+precepto en la LPAC; y la fila de los plazos de `cubierto`, con `materia: administrativo`.
 `normativa` y `jurisprudencia` no necesitan referencia suya. La CE, el CC, la LEC y la LOPJ son de la base, y la LGT,
 la LIRPF, el ET, la LOPDGDD y la Ley 50/1980, de Contrato de Seguro, de materias sin paquete: no llevan `vertical`.
 
 **La vertical de ensayo** prueba el molde: `internal/skills/testdata/vertical-de-ensayo/` trae dos normas de una
 materia que no existe (`BOE-A-1900-1` y `BOE-A-1900-2`, `vertical: ensayo`), una referencia `ensayo.md` por skill de
-capacidad, la de `plazos-y-territorio` con la región de la cobertura, una fila de cobertura y una eval de `normativa`.
+capacidad, la de `plazos-y-territorio` con los dos motivos y la región de la cobertura, una fila de
+`regulados_aparte`, una de `cubierto` (`capacidad: plazos`, `materia: ensayo`) y una eval de `normativa`.
 `TestVerticalDeEnsayo` la instala sobre una copia de `skills/`, `data/` y `evals/normativa/`, corre la sincronía y
-comprueba que no queda ningún defecto ni deriva, que la eval se carga, que no hay ningún `.go` y que ningún `SKILL.md`
-cambia fuera de las marcas; y que `skills/` y `data/` del repositorio no cambian. Su mutante, un enlace escrito a mano
+comprueba que no queda ningún defecto ni deriva, que la eval se carga, que no hay ningún `.go`, que ningún `SKILL.md`
+cambia fuera de las marcas y que la región de lo cubierto de `consulta-juridica` termina con la línea de su fila; y que
+`skills/` y `data/` del repositorio no cambian. Su mutante, un enlace escrito a mano
 en el cuerpo de `normativa`, lo pone en rojo.
 
 ### Lo medido: los tres defectos que el reparto arregla
@@ -536,11 +588,14 @@ lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `normat
 | Marcas de una región que no van en pareja: falta una, una va en más de una línea, la de fin va antes, o la región empieza dentro de otra | `plazos-y-territorio: references/administrativo.md: las marcas de la región recursos_y_plazos no van en pareja: falta la de fin` |
 | Marca de inicio de una región con otros datos que los de su generador | `plazos-y-territorio: references/administrativo.md: la marca de inicio de la región recursos_y_plazos no es «<!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->»` |
 | Región sin uno de sus ficheros de `data/` | `plazos-y-territorio: references/administrativo.md: la región recursos_y_plazos sin data/plazos.yaml` |
-| Región de la cobertura en una skill cuyo `SKILL.md` no tiene las dos formas `⚠ NO CUBIERTO:` | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill sin las dos formas ⚠ NO CUBIERTO: en SKILL.md` |
-| Región de la cobertura con una forma `⚠ NO CUBIERTO:` que lleva un marcador desconocido | `plazos-y-territorio: references/administrativo.md: la forma ⚠ NO CUBIERTO: de SKILL.md lleva <identificador de la ley>, un marcador que la tabla no conoce` |
-| Fila de `data/cobertura.yaml` que ninguna región de la cobertura genera, una por fila, en cada skill con las dos formas | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa» no la genera ninguna región cobertura_por_materia` |
+| Región de la cobertura en una skill cuyo `SKILL.md` no tiene la plantilla `⚠ NO CUBIERTO:` (§1, «La plantilla de lo no cubierto»); no se buscan sus motivos | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill sin la plantilla ⚠ NO CUBIERTO: en SKILL.md` |
+| Región de la cobertura en una referencia que no lleva un motivo con `<norma>` y otro sin ella | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una referencia sin sus dos motivos` |
+| Región de la cobertura con la plantilla `⚠ NO CUBIERTO:` o un motivo que lleva un marcador desconocido, cada marcador una vez, primero los de la plantilla y después los de los motivos | `plazos-y-territorio: references/administrativo.md: la plantilla ⚠ NO CUBIERTO: de SKILL.md lleva <identificador de la ley>, un marcador que la tabla no conoce` y `plazos-y-territorio: references/administrativo.md: un motivo de la plantilla lleva <ley>, un marcador que la tabla no conoce` |
+| Fila de `regulados_aparte` que ninguna región de la cobertura genera, una por fila, en cada skill con la plantilla | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa» no la genera ninguna región cobertura_por_materia` |
+| Skill con la plantilla cuya prosa no dice, entre comillas angulares, el motivo de lo no declarado | `consulta-juridica: SKILL.md: la prosa no dice el motivo de lo no declarado, «fuera de lo que kitlegal cubre»` |
+| Fila de `cubierto` con una `materia` que no es el `vertical` de ninguna norma, una por fila, en la skill con la región de lo cubierto | `consulta-juridica: data/cobertura.yaml: la fila de lo cubierto de la capacidad «plazos» lleva la materia «Laboral», que no es el vertical de ninguna norma de data/normas.yaml` |
 | Referencia de un paquete en una skill cuyo `SKILL.md` no lleva las marcas de los paquetes | `plazos-y-territorio: SKILL.md: referencia de paquete sin enlazar: administrativo.md` |
-| Marcas de los paquetes, o de los paquetes de la base en la skill de entrada, que no van en pareja | `normativa: SKILL.md: las marcas de los paquetes no van en pareja: falta la de fin` |
+| Marcas de los paquetes, o de los paquetes de la base o de lo que cubre la base en la skill de entrada, que no van en pareja | `normativa: SKILL.md: las marcas de los paquetes no van en pareja: falta la de fin` |
 
 Lo que hay entre las marcas de una región o de los paquetes y no es lo que genera la sincronía es una deriva, como la
 de la tabla de comandos: `make skills-check` la da (`<skill>: <fichero>: contenido-distinto`) y `make skills-sync` la

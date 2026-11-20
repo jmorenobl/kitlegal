@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "Reproducido en un clon de la cabeza (11f87e86) fuera del repositorio, objetivo a objetivo: `make fmt-check lint` (0 issues), `make test` (-race, todos los paquetes en ok), `make test-integration` (todos en ok) y `make test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check` (No vulnerabilities found; 1 configuration file(s) validated; no leaks found), sin ninguna línea FAIL ni «make: ***»; después, `git status --porcelain` del clon vacío y `make skills-sync` sin ningún fichero cambiado. gates/ci.log, escrito con el commit de la corrección (15:46:13), termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». En el árbol de trabajo solo difiere lo del propio workflow en gates/ (base-global-pendiente, modelos.jsonl, revision-cambios.md, revision-cambios-r2.diff y el veredicto del otro juez)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Motivo 3 de la ronda 1, corregido: internal/skills/cubierto_test.go:108-121 añade el caso `marcas-sin-pareja`, que quita la marca de fin de la copia y exige el defecto exacto en consulta-juridica, ninguno en plazos-y-territorio (línea 154) y nada regenerado (línea 157). En coverage.out del clon, cubierto.go:36 pasa de 0 a 1 ejecución. Mutante en el clon: con cubierto.go:36 sin devolver el defecto, TestRegionDeLoCubierto/marcas-sin-pareja sale en rojo («expected: …las marcas de lo que cubre la base no van en pareja: falta la de fin; actual: nil»). Segundo mutante, sobre lo reescrito por la corrección: `strings.ToLower` en cubierto.go:101 → TestRegionDeLoCubierto/repositorio, TestVerticalDeEnsayo y TestSkillsDelRepositorio en rojo. La suite congelada sigue intacta y activada: sha256 dd9cb4a2… en specs/…/aceptacion/cobertura-instalada.txtar, en internal/app/testdata/script/h33-cobertura-instalada.txtar y en `git show cbf7d3ba:specs/…/aceptacion/…`, la de gates/aceptacion-congelada.json; `git diff --stat cbf7d3ba..HEAD -- specs/…/aceptacion` vacío; TestEntregaDelHito en verde en el clon."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`make lint` en el clon de la cabeza: 0 issues (depguard y forbidigo incluidos). El rango solo cambia un import de producción: internal/skills/cubierto.go:8 pasa de `unicode` a `strings`, biblioteca estándar. Ninguna línea añadida del rango lleva net/http, os.Exit, fmt.Print* ni panic (grep sobre `git diff ef2fc33a..HEAD` fuera de gates/, sin resultados)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet ni schemas/: sus cinco ficheros son data/cobertura.yaml (comentario), internal/skills/{cubierto.go, cubierto_test.go, regiones.go} y spec.md. `make schema-check` (TestEsquemasPublicados) en verde en el clon de la cabeza."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni error nuevo. Las dos ramas retiradas no dejan ningún camino con panic ni cambian lo que se devuelve: en internal/skills/regiones.go:798-808, con un err nulo `errors.As` da falso y el `default` devuelve nil, nil, nil, lo mismo que el caso retirado; en internal/skills/cubierto.go:98-102, con el texto vacío `tamano` es 0 y `texto[:0]` es seguro. Las tres llamadas de defectosDeLosDatosQueFaltan siguen tras un `err != nil` (regiones.go:693-696 y 766-768; cubierto.go:42-43)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los tres textos de la ronda 1, corregidos. (1) data/cobertura.yaml:3-4 dice ahora que la prosa de cada skill con la plantilla lleva el motivo entre «» y que la sincronía lo comprueba, que es lo que hace comprobarElMotivo (internal/skills/regiones.go:692-711). (2) spec.md:544 dice «(3128 bytes entre las nueve; antes de H33, 3047)»; medido en esta sesión: las nueve filas de cobertura_por_materia de administrativo.md miden 3128 bytes en la cabeza y 3047 en main. (3) spec.md:548-549, motivo del juez A, dice «dos umbrales más por modo, del modelo que decide (cuatro)», que es lo que fija internal/evals/informe_test.go:7323-7327 y 7361-7364: sin_activar y cobertura_sin_declarar de claude-sonnet-5-5 en cada modo. La línea nueva de gates/supuestos.md (corrector_revision, [k]) dice que la corrección no cambia ninguna línea generada, y `make skills-sync` en el clon no cambia ningún fichero. CHANGELOG, docs/ y la web no cambian en el rango: ninguna corrección cambia nada visible."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no trae código HTTP, datos de ninguna fuente ni grabaciones: `git diff --stat ef2fc33a..HEAD -- testdata evidencias schemas skills evals internal/evals internal/app` está vacío, y en data/cobertura.yaml solo cambian las dos líneas del comentario de cabecera. `make secrets` en el clon: no leaks found."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ninguna línea añadida del rango lleva nolint, t.Skip, TODO ni FIXME (grep sobre el diff, sin resultados). `_, tamano := utf8.DecodeRuneInString(texto)` (cubierto.go:99) descarta la runa, no un error. Ningún fixture, golden ni guion cambia en el rango, y el test nuevo no relaja ninguno de los que había: añade un caso a la tabla."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango ef2fc33a..11f87e86 son 25 líneas añadidas y 15 quitadas en los cinco ficheros que nombraban los motivos de los dos jueces, y nada más fuera de gates/. La única decisión del corrector que no estaba dictada, reescribir conLaPrimeraEnMayuscula con `strings.ToUpper(texto[:tamano])` para quitar la rama sin cambiar lo que da con el texto vacío, está en gates/supuestos.md (última línea) y no cambia nada generado."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida que lea una skill o una persona. Medido en la cabeza en esta sesión: la región de lo cubierto, 4 líneas y 763 bytes, una vez por sesión; la tabla cobertura_por_materia, 9 filas y 3128 bytes (3185 con su encabezado), una vez por pregunta de plazo del paquete; consulta-juridica/SKILL.md, 5075 bytes (4391 en main); plazos-y-territorio/SKILL.md, 11 442 (11 638); administrativo.md, 10 312 (9930). Todo sale de data/ y de las skills: nada crece con la caché ni con el grafo, y ninguna señal depende de un estado acumulado. Ninguna invocación nueva por pregunta."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Motivo 4 de la ronda 1, corregido: defectosDeLosDatosQueFaltan ya no tiene `case err == nil` ni el «sin err, no hay nada» de su comentario (internal/skills/regiones.go:787-809), y conLaPrimeraEnMayuscula ya no tiene `if tamano == 0` (internal/skills/cubierto.go:97-102, dos sentencias sin rama). El rango no añade ningún mecanismo: solo el caso de test que pedía el motivo 3, que se traza a contracts/datos-y-regiones.md §3 (línea 82). El resto de mecanismos del hito se trazaron en la ronda 1 y el rango no los toca."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún control de «Controles de umbral» de plan.md salvo el test de la región, que gana un caso. Repetidos en el clon de la cabeza, ocho mutantes ponen en rojo su control: una palabra de un alcance de data/cobertura.yaml → TestLeerCobertura/repositorio y TestRegionDeLoCubierto/repositorio; una línea de más en la región de lo cubierto → TestSkillsDelRepositorio/deriva y el guion congelado, línea 35; la plantilla de consulta-juridica distinta → TestSkillsDelRepositorio/formas-compartidas y el guion, línea 27; el cuerpo de plazos-y-territorio a 10 921 caracteres (hoy 10 686) → el guion, línea 43; `minimoDeNormasEnLaFrontera` a 1 (internal/evals/conjunto.go:267) → TestEvalsDelRepositorio/frontera-en-dos-materias y TestConjuntoDeEvals/consulta-juridica; `timeout-minutes` de evals.yml:287 a 250 → TestDefinicionDelJob («vale 250 (15000 s), y lo esperado es al menos el peor caso de consulta-juridica, 15013 s»); `Decide: false` en umbralDeCoberturaSinDeclarar (internal/evals/umbrales.go:888) → TestUmbralesDeLasSkills/consulta-juridica y /plazos-y-territorio; y su medida siempre a 0 (umbrales.go:885) → TestUmbralesDePlazosYTerritorio. Los cuatro umbrales nuevos de consulta-juridica van con `Decide: true` y tope 0, delante de los fuera_de_lo_grabado (informe_test.go:7320-7336 y 7361-7364). No repetido en esta sesión: el veredicto «fallo» del informe de consulta-juridica con respuestas sin la línea, que está en gates/revision-b-r1.json; el rango no toca internal/evals."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "plan.md:205 («TestRegionDeLoCubierto y sus tres mutantes»), plan.md:281 y tasks.md:211 («0 de 3 mutantes») y contracts/controles.md:12 cuentan tres mutantes; con el caso `marcas-sin-pareja` que añadió la corrección, el test tiene cuatro. Los tres que nombran siguen ahí, cada uno con su defecto exacto.",
+    "plan.md:243 y research.md:60 siguen diciendo que «el paréntesis del spec» que daba la tabla por más corta no se cumple; tras la corrección, spec.md:544 ya no lleva ese paréntesis, sino la medida.",
+    "Siguen en pie, sin repetir en esta sesión porque el rango no toca sus ficheros, los tres mutantes que sobrevivían en la ronda 1 (gates/revision-b-r1.json): `inicioDeUnAviso` en conLosMotivosDe (internal/skills/regiones.go:300), `fuera_de_lo_declarado` como booleano en schemas/eval.yaml.json y `Activada` en lugar de activadaPor en internal/evals/informe.go:1485.",
+    "En coverage.out del clon siguen sin ejecutarse cubierto.go:46-47 y 70-71 y regiones.go:807: errores de lectura que no son un defecto de los datos, y la región sin data/normas.yaml. `codecov/patch` no lo he medido en la plataforma.",
+    "La grabación del art. 59 del ET trae dos versiones y la eval 04 no declara `redaccion_fechada`: lo dije en la ronda 1 para la persona, antes de la medición del cierre, y el rango no lo toca.",
+    "scripts/workflow/comun.sh (dd06cdd5) y docs/ROADMAP.md:185 siguen fuera de la lista del spec, como en la ronda 1.",
+    "Los ficheros sin versionar de la raíz que da `git status` en esta sesión (.bashrc, .gitconfig, .idea…) son dispositivos de caracteres del sandbox, no parte del árbol.",
+    "No he medido nada con modelo: el job de evals del cierre (FR-024, SC-004) lo mide el workflow después de esta revisión."
+  ]
+}

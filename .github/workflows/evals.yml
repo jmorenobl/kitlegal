@@ -264,7 +264,7 @@ jobs:
     # instalar el Claude Code del juez (specs/027-h31-las-skills-siguen/research.md D10; SC-015 de H31): 20 117 s en
     # normativa, 335,3 minutos; 13 717 s en jurisprudencia, 228,6 minutos; y 20 725 s en plazos-y-territorio, 345,4
     # minutos, el mayor, que los 352 minutos cubren sin cambiar. Desde H32, con la skill de entrada a una y
-    # jurisprudencia a tres: 8485 s en consulta-juridica, 141,4 minutos, con sus dos evals y sin juez de las respuestas;
+    # jurisprudencia a tres: 15 013 s en consulta-juridica, 250,2 minutos, con sus cuatro evals y sin juez de las respuestas;
     # 17 637 s en jurisprudencia, 294,0 minutos; y, sin cambio, los de normativa y plazos-y-territorio, que sigue siendo
     # el mayor, 20 725 s, que los 352 minutos cubren sin cambiar (specs/030-h32-arquitectura-de-skills/contracts/evals.md
     # §6). Las cifras que siguen son las de sus sesiones y su juez, sin la decisión ni la descripción.

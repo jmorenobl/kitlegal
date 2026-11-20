@@ -12,6 +12,23 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Lo que kitlegal no cubre se declara con una sola plantilla en todas las materias, y lo que cubre lo dice
+  `data/cobertura.yaml` por capacidad y materia** (H33; ADR 0058). La línea es `⚠ NO CUBIERTO: <asunto>: <motivo>.
+  kitlegal no da sus plazos, órganos, vías ni escritos.`, la misma byte a byte en `consulta-juridica` y en
+  `plazos-y-territorio`: fuera de lo declarado, con el motivo «fuera de lo que kitlegal cubre»; en lo regulado aparte,
+  con los dos motivos de `administrativo.md`, cuyas 9 filas de `cobertura_por_materia` salen con ella.
+  `consulta-juridica` deja de decir en prosa lo que no cubre y marca con `⚠ NO VERIFICADO: <lo encontrado>: <forma
+  legible> [<identificador>, bloque <id>]; kitlegal no ha comprobado que se aplique a este asunto.` lo que lee para
+  completar la respuesta, fuera de todo umbral. Lo cubierto son las 4 filas de `cubierto` de `data/cobertura.yaml`, una
+  por capacidad —normativa, jurisprudencia, plazos, con `materia: administrativo`, y territorio—, y `make skills-sync`
+  las escribe en la región de lo cubierto de `consulta-juridica`. Las evals de `consulta-juridica` pasan de 2 a 4, una a
+  cada lado de la frontera en dos materias sin paquete: la Ley de Contrato de Seguro, en la 03 dentro y en la 01 fuera,
+  y el Estatuto de los Trabajadores, en la 02 dentro y en la 04 fuera, con el art. 59 grabado. Con ellas la skill gana
+  `sin_activar`, sobre sus 12 respuestas de cada modo, y `cobertura_sin_declarar`, sobre las 6 de la 01 y la 04, los dos
+  con 0 de tope y decidiendo en los dos modos.
+
 ### Corregido
 
 - **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).

@@ -1,0 +1,117 @@
+diff --git a/data/cobertura.yaml b/data/cobertura.yaml
+index 912816e7..7bc544ee 100644
+--- a/data/cobertura.yaml
++++ b/data/cobertura.yaml
+@@ -1,7 +1,7 @@
+ # Cobertura de kitlegal, en tres partes. Lo lee skills.LeerCobertura contra schemas/cobertura.yaml.json, solo en la
+ # sincronía de las skills (make skills-sync): el binario no lo lleva. Es la única fuente de verdad de cada parte.
+-# - motivo_de_lo_no_declarado: el motivo de la línea fuera de lo declarado, ⚠ NO CUBIERTO:, que la sincronía pone en la
+-#   plantilla de cada skill que la lleva y que la prosa de esa skill dice tal cual, entre «».
++# - motivo_de_lo_no_declarado: el motivo que lleva la línea fuera de lo declarado, ⚠ NO CUBIERTO:. La prosa de cada
++#   skill con la plantilla de esa línea lo dice tal cual, entre «», y la sincronía comprueba que lo dice.
+ # - cubierto: lo que kitlegal cubre, una fila por capacidad (normativa, jurisprudencia, plazos o territorio) con su
+ #   alcance en una frase y, si se ciñe a una, la materia: el vertical de alguna norma de data/normas.yaml; sin materia,
+ #   sirve a todas. La sincronía lo escribe, una línea por fila, en la región de lo que cubre la base del SKILL.md que
+diff --git a/internal/skills/cubierto.go b/internal/skills/cubierto.go
+index b11a9141..0ab3dc93 100644
+--- a/internal/skills/cubierto.go
++++ b/internal/skills/cubierto.go
+@@ -5,7 +5,7 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"slices"
+-	"unicode"
++	"strings"
+ 	"unicode/utf8"
+ )
+ 
+@@ -96,10 +96,7 @@ func (d *datosDeLasRegiones) lineasDeLoCubierto() ([]byte, error) {
+ 
+ // conLaPrimeraEnMayuscula es el texto con su primera letra en mayúscula.
+ func conLaPrimeraEnMayuscula(texto string) string {
+-	primera, tamano := utf8.DecodeRuneInString(texto)
+-	if tamano == 0 {
+-		return texto
+-	}
++	_, tamano := utf8.DecodeRuneInString(texto)
+ 
+-	return string(unicode.ToUpper(primera)) + texto[tamano:]
++	return strings.ToUpper(texto[:tamano]) + texto[tamano:]
+ }
+diff --git a/internal/skills/cubierto_test.go b/internal/skills/cubierto_test.go
+index 29ec9339..f80b3771 100644
+--- a/internal/skills/cubierto_test.go
++++ b/internal/skills/cubierto_test.go
+@@ -43,8 +43,9 @@ var lineasDeLoCubierto = []string{
+ // vertical de ninguna norma, el de la materia, que da la sincronía y no el
+ // esquema; sin data/cobertura.yaml, en la skill de entrada el de su región y el
+ // de su plantilla, y en plazos-y-territorio el de su plantilla y el de su región
+-// cobertura_por_materia; y el motivo cambiado en la prosa de la skill de
+-// entrada, el del motivo.
++// cobertura_por_materia; sin la marca de fin de la región en la skill de entrada,
++// el de sus marcas que no van en pareja; y el motivo cambiado en la prosa de la
++// skill de entrada, el del motivo.
+ func TestRegionDeLoCubierto(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -104,6 +105,20 @@ func TestRegionDeLoCubierto(t *testing.T) {
+ 				},
+ 			},
+ 		},
++		{
++			nombre: "marcas-sin-pareja",
++			mutante: func(t *testing.T, raiz string) {
++				t.Helper()
++
++				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md"),
++					"<!-- fin de lo que cubre la base -->\n", "")
++			},
++			defectos: map[string][]string{
++				"consulta-juridica": {
++					"consulta-juridica: SKILL.md: las marcas de lo que cubre la base no van en pareja: falta la de fin",
++				},
++			},
++		},
+ 		{
+ 			nombre: "motivo-cambiado-en-la-prosa",
+ 			mutante: func(t *testing.T, raiz string) {
+diff --git a/internal/skills/regiones.go b/internal/skills/regiones.go
+index ed16e9e1..6e7b8489 100644
+--- a/internal/skills/regiones.go
++++ b/internal/skills/regiones.go
+@@ -789,15 +789,13 @@ func (r *regionesDeLaSkill) anotarLosDatos(skill, loQueLoPide string, err error)
+ // lo pide> sin data/<fichero>», que va con los de las marcas; con defectos en él,
+ // los de su lector, con su fichero delante, que van con los de los datos. El
+ // error que no es un *defectoDeLosDatos es lo que no se puede leer, y se devuelve
+-// sin defectos; sin err, no hay nada.
++// sin defectos.
+ func defectosDeLosDatosQueFaltan(skill, loQueLoPide string, err error) (
+ 	deLasMarcas, deLosDatos []*DefectoDeSkill, deLectura error,
+ ) {
+ 	var queFalla *defectoDeLosDatos
+ 
+ 	switch {
+-	case err == nil:
+-		return nil, nil, nil
+ 	case errors.As(err, &queFalla) && queFalla.causa == nil:
+ 		return []*DefectoDeSkill{{
+ 			Skill:   skill,
+diff --git a/specs/039-h33-cobertura-en-positivo/spec.md b/specs/039-h33-cobertura-en-positivo/spec.md
+index 14f7eed8..1b8a9e20 100644
+--- a/specs/039-h33-cobertura-en-positivo/spec.md
++++ b/specs/039-h33-cobertura-en-positivo/spec.md
+@@ -541,12 +541,12 @@ declarados.
+ - **La marca `⚠ NO VERIFICADO:`** la escribe el agente de `consulta-juridica` solo tras su línea fuera de lo declarado,
+   una por lectura hecha con la skill de normativa para completar; ninguna en lo regulado aparte.
+ - **La tabla `cobertura_por_materia`** la lee el agente de `plazos-y-territorio` en el paso 7, una vez por pregunta de
+-  plazo de un asunto de su paquete, y copia una fila: 9 filas (hoy 3047 bytes entre las nueve; la cola nueva es más corta), que crecen
++  plazo de un asunto de su paquete, y copia una fila: 9 filas (3128 bytes entre las nueve; antes de H33, 3047), que crecen
+   con las filas de `regulados_aparte` de los paquetes, no con el uso.
+ - **Los defectos de la sincronía** (FR-002, FR-003, FR-006) los lee quien mantiene kitlegal cuando `make skills-sync` o
+   `make ci` salen en rojo: una línea por defecto, con la skill y el fichero.
+ - **Los umbrales y sus descripciones** (FR-014) los lee la persona en el informe del job, una vez por medición: dos
+-  umbrales más por modo y modelo en `consulta-juridica`.
++  umbrales más por modo, del modelo que decide (cuatro), en `consulta-juridica`.
+ 
+ ## Success Criteria *(mandatory)*
+ 
