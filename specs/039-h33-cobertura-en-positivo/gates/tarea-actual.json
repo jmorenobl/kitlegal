@@ -1,17 +1,19 @@
 {
-  "id": "T002",
-  "texto": "T002 [datos] La entrada del art. 59 del Estatuto de los Trabajadores en el manifiesto de grabación de H9, sin código ni test nuevos (FR-018; contracts/evals.md §6; research D11, V5, V6, V14; plan.md «Datos externos»). **Manifiesto**: internal/evals/testdata/grabaciones.json (`\"fuente\": \"boe.legislacion-consolidada\"`, con fila «Revisado» 2026-09-13 en `docs/SOURCES.md` de `main`), al final de su lista `normas`, la entrada de contracts/evals.md §6 byte a byte: `{\"busqueda\": \"estatuto de los trabajadores\", \"titulo_empieza_por\": \"Real Decreto Legislativo 2/2015,\", \"bloques\": [\"a59\"], \"para\": \"…\"}` con el `para` de §6; nada más del fichero cambia. **Test de grabación**: el de hoy, `TestGrabarEvals` (`//go:build grabacion`, internal/evals/grabacion_test.go), sin cambios: sirve primero desde lo grabado en H4 y H5 y solo pide a la fuente, por el cliente HTTP único del proyecto y con GET, el bloque `a59`. Tras el commit, el paso `grabar_datos` del workflow lo graba en la carpeta `boe.legislacion-consolidada` del `testdata` del paquete; la tarea no graba nada. **Verificación**, sin cambiar otro fichero: `make ci` en verde con la entrada sin grabar (`TestGrabacionesSinSolape` y la verificación de las normas de la cobertura siguen en verde, research V6); `grep -c '\"titulo_empieza_por\": \"Real Decreto Legislativo 2/2015,\", \"bloques\": \\[\"a59\"\\]' internal/evals/testdata/grabaciones.json` da `1` (quickstart, escenario 7).",
+  "id": "T003",
+  "texto": "T003 [datos] [US2] El motivo y lo cubierto en datos, con su esquema, su lector y su test, en una sola tarea porque el lector estricto y el esquema rechazan hoy las dos claves nuevas, `TestLeerCobertura` lee el fichero del repositorio, y sin el motivo obligatorio el fichero o los árboles sintéticos de `TestRegiones` dejan `make ci` en rojo (FR-001, FR-002; SC-008; contracts/datos-y-regiones.md §1 y §2; data-model §1; research D5, D12, V4, V15; plan.md «Orden de implementación», paso 3). **Esquema**: schemas/cobertura.yaml.json gana, sin reformatear nada de hoy, `motivo_de_lo_no_declarado` en `required` y en `properties` (`{\"type\": \"string\", \"minLength\": 1}`), `cubierto` en `properties` (`{\"type\": \"array\", \"items\": {\"$ref\": \"#/$defs/cubierto\"}}`) y, en `$defs`, `cubierto`: objeto con `additionalProperties: false`, `required: [\"capacidad\", \"alcance\"]`, `capacidad` con `enum` `[\"normativa\", \"jurisprudencia\", \"plazos\", \"territorio\"]`, `alcance` con `minLength: 1` y `materia` `{\"type\": \"string\"}` sin patrón; ni `cubierto` obligatoria ni `minItems`; `regulados_aparte` no cambia un byte. **Lector**: internal/skills/cobertura.go: `Cobertura` gana `MotivoDeLoNoDeclarado string` (`yaml:\"motivo_de_lo_no_declarado\"`) y `Cubierto []FilaCubierta` (`yaml:\"cubierto\"`), y el tipo exportado `FilaCubierta{Capacidad, Alcance, Materia string}` con sus claves YAML; `LeerCobertura` no cambia su contrato. **Datos**: data/cobertura.yaml: la cabecera deja de decir que solo lleva lo regulado aparte y dice qué lleva cada parte y quién la lee; delante de `regulados_aparte`, `motivo_de_lo_no_declarado: fuera de lo que kitlegal cubre` y `cubierto` con las cuatro filas de FR-001, en su orden y con sus textos literales, cada `alcance` en una línea como escalar sin comillas (el de los plazos con su comilla invertida) y `materia: administrativo` solo en la de los plazos; las 9 filas de `regulados_aparte`, sin cambiar un byte. **Test**: internal/skills/cobertura_test.go, `TestLeerCobertura`: el subtest `repositorio` lee el fichero del repositorio sin defecto y exige el motivo y las cuatro filas, campo a campo, con los textos de FR-001 (en rojo con un carácter cambiado en uno de ellos); `coberturaDePrueba` gana las dos claves; los seis mutantes de contracts/datos-y-regiones.md §2 (fila sin `capacidad`, sin `alcance`, `capacidad: documentos`, fila con `normas`, sin `motivo_de_lo_no_declarado` y con él vacío), cada uno con su defecto exacto y su línea fijada; los casos de hoy de `regulados_aparte`, con sus mensajes de hoy. **Fixtures de otros tests**: internal/skills/regiones_test.go, solo su constante `coberturaDeLasRegiones` gana la línea `motivo_de_lo_no_declarado: fuera de lo que kitlegal cubre` delante de `regulados_aparte`; nada más del fichero cambia en esta tarea. **Verificación**: el `go test` de `TestLeerCobertura`, `TestRegiones`, `TestRegionDeLaCobertura` y `TestVerticalDeEnsayo` (quickstart, escenario 3, sin `TestRegionDeLoCubierto`, que llega en T005) y `make ci` en verde; `make skills-sync` no cambia ningún fichero (nada del motivo ni de lo cubierto llega todavía a una skill).",
   "intento": 1,
   "datos": true,
   "aceptacion": false,
-  "base": "cbf7d3bae7d4b77d99671b4346f7392712fcee74",
+  "base": "db58c2783804bdf401a29588ab43f5408cf2e938",
   "rutas": [
-    "2/2015",
-    "contracts/evals.md",
-    "docs/SOURCES.md",
-    "internal/evals/grabacion_test.go",
-    "internal/evals/testdata/grabaciones.json",
-    "plan.md"
+    "contracts/datos-y-regiones.md",
+    "data/cobertura.yaml",
+    "defs/cubierto",
+    "internal/skills/cobertura.go",
+    "internal/skills/cobertura_test.go",
+    "internal/skills/regiones_test.go",
+    "plan.md",
+    "schemas/cobertura.yaml.json"
   ],
   "cierre": false,
   "converger": false,

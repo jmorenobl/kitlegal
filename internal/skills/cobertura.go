@@ -13,14 +13,34 @@ import (
 const rutaDelEsquemaDeCobertura = "../../schemas/cobertura.yaml.json"
 
 // Cobertura es data/cobertura.yaml leído y validado contra su esquema
-// (contracts/datos-de-plazos.md §3 de H9; FR-031; research D17 de H9): los
-// procedimientos que la LPAC deja a su normativa específica, en el orden del
-// documento. Solo lo lee la skill que tiene las formas ⚠ NO CUBIERTO:, por la
-// región cobertura_por_materia de la referencia de cada paquete
-// (contracts/paquetes.md §3 de H32); el binario no lo lleva.
+// (contracts/datos-de-plazos.md §3 de H9; FR-031; research D17 de H9;
+// data-model §1 de H33): el motivo de la línea fuera de lo declarado, lo que
+// kitlegal cubre por capacidad y materia, y los procedimientos que la LPAC deja
+// a su normativa específica, cada lista en el orden del documento. Solo lo lee
+// la sincronía de las skills, por la región cobertura_por_materia de la
+// referencia de cada paquete (contracts/paquetes.md §3 de H32); el binario no
+// lo lleva.
 type Cobertura struct {
+	// MotivoDeLoNoDeclarado es el motivo de la línea fuera de lo declarado,
+	// como «fuera de lo que kitlegal cubre»: obligatorio y no vacío.
+	MotivoDeLoNoDeclarado string `yaml:"motivo_de_lo_no_declarado"`
+
+	// Cubierto son las filas de lo que kitlegal cubre, o ninguna.
+	Cubierto []FilaCubierta `yaml:"cubierto"`
+
 	// ReguladosAparte son los procedimientos, al menos uno.
 	ReguladosAparte []ReguladoAparte `yaml:"regulados_aparte"`
+}
+
+// FilaCubierta es lo que kitlegal cubre de una capacidad (data-model §1.1 de
+// H33): la capacidad, una de normativa, jurisprudencia, plazos o territorio; su
+// alcance, en una frase, y la materia a la que se ciñe, o la cadena vacía si
+// sirve a todas. Que una materia sea el vertical de alguna norma de
+// data/normas.yaml no lo dice el esquema, que solo pide una cadena.
+type FilaCubierta struct {
+	Capacidad string `yaml:"capacidad"`
+	Alcance   string `yaml:"alcance"`
+	Materia   string `yaml:"materia"`
 }
 
 // ReguladoAparte es un procedimiento que la ley regula aparte del

@@ -69,7 +69,8 @@ const normasDeLasRegiones = "normas:\n" +
 // coberturaDeLasRegiones es la cobertura de los árboles de TestRegiones: una fila
 // con la norma que la rige, con el apartado de una disposición, y otra sin ella,
 // con el de un artículo y una barra en su procedimiento.
-const coberturaDeLasRegiones = "regulados_aparte:\n" +
+const coberturaDeLasRegiones = "motivo_de_lo_no_declarado: fuera de lo que kitlegal cubre\n" +
+	"regulados_aparte:\n" +
 	"  - procedimiento: aplicación de los tributos\n" +
 	"    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: \"DA 1ª.2.a\"}\n" +
 	"    norma: {identificador: BOE-A-2003-23186, nombre: \"Ley 58/2003, General Tributaria\", " +
