@@ -10,6 +10,26 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-11-20 · Lo que enseñó medir la plantilla de H33: el defecto lo encontró leer las respuestas, no un umbral
+
+- **Qué se quiso hacer.** Antes de lanzar H33, la persona midió con un modelo la plantilla única `⚠ NO CUBIERTO:`,
+  porque el cierre la congela con 0 de tope: despachos del job de evals sobre una rama prototipo y sondeos intercalados
+  del laboratorio con la eval 17 de `normativa` (`INSTALACION=producto`), el prototipo frente a `main` (la entrada del
+  hito, `docs/roadmap/done/H33-cobertura-en-positivo-por-capacidad.md`, «Antes de lanzar»).
+- **Qué pasó.** En un sondeo, 76 de 160 respuestas, y en otro, 34 de 120 (con `main`, 0), declaraban `⚠ NO CUBIERTO:`
+  el cómputo del plazo de acceso a la información, que kitlegal sí calcula. Ningún umbral lo marcó:
+  se vio leyendo las respuestas. La causa era la viñeta de los plazos de lo cubierto, que omitía el acceso, y el §4
+  de `consulta-juridica`, que con la línea obligatoria volvía la omisión una declaración. En el último sondeo, con lo
+  cubierto ya completo, no hubo ningún `⚠ NO CUBIERTO:` falso, pero 28 de 240 sesiones respondían solo con
+  `plazos-y-territorio`, con el precepto leído con su paso 6: respuestas correctas por una segunda ruta que el
+  producto permite, que `sin_activar` contaba como si fueran un defecto.
+- **Qué se aprendió.** Un criterio de sondeo o de umbral es un defecto que vería quien usa kitlegal —una respuesta
+  mala, una cita sin leer, una línea falsa—, no la ruta entre skills. Y el defecto real de estos sondeos, los
+  `⚠ NO CUBIERTO:` falsos, no lo cazó ningún umbral, sino leer las respuestas.
+- **Qué se hizo.** El alcance de los plazos de `data/cobertura.yaml` nombra el acceso a la información, y la eval 17
+  de `normativa` lleva `tambien_la_resuelven: [plazos-y-territorio]` (ADR 0058, punto 7). El criterio del sondeo se
+  cambió después de ver los datos, y por eso queda dicho aquí.
+
 ### 2026-11-16 · El job de evals mide con Claude Code 2.1.284 y el uso real va por 2.1.326
 
 - **Qué se vio.** Para lanzar el sondeo de H41.3 (640 sesiones, #270), la entrada fija Claude Code 2.1.284, la
