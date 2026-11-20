@@ -1,6 +1,7 @@
 # 0054 · La caída de la eval 04 se atribuye a la instalación completa: se mide y se arregla con todas las skills instaladas
 
-- **Estado**: propuesta (2026-11-13); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+- **Estado**: propuesta (2026-11-13); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae;
+  precisada por el ADR 0058, punto 7: una eval puede declarar otras skills cuya activación cuenta como la suya.
 - **Fecha**: 2026-11-13
 - **Hito**: H41.2, escrito tras el run `f40bea97` (#256) y su fusión, fuera de él, en una sesión interactiva, con las
   cifras del sondeo de la persona (`evidencias/sondeos-20261112/`). Es el ADR que pide la entrada de H41.2
