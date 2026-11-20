@@ -2,6 +2,7 @@
   "tarea": "T001",
   "commit": "cbf7d3bae7d4b77d99671b4346f7392712fcee74",
   "ficheros": {
-    "specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar": "dd9cb4a29fd7787df15e2b31f63720611ca18870e9e6041d788e231c80467e4f"
+    "specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar": "dd9cb4a29fd7787df15e2b31f63720611ca18870e9e6041d788e231c80467e4f",
+    "internal/app/testdata/script/h33-cobertura-instalada.txtar": "dd9cb4a29fd7787df15e2b31f63720611ca18870e9e6041d788e231c80467e4f"
   }
 }
