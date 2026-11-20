@@ -1,0 +1,66 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-20 10:12:12.498943527 +0100
++++ ahora/checklists/requirements.md	2026-11-20 10:13:22.537095282 +0100
+@@ -19,7 +19,9 @@
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — el hito y el ADR 0058 fijan textos, datos y controles.
+ - [x] Requirements are testable and unambiguous — cada FR nombra su control (p. ej. FR-001 `TestLeerCobertura`, FR-013
+-  mutantes, FR-025 el guion e2e).
++  mutantes, FR-025 el guion e2e); FR-010 fija el cuerpo de `plazos-y-territorio` en el de FR-009, sin texto añadido ni
++  movido a una referencia, así que no abre excepción a FR-005, FR-009, FR-020 ni «Fuera de alcance» (ver
++  «Clarifications»).
+ - [x] Success criteria are measurable — SC-001 a SC-010 con recuentos, bytes o caracteres y su control.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden lo que ve quien instala o pregunta
+   (líneas, filas, umbrales); los controles nombrados son los que pide el hito.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-20 10:12:12.498965257 +0100
++++ ahora/spec.md	2026-11-20 10:13:20.097102812 +0100
+@@ -45,8 +45,17 @@
+ 
+ ## Clarifications
+ 
+-Ninguna en esta sesión: el fichero del hito y el ADR 0058 fijan los textos, los datos, el contrato del generador, las
+-evals, los controles y la aceptación.
++Ninguna pregunta en esta sesión: el fichero del hito y el ADR 0058 fijan los textos, los datos, el contrato del
++generador, las evals, los controles y la aceptación. Una corrección del gate del spec:
++
++- Q: El hito («El tope» de `plazos-y-territorio`) admite que, «si la implementación necesita más texto», el cuerpo
++  crezca hasta dejar 140 caracteres libres y que lo que sobre vaya a `administrativo.md` o a `calculo_de_plazos.md`;
++  ¿entra esa excepción, que choca con FR-005, FR-009, FR-020 y «Fuera de alcance»? → A: No. El cuerpo que entrega H33
++  es exactamente el de FR-009 (10 686), sin texto añadido ni movido; `calculo_de_plazos.md` no cambia y
++  `administrativo.md`, solo en lo que fija FR-005; 10 860 queda como la cota del guion de FR-025. Alternativa
++  descartada: abrir esa excepción en FR-005, FR-009, FR-020 y «Fuera de alcance», con un `SKILL.md` y una referencia
++  distintos de los textos medidos antes de lanzar y una declaración escrita por el mismo run (auto: conservadora;
++  impacto: skill; fuente: hito H33, «El tope»; constitución, «Criterio de decisión autónoma», puntos 2 y 4).
+ 
+ ## User Scenarios & Testing *(mandatory)*
+ 
+@@ -350,9 +359,9 @@
+   rojo con el primer fichero que difiere de su base con la declaración.
+ - **FR-010**: Tope del cuerpo. Cada `SKILL.md` de `skills/` tiene un cuerpo de como mucho 11 000 caracteres (ADR 0046),
+   también con la línea de la vertical de ensayo; con ella, el de `plazos-y-territorio` mide 10 756. El cuerpo de
+-  `plazos-y-territorio` que entrega H33 deja al menos 140 caracteres libres sin la vertical de ensayo (como mucho
+-  10 860); si la implementación necesita más texto, lo que sobre va a `administrativo.md` o a `calculo_de_plazos.md`
+-  como movimiento declarado en `TestSkillsDelProductoDesdeControl`, y no se acorta otro texto del cuerpo. Controles:
++  `plazos-y-territorio` que entrega H33 es exactamente el de FR-009 (10 686), sin texto añadido ni movido a una
++  referencia, y no se acorta otro texto del cuerpo; 10 860 (140 caracteres libres sin la vertical de ensayo) es la cota
++  que hace cumplir el guion de FR-025 (ver «Clarifications»). Controles:
+   `TestSkillsDelRepositorio` y `TestVerticalDeEnsayo` en `make ci`, en rojo si un cuerpo pasa de 11 000; el guion de
+   aceptación de FR-025, en rojo si el cuerpo instalado de `plazos-y-territorio` pasa de 10 860.
+ - **FR-011**: El paquete de materia incluye lo cubierto (ADR 0058, punto 4): trae sus filas de `cubierto` y, si trae
+@@ -687,10 +696,11 @@
+ - **La base de la rama es `7a7526e8`** (`main` al crear la rama en esta sesión). La rama `h33-prototipo` es material de
+   consulta de la persona; los textos que fija este spec son los del hito, y donde coinciden con el prototipo es porque
+   el hito los copia de él.
+-- **Los 140 caracteres libres** del cuerpo de `plazos-y-territorio` se miden sin la línea de la vertical de ensayo,
+-  sobre el cuerpo que entrega H33 (10 686 con los tres cambios, frente a 10 860): es la lectura con la que el hito
+-  cuenta «desde ahí caben tres más de 70». El control vive en el guion de aceptación de H33 (FR-025), que un hito
+-  posterior que añada un paquete cambia como cambio declarado, como hace este con los de H32.
++- **Los 140 caracteres libres** del cuerpo de `plazos-y-territorio` (auto; impacto: skill) se miden sin la línea de la
++  vertical de ensayo, sobre el cuerpo que entrega H33, que es exactamente el de FR-009 (10 686, frente a la cota de
++  10 860; ver «Clarifications»): es la lectura con la que el hito cuenta «desde ahí caben tres más de 70». El control
++  vive en el guion de aceptación de H33 (FR-025), que un hito posterior que añada un paquete cambia como cambio
++  declarado, como hace este con los de H32.
+ - **El mensaje del marcador desconocido en un motivo** no lo fija el hito palabra por palabra; FR-006 fija su prefijo,
+   que nombra el marcador y su final, `un marcador que la tabla no conoce`; el resto lo fija el plan.
+ - **Las cifras de la medida previa** (despachos, sondeos, tasas) son las del hito y no se han medido en esta sesión.

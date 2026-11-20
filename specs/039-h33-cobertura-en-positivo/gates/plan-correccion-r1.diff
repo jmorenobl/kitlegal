@@ -1,0 +1,57 @@
+diff antes/contracts/controles.md ahora/contracts/controles.md
+--- antes/contracts/controles.md	2026-11-20 11:16:22.395877546 +0100
++++ ahora/contracts/controles.md	2026-11-20 11:17:35.754651776 +0100
+@@ -9,7 +9,7 @@
+ | Test | Fichero | Qué fija |
+ |---|---|---|
+ | `TestLeerCobertura` | `cobertura_test.go` | subtest `repositorio`: `data/cobertura.yaml` se lee sin defecto y su motivo y sus cuatro filas son, campo a campo, las de FR-001; los seis mutantes de contracts/datos-y-regiones.md §2; los casos de hoy de `regulados_aparte`, con sus mensajes |
+-| `TestRegionDeLoCubierto` (nuevo) | `cubierto_test.go` | sobre una copia de `consulta-juridica`, `plazos-y-territorio` y `data/`: la región da las 4 líneas en su orden y la sincronía no cambia nada (dos filas de una capacidad las prueba `TestVerticalDeEnsayo`); mutantes de FR-003, cada uno con los defectos exactos de cada skill de la copia: `materia: civil` (el de la materia), sin `data/cobertura.yaml` (en `consulta-juridica`, el de la región y el de la plantilla; en `plazos-y-territorio`, el de la plantilla y el de hoy de su región `cobertura_por_materia`; nada regenerado) y el motivo de §4 cambiado en la prosa (el del motivo) |
++| `TestRegionDeLoCubierto` (nuevo) | `cubierto_test.go` | sobre una copia de `consulta-juridica`, `plazos-y-territorio` y `data/`: la región da las 4 líneas en su orden y la sincronía no cambia nada (dos filas de una capacidad las prueba `TestVerticalDeEnsayo`); mutantes de FR-003, cada uno con los defectos exactos de cada skill de la copia: `materia: Laboral` (el de la materia, que da la sincronía y no el esquema, research D5), sin `data/cobertura.yaml` (en `consulta-juridica`, el de la región y el de la plantilla; en `plazos-y-territorio`, el de la plantilla y el de hoy de su región `cobertura_por_materia`; nada regenerado) y el motivo de §4 cambiado en la prosa (el del motivo) |
+ | `TestRegiones` | `regiones_test.go` | sus árboles sintéticos con la plantilla y los dos motivos; un mutante por defecto del generador (contracts/datos-y-regiones.md §5): la plantilla quitada, una segunda plantilla, un motivo quitado, un marcador desconocido en la plantilla y otro en un motivo; la fila sin región, como hoy |
+ | `TestRegionDeLaCobertura` | `referencias_test.go` | `filaDeLosTributos`, byte a byte la del spec (historia 3, escenario 1); 9 filas del paquete; la referencia del repositorio es la generada; su mutante, la plantilla cambiada sin regenerar, da la deriva |
+ | `TestVerticalDeEnsayo` | `vertical_de_ensayo_test.go` | los tres cambios de contracts/datos-y-regiones.md §6, con la fila de la vertical como segunda línea de los plazos, detrás de las cuatro del repositorio (dos filas de una capacidad, FR-007); cada cuerpo, como mucho 11 000 caracteres con la vertical (10 756 el de `plazos-y-territorio`) |
+diff antes/contracts/datos-y-regiones.md ahora/contracts/datos-y-regiones.md
+--- antes/contracts/datos-y-regiones.md	2026-11-20 11:16:22.395890238 +0100
++++ ahora/contracts/datos-y-regiones.md	2026-11-20 11:17:31.215732205 +0100
+@@ -35,7 +35,8 @@
+   `cubierto` en `properties` (`{"type": "array", "items": {"$ref": "#/$defs/cubierto"}}`);
+ - en `$defs`, `cubierto`: objeto con `additionalProperties: false`, `required: ["capacidad", "alcance"]`, `capacidad`
+   con `enum` `["normativa", "jurisprudencia", "plazos", "territorio"]`, `alcance` con `minLength: 1` y `materia` con
+-  `pattern: "^[a-z][a-z0-9-]*$"`.
++  `{"type": "string"}`, sin patrón: si es o no un `vertical` lo dice solo la sincronía, con el defecto de §3 (research
++  D4 y D5).
+ 
+ Los defectos (hojas del esquema, `internal/skills/esquemas.go`; textos de `jsonschema` v6.0.3, research V4), uno por
+ mutante de `TestLeerCobertura` sobre `coberturaDePrueba` con las dos claves nuevas:
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-11-20 11:16:22.395698677 +0100
++++ ahora/data-model.md	2026-11-20 11:17:28.820668945 +0100
+@@ -20,7 +20,7 @@
+ |---|---|---|
+ | `capacidad` | `Capacidad string` | obligatorio; `normativa`, `jurisprudencia`, `plazos` o `territorio` (`enum`) |
+ | `alcance` | `Alcance string` | obligatorio, al menos un carácter |
+-| `materia` | `Materia string` | opcional, patrón `^[a-z][a-z0-9-]*$`; si va, el `vertical` de alguna norma de `data/normas.yaml` (lo comprueba la sincronía, no el esquema) |
++| `materia` | `Materia string` | opcional, cadena (el esquema no le pone más regla); si va, el `vertical` de alguna norma de `data/normas.yaml`, que lo comprueba solo la sincronía (research D4) |
+ 
+ Sin claves de más (`additionalProperties: false`): `normas` es un defecto. Sin `materia`, la fila sirve a todas las
+ materias. Dos filas de una capacidad son dos filas.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-20 11:16:22.395791093 +0100
++++ ahora/research.md	2026-11-20 11:17:26.823808612 +0100
+@@ -129,10 +129,13 @@
+ 
+ **Decisión.** `schemas/cobertura.yaml.json` gana `motivo_de_lo_no_declarado` (obligatorio, cadena de al menos un
+ carácter) y `cubierto` (lista de objetos sin claves de más, con `capacidad` del `enum` de FR-001 y `alcance`, de al menos
+-un carácter, obligatorios, y `materia` opcional con el patrón de `vertical` de `schemas/normas.yaml.json`,
+-`^[a-z][a-z0-9-]*$`). `regulados_aparte` no cambia un byte. **Rechazadas.** Hacer obligatoria `cubierto` o darle
++un carácter, obligatorios, y `materia` opcional, `{"type": "string"}` y nada más: lo que valga lo decide solo la
++sincronía, D4). `regulados_aparte` no cambia un byte. **Rechazadas.** Hacer obligatoria `cubierto` o darle
+ `minItems`, como el prototipo: ningún requisito lo pide (FR-002 enumera los rechazos), y `TestLeerCobertura` ya fija las
+-cuatro filas del repositorio. Reformatear el esquema entero (el prototipo cambia 108 líneas): solo se añade lo nuevo.
++cuatro filas del repositorio. Dar a `materia` el patrón de `vertical` de `schemas/normas.yaml.json`, como el prototipo:
++FR-002 no enumera ese rechazo, todo `vertical` ya lo cumple, y con él `materia: Laboral` daría el defecto del esquema
++en lugar del de FR-003 (contracts/datos-y-regiones.md §3). Reformatear el esquema entero (el prototipo cambia 108
++líneas): solo se añade lo nuevo.
+ 
+ ### D6 · El formato de eval (FR-012, FR-015)
+ 
