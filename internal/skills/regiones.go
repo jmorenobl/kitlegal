@@ -789,15 +789,13 @@ func (r *regionesDeLaSkill) anotarLosDatos(skill, loQueLoPide string, err error)
 // lo pide> sin data/<fichero>», que va con los de las marcas; con defectos en él,
 // los de su lector, con su fichero delante, que van con los de los datos. El
 // error que no es un *defectoDeLosDatos es lo que no se puede leer, y se devuelve
-// sin defectos; sin err, no hay nada.
+// sin defectos.
 func defectosDeLosDatosQueFaltan(skill, loQueLoPide string, err error) (
 	deLasMarcas, deLosDatos []*DefectoDeSkill, deLectura error,
 ) {
 	var queFalla *defectoDeLosDatos
 
 	switch {
-	case err == nil:
-		return nil, nil, nil
 	case errors.As(err, &queFalla) && queFalla.causa == nil:
 		return []*DefectoDeSkill{{
 			Skill:   skill,

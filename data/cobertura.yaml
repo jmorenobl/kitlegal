@@ -1,7 +1,7 @@
 # Cobertura de kitlegal, en tres partes. Lo lee skills.LeerCobertura contra schemas/cobertura.yaml.json, solo en la
 # sincronía de las skills (make skills-sync): el binario no lo lleva. Es la única fuente de verdad de cada parte.
-# - motivo_de_lo_no_declarado: el motivo de la línea fuera de lo declarado, ⚠ NO CUBIERTO:, que la sincronía pone en la
-#   plantilla de cada skill que la lleva y que la prosa de esa skill dice tal cual, entre «».
+# - motivo_de_lo_no_declarado: el motivo que lleva la línea fuera de lo declarado, ⚠ NO CUBIERTO:. La prosa de cada
+#   skill con la plantilla de esa línea lo dice tal cual, entre «», y la sincronía comprueba que lo dice.
 # - cubierto: lo que kitlegal cubre, una fila por capacidad (normativa, jurisprudencia, plazos o territorio) con su
 #   alcance en una frase y, si se ciñe a una, la materia: el vertical de alguna norma de data/normas.yaml; sin materia,
 #   sirve a todas. La sincronía lo escribe, una línea por fila, en la región de lo que cubre la base del SKILL.md que

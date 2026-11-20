@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"unicode"
+	"strings"
 	"unicode/utf8"
 )
 
@@ -96,10 +96,7 @@ func (d *datosDeLasRegiones) lineasDeLoCubierto() ([]byte, error) {
 
 // conLaPrimeraEnMayuscula es el texto con su primera letra en mayúscula.
 func conLaPrimeraEnMayuscula(texto string) string {
-	primera, tamano := utf8.DecodeRuneInString(texto)
-	if tamano == 0 {
-		return texto
-	}
+	_, tamano := utf8.DecodeRuneInString(texto)
 
-	return string(unicode.ToUpper(primera)) + texto[tamano:]
+	return strings.ToUpper(texto[:tamano]) + texto[tamano:]
 }

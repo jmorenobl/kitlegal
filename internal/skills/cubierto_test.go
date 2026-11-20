@@ -43,8 +43,9 @@ var lineasDeLoCubierto = []string{
 // vertical de ninguna norma, el de la materia, que da la sincronía y no el
 // esquema; sin data/cobertura.yaml, en la skill de entrada el de su región y el
 // de su plantilla, y en plazos-y-territorio el de su plantilla y el de su región
-// cobertura_por_materia; y el motivo cambiado en la prosa de la skill de
-// entrada, el del motivo.
+// cobertura_por_materia; sin la marca de fin de la región en la skill de entrada,
+// el de sus marcas que no van en pareja; y el motivo cambiado en la prosa de la
+// skill de entrada, el del motivo.
 func TestRegionDeLoCubierto(t *testing.T) {
 	t.Parallel()
 
@@ -101,6 +102,20 @@ func TestRegionDeLoCubierto(t *testing.T) {
 					"plazos-y-territorio: SKILL.md: la plantilla ⚠ NO CUBIERTO: sin data/cobertura.yaml",
 					"plazos-y-territorio: references/administrativo.md: la región cobertura_por_materia sin " +
 						"data/cobertura.yaml",
+				},
+			},
+		},
+		{
+			nombre: "marcas-sin-pareja",
+			mutante: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md"),
+					"<!-- fin de lo que cubre la base -->\n", "")
+			},
+			defectos: map[string][]string{
+				"consulta-juridica": {
+					"consulta-juridica: SKILL.md: las marcas de lo que cubre la base no van en pareja: falta la de fin",
 				},
 			},
 		},

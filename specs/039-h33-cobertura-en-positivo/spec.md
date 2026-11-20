@@ -541,12 +541,12 @@ declarados.
 - **La marca `⚠ NO VERIFICADO:`** la escribe el agente de `consulta-juridica` solo tras su línea fuera de lo declarado,
   una por lectura hecha con la skill de normativa para completar; ninguna en lo regulado aparte.
 - **La tabla `cobertura_por_materia`** la lee el agente de `plazos-y-territorio` en el paso 7, una vez por pregunta de
-  plazo de un asunto de su paquete, y copia una fila: 9 filas (hoy 3047 bytes entre las nueve; la cola nueva es más corta), que crecen
+  plazo de un asunto de su paquete, y copia una fila: 9 filas (3128 bytes entre las nueve; antes de H33, 3047), que crecen
   con las filas de `regulados_aparte` de los paquetes, no con el uso.
 - **Los defectos de la sincronía** (FR-002, FR-003, FR-006) los lee quien mantiene kitlegal cuando `make skills-sync` o
   `make ci` salen en rojo: una línea por defecto, con la skill y el fichero.
 - **Los umbrales y sus descripciones** (FR-014) los lee la persona en el informe del job, una vez por medición: dos
-  umbrales más por modo y modelo en `consulta-juridica`.
+  umbrales más por modo, del modelo que decide (cuatro), en `consulta-juridica`.
 
 ## Success Criteria *(mandatory)*
 
