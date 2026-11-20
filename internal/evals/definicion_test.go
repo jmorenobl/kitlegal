@@ -1577,7 +1577,9 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // minutos, cubre los cuatro. Con 294 minutos, 17 640 s, sigue cubriendo el de
 // jurisprudencia y ya no el de normativa ni el de plazos-y-territorio; con 293,
 // 17 580 s, tampoco el de jurisprudencia; y con 141, 8460 s, ninguno de los
-// cuatro, tampoco el de la skill de entrada.
+// cuatro, tampoco el de la skill de entrada. Desde H33, la de entrada, con sus
+// cuatro evals, es de 15 013 s (contracts/evals.md §7 de H33; FR-019): los
+// topes de 294 y 293 minutos la siguen cubriendo, y el de 141, no.
 //
 // Y las tres mutaciones de contracts/job-de-evals.md §4 de H25, con los topes
 // del repositorio, 352 y 269 minutos, que cubren el peor caso de cada trabajo
@@ -3091,9 +3093,11 @@ const (
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 3\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 3\xe2\x8c\x89)" +
 		terminosDeUnVoto + terminosDeLaDescripcion
 
-	// El de la skill de entrada, el de contracts/evals.md §6 de H32: sus dos
-	// evals de una en una, sin juez de las respuestas, 8485 s.
-	peorCasoDeConsultaJuridica = "8485 s" + fueraYLaDecision + "(\xe2\x8c\x8813 / 1\xe2\x8c\x89 + \xe2\x8c\x8812 / 1\xe2\x8c\x89)" +
+	// El de la skill de entrada, el de contracts/evals.md §6 de H32: sus evals de
+	// una en una, sin juez de las respuestas; con las dos de H32, 8485 s, y,
+	// desde H33, con las cuatro, 25 y 24 sesiones por grupo, 15 013 s
+	// (contracts/evals.md §7 de H33; research V10 de H33; FR-019).
+	peorCasoDeConsultaJuridica = "15013 s" + fueraYLaDecision + "(\xe2\x8c\x8825 / 1\xe2\x8c\x89 + \xe2\x8c\x8824 / 1\xe2\x8c\x89)" +
 		terminosDeUnaTanda + " + 60 s" + terminosDeLaDescripcion
 
 	// peorCasoDeJurisprudenciaDeUnaEnUna es el de la definición que la deja con
@@ -3182,6 +3186,11 @@ const (
 // juez: 20 117 s en normativa, 13 717 s en jurisprudencia y 20 725 s en
 // plazos-y-territorio, el mayor, que el tope del trabajo, 352 minutos,
 // 21 120 s, cubre sin cambiar.
+//
+// Desde H33 (contracts/evals.md §7 de H33; research V10 de H33; FR-019;
+// SC-008), el de consulta-juridica es el de sus cuatro evals, de una en una: 25
+// y 24 sesiones, 15 013 s, que el tope del trabajo cubre sin cambiar la
+// concurrencia de ninguna skill.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -3221,10 +3230,10 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		{
 			skill: "consulta-juridica",
 			peor: peorCasoDelTrabajo{
-				Decision: segundosDeLaDecision, SesionesPorGrupo: []int{13, 12}, Concurrencia: 1,
+				Decision: segundosDeLaDecision, SesionesPorGrupo: []int{25, 24}, Concurrencia: 1,
 				JuzgaLaDescripcion: true,
 			},
-			duracion: 8485 * time.Second,
+			duracion: 15013 * time.Second,
 			texto:    peorCasoDeConsultaJuridica,
 		},
 		{

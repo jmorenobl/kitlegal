@@ -1115,21 +1115,26 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // y la 17 (FR-013 de H31.1; SC-004, SC-008). consulta-juridica: desde H32, la
 // caché de una sesión de la 01 de la skill de entrada sirve los arts. 22 y 4 de
 // la Ley 50/1980, su comando y su lectura, con 0 sin fecha y con --fecha
-// 9999-12-31 (contracts/evals.md §8 de H32; FR-035; SC-012).
+// 9999-12-31 (contracts/evals.md §8 de H32; FR-035; SC-012); y, desde H33, la de
+// una sesión de la 04 sirve el art. 59 del Estatuto de los Trabajadores en la
+// fecha del despido, el de su comando (contracts/evals.md §6 de H33; FR-018).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sin-servir", probarLoQueNoSeSirve)
 	t.Run("lecturas", probarLasLecturasDeLasEvals)
-	t.Run("consulta-juridica", probarLaCacheDeLaPoliza)
+	t.Run("consulta-juridica", probarLaCacheDeLaEntrada)
 }
 
-// probarLaCacheDeLaPoliza es el subtest consulta-juridica de
+// probarLaCacheDeLaEntrada es el subtest consulta-juridica de
 // TestCacheDeLasSesiones: desde la caché de una sesión de la 01 de
-// consulta-juridica, el art. 22 de la Ley 50/1980, el de su comando y su cita,
-// y el art. 4, el de su lectura, salen con 0 sin fecha y con --fecha 9999-12-31
-// (contracts/evals.md §8 de H32; FR-035; SC-012).
-func probarLaCacheDeLaPoliza(t *testing.T) {
+// consulta-juridica, el art. 22 de la Ley 50/1980, el de su comando y su cita
+// —también los de la 03—, y el art. 4, el de su lectura, salen con 0 sin fecha y
+// con --fecha 9999-12-31 (contracts/evals.md §8 de H32; FR-035 de H32; SC-012
+// de H32); y, desde H33, desde la de una sesión de la 04, el art. 59 del
+// Estatuto de los Trabajadores, el de su comando, sale con 0 con --fecha
+// 2026-11-02, la del despido (contracts/evals.md §6 de H33; FR-018).
+func probarLaCacheDeLaEntrada(t *testing.T) {
 	t.Parallel()
 
 	dirCache := cacheDeUnaSesion(t, evalsDeConsultaJuridica, consultaDeLaMateriaSinPaquete)
@@ -1143,6 +1148,13 @@ func probarLaCacheDeLaPoliza(t *testing.T) {
 				strings.Join(argumentos, " "), evalsDeConsultaJuridica, errores)
 		}
 	}
+
+	delDespido := cacheDeUnaSesion(t, evalsDeConsultaJuridica, consultaFueraDeLoCubierto)
+	argumentos := []string{normaDeUnaSolaCapacidad, "a59", "--fecha", "2026-11-02"}
+
+	codigo, errores := leerSinRedEnLaSesion(t, delDespido, argumentos...)
+	assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de la 04 de %s: %s",
+		strings.Join(argumentos, " "), evalsDeConsultaJuridica, errores)
 }
 
 // probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:

@@ -2,6 +2,11 @@
 # de lo que el modelo recuerde. La herramienta que buscaría el artículo por su materia sigue en el backlog, así que
 # la eval se ejecuta y su tasa se publica, pero no decide el veredicto. Redacción literal de la bitácora
 # (docs/USO.md, 2026-09-15), para poder comparar con lo que allí se midió.
+# El plazo del acceso a la información lo cubre también plazos-y-territorio (acceso-resolver, data/plazos.yaml), que
+# lee su precepto con su paso 6: una respuesta que solo la activa a ella es una ruta que el producto permite, no un
+# defecto, y su activación cuenta como la de normativa (ADR 0058, punto 7; «Antes de lanzar» del hito H33).
+tambien_la_resuelven:
+  - plazos-y-territorio
 pregunta: "¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013?"
 activa: true
 informativa: true

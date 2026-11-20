@@ -1,0 +1,14 @@
+# Eval positiva de la skill de entrada dentro de lo cubierto, de una materia sin paquete (seguros): leer y citar una
+# norma lo cubre la capacidad de normativa. El otro lado de la frontera, en la misma norma, es la 01 (regla «frontera
+# en dos materias»; ADR 0058). Sin lecturas: las declara la persona tras ver una sesión (ADR 0043, punto 2).
+pregunta: "¿Qué dice la Ley de Contrato de Seguro sobre la prórroga de la póliza?"
+activa: true
+se_activan: [normativa]
+no_se_activan: [jurisprudencia, plazos-y-territorio]
+comandos:
+  - applet: boe
+    norma: BOE-A-1980-22501
+    bloque: aveintidos
+citas:
+  - norma: BOE-A-1980-22501
+    bloque: aveintidos

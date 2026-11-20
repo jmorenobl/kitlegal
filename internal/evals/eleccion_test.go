@@ -810,9 +810,11 @@ func conUnConjuntoIncalculable(calculo calculoDeLaEleccion) calculoDeLaEleccion 
 // mutantes son las que elige mutantesDeLaEleccion, y la procedencia de cada
 // reutilizada, la de la medida de main sintética de TestDecisionDelJob.
 const goldenDeLaMatriz = `## referencia-de-plazos-y-territorio
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
   02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -862,9 +864,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
 ## cuerpo-de-normativa
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
   02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
+  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
+  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -914,9 +918,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
 ## cuerpo-de-jurisprudencia
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
   02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
+  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
+  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
   02-resumen-sin-documento.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
@@ -966,9 +972,11 @@ evals (plazos-y-territorio): medidas 0, reutilizadas 12
   11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 ## internal-cli
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: común (internal/cli/describe.go)
   02-una-sola-capacidad.yaml: medida: común (internal/cli/describe.go)
+  03-seguro-prorroga.yaml: medida: común (internal/cli/describe.go)
+  04-despido-plazo.yaml: medida: común (internal/cli/describe.go)
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: común (internal/cli/describe.go)
   02-resumen-sin-documento.yaml: medida: común (internal/cli/describe.go)
@@ -1018,9 +1026,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: común (internal/cli/describe.go)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: común (internal/cli/describe.go)
 ## sqlite-en-go-mod
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: común (go.mod)
   02-una-sola-capacidad.yaml: medida: común (go.mod)
+  03-seguro-prorroga.yaml: medida: común (go.mod)
+  04-despido-plazo.yaml: medida: común (go.mod)
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: común (go.mod)
   02-resumen-sin-documento.yaml: medida: común (go.mod)
@@ -1070,9 +1080,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: común (go.mod)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: común (go.mod)
 ## descripcion-de-plazos-y-territorio
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
   02-una-sola-capacidad.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
+  03-seguro-prorroga.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
+  04-despido-plazo.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
   02-resumen-sin-documento.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
@@ -1122,9 +1134,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
 ## paquete-sin-asignar
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
   02-una-sola-capacidad.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
+  03-seguro-prorroga.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
+  04-despido-plazo.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
   02-resumen-sin-documento.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
@@ -1176,9 +1190,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
 ## solo-docs
 ningún trabajo de evals
 ## una-eval
-evals (consulta-juridica): medidas 0, reutilizadas 2
+evals (consulta-juridica): medidas 0, reutilizadas 4
   01-poliza-tras-el-fallecimiento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-una-sola-capacidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  03-seguro-prorroga.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  04-despido-plazo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 evals (jurisprudencia): medidas 1, reutilizadas 9
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -1228,9 +1244,11 @@ evals (plazos-y-territorio): medidas 0, reutilizadas 12
   11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 ## referencia-renombrada
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
   02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -1280,9 +1298,11 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
 ## etiqueta-evals-sin-nada-elegido
-evals (consulta-juridica): medidas 0, reutilizadas 2
+evals (consulta-juridica): medidas 0, reutilizadas 4
   01-poliza-tras-el-fallecimiento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-una-sola-capacidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  03-seguro-prorroga.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  04-despido-plazo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -1332,9 +1352,11 @@ evals (plazos-y-territorio): medidas 0, reutilizadas 12
   11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 ## suite-completa
-evals (consulta-juridica): medidas 2, reutilizadas 0
+evals (consulta-juridica): medidas 4, reutilizadas 0
   01-poliza-tras-el-fallecimiento.yaml: medida: suite completa
   02-una-sola-capacidad.yaml: medida: suite completa
+  03-seguro-prorroga.yaml: medida: suite completa
+  04-despido-plazo.yaml: medida: suite completa
 evals (jurisprudencia): medidas 10, reutilizadas 0
   01-existe-con-numero-y-fecha.yaml: medida: suite completa
   02-resumen-sin-documento.yaml: medida: suite completa
