@@ -1,14 +1,11 @@
 {
-  "id": "T009",
-  "texto": "T009 La entrada del changelog y la verificación final de la rama, sin cambiar otro fichero (FR-020, FR-021, FR-022, FR-023, FR-025; SC-009; DoD §1, puntos 1 y 6; quickstart, escenarios 3 a 8). **Fichero**: CHANGELOG.md, al final de «## [Unreleased]» → «### Cambiado», una viñeta que dice la plantilla única `⚠ NO CUBIERTO:` en todas las materias con la marca `⚠ NO VERIFICADO:` de `consulta-juridica`, lo cubierto declarado en `data/cobertura.yaml` por capacidad y materia y generado en `consulta-juridica`, y las evals de la frontera en dos materias con sus umbrales; nada más del fichero cambia. **Verificación**: `make ci` en verde, con `git status --porcelain` igual antes y después (quickstart, escenario 8); `make skills-sync` seguido de `git status --porcelain` sin cambios; los `go test` de quickstart, escenarios 3, 4 y 5, en verde, y `git diff --stat main` sin ninguna línea de las copias de la suite de H32 bajo `specs`; los cuerpos, 4481 y 10 686 caracteres (escenario 6); la grabación del art. 59 presente en su commit de `grabar_datos` (escenario 7); y `go test ./...` y `go test -tags=integration` en verde en los paquetes que nombra SC-009.",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "77574734501be6662758ce666ed953277db9cad6",
-  "rutas": [
-    "CHANGELOG.md",
-    "data/cobertura.yaml"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

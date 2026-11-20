@@ -102,7 +102,7 @@ tocar y sin defecto (`if … err == nil`): calla el error, que FR-007 pide dar, 
 
 **Decisión.** `formasDeNoCubierto` pasa a ser `lineaDeNoCubierto{plantilla, motivoConNorma, motivoSinNorma}`:
 `plantillaDelCuerpo` da la única línea de los bloques `text` del `SKILL.md` que empieza por `⚠ NO CUBIERTO: ` y lleva
-`<motivo>` (con otra cantidad, ninguna), y `motivosDeLaReferencia`, las dos líneas de los bloques `text` de la
+`<motivo>` (con otra cantidad, ninguna), y `lineaDeNoCubierto.conLosMotivosDe`, las dos líneas de los bloques `text` de la
 referencia que llevan `<precepto>` y no empiezan por `⚠`, una con `<norma>` y otra sin ella. Cada fila: primero
 `<motivo>` por el motivo de su caso, y después un solo `strings.NewReplacer` con todos los marcadores conocidos
 (`<asunto>` y `<procedimiento>` por el procedimiento): lo sustituido no se vuelve a mirar. Ningún texto de la línea vive
@@ -214,7 +214,7 @@ byte a byte con la base, que obligaría a declarar como cambio cada fila regener
 **Decisión.** `huellasDeConsultaJuridicaEnLaBase` pasa a guardar la SHA-256 del `SKILL.md` de la entrega, sin las
 líneas de la clave `description` y con sus dos regiones generadas (la de lo cubierto y la de los paquetes de la base)
 reducidas a sus marcas, con `conLasRegionesGeneradasReducidas`, cuya lista `regionesGeneradas` gana esas dos regiones;
-`baseDeLaRama` pasa a decir «la entrega de H33» en los mensajes. La huella la calcula la tarea que escribe el
+`baseDeLaRama` pasa a ser `laEntrega`, «la entrega de H33» en los mensajes. La huella la calcula la tarea que escribe el
 `SKILL.md`, dos veces (con el código del test y con `awk` y `sha256sum`), como H41.4. **Rechazada.** Leer la base con
 `git` en el test: el `make ci` del cierre corre sobre un clon superficial (research D2 de H41.4).
 

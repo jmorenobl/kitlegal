@@ -203,7 +203,7 @@ De dentro afuera, con `make ci` en verde tras cada tarea:
 | La comprobación de la `materia` | FR-003 |
 | La comprobación del motivo en la prosa | FR-003 |
 | `TestRegionDeLoCubierto` y sus tres mutantes | FR-003, FR-007, SC-001, SC-008 |
-| `lineaDeNoCubierto`, `plantillaDelCuerpo`, `motivosDeLaReferencia`; `<asunto>` y `<motivo>` en los marcadores | FR-004 a FR-006 |
+| `lineaDeNoCubierto`, `plantillaDelCuerpo`, `lineaDeNoCubierto.conLosMotivosDe`; `<asunto>` y `<motivo>` en los marcadores | FR-004 a FR-006 |
 | Los dos defectos nuevos del generador y el del marcador de un motivo; `conPlantilla` | FR-006 |
 | `TestRegiones`, `TestRegionDeLaCobertura` y sus mutantes | FR-006, SC-002, SC-008 |
 | El texto de `consulta-juridica` (§3 y §4) | FR-004, FR-007, FR-008 |

@@ -34,7 +34,7 @@ Se añaden, sin reformatear lo de hoy (research D5):
 - en la raíz, `motivo_de_lo_no_declarado` en `required` y en `properties` (`{"type": "string", "minLength": 1}`), y
   `cubierto` en `properties` (`{"type": "array", "items": {"$ref": "#/$defs/cubierto"}}`);
 - en `$defs`, `cubierto`: objeto con `additionalProperties: false`, `required: ["capacidad", "alcance"]`, `capacidad`
-  con `enum` `["normativa", "jurisprudencia", "plazos", "territorio"]`, `alcance` con `minLength: 1` y `materia` con
+  con `enum` `["normativa", "jurisprudencia", "plazos", "territorio"]`, `alcance` con `{"type": "string", "minLength": 1}` y `materia` con
   `{"type": "string"}`, sin patrón: si es o no un `vertical` lo dice solo la sincronía, con el defecto de §3 (research
   D4 y D5).
 

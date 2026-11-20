@@ -1882,7 +1882,9 @@ SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de cada familia tien
 y ninguno `<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl`
 (`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41, y
 `skills/plazos-y-territorio`, la que da sobre `plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara
-H41.1, con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
+H41.1 y, desde H33, los tres cambios de su `SKILL.md` y el de `references/administrativo.md` —la plantilla única
+`⚠ NO CUBIERTO:` y sus dos motivos—, con cada región generada de una referencia escrita a mano reducida a sus
+marcas; todas con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
 `laboratorio/producto-descripciones-cortas/`), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
 declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFamilias`, `TestTablaDeLasFamilias`,
 `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias: ninguna variante versionada
@@ -2038,7 +2040,10 @@ laboratorio/producto-descripciones-cortas`, `skills/<skill>/SKILL.md: la descrip
 una línea` y `skills/<skill>/SKILL.md: la description tiene <n> caracteres (máximo 450)`; y al final
 `skills: las descripciones suman <n> caracteres (máximo 1700)`— y con `TestConsultaJuridicaDesdeLaBase`, que compara
 `skills/consulta-juridica/`, fuera de las líneas de la clave `description`, con las huellas SHA-256 de su contenido en
-la base de la rama de H41.4 y falla con la primera ruta que falta, sobra o difiere.
+la base de la rama de H41.4 y falla con la primera ruta que falta, sobra o difiere. Desde H33, las huellas son las de la
+entrega de H33, con la región de lo que cubre la base y la de los paquetes de la base del `SKILL.md` reducidas a sus
+marcas, y los defectos la nombran así: `skills/consulta-juridica/SKILL.md difiere de la entrega de H33`, `… falta: está
+en la entrega de H33` y `… sobra: no está en la entrega de H33`.
 
 Con `INSTALACION=producto-descripciones-cortas`, que solo vale con `VARIANTES=normativa-producto`, el arnés hace lo de
 `INSTALACION=producto` y, en la copia de cada `SKILL.md` del temporal, pone en el frontmatter la `description` de la
