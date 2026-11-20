@@ -190,8 +190,8 @@ func (d *Deriva) Error() string {
 //   - la skill no lleva scripts/ (defectoDeLosScripts), tampoco sin SKILL.md;
 //   - cada fila de data/cobertura.yaml la genera una región de la cobertura
 //     (filasSinRegion): la que no, es un defecto de cada skill cuyo SKILL.md
-//     tiene las dos formas ⚠ NO CUBIERTO:, que es la que da su línea; un árbol
-//     sin ninguna, como la copia de una sola skill que no las tiene, no da la
+//     tiene la plantilla ⚠ NO CUBIERTO:, que es la que da su línea; un árbol
+//     sin ninguna, como la copia de una sola skill que no la tiene, no da la
 //     línea de ninguna fila y no tiene ese defecto.
 //
 // Nada de eso sale de una lista escrita para una skill concreta: sale de la
@@ -218,8 +218,8 @@ func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, err
 	datos := leerDatosDeLasRegiones(raiz)
 
 	var (
-		cubiertos []string
-		conFormas []int
+		cubiertos    []string
+		conPlantilla []int
 	)
 
 	for _, nombre := range nombres {
@@ -228,8 +228,8 @@ func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, err
 			return Regenerado{}, err
 		}
 
-		if tablas.conFormas {
-			conFormas = append(conFormas, len(regenerado.Skills))
+		if tablas.conPlantilla {
+			conPlantilla = append(conPlantilla, len(regenerado.Skills))
 		}
 
 		cubiertos = append(cubiertos, tablas.cubiertos...)
@@ -241,13 +241,13 @@ func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, err
 		return Regenerado{}, err
 	}
 
-	regenerado.anotarFilasSinRegion(sinRegion, conFormas)
+	regenerado.anotarFilasSinRegion(sinRegion, conPlantilla)
 
 	return regenerado, nil
 }
 
 // anotarFilasSinRegion añade los defectos de las filas de la cobertura sin región
-// a cada skill de las posiciones dadas —las que tienen las dos formas ⚠ NO
+// a cada skill de las posiciones dadas —las que tienen la plantilla ⚠ NO
 // CUBIERTO:—, que dejan de llevar nada regenerado.
 func (r Regenerado) anotarFilasSinRegion(sinRegion []string, posiciones []int) {
 	if len(sinRegion) == 0 {

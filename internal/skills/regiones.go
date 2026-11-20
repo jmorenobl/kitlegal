@@ -37,18 +37,23 @@ const (
 )
 
 // generadorDeLaCobertura es el nombre del generador de la región de la cobertura
-// por materia: el único cuyas filas dependen del paquete de la referencia y de las
-// formas del cuerpo de la skill.
+// por materia: el único cuyas filas dependen del paquete de la referencia, de la
+// plantilla del cuerpo de la skill y de los motivos de la referencia.
 const generadorDeLaCobertura = "cobertura_por_materia"
 
-// Lo que el generador de la cobertura lee del cuerpo de la skill
-// (contracts/forma-de-cita.md §3; data-model §5; research D6 de H32): las
-// líneas de un bloque text que empiezan por la etiqueta, y los marcadores que
-// sustituye en ellas con los datos de cada fila.
+// Lo que el generador de la cobertura lee del cuerpo de la skill y de la
+// referencia de su paquete (contracts/datos-y-regiones.md §5; data-model §2 de
+// H33): las líneas de un bloque text —la plantilla, que empieza por la etiqueta y
+// lleva el marcador del motivo; los motivos, que llevan el del precepto y no
+// empiezan por el aviso—, y los marcadores que sustituye en ellas con los datos
+// de cada fila.
 const (
 	lenguajeDeLasFormas               = "text"
-	etiquetaDeNoCubierto              = "⚠ NO CUBIERTO: "
+	inicioDeUnAviso                   = "⚠"
+	etiquetaDeNoCubierto              = inicioDeUnAviso + " NO CUBIERTO: "
 	marcadorDelProcedimiento          = "<procedimiento>"
+	marcadorDelAsunto                 = "<asunto>"
+	marcadorDelMotivo                 = "<motivo>"
 	marcadorDeLaNorma                 = "<norma>"
 	marcadorDelIdentificadorDeLaNorma = "<identificador de la norma>"
 	marcadorDelPrecepto               = "<precepto>"
@@ -56,11 +61,11 @@ const (
 	marcadorDelID                     = "<id>"
 )
 
-// marcadoresDeLaCobertura son los marcadores que la tabla de contracts/paquetes.md
-// §3 conoce.
+// marcadoresDeLaCobertura son los marcadores que la tabla de la cobertura conoce
+// (data-model §2 de H33).
 var marcadoresDeLaCobertura = []string{
-	marcadorDelProcedimiento, marcadorDeLaNorma, marcadorDelIdentificadorDeLaNorma, marcadorDelPrecepto,
-	marcadorDelIdentificador, marcadorDelID,
+	marcadorDelProcedimiento, marcadorDelAsunto, marcadorDelMotivo, marcadorDeLaNorma,
+	marcadorDelIdentificadorDeLaNorma, marcadorDelPrecepto, marcadorDelIdentificador, marcadorDelID,
 }
 
 // marcadorDeUnaForma es un marcador de una forma: el texto entre < y >.
@@ -83,13 +88,15 @@ type generadorDeRegion struct {
 }
 
 // contextoDeLaRegion es lo que una región toma de su sitio: el paquete que nombra
-// su referencia y las formas ⚠ NO CUBIERTO: del cuerpo de su skill.
+// su referencia, y la plantilla ⚠ NO CUBIERTO: del cuerpo de su skill con los
+// motivos de su referencia.
 type contextoDeLaRegion struct {
 	// paquete es el nombre de la referencia sin .md: el de su paquete si lo es.
 	paquete string
 
-	// formas son las del SKILL.md de la skill.
-	formas formasDeNoCubierto
+	// linea es la plantilla del SKILL.md de la skill con los motivos de la
+	// referencia: lo que da la línea de cada fila de la cobertura.
+	linea lineaDeNoCubierto
 }
 
 // generadoresDeRegiones son los tres generadores que admiten región, por su
@@ -249,25 +256,48 @@ func generadorDeLaMarca(linea string) (string, bool) {
 	return generador, generador != ""
 }
 
-// formasDeNoCubierto son las dos formas ⚠ NO CUBIERTO: del cuerpo de una skill,
-// con sus marcadores (contracts/forma-de-cita.md §3 de H32): la de la fila que
-// trae la norma que la rige y la de la que no.
-type formasDeNoCubierto struct {
-	conNorma, sinNorma string
+// lineaDeNoCubierto es de lo que sale la línea ⚠ NO CUBIERTO: de cada fila de la
+// cobertura, con sus marcadores (data-model §2; research D2 de H33): la plantilla
+// del cuerpo de la skill y los dos motivos de la referencia de su paquete, el de
+// la fila que trae la norma que la rige y el de la que no. Ningún texto de la
+// línea vive en Go (FR-006 de H33).
+type lineaDeNoCubierto struct {
+	plantilla, motivoConNorma, motivoSinNorma string
 }
 
-// formasDelCuerpo son las formas ⚠ NO CUBIERTO: del SKILL.md de contenido: las
-// líneas de sus bloques text que, sin los blancos del principio, empiezan por la
-// etiqueta; la que lleva <norma> y la que no. Si no son dos, una de cada, la
-// skill no las tiene.
-func formasDelCuerpo(contenido []byte) (formasDeNoCubierto, bool) {
+// plantillaDelCuerpo es la plantilla ⚠ NO CUBIERTO: del SKILL.md de contenido:
+// la única línea de sus bloques text que, sin los blancos del principio, empieza
+// por la etiqueta y lleva <motivo>. Con otra cantidad, la skill no la tiene.
+func plantillaDelCuerpo(contenido []byte) (string, bool) {
+	var plantillas []string
+
+	for _, linea := range lineasDeLosBloquesText(contenido) {
+		linea = strings.TrimLeft(linea, " ")
+
+		if strings.HasPrefix(linea, etiquetaDeNoCubierto) && strings.Contains(linea, marcadorDelMotivo) {
+			plantillas = append(plantillas, linea)
+		}
+	}
+
+	if len(plantillas) != 1 {
+		return "", false
+	}
+
+	return plantillas[0], true
+}
+
+// conLosMotivosDe es la línea con los motivos de la referencia de contenido: las
+// líneas de sus bloques text que, sin los blancos del principio, llevan
+// <precepto> y no empiezan por ⚠; la que lleva <norma> y la que no. Si no son
+// dos, una de cada, la referencia no los tiene y la línea queda sin ellos.
+func (l lineaDeNoCubierto) conLosMotivosDe(contenido []byte) (lineaDeNoCubierto, bool) {
 	var conNorma, sinNorma []string
 
 	for _, linea := range lineasDeLosBloquesText(contenido) {
 		linea = strings.TrimLeft(linea, " ")
 
 		switch {
-		case !strings.HasPrefix(linea, etiquetaDeNoCubierto):
+		case !strings.Contains(linea, marcadorDelPrecepto) || strings.HasPrefix(linea, inicioDeUnAviso):
 		case strings.Contains(linea, marcadorDeLaNorma):
 			conNorma = append(conNorma, linea)
 		default:
@@ -276,10 +306,12 @@ func formasDelCuerpo(contenido []byte) (formasDeNoCubierto, bool) {
 	}
 
 	if len(conNorma) != 1 || len(sinNorma) != 1 {
-		return formasDeNoCubierto{}, false
+		return l, false
 	}
 
-	return formasDeNoCubierto{conNorma: conNorma[0], sinNorma: sinNorma[0]}, true
+	l.motivoConNorma, l.motivoSinNorma = conNorma[0], sinNorma[0]
+
+	return l, true
 }
 
 // lineasDeLosBloquesText son las líneas del contenido, sin su salto, que están
@@ -311,14 +343,26 @@ func lineasDeLosBloquesText(contenido []byte) []string {
 	return dentro
 }
 
-// desconocidos son los marcadores de las formas que la tabla de
-// contracts/paquetes.md §3 no conoce, cada uno una vez y en el orden en que
-// aparecen.
-func (f formasDeNoCubierto) desconocidos() []string {
+// desconocidos son los marcadores que la tabla de la cobertura no conoce
+// (contracts/datos-y-regiones.md §5 de H33), cada uno una vez y en el orden en
+// que aparecen: los de la plantilla y, detrás, los de los motivos que no estaban
+// en ella.
+func (l lineaDeNoCubierto) desconocidos() (deLaPlantilla, deLosMotivos []string) {
+	deLaPlantilla = marcadoresDesconocidos(l.plantilla, nil)
+	deLosMotivos = marcadoresDesconocidos(l.motivoConNorma+"\n"+l.motivoSinNorma, deLaPlantilla)
+
+	return deLaPlantilla, deLosMotivos
+}
+
+// marcadoresDesconocidos son los marcadores del texto que la tabla de la
+// cobertura no conoce y que no están entre los vistos, cada uno una vez y en el
+// orden en que aparecen.
+func marcadoresDesconocidos(texto string, vistos []string) []string {
 	var desconocidos []string
 
-	for _, marcador := range marcadorDeUnaForma.FindAllString(f.conNorma+"\n"+f.sinNorma, -1) {
-		if !slices.Contains(marcadoresDeLaCobertura, marcador) && !slices.Contains(desconocidos, marcador) {
+	for _, marcador := range marcadorDeUnaForma.FindAllString(texto, -1) {
+		if !slices.Contains(marcadoresDeLaCobertura, marcador) && !slices.Contains(vistos, marcador) &&
+			!slices.Contains(desconocidos, marcador) {
 			desconocidos = append(desconocidos, marcador)
 		}
 	}
@@ -327,24 +371,26 @@ func (f formasDeNoCubierto) desconocidos() []string {
 }
 
 // linea es la línea ⚠ NO CUBIERTO: de la entrada de la cobertura cuyo precepto
-// es de la norma dada (contracts/paquetes.md §3; data-model §5 de H32): la forma
-// con la norma que lo rige si la entrada la trae, la otra si no, con cada
-// marcador sustituido por su dato, y el precepto en su forma legible. Lo
+// es de la norma dada (data-model §2 de H33): la plantilla con <motivo> por el
+// motivo con la norma que lo rige si la entrada la trae, por el otro si no, y
+// después, en una sola pasada, cada marcador sustituido por su dato —<asunto> y
+// <procedimiento>, por el procedimiento— y el precepto en su forma legible. Lo
 // sustituido no se vuelve a mirar.
-func (f formasDeNoCubierto) linea(entrada ReguladoAparte, norma Norma) string {
-	forma, nombre, identificador := f.sinNorma, "", ""
+func (l lineaDeNoCubierto) linea(entrada ReguladoAparte, norma Norma) string {
+	motivo, nombre, identificador := l.motivoSinNorma, "", ""
 	if entrada.Norma != nil {
-		forma, nombre, identificador = f.conNorma, entrada.Norma.Nombre, entrada.Norma.Identificador
+		motivo, nombre, identificador = l.motivoConNorma, entrada.Norma.Nombre, entrada.Norma.Identificador
 	}
 
 	return strings.NewReplacer(
+		marcadorDelAsunto, entrada.Procedimiento,
 		marcadorDelProcedimiento, entrada.Procedimiento,
 		marcadorDeLaNorma, nombre,
 		marcadorDelIdentificadorDeLaNorma, identificador,
 		marcadorDelPrecepto, formaLegible(norma, entrada.Precepto.Apartado),
 		marcadorDelIdentificador, entrada.Precepto.Norma,
 		marcadorDelID, entrada.Precepto.Bloque,
-	).Replace(forma)
+	).Replace(strings.ReplaceAll(l.plantilla, marcadorDelMotivo, motivo))
 }
 
 // defectoDeLosDatos es lo que impide generar una región desde un YAML de data/:
@@ -469,7 +515,7 @@ func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([
 
 		filas.WriteString(filaDeLaTabla([]string{
 			escapeDeCelda.Replace(entrada.Procedimiento),
-			escapeDeCelda.Replace(region.formas.linea(entrada, norma)),
+			escapeDeCelda.Replace(region.linea.linea(entrada, norma)),
 		}))
 	}
 
@@ -530,22 +576,22 @@ type regionesDeLaSkill struct {
 	// cobertura: las filas de su paquete las genera la skill.
 	cubiertos []string
 
-	// conFormas dice si el SKILL.md de la skill tiene las dos formas ⚠ NO
+	// conPlantilla dice si el SKILL.md de la skill tiene la plantilla ⚠ NO
 	// CUBIERTO:.
-	conFormas bool
+	conPlantilla bool
 }
 
 // regenerar regenera cada región de las referencias a mano de la skill, con su
-// SKILL.md regenerado (contracts/paquetes.md §3; research D4 y D6 de H32): entre
-// las marcas de cada región, la tabla de su generador, y nada fuera de ellas. Es
-// un defecto de la referencia, con su fichero, cada defecto de sus marcas; una
-// región de la cobertura en una skill sin las dos formas ⚠ NO CUBIERTO:, o con un
-// marcador que la tabla no conoce; y una región sin uno de sus YAML de data/. Los
+// SKILL.md regenerado (contracts/paquetes.md §3; research D4 y D6 de H32;
+// contracts/datos-y-regiones.md §5 de H33): entre las marcas de cada región, la
+// tabla de su generador, y nada fuera de ellas. Es un defecto de la referencia,
+// con su fichero, cada defecto de sus marcas; los de una región de la cobertura
+// (defectosDeLaCobertura); y una región sin uno de sus YAML de data/. Los
 // defectos de un YAML de data/ que no se lee son de ese fichero. El error queda
 // para lo que no se puede leer.
 func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Referencia) (regionesDeLaSkill, error) {
-	formas, conFormas := formasDelCuerpo(skillMd)
-	resultado := regionesDeLaSkill{conFormas: conFormas}
+	plantilla, conPlantilla := plantillaDelCuerpo(skillMd)
+	resultado := regionesDeLaSkill{conPlantilla: conPlantilla}
 
 	for _, referencia := range aMano {
 		ruta := rutaDeLaReferencia(referencia)
@@ -555,7 +601,7 @@ func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Ref
 			resultado.deLasMarcas = append(resultado.deLasMarcas, &DefectoDeSkill{Skill: skill, Defecto: ruta + ": " + texto})
 		}
 
-		region := contextoDeLaRegion{paquete: strings.TrimSuffix(referencia.Fichero, extensionDeLasReferencias), formas: formas}
+		region := contextoDeLaRegion{paquete: strings.TrimSuffix(referencia.Fichero, extensionDeLasReferencias)}
 
 		encontradas, deLasMarcas := regionesDeLaReferencia(referencia.Contenido)
 		for _, texto := range deLasMarcas {
@@ -576,17 +622,16 @@ func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Ref
 
 		for posicion, encontrada := range encontradas {
 			if encontrada.generador == generadorDeLaCobertura {
-				if !conFormas {
-					defecto("región " + generadorDeLaCobertura + " en una skill sin las dos formas " +
-						strings.TrimSuffix(etiquetaDeNoCubierto, " ") + " en " + ficheroDeLaSkill)
+				linea, defectosDeLaRegion, conLinea := defectosDeLaCobertura(plantilla, conPlantilla, referencia.Contenido)
+				for _, texto := range defectosDeLaRegion {
+					defecto(texto)
+				}
 
+				if !conLinea {
 					continue
 				}
 
-				for _, marcador := range formas.desconocidos() {
-					defecto("la forma " + strings.TrimSuffix(etiquetaDeNoCubierto, " ") + " de " + ficheroDeLaSkill +
-						" lleva " + marcador + ", un marcador que la tabla no conoce")
-				}
+				region.linea = linea
 			}
 
 			tabla, err := d.tabla(skill, ruta, encontrada.generador, region, &resultado)
@@ -610,6 +655,43 @@ func (d *datosDeLasRegiones) regenerar(skill string, skillMd []byte, aMano []Ref
 	}
 
 	return resultado, nil
+}
+
+// defectosDeLaCobertura son la línea de la región de la cobertura de una
+// referencia de contenido, con la plantilla del SKILL.md de su skill, y los
+// defectos de la región, sin su fichero, en el orden de
+// contracts/datos-y-regiones.md §5 de H33: en una skill sin plantilla, ese
+// defecto y ningún motivo buscado; en una referencia sin sus dos motivos, ese; y
+// cada marcador que la tabla no conoce, una vez, los de la plantilla y después
+// los de los motivos. Sin plantilla o sin motivos, no hay línea (false).
+func defectosDeLaCobertura(plantilla string, conPlantilla bool, contenido []byte) (lineaDeNoCubierto, []string, bool) {
+	etiqueta := strings.TrimSuffix(etiquetaDeNoCubierto, " ")
+
+	if !conPlantilla {
+		return lineaDeNoCubierto{}, []string{
+			"región " + generadorDeLaCobertura + " en una skill sin la plantilla " + etiqueta + " en " + ficheroDeLaSkill,
+		}, false
+	}
+
+	var defectos []string
+
+	linea, conMotivos := lineaDeNoCubierto{plantilla: plantilla}.conLosMotivosDe(contenido)
+	if !conMotivos {
+		defectos = append(defectos, "región "+generadorDeLaCobertura+" en una referencia sin sus dos motivos")
+	}
+
+	deLaPlantilla, deLosMotivos := linea.desconocidos()
+
+	for _, marcador := range deLaPlantilla {
+		defectos = append(defectos, "la plantilla "+etiqueta+" de "+ficheroDeLaSkill+" lleva "+marcador+
+			", un marcador que la tabla no conoce")
+	}
+
+	for _, marcador := range deLosMotivos {
+		defectos = append(defectos, "un motivo de la plantilla lleva "+marcador+", un marcador que la tabla no conoce")
+	}
+
+	return linea, defectos, conMotivos
 }
 
 // tabla es la tabla de la región del generador de nombre en la referencia de la

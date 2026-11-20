@@ -109,7 +109,7 @@ stdout '^cuerpos: 3; normas nombradas: 0$'
 | Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE y 2014/24/UE, de 26 de febrero de 2014. | LCSP | `BOE-A-2017-12902` | Ley | contratación pública |
 | Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales. | LOPDGDD | `BOE-A-2018-16673` | Ley Orgánica | protección de datos personales, derechos digitales |
 -- tributos.txt --
-| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |
+| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa: se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
 -- enlace.txt --
 - Si la pregunta es de lo administrativo, lee [administrativo](references/administrativo.md).
 -- lista-minima.txt --

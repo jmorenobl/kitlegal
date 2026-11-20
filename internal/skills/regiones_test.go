@@ -16,22 +16,35 @@ import (
 const (
 	inicioDeLaCobertura = "<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y " +
 		"data/normas.yaml con make skills-sync, no editar -->\n"
-	finDeLaCobertura   = "<!-- fin de cobertura_por_materia -->\n"
-	inicioDeLosPlazos  = "<!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->\n"
-	finDeLosPlazos     = "<!-- fin de recursos_y_plazos -->\n"
-	inicioDeLasLeyes   = "<!-- inicio de leyes_vertebrales: generada desde data/normas.yaml con make skills-sync, no editar -->\n"
-	finDeLasLeyes      = "<!-- fin de leyes_vertebrales -->\n"
-	prosaDeLasRegiones = "# Lo administrativo\n\nLa prosa del paquete, escrita a mano.\n\n"
+	finDeLaCobertura  = "<!-- fin de cobertura_por_materia -->\n"
+	inicioDeLosPlazos = "<!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->\n"
+	finDeLosPlazos    = "<!-- fin de recursos_y_plazos -->\n"
+	inicioDeLasLeyes  = "<!-- inicio de leyes_vertebrales: generada desde data/normas.yaml con make skills-sync, no editar -->\n"
+	finDeLasLeyes     = "<!-- fin de leyes_vertebrales -->\n"
 )
 
-// Las dos formas ⚠ NO CUBIERTO: del cuerpo de plazos-y-territorio, con sus
-// marcadores (contracts/forma-de-cita.md §3 de H32).
+// La plantilla ⚠ NO CUBIERTO: del cuerpo de plazos-y-territorio y los dos
+// motivos de su referencia de lo administrativo, con sus marcadores (FR-004,
+// FR-005; contracts/datos-y-regiones.md §5; data-model §2).
 const (
-	formaConNorma = "⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador de la norma>), no por el " +
-		"procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto> [<identificador>, bloque <id>])."
-	formaSinNorma = "⚠ NO CUBIERTO: <procedimiento> lo regula aparte la ley, no el procedimiento común: kitlegal no " +
-		"calcula sus plazos ni sus recursos (<precepto> [<identificador>, bloque <id>])."
+	plantillaDeNoCubierto = "⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos."
+	motivoConNorma        = "se rige por <norma> (<identificador de la norma>), no por el procedimiento común " +
+		"(<precepto> [<identificador>, bloque <id>])"
+	motivoSinNorma = "lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])"
 )
+
+// prosaDeLasRegiones es lo escrito a mano de la referencia de lo administrativo
+// de los árboles de TestRegiones delante de la región de cada tabla: la prosa del
+// paquete y la frase y el bloque text con los dos motivos de la línea
+// (contracts/skills.md §3).
+const prosaDeLasRegiones = "# Lo administrativo\n\nLa prosa del paquete, escrita a mano.\n\n" +
+	"Los motivos de la línea; el primero es el de la fila con norma:\n" +
+	"\n" +
+	"```text\n" +
+	motivoConNorma + "\n" +
+	motivoSinNorma + "\n" +
+	"```\n" +
+	"\n"
 
 // normasDeLasRegiones es la tabla de normas de los árboles de TestRegiones: tres
 // de lo administrativo, la del contencioso sin abreviatura, y una de otra materia,
@@ -80,17 +93,17 @@ const coberturaDeLasRegiones = "motivo_de_lo_no_declarado: fuera de lo que kitle
 
 // Lo que la sincronía escribe en la región de la cobertura y en la de las leyes
 // vertebrales de los árboles de TestRegiones, byte a byte: la línea de cada fila
-// es la forma del cuerpo que le toca con sus marcadores sustituidos, con la
-// barra escrita \|; y las vertebrales, por año y número.
+// es la plantilla del cuerpo con el motivo que le toca y sus marcadores
+// sustituidos, con la barra escrita \|; y las vertebrales, por año y número.
 const (
 	tablaDeLaCobertura = "| Procedimiento | Línea que da la respuesta |\n" +
 		"|---|---|\n" +
-		"| aplicación de los tributos | ⚠ NO CUBIERTO: aplicación de los tributos se rige por Ley 58/2003, General " +
-		"Tributaria (BOE-A-2003-23186), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos " +
-		"(DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |\n" +
-		"| reclamaciones con una barra \\| en su nombre | ⚠ NO CUBIERTO: reclamaciones con una barra \\| en su nombre lo " +
-		"regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos " +
-		"(art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). |\n"
+		"| aplicación de los tributos | ⚠ NO CUBIERTO: aplicación de los tributos: se rige por Ley 58/2003, General " +
+		"Tributaria (BOE-A-2003-23186), no por el procedimiento común (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque " +
+		"daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |\n" +
+		"| reclamaciones con una barra \\| en su nombre | ⚠ NO CUBIERTO: reclamaciones con una barra \\| en su nombre: " +
+		"lo regula aparte la ley, no el procedimiento común (art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). " +
+		"kitlegal no da sus plazos, órganos, vías ni escritos. |\n"
 	tablaDeLasLeyes = "| Norma | Abreviatura | Identificador | Rango | Materias |\n" +
 		"|---|---|---|---|---|\n" +
 		"| Ley 58/2003, de 17 de diciembre, General Tributaria. | LGT | `BOE-A-2003-23186` | Ley | tributos |\n" +
@@ -119,10 +132,12 @@ func referenciaConRegiones(cobertura, plazos, leyes string) string {
 		inicioDeLasLeyes + leyes + finDeLasLeyes
 }
 
-// skillMdConLasFormas es el SKILL.md de plazos-y-territorio de los árboles de
-// TestRegiones: el enlace a la referencia de lo administrativo entre las marcas de
-// los paquetes, ya sincronizado, y las dos formas en un bloque text.
-const skillMdConLasFormas = "---\n" +
+// skillMdConLaPlantilla es el SKILL.md de plazos-y-territorio de los árboles de
+// TestRegiones: el enlace a la referencia de lo administrativo entre las marcas
+// de los paquetes, ya sincronizado; en la prosa, fuera de un bloque, el motivo de
+// lo no declarado de coberturaDeLasRegiones entre comillas angulares; y la
+// plantilla, sola en un bloque text.
+const skillMdConLaPlantilla = "---\n" +
 	"name: plazos-y-territorio\n" +
 	"description: Skill de prueba que da la línea de lo no cubierto.\n" +
 	"---\n" +
@@ -130,15 +145,16 @@ const skillMdConLasFormas = "---\n" +
 	"\n" +
 	inicioDeLosPaquetes + enlaceDeLoAdministrativo + finDeLosPaquetes +
 	"\n" +
+	"Lo no declarado está «fuera de lo que kitlegal cubre».\n" +
+	"\n" +
 	"```text\n" +
-	formaConNorma + "\n" +
-	formaSinNorma + "\n" +
+	plantillaDeNoCubierto + "\n" +
 	"```\n"
 
-// arbolDeRegiones es un repositorio temporal con la skill plazos-y-territorio, su
-// referencia de lo administrativo con la región de cada tabla vacía y los datos de las
-// tres: normasDeLasRegiones, coberturaDeLasRegiones y data/plazos.yaml del
-// repositorio.
+// arbolDeRegiones es un repositorio temporal con la skill plazos-y-territorio y su
+// plantilla, su referencia de lo administrativo con los dos motivos y la región de
+// cada tabla vacía, y los datos de las tres: normasDeLasRegiones,
+// coberturaDeLasRegiones y data/plazos.yaml del repositorio.
 func arbolDeRegiones(t *testing.T) string {
 	t.Helper()
 
@@ -146,7 +162,7 @@ func arbolDeRegiones(t *testing.T) string {
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"), normasDeLasRegiones)
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "cobertura.yaml"), coberturaDeLasRegiones)
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), string(leerDatosDelRepositorio(t, "plazos.yaml")))
-	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"), skillMdConLasFormas)
+	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"), skillMdConLaPlantilla)
 	escribirFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), referenciaConRegiones("", "", ""))
 
 	return raiz
@@ -166,19 +182,21 @@ var derivaDeLaReferenciaConRegiones = []*skills.Deriva{
 
 // TestRegiones fija cada región generada de una referencia a mano
 // (contracts/paquetes.md §3; data-model §4 y §5; research D4, D6 y D7; FR-012 y
-// FR-019 de H32), sobre repositorios temporales: la sincronía escribe entre las
-// marcas de cada región la tabla de su generador desde data/ —la cobertura, con
-// la línea de cada fila del paquete que nombra el fichero; los recursos y
-// plazos, con cada precepto en la forma única; las leyes vertebrales— y no toca
-// nada fuera de ellas; lo que hay entre las marcas y no es lo generado, y la forma
-// del cuerpo cambiada sin regenerar, son la deriva contenido-distinto de la
-// referencia; y cada defecto nuevo del molde, con su fichero.
+// FR-019 de H32; FR-006 de H33; contracts/datos-y-regiones.md §5 de H33), sobre
+// repositorios temporales: la sincronía escribe entre las marcas de cada región
+// la tabla de su generador desde data/ —la cobertura, con la línea de cada fila
+// del paquete que nombra el fichero, la plantilla del cuerpo con el motivo de su
+// caso; los recursos y plazos, con cada precepto en la forma única; las leyes
+// vertebrales— y no toca nada fuera de ellas; lo que hay entre las marcas y no es
+// lo generado, y la plantilla o un motivo cambiados sin regenerar, son la deriva
+// contenido-distinto de la referencia; y cada defecto del molde, con su fichero.
 func TestRegiones(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sincronia", probarLaSincroniaDeLasRegiones)
 	t.Run("editada-a-mano", probarLaRegionEditadaAMano)
-	t.Run("forma-cambiada-sin-regenerar", probarLaFormaCambiadaSinRegenerar)
+	t.Run("plantilla-cambiada-sin-regenerar", probarLaPlantillaCambiadaSinRegenerar)
+	t.Run("motivo-cambiado-sin-regenerar", probarElMotivoCambiadoSinRegenerar)
 	t.Run("defectos", probarLosDefectosDeLasRegiones)
 	t.Run("datos-que-no-se-leen", probarLosDatosQueNoSeLeen)
 	t.Run("datos-de-las-marcas", probarLosDatosDeLasMarcas)
@@ -224,7 +242,8 @@ func probarLaRegionEditadaAMano(t *testing.T) {
 	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, nil)))
 
 	antes := leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz))
-	cambiarFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), "lo regula aparte la ley", "lo regula aparte otra ley")
+	cambiarFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), "en su nombre: lo regula aparte la ley",
+		"en su nombre: lo regula aparte otra ley")
 
 	assert.Equal(t, derivaDeLaReferenciaConRegiones, compararSinDefectos(t, raiz, nil))
 
@@ -232,24 +251,48 @@ func probarLaRegionEditadaAMano(t *testing.T) {
 	assert.Equal(t, antes, leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz)))
 }
 
-// probarLaFormaCambiadaSinRegenerar es el mutante de FR-012: la forma del cuerpo
-// cambiada sin regenerar da la deriva de la referencia, y la línea regenerada es
-// la forma nueva con sus marcadores sustituidos.
-func probarLaFormaCambiadaSinRegenerar(t *testing.T) {
+// probarLaPlantillaCambiadaSinRegenerar es el mutante de FR-012 de H32 con la
+// plantilla de H33: la plantilla del cuerpo cambiada sin regenerar da la deriva
+// de la referencia, y la línea regenerada es la plantilla nueva con el motivo de
+// su caso y sus marcadores sustituidos.
+func probarLaPlantillaCambiadaSinRegenerar(t *testing.T) {
 	t.Parallel()
 
 	raiz := arbolDeRegiones(t)
 	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, nil)))
 	require.Empty(t, compararSinDefectos(t, raiz, nil))
 
-	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"), "lo regula aparte la ley,",
-		"lo regula aparte una ley,")
+	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"),
+		"kitlegal no da sus plazos, órganos, vías ni escritos.", "kitlegal no da sus plazos ni sus vías.")
 
 	assert.Equal(t, derivaDeLaReferenciaConRegiones, compararSinDefectos(t, raiz, nil))
 
 	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, nil)))
 	assert.Contains(t, leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz)),
-		"| ⚠ NO CUBIERTO: reclamaciones con una barra \\| en su nombre lo regula aparte una ley, no el procedimiento común")
+		"| ⚠ NO CUBIERTO: reclamaciones con una barra \\| en su nombre: lo regula aparte la ley, no el procedimiento "+
+			"común (art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). kitlegal no da sus plazos ni sus vías. |\n")
+}
+
+// probarElMotivoCambiadoSinRegenerar fija que el motivo de la referencia, escrito
+// a mano fuera de la región, cambiado sin regenerar da la deriva de la
+// referencia, y que la línea regenerada lleva el motivo nuevo.
+func probarElMotivoCambiadoSinRegenerar(t *testing.T) {
+	t.Parallel()
+
+	raiz := arbolDeRegiones(t)
+	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, nil)))
+	require.Empty(t, compararSinDefectos(t, raiz, nil))
+
+	cambiarFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), "\nlo regula aparte la ley,",
+		"\nlo regula aparte una ley,")
+
+	assert.Equal(t, derivaDeLaReferenciaConRegiones, compararSinDefectos(t, raiz, nil))
+
+	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, nil)))
+	assert.Contains(t, leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz)),
+		"| ⚠ NO CUBIERTO: reclamaciones con una barra \\| en su nombre: lo regula aparte una ley, no el procedimiento "+
+			"común (art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). kitlegal no da sus plazos, órganos, vías ni "+
+			"escritos. |\n")
 }
 
 // casoDeRegion es un caso de los defectos de una región: el cambio sobre el
@@ -289,6 +332,16 @@ func casosDeRegiones() []casoDeRegion {
 		return "plazos-y-territorio: data/cobertura.yaml: la fila de «" + procedimiento +
 			"» no la genera ninguna región cobertura_por_materia"
 	}
+	sinLaPlantilla := "plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill " +
+		"sin la plantilla ⚠ NO CUBIERTO: en SKILL.md"
+	marcadorDeLaPlantilla := func(marcador string) string {
+		return "plazos-y-territorio: references/administrativo.md: la plantilla ⚠ NO CUBIERTO: de SKILL.md lleva " +
+			marcador + ", un marcador que la tabla no conoce"
+	}
+	marcadorDeUnMotivo := func(marcador string) string {
+		return "plazos-y-territorio: references/administrativo.md: un motivo de la plantilla lleva " + marcador +
+			", un marcador que la tabla no conoce"
+	}
 
 	return []casoDeRegion{
 		{
@@ -327,25 +380,61 @@ func casosDeRegiones() []casoDeRegion {
 			},
 		},
 		{
-			nombre: "skill-sin-las-dos-formas",
+			nombre: "skill-sin-la-plantilla",
 			cambio: func(t *testing.T, raiz string) {
 				t.Helper()
-				cambiarFicheroDePrueba(t, skillMd(raiz), formaSinNorma+"\n", "")
+				cambiarFicheroDePrueba(t, skillMd(raiz), plantillaDeNoCubierto+"\n", "")
+			},
+			defectos: []string{sinLaPlantilla},
+		},
+		{
+			nombre: "skill-con-dos-plantillas",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				cambiarFicheroDePrueba(t, skillMd(raiz), plantillaDeNoCubierto+"\n",
+					plantillaDeNoCubierto+"\n"+"  ⚠ NO CUBIERTO: <asunto>: <motivo>.\n")
+			},
+			defectos: []string{sinLaPlantilla},
+		},
+		{
+			nombre: "referencia-sin-un-motivo",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				cambiarFicheroDePrueba(t, referencia(raiz), motivoSinNorma+"\n", "")
 			},
 			defectos: []string{
-				"plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill sin las " +
-					"dos formas ⚠ NO CUBIERTO: en SKILL.md",
+				"plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una referencia " +
+					"sin sus dos motivos",
 			},
 		},
 		{
-			nombre: "marcador-que-la-tabla-no-conoce",
+			nombre: "marcador-de-la-plantilla-que-la-tabla-no-conoce",
 			cambio: func(t *testing.T, raiz string) {
 				t.Helper()
-				cambiarFicheroDePrueba(t, skillMd(raiz), "(<identificador de la norma>)", "(<identificador de la ley>)")
+				cambiarFicheroDePrueba(t, skillMd(raiz), "<asunto>:", "<asunto del caso>:")
+			},
+			defectos: []string{marcadorDeLaPlantilla("<asunto del caso>")},
+		},
+		{
+			nombre: "marcador-de-un-motivo-que-la-tabla-no-conoce",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				cambiarFicheroDePrueba(t, referencia(raiz), "(<identificador de la norma>)", "(<identificador de la ley>)")
+			},
+			defectos: []string{marcadorDeUnMotivo("<identificador de la ley>")},
+		},
+		{
+			nombre: "marcadores-de-la-plantilla-y-de-los-motivos",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				cambiarFicheroDePrueba(t, referencia(raiz), "(<identificador de la norma>)", "(<ley> <fecha>)")
+				cambiarFicheroDePrueba(t, referencia(raiz), "\nlo regula aparte la ley,", "\nlo regula aparte <ley>,")
+				cambiarFicheroDePrueba(t, skillMd(raiz), "kitlegal no da", "<fecha> <tema>: kitlegal no da <tema>")
 			},
 			defectos: []string{
-				"plazos-y-territorio: references/administrativo.md: la forma ⚠ NO CUBIERTO: de SKILL.md lleva " +
-					"<identificador de la ley>, un marcador que la tabla no conoce",
+				marcadorDeLaPlantilla("<fecha>"),
+				marcadorDeLaPlantilla("<tema>"),
+				marcadorDeUnMotivo("<ley>"),
 			},
 		},
 		{

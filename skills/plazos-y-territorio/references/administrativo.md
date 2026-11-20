@@ -18,18 +18,25 @@ materia. Las líneas que da la respuesta son las de «Cómo se presenta un plazo
 - Si la conversación no dice la materia, no cae en ninguna fila. Al responder, di que la fecha no vale si el asunto es
   de los de esta tabla, nombrándolos solo con ella.
 
+Los motivos de la línea; el primero es el de la fila con norma:
+
+```text
+se rige por <norma> (<identificador de la norma>), no por el procedimiento común (<precepto> [<identificador>, bloque <id>])
+lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])
+```
+
 <!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y data/normas.yaml con make skills-sync, no editar -->
 | Procedimiento | Línea que da la respuesta |
 |---|---|
-| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo | ⚠ NO CUBIERTO: gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.b LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| procedimientos sancionadores en materia tributaria y aduanera | ⚠ NO CUBIERTO: procedimientos sancionadores en materia tributaria y aduanera lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| procedimientos sancionadores en el orden social | ⚠ NO CUBIERTO: procedimientos sancionadores en el orden social lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| procedimientos sancionadores en materia de tráfico y seguridad vial | ⚠ NO CUBIERTO: procedimientos sancionadores en materia de tráfico y seguridad vial se rige por texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial (BOE-A-2015-11722), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| procedimientos sancionadores en materia de extranjería | ⚠ NO CUBIERTO: procedimientos sancionadores en materia de extranjería lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| actuaciones y procedimientos en materia de extranjería y asilo | ⚠ NO CUBIERTO: actuaciones y procedimientos en materia de extranjería y asilo lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.d LPAC [BOE-A-2015-10565, bloque daprimera]). |
-| procedimientos de impugnación que una ley establece en sustitución del recurso de alzada | ⚠ NO CUBIERTO: procedimientos de impugnación que una ley establece en sustitución del recurso de alzada lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (art. 112.2 LPAC [BOE-A-2015-10565, bloque a112]). |
-| reclamaciones económico-administrativas | ⚠ NO CUBIERTO: reclamaciones económico-administrativas lo regula aparte la ley, no el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). |
+| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa: se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo | ⚠ NO CUBIERTO: gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.b LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| procedimientos sancionadores en materia tributaria y aduanera | ⚠ NO CUBIERTO: procedimientos sancionadores en materia tributaria y aduanera: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| procedimientos sancionadores en el orden social | ⚠ NO CUBIERTO: procedimientos sancionadores en el orden social: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| procedimientos sancionadores en materia de tráfico y seguridad vial | ⚠ NO CUBIERTO: procedimientos sancionadores en materia de tráfico y seguridad vial: se rige por texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial (BOE-A-2015-11722), no por el procedimiento común (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| procedimientos sancionadores en materia de extranjería | ⚠ NO CUBIERTO: procedimientos sancionadores en materia de extranjería: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| actuaciones y procedimientos en materia de extranjería y asilo | ⚠ NO CUBIERTO: actuaciones y procedimientos en materia de extranjería y asilo: lo regula aparte la ley, no el procedimiento común (DA 1ª.2.d LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| procedimientos de impugnación que una ley establece en sustitución del recurso de alzada | ⚠ NO CUBIERTO: procedimientos de impugnación que una ley establece en sustitución del recurso de alzada: lo regula aparte la ley, no el procedimiento común (art. 112.2 LPAC [BOE-A-2015-10565, bloque a112]). kitlegal no da sus plazos, órganos, vías ni escritos. |
+| reclamaciones económico-administrativas | ⚠ NO CUBIERTO: reclamaciones económico-administrativas: lo regula aparte la ley, no el procedimiento común (art. 112.4 LPAC [BOE-A-2015-10565, bloque a112]). kitlegal no da sus plazos, órganos, vías ni escritos. |
 <!-- fin de cobertura_por_materia -->
 
 ## Recursos y plazos

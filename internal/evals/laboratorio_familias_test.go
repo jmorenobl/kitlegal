@@ -279,15 +279,22 @@ func comprobarLasReferenciasDeLaFamilia(t *testing.T, repositorio fs.FS, familia
 }
 
 // Lo que genera make skills-sync en una skill del producto y su control, que
-// TestSkillsDelProductoDesdeControl no compara (contracts/remisiones.md §8.1):
-// las referencias cuya primera línea empieza por la cabecera de lo generado, y,
-// en el SKILL.md, lo que hay entre las marcas de la región de los paquetes y
-// entre las de la tabla de comandos. Que sea lo que da make skills-sync lo
-// comprueba TestSkillsDelRepositorio (FR-009).
+// TestSkillsDelProductoDesdeControl no compara (contracts/remisiones.md §8.1;
+// contracts/controles.md §3 de H33): las referencias cuya primera línea empieza
+// por la cabecera de lo generado; en el SKILL.md, lo que hay entre las marcas de
+// la región de los paquetes y entre las de la tabla de comandos; y en cada
+// referencia escrita a mano, lo que hay entre las marcas de cada región suya,
+// desde la línea que empieza por el inicio de la marca de inicio y termina por su
+// fin hasta la marca de fin de su generador. Que sea lo que da make skills-sync
+// lo comprueba TestSkillsDelRepositorio (FR-009).
 const (
-	cabeceraDeLoGenerado = "<!-- generado desde "
-	inicioDeLosPaquetes  = "<!-- paquetes: "
-	finDeLosPaquetes     = "<!-- fin de los paquetes -->"
+	cabeceraDeLoGenerado            = "<!-- generado desde "
+	inicioDeLosPaquetes             = "<!-- paquetes: "
+	finDeLosPaquetes                = "<!-- fin de los paquetes -->"
+	inicioDeLaMarcaDeUnaRegion      = "<!-- inicio de "
+	finDeLaMarcaDeUnaRegion         = " con make skills-sync, no editar -->"
+	inicioDeLaMarcaDeFinDeUnaRegion = "<!-- fin de "
+	finDeLaMarcaDeFinDeUnaRegion    = " -->"
 )
 
 // regionesGeneradas: cada región del SKILL.md que genera make skills-sync, de la
@@ -314,17 +321,28 @@ type movimientoALaReferencia struct {
 	texto, referencia, enLaReferencia string
 }
 
+// cambioEnUnaReferencia es un cambio de lo escrito a mano de una referencia de
+// una skill del producto respecto a la de su base: en references/<referencia>,
+// las líneas enteras de la base que cambian, antes, que están en ella una sola
+// vez, sin lo generado, y las que las sustituyen tras el hito, despues
+// (contracts/controles.md §3 de H33).
+type cambioEnUnaReferencia struct {
+	referencia, antes, despues string
+}
+
 // declaracionDelProducto es lo que una skill del producto cambia respecto a su
 // base: la variante versionada de su familia, desde, o su control si está vacío;
-// los cambios de su cuerpo, en el orden del fichero, y sus movimientos
-// (data-model §5 de H41 y §3 de H41.1). Nada más cambia: ni el frontmatter, que
-// es el de su control con la description de la variante
+// los cambios de su cuerpo, en el orden del fichero; sus movimientos; y los
+// cambios de lo escrito a mano de sus referencias (data-model §5 de H41 y §3 de
+// H41.1; contracts/controles.md §3 de H33). Nada más cambia: ni el frontmatter,
+// que es el de su control con la description de la variante
 // producto-descripciones-cortas, ni lo generado, ni ninguna otra referencia
 // (FR-007, FR-009 de H41; FR-005 de H41.1; FR-005 de H41.4).
 type declaracionDelProducto struct {
-	desde       string
-	cambios     []cambioDelCuerpo
-	movimientos []movimientoALaReferencia
+	desde            string
+	cambios          []cambioDelCuerpo
+	movimientos      []movimientoALaReferencia
+	enLasReferencias []cambioEnUnaReferencia
 }
 
 // nadaDeOtraConversacion es la segunda viñeta del paso 4 del SKILL.md de control
@@ -358,6 +376,12 @@ const antesDelCotejo = "Con cada documento, antes del cotejo, lee " +
 // (M1; contracts/controles.md §1.1 de H41.1).
 const siSaleConCuatroOCinco = "Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido " +
 	"leerlo, sin afirmar qué dice."
+
+// inicioDeLaCoberturaPorMateria es la marca de inicio de la región
+// cobertura_por_materia de administrativo.md de plazos-y-territorio, con su salto
+// de línea (contracts/skills.md §3 de H33).
+const inicioDeLaCoberturaPorMateria = "<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y " +
+	"data/normas.yaml con make skills-sync, no editar -->\n"
 
 // declaracionesDelProducto son, por skill, la base, los cambios y los
 // movimientos de las skills del producto, con los bytes de
@@ -478,16 +502,49 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 			},
 		},
 	},
-	// La forma sin condición de H41 con M1 y nada más (FR-001 a FR-005 de
-	// H41.1; ADR 0053, punto 1).
+	// La forma sin condición de H41 con M1 (FR-001 a FR-005 de H41.1; ADR 0053,
+	// punto 1) y los tres cambios del cuerpo y el de administrativo.md de H33
+	// (FR-005 y FR-009 de H33; contracts/skills.md §2 y §3 de H33), y nada más.
 	skillDeLaFamiliaDePlazos: {
 		desde: "plazos-y-territorio-sin-condicion",
 		cambios: []cambioDelCuerpo{
+			{
+				antes: "   su fila, entera, **ni `plazos calcular`** ni ninguna fecha (regla 9). Si no dice la materia, " +
+					"**no la preguntes ni\n",
+				despues: "   su fila, entera, **ni `plazos calcular`** ni ninguna fecha (regla 9); si es de otra materia, " +
+					"igual, con el motivo de\n" +
+					"   lo no declarado. Si no dice la materia, **no la preguntes ni\n",
+			},
 			{
 				antes: "    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has " +
 					"podido leerlo, sin\n" +
 					"    afirmar qué dice.\n",
 				despues: "    `⚠ REDACCIÓN A FECHA:`.\n",
+			},
+			{
+				antes: "Lo no cubierto (paso 7) es la línea de su fila en la referencia del paquete, que es esta forma " +
+					"con sus datos: la\n" +
+					"primera si la entrada trae la norma que lo rige; si no, la segunda:\n" +
+					"\n" +
+					"```text\n" +
+					"⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador de la norma>), no por el " +
+					"procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto> [<identificador>, " +
+					"bloque <id>]).\n" +
+					"⚠ NO CUBIERTO: <procedimiento> lo regula aparte la ley, no el procedimiento común: kitlegal no " +
+					"calcula sus plazos ni sus recursos (<precepto> [<identificador>, bloque <id>]).\n" +
+					"```\n",
+				despues: "Lo no cubierto (paso 7 y regla 9) va con esta forma: en un asunto de la cobertura del paquete, " +
+					"la línea de su\n" +
+					"fila, entera; en otra materia, con el motivo «fuera de lo que kitlegal cubre»:\n" +
+					"\n" +
+					"```text\n" +
+					"⚠ NO CUBIERTO: <asunto>: <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos.\n" +
+					"```\n",
+			},
+			{
+				antes: "   plazo, un órgano o una vía de otra materia no están cubiertos: dilo, sin darlos de memoria.\n",
+				despues: "   plazo, un órgano o una vía de otra materia tampoco: su línea, sin darlos de memoria ni pedir " +
+					"`plazos calcular`.\n",
 			},
 		},
 		movimientos: []movimientoALaReferencia{
@@ -495,6 +552,22 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				texto:          siSaleConCuatroOCinco,
 				referencia:     "calculo_de_plazos.md",
 				enLaReferencia: "\n" + siSaleConCuatroOCinco + "\n",
+			},
+		},
+		enLasReferencias: []cambioEnUnaReferencia{
+			{
+				referencia: "administrativo.md",
+				antes:      "\n" + inicioDeLaCoberturaPorMateria,
+				despues: "\n" +
+					"Los motivos de la línea; el primero es el de la fila con norma:\n" +
+					"\n" +
+					"```text\n" +
+					"se rige por <norma> (<identificador de la norma>), no por el procedimiento común (<precepto> " +
+					"[<identificador>, bloque <id>])\n" +
+					"lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])\n" +
+					"```\n" +
+					"\n" +
+					inicioDeLaCoberturaPorMateria,
 			},
 		},
 	},
@@ -674,49 +747,88 @@ func familiaDelProducto(t *testing.T, skill string) familiaDelLaboratorio {
 
 // sinLoGenerado son los ficheros de una skill, por su ruta relativa a ella, sin
 // lo que genera make skills-sync: sin las referencias cuya primera línea empieza
-// por la cabecera de lo generado y con cada región generada del SKILL.md
-// reducida a sus marcas (contracts/remisiones.md §8.1).
+// por la cabecera de lo generado, con cada región generada del SKILL.md reducida
+// a sus marcas (contracts/remisiones.md §8.1) y, en cada referencia escrita a
+// mano, cada región suya reducida a sus marcas (contracts/controles.md §3 de
+// H33).
 func sinLoGenerado(ficheros map[string][]byte) (map[string][]byte, error) {
 	sinGenerar := make(map[string][]byte, len(ficheros))
 
 	for relativa, contenido := range ficheros {
+		var finDeLaRegion func(linea string) (string, bool)
+
 		switch {
 		case relativa == ficheroDeLaSkill:
-			reducido, err := conLasRegionesGeneradasReducidas(string(contenido))
-			if err != nil {
-				return nil, fmt.Errorf("%s: %w", relativa, err)
-			}
-
-			sinGenerar[relativa] = []byte(reducido)
+			finDeLaRegion = finDeUnaRegionDelSkillMd
 		case strings.HasPrefix(relativa, directorioDeLasReferencias+"/") &&
 			strings.HasPrefix(string(contenido), cabeceraDeLoGenerado):
 			// Una referencia generada: no se compara.
+			continue
+		case strings.HasPrefix(relativa, directorioDeLasReferencias+"/"):
+			finDeLaRegion = finDeUnaRegionDeUnaReferencia
 		default:
 			sinGenerar[relativa] = contenido
+
+			continue
 		}
+
+		reducido, err := conLasRegionesReducidas(string(contenido), finDeLaRegion)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", relativa, err)
+		}
+
+		sinGenerar[relativa] = []byte(reducido)
 	}
 
 	return sinGenerar, nil
 }
 
-// conLasRegionesGeneradasReducidas es el SKILL.md con cada región generada
-// reducida a sus marcas: la línea que empieza por la de inicio y la que es la de
-// fin, sin nada entre ellas.
-func conLasRegionesGeneradasReducidas(skill string) (string, error) {
+// finDeUnaRegionDelSkillMd es la marca de fin de la región generada del SKILL.md
+// que abre la línea, sin su salto, si empieza por la marca de inicio de una de
+// regionesGeneradas.
+func finDeUnaRegionDelSkillMd(linea string) (string, bool) {
+	fin, abre := "", false
+
+	for _, region := range regionesGeneradas {
+		if strings.HasPrefix(linea, region.inicio) {
+			fin, abre = region.fin, true
+		}
+	}
+
+	return fin, abre
+}
+
+// finDeUnaRegionDeUnaReferencia es la marca de fin de la región de una
+// referencia escrita a mano que abre la línea, sin su salto, si empieza por el
+// inicio de la marca de inicio y termina por su fin: la de fin de su generador,
+// el nombre que la sigue hasta los dos puntos (contracts/controles.md §3 de H33).
+func finDeUnaRegionDeUnaReferencia(linea string) (string, bool) {
+	resto, empieza := strings.CutPrefix(linea, inicioDeLaMarcaDeUnaRegion)
+	if !empieza || !strings.HasSuffix(resto, finDeLaMarcaDeUnaRegion) {
+		return "", false
+	}
+
+	generador, _, _ := strings.Cut(strings.TrimSuffix(resto, finDeLaMarcaDeUnaRegion), ":")
+
+	return inicioDeLaMarcaDeFinDeUnaRegion + generador + finDeLaMarcaDeFinDeUnaRegion, true
+}
+
+// conLasRegionesReducidas es el texto con cada región generada reducida a sus
+// marcas: la línea que la abre, según finDeLaRegion, y la que es su marca de fin,
+// sin nada entre ellas. Una región sin su marca de fin es un error.
+func conLasRegionesReducidas(texto string, finDeLaRegion func(linea string) (string, bool)) (string, error) {
 	var reducido strings.Builder
 
 	// fin es la marca de fin de la región abierta, o nada fuera de una.
 	fin := ""
 
-	for linea := range strings.Lines(skill) {
+	for linea := range strings.Lines(texto) {
 		recortada := strings.TrimSuffix(linea, "\n")
 
 		switch {
 		case fin == "":
-			for _, region := range regionesGeneradas {
-				if strings.HasPrefix(recortada, region.inicio) {
-					fin = region.fin
-				}
+			if suFin, abre := finDeLaRegion(recortada); abre {
+				fin = suFin
 			}
 
 			reducido.WriteString(linea)
@@ -736,9 +848,11 @@ func conLasRegionesGeneradasReducidas(skill string) (string, error) {
 
 // conLaDeclaracion son los ficheros de la base de la declaración —su control, o
 // la variante desde—, sin lo generado, con los cambios de la declaración
-// aplicados a su SKILL.md, en su orden, y los bytes de cada movimiento añadidos
-// al final de su referencia. El antes de cada cambio está una sola vez en el
-// SKILL.md, con los anteriores ya aplicados; si no, es un error con su número.
+// aplicados a su SKILL.md, en su orden, los bytes de cada movimiento añadidos al
+// final de su referencia, y los cambios de sus referencias aplicados a cada una,
+// en su orden. El antes de cada cambio está una sola vez en su fichero, con los
+// anteriores ya aplicados; si no, es un error con su número, y el de un cambio de
+// una referencia, también con ella.
 func conLaDeclaracion(base map[string][]byte, declarada declaracionDelProducto) (map[string][]byte, error) {
 	esperados := maps.Clone(base)
 
@@ -770,6 +884,23 @@ func conLaDeclaracion(base map[string][]byte, declarada declaracionDelProducto) 
 		}
 
 		esperados[relativa] = slices.Concat(referencia, []byte(movimiento.enLaReferencia))
+	}
+
+	for numero, cambio := range declarada.enLasReferencias {
+		relativa := path.Join(directorioDeLasReferencias, cambio.referencia)
+
+		referencia, laTiene := esperados[relativa]
+		if !laTiene {
+			return nil, fmt.Errorf("el control no tiene %s, que cambia el cambio %d de las referencias, entre sus "+
+				"referencias a mano", relativa, numero+1)
+		}
+
+		if veces := strings.Count(string(referencia), cambio.antes); veces != 1 {
+			return nil, fmt.Errorf("el antes del cambio %d de las referencias está %d veces en %s de control, y "+
+				"tiene que estar una: %q", numero+1, veces, relativa, cambio.antes)
+		}
+
+		esperados[relativa] = []byte(strings.Replace(string(referencia), cambio.antes, cambio.despues, 1))
 	}
 
 	return esperados, nil
