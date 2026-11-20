@@ -2,6 +2,20 @@
 # Se carga con `. scripts/workflow/comun.sh` desde la raíz del repositorio, que es
 # donde spec-kit ejecuta los pasos shell. Compatible con bash 3.2 (macOS).
 
+# Los guiones ordenan y comparan por bytes, con cualquier idioma del equipo. Con
+# una intercalación de idioma (en Linux, `en_US.UTF-8`), GNU sort ordena las
+# líneas de `git status --porcelain` sin mirar el prefijo, ` M` o `??`, y GNU
+# comm da esa salida por desordenada y sale con 1: en el run de H33 (adf73515),
+# el primero en Linux con una tarea [datos], `grabar_datos` falló así tres
+# veces con la grabación ya hecha. Solo cambia la intercalación; el resto del
+# idioma, el de los mensajes y el de los caracteres, sigue siendo el de quien
+# lanza el run, también si lo fijaba con LC_ALL, que manda sobre LC_COLLATE.
+if [ -n "${LC_ALL:-}" ]; then
+  export LANG="$LC_ALL"
+  unset LC_ALL
+fi
+export LC_COLLATE=C
+
 # Directorio del feature del hito en curso (specs/NNN-hN-slug).
 feature_dir() {
   jq -r .feature_directory .specify/feature.json

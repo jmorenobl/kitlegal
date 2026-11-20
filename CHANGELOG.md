@@ -12,6 +12,15 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Corregido
+
+- **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).
+  Con una intercalación de idioma, como `en_US.UTF-8`, GNU sort ordenaba las líneas de `git status --porcelain` sin
+  mirar su prefijo, y GNU comm daba esa salida por desordenada y salía con 1. En el run de H33, el primero en Linux con
+  una tarea `[datos]`, el paso falló así tres veces y el run se paró. `scripts/workflow/comun.sh`, que cargan todos
+  los guiones del workflow, fija la intercalación por bytes (`LC_COLLATE=C`) y deja el resto del idioma como estaba,
+  también si se fijaba con `LC_ALL`; lo comprueba `TestLosGuionesOrdenanPorBytes`.
+
 ## [0.10.1] - 2026-11-18
 
 ### Añadido
