@@ -11,7 +11,8 @@
     "check": "astro check",
     "build": "astro build",
     "preview": "astro preview",
-    "citas": "node scripts/citas.mjs"
+    "citas": "node scripts/citas.mjs",
+    "encuesta": "node scripts/encuesta.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

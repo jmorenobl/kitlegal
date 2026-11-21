@@ -1,0 +1,305 @@
+---
+// El plan de kitlegal para juristas y despachos: lo que hace hoy, lo que viene,
+// lo que no hará y una encuesta anónima para revisarlo. El estado y el orden de
+// cada hito salen de docs/roadmap/ al construir, y lo que hace hoy, de
+// data/cobertura.yaml; los textos en lenguaje llano, de data/plan.ts. La página
+// no cita el texto de ninguna norma: nombra los preceptos para que se revisen.
+import Prosa from "../../components/Prosa.astro";
+import { bloques } from "../../data/encuesta";
+import formulario from "../../data/encuesta-formulario.json";
+import { plan as pagina } from "../../data/paginas";
+import { enLlano, etapas, nunca } from "../../data/plan";
+import Base from "../../layouts/Base.astro";
+import { migas } from "../../lib/estructurados";
+import { REPOSITORIO } from "../../lib/proyecto";
+import { cubierto, type Estado, type Hito, hitos } from "../../lib/roadmap";
+
+const todos = hitos();
+const hechos = todos.filter((h) => h.estado === "hecho");
+const enCurso = todos.find((h) => h.estado === "en-curso");
+const cola = todos.filter((h) => h.estado === "en-cola");
+const siguiente = enCurso ?? cola[0];
+
+const sinTexto = todos.filter((h) => h.estado !== "hecho" && !enLlano[h.id]).map((h) => h.id);
+if (sinTexto.length > 0) {
+  throw new Error(`plan: falta en data/plan.ts (enLlano) el texto de ${sinTexto.join(", ")}`);
+}
+
+const nombre = (id: string) => enLlano[id]?.titulo ?? todos.find((h) => h.id === id)?.titulo ?? id;
+const estadoDe = (id: string) => todos.find((h) => h.id === id)?.estado;
+
+const etiqueta: Record<Estado, string> = {
+  hecho: "Hecho",
+  "en-curso": "En marcha",
+  "en-cola": "En cola",
+  pendiente: "Sin fecha",
+};
+const estilo: Record<Estado, string> = {
+  hecho: "border-vigente-borde bg-vigente-fondo text-vigente-tinta",
+  "en-curso": "border-sello bg-white text-sello-tinta",
+  "en-cola": "border-linea-2 bg-panel text-tinta",
+  pendiente: "border-linea bg-white text-tenue",
+};
+function pastilla(h: Hito): string {
+  if (h === siguiente && h.estado === "en-cola") return "Lo siguiente";
+  return h.estado === "en-cola" ? `${etiqueta[h.estado]} · ${h.puesto}º` : etiqueta[h.estado];
+}
+function estiloDe(h: Hito): string {
+  return h === siguiente && h.estado === "en-cola" ? estilo["en-curso"] : estilo[h.estado];
+}
+
+const porEtapa = etapas.map((e) => {
+  const suyos = todos.filter((h) => h.fase === e.fase);
+  return { ...e, hechos: suyos.filter((h) => h.estado === "hecho").length, pendientes: suyos.filter((h) => h.estado !== "hecho") };
+});
+
+const hoy = cubierto().map(({ capacidad, alcance }) => ({
+  capacidad: capacidad.charAt(0).toUpperCase() + capacidad.slice(1),
+  alcance: (alcance.split(/(?<=\.) /)[0] ?? alcance).replaceAll("`", ""),
+}));
+
+// La encuesta: sin formulario conectado, la página solo se construye en local
+// (make web-dev) o con KITLEGAL_WEB_BORRADOR=1, y no envía nada.
+const claves = bloques.flatMap((b) => b.preguntas.map((p) => p.clave));
+const campos = formulario.campos as Record<string, string>;
+const accion = (formulario as { accion: unknown }).accion;
+const conectado = typeof accion === "string";
+if (conectado) {
+  if (!/^https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/formResponse$/.test(accion as string)) {
+    throw new Error("plan: encuesta-formulario.json no lleva la dirección formResponse de un formulario de Google");
+  }
+  const sinCampo = claves.filter((c) => !/^entry\.\d+$/.test(campos[c] ?? ""));
+  if (sinCampo.length > 0) throw new Error(`plan: encuesta-formulario.json no tiene el campo de ${sinCampo.join(", ")}`);
+} else if (!import.meta.env.DEV && process.env.KITLEGAL_WEB_BORRADOR !== "1") {
+  throw new Error(
+    "plan: la encuesta no está conectada a su formulario. Genera el guion con `pnpm --dir web encuesta` y copia lo que devuelve en web/src/data/encuesta-formulario.json",
+  );
+}
+const origen = conectado ? new URL(accion as string).origin : undefined;
+const campo = (clave: string) => campos[clave] ?? clave;
+---
+
+<Base
+  titulo={pagina.titulo}
+  descripcion={pagina.descripcion}
+  imagen="plan"
+  formulario={origen}
+  datos={migas({ nombre: "El plan", ruta: pagina.ruta })}
+>
+  <Prosa
+    etiqueta="Para juristas y despachos"
+    titulo="El plan de kitlegal"
+    entradilla="Lo que kitlegal hace hoy, lo que viene, en qué orden y lo que no hará nunca. Y, al final, una encuesta anónima para que nos digas si el plan es correcto y qué necesitas."
+  >
+    <h2>Cómo trabaja</h2>
+    <ul>
+      <li>
+        <strong>Nada de memoria.</strong> Cada afirmación lleva la cita de la norma, leída en el BOE en la redacción vigente
+        o en la de la fecha que se pida.
+      </li>
+      <li>
+        <strong>Lo que no cubre, lo dice.</strong> Con un aviso fijo, cita la norma que haya leído y no da plazos, órganos
+        ni vías de recurso de otra materia. Lo que busque por su cuenta para completar la respuesta lo marca como no
+        verificado.
+      </li>
+      <li><strong>Todo corre en tu ordenador</strong>, dentro de tu asistente de IA.</li>
+    </ul>
+
+    <h2>Lo que hace hoy</h2>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {
+        hoy.map(({ capacidad, alcance }) => (
+          <div class="rounded-lg border border-linea bg-white p-5 shadow-xs">
+            <p class="font-mono text-estampa font-semibold uppercase text-vigente-tinta">{capacidad}</p>
+            <p class="mt-2 text-sm leading-relaxed text-tinta">{alcance}</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="text-sm text-tenue">
+      Son {hechos.length} entregas terminadas. El detalle de cada una está en{" "}
+      <a href={`${REPOSITORIO}/blob/main/docs/HISTORIAL.md`}>el historial del proyecto</a>.
+    </p>
+
+    <h2>Ahora</h2>
+    {
+      siguiente ? (
+        <p>
+          {enCurso ? "Se está haciendo" : "No hay ningún trabajo en marcha en este momento. Lo siguiente es"}{" "}
+          «<strong>{nombre(siguiente.id)}</strong>»: {enLlano[siguiente.id]?.frase}
+        </p>
+      ) : (
+        <p>No hay nada en marcha ni en la cola.</p>
+      )
+    }
+
+    {
+      porEtapa.map((e) => (
+        <section aria-labelledby={`etapa-${e.fase}`} class="space-y-5">
+          <h2 id={`etapa-${e.fase}`}>
+            <span class="block font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
+              {e.nombre}
+            </span>
+            {e.titulo}
+          </h2>
+          <p>{e.texto}</p>
+          {e.hechos > 0 && (
+            <p class="text-sm text-tenue">
+              Ya hechas en esta etapa: {e.hechos} entregas, que reorganizaron y midieron las instrucciones del asistente y
+              declararon lo que cubre.
+            </p>
+          )}
+          <div class="space-y-2">
+            {e.pendientes.map((h) => (
+              <details class="group rounded-lg border border-linea bg-white shadow-xs open:shadow-sm">
+                <summary class="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
+                  <span
+                    class={`mt-0.5 shrink-0 rounded border px-2 py-0.5 font-mono text-estampa font-semibold uppercase ${estiloDe(h)}`}
+                  >
+                    {pastilla(h)}
+                  </span>
+                  <span class="flex-1 font-semibold text-tinta">{nombre(h.id)}</span>
+                  <span aria-hidden="true" class="text-tenue transition-transform group-open:rotate-90">
+                    ›
+                  </span>
+                </summary>
+                <div class="space-y-2 border-t border-linea px-4 py-3 text-sm leading-relaxed">
+                  <p>{enLlano[h.id]?.frase}</p>
+                  {h.dependeDe.length > 0 && (
+                    <p class="text-tenue">
+                      Necesita antes:{" "}
+                      {h.dependeDe
+                        .map((d) => `«${nombre(d)}»${estadoDe(d) === "hecho" ? " (hecho)" : ""}`)
+                        .join("; ")}
+                      .
+                    </p>
+                  )}
+                  <p class="font-mono text-xs text-tenue">
+                    Referencia interna: <a href={`${REPOSITORIO}/blob/main/${h.ruta}`}>{h.id}</a>
+                  </p>
+                </div>
+              </details>
+            ))}
+            {e.sinNumero?.map((v) => (
+              <div class="flex items-start gap-3 rounded-lg border border-dashed border-linea-2 bg-white p-4">
+                <span class={`mt-0.5 shrink-0 rounded border px-2 py-0.5 font-mono text-estampa font-semibold uppercase ${estilo.pendiente}`}>
+                  Sin fecha
+                </span>
+                <span class="flex-1 text-sm leading-relaxed">
+                  <strong class="text-tinta">{v.titulo}.</strong> {v.frase}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {(
+              [
+                ["Ciudadanía", e.ganan.ciudadania],
+                ["Despacho", e.ganan.despacho],
+                ["Asesoría", e.ganan.asesoria],
+              ] as const
+            ).map(([quien, que]) => (
+              <div class="rounded-lg bg-panel p-4">
+                <p class="font-mono text-estampa font-semibold uppercase text-tenue">Al terminar · {quien}</p>
+                <p class="mt-1.5 text-sm leading-relaxed text-tinta">{que}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+    <p class="text-sm text-tenue">
+      Después vienen otras materias, en el orden que pida el uso: civil, consumo y seguros, familia y el sancionador de
+      tráfico. Penal queda fuera mientras no se decida abrirlo.
+    </p>
+
+    <h2>Lo que nunca hará</h2>
+    <div class="space-y-3 rounded-xl border-2 border-derogada-borde bg-derogada-fondo p-5">
+      {
+        nunca.map(({ titulo, texto }) => (
+          <p class="text-sm leading-relaxed">
+            <strong class="text-derogada-tinta">{titulo}.</strong> {texto}
+          </p>
+        ))
+      }
+    </div>
+
+    <h2 id="encuesta">Tu opinión</h2>
+    <p>
+      Si eres jurista, te pedimos que revises el plan. Basta con marcar una respuesta en cada punto; los comentarios son
+      opcionales. Es anónima: no pedimos tu nombre ni tu correo.
+    </p>
+    {
+      !conectado && (
+        <p class="rounded-lg border border-sello bg-white p-4 text-sm font-semibold text-sello-tinta">
+          Borrador: la encuesta todavía no está conectada y no envía nada.
+        </p>
+      )
+    }
+    <form method="post" action={conectado ? (accion as string) : undefined} class="space-y-10">
+      {
+        bloques.map((b) => (
+          <fieldset class="space-y-6">
+            <legend class="font-serif text-xl font-semibold text-tinta">{b.titulo}</legend>
+            <p class="-mt-3 text-sm text-tenue">{b.texto}</p>
+            {b.preguntas.map((p) =>
+              p.tipo === "texto" ? (
+                <div class="space-y-2">
+                  <label for={`p-${p.clave}`} class="block text-[0.9375rem] font-semibold text-tinta">
+                    {p.titulo}
+                  </label>
+                  {p.ayuda && <p class="text-sm text-tenue">{p.ayuda}</p>}
+                  <textarea
+                    id={`p-${p.clave}`}
+                    name={campo(p.clave)}
+                    rows="4"
+                    maxlength="3000"
+                    class="block w-full rounded-md border border-linea-2 bg-white p-3 text-[0.9375rem] focus:border-agente focus:outline-2 focus:outline-agente/30"
+                  />
+                </div>
+              ) : (
+                <fieldset class="space-y-3 rounded-lg border border-linea bg-white p-4 shadow-xs">
+                  <legend class="sr-only">{p.titulo}</legend>
+                  <p aria-hidden="true" class="text-[0.9375rem] leading-relaxed text-tinta">
+                    {p.titulo}
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    {p.opciones?.map((o, i) => (
+                      <label
+                        for={`p-${p.clave}-${i}`}
+                        class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-linea-2 px-3 py-2 text-sm font-medium text-tinta transition-colors hover:bg-panel has-checked:border-agente has-checked:bg-panel-2 has-focus-visible:outline-2 has-focus-visible:outline-agente"
+                      >
+                        <input
+                          id={`p-${p.clave}-${i}`}
+                          type={p.tipo === "una" ? "radio" : "checkbox"}
+                          name={campo(p.clave)}
+                          value={o}
+                          class="accent-agente"
+                        />
+                        {o}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              ),
+            )}
+          </fieldset>
+        ))
+      }
+      <div class="space-y-3">
+        <button
+          type="submit"
+          disabled={!conectado}
+          class="inline-flex items-center gap-2 rounded-md bg-noche px-5 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-noche-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Enviar mis respuestas
+        </button>
+        <p class="text-sm text-tenue">
+          Las respuestas se guardan en un formulario de Google de kitlegal, sin tu nombre ni tu correo. Al enviarlas verás
+          la página de confirmación de Google. Para algo más largo, o si quieres que te respondamos, escríbenos a
+          info@kitlegal.es.
+        </p>
+      </div>
+    </form>
+  </Prosa>
+</Base>

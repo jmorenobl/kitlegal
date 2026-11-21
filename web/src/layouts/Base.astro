@@ -23,9 +23,12 @@ interface Props {
   datos?: Record<string, unknown>[];
   inicio?: string;
   indexable?: boolean;
+  // El origen al que la página envía un formulario, si lo tiene (la encuesta
+  // de /plan/). Es la única salida que admite la política; sin él, ninguna.
+  formulario?: string;
 }
 
-const { titulo, descripcion, imagen, datos = [], inicio, indexable = true } = Astro.props;
+const { titulo, descripcion, imagen, datos = [], inicio, indexable = true, formulario } = Astro.props;
 
 if (titulo.length > 60) throw new Error(`Base: el título «${titulo}» pasa de 60 caracteres`);
 if (descripcion.length > 160) throw new Error(`Base: la descripción de «${titulo}» pasa de 160 caracteres`);
@@ -55,7 +58,7 @@ const politica = [
   "img-src 'self' data:",
   "font-src 'self'",
   "base-uri 'self'",
-  "form-action 'none'",
+  formulario ? `form-action ${formulario}` : "form-action 'none'",
 ].join("; ");
 ---
 
