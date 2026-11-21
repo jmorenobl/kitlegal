@@ -259,8 +259,11 @@ plugin-check: check-tools
 # make ci: comprobar el producto no exige Node. La comprueba y la publica su
 # propio flujo, .github/workflows/web.yml, con estas mismas órdenes. pnpm
 # instala exactamente lo del lockfile, y la versión de pnpm la fija
-# web/package.json (packageManager).
-WEB := pnpm --dir web
+# web/package.json (packageManager). pnpm se lanza desde web/, no con --dir:
+# corepack elige la versión por el package.json del directorio en que se
+# invoca, y desde la raíz, que no tiene, lanzaría la suya, que la comprobación
+# de web/package.json rechaza (ERR_PNPM_BAD_PM_VERSION).
+WEB := cd web && pnpm
 
 ## web: comprueba la web (tipos y citas contra sus sobres) y la construye en web/dist
 web: check-web-tools
@@ -278,7 +281,7 @@ web-dev: check-web-tools
 ## web-citas: regenera con el binario los sobres de las citas de la web (requiere red; escribe en el árbol)
 web-citas: build check-web-tools
 	$(WEB) install --frozen-lockfile
-	KITLEGAL=$(CURDIR)/bin/kitlegal $(WEB) citas
+	cd web && KITLEGAL=$(CURDIR)/bin/kitlegal pnpm citas
 
 check-web-tools:
 	@command -v pnpm >/dev/null 2>&1 || { \
