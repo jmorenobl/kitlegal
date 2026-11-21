@@ -1,15 +1,14 @@
 {
-  "id": "T006",
-  "texto": "T006 [P] [US4] Los unitarios de la concurrencia y del fallo a mitad, sobre el dominio de T002 (FR-010, FR-011, FR-019; SC-004; US4.5, US4.6; contracts/aviso-y-reinstalacion.md §2 pasos 7 a 9; research.md D3, D7): internal/core/instalacion/reinstalacion.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T007",
+  "texto": "T007 [P] [US5] La documentación y la verificación final de la rama (FR-017; SC-007; US5.1, US5.2; DoD §1.6; plan.md «Diseño» 5): README.md, CHANGELOG.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "d587efe99adc4a8fa9784daaf8a3f977549e6b0a",
+  "base": "09dd877671aecbb908c9ac0e95c996b629d5af1e",
   "rutas": [
-    "contracts/aviso-y-reinstalacion.md",
-    "internal/core/instalacion/discoEnMemoria_test.go",
-    "internal/core/instalacion/reinstalacion.go",
-    "research.md"
+    "CHANGELOG.md",
+    "README.md",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,

@@ -287,7 +287,7 @@ con procesos reales al activarse.
 **Independent Test**: lectura del párrafo «Actualizar» de `README.md` y de «Unreleased» > «Cambiado» de
 `CHANGELOG.md` (US5.1, US5.2).
 
-- [ ] T007 [P] [US5] La documentación y la verificación final de la rama (FR-017; SC-007; US5.1, US5.2; DoD §1.6; plan.md «Diseño» 5): README.md, CHANGELOG.md
+- [X] T007 [P] [US5] La documentación y la verificación final de la rama (FR-017; SC-007; US5.1, US5.2; DoD §1.6; plan.md «Diseño» 5): README.md, CHANGELOG.md
   - **README.md**: el párrafo «**Actualizar**» (el de `brew upgrade kitlegal` y `scoop update kitlegal`) dice que las
     skills globales se ponen al día solas en la primera consulta con el programa nuevo, salvo que se hayan tocado; que
     se aplican en la próxima conversación; y que las skills nuevas del producto y las locales siguen pidiendo `kitlegal

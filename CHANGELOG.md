@@ -28,6 +28,20 @@ sustituyen a este fichero.
   y el Estatuto de los Trabajadores, en la 02 dentro y en la 04 fuera, con el art. 59 grabado. Con ellas la skill gana
   `sin_activar`, sobre sus 12 respuestas de cada modo, y `cobertura_sin_declarar`, sobre las 6 de la 01 y la 04, los dos
   con 0 de tope y decidiendo en los dos modos.
+- **Las skills globales se ponen al día solas con el programa nuevo, salvo que se hayan tocado** (H38; ADR 0060). Tras
+  `brew upgrade kitlegal`, `scoop update kitlegal` o la orden de instalación, la primera consulta con el programa nuevo
+  reinstala las skills de `kitlegal skills install -g` que son de una versión anterior, con el mismo plan y las mismas
+  comprobaciones que `install -g`, y lo dice en la salida de error: `aviso: kitlegal <versión> ha actualizado las
+  skills globales, que eran de <versión>; se aplican en la próxima conversación`. Con `--dry-run` dice `aviso: kitlegal
+  <versión> se actualizarían las skills globales, que eran de <versión>; se aplican en la próxima conversación` y no
+  escribe nada. Si algo se ha tocado —un fichero editado o ajeno, una entrada ajena en un host, una skill retirada que
+  no se puede retirar porque se ha editado—, no reinstala y sigue la línea de siempre, que pide `kitlegal skills
+  install -g`. Las skills nuevas del producto y las locales siguen pidiendo `kitlegal skills install`, con `-g` o sin
+  él: el ámbito local no se reinstala nunca, el servidor MCP tampoco reinstala, y la ayuda, `kitlegal version` y
+  `kitlegal skills …` siguen sin aviso. La consulta que reinstala toma el candado `skills-global.lock` en el directorio
+  de la caché y lo borra al terminar; con él tomado, las demás dan la línea de siempre. La salida estándar y el código
+  de salida de cada orden no cambian, reinstale o no, y nada de esto abre la red. En Windows, sin probar: la CI es solo
+  Ubuntu.
 
 ### Corregido
 
