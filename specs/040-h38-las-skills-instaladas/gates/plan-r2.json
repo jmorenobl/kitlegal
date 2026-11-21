@@ -1,0 +1,107 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt vacío. Las filas I-X, R1-R7 y la garantía sin red siguen siendo ciertas tras la corrección r1, que no toca la tabla: internal/app/aviso.go sigue en ficherosSinRed (internal/arch_test.go:720) y la única pieza nueva de la caché, TomarCandado, solo usa os, path/filepath, time, errors e io/fs; la entrada nueva de superficieDelContrato no cambia ninguna regla de dependencia. Ningún os.Exit, sobre, código ni dependencia nuevos."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: la precedencia SemVer es propia (research.md D6, golang.org/x/mod/semver descartada); la corrección no añade ninguna. Complexity Tracking vacío y no hace falta."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "reinstalacion.go, version.go y puertos.go con la biblioteca estándar y el puerto TomarCandado (R1; depguard core deniega internal/cache e internal/disco, .golangci.yml:112-135); candado.go en internal/cache sin SQLite ni red; internal/app ya importa internal/cache; ningún os.Exit (R4) ni escritura en stdout (R5); la línea sale por Presentador.Aviso (internal/render/render.go:76)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo y ningún error que cambie la invocación (FR-012; research.md D11, como avisar en H19). Los guiones comprueban el código de cada orden contra su referencia (contracts/aceptacion.md §1)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Los tres motivos de la ronda 1 están corregidos. (1) internal/cache/superficie_test.go figura en Project Structure, Trazabilidad, «Controles mecánicos» (con la entrada \"func TomarCandado\" y su comentario, como H7 con \"func Directorio\", specs/010-h7-internal-graph-grafo/plan.md:324 y :494, comprobado), research.md D4 «Coste» y quickstart §1; la lista está en superficie_test.go:59-93 y TestSuperficieExportada en 112, comprobado. (2) La fila «ayuda» de contracts/aceptacion.md §4 ya no lleva skills list -g; FR-002 para skills lo vigilan las filas skills-* de TestAvisoDelKernel (internal/app/aviso_test.go:191-195, avisa false, comprobado). (3) El local inservible con un global de otra versión entra en la tabla local de excluidas.txtar y en TestReinstalacion (research.md D7), y §6 devuelve el global a la v1 tras el último control: comprobado que en h19-skills-aviso.txtar la línea 119 precede a los casos locales de 121-132 sobre home-global, en h19-skills-aviso-sin-aviso.txtar 152/156/160 preceden a agents-fichero, skills-colgando, skills-enlace y local-ilegible (162-189, home-v1) y en h19-skills-conflictos-dentro.txtar 203-204 preceden al caso (h) (206-230, home-v1); las copias congeladas tienen esas líneas idénticas en las mismas posiciones (diff). Planificar no rechaza una versión anterior (plan.go:238 solo comprueba la forma), así que V1 install -g sobre la v2 reinstalada es viable, como ya pedía FR-018."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada mecanismo sale del spec (Trazabilidad). Las devoluciones a la v1 de §6 caen en los tres guiones que FR-018 nombra y no cambian ninguna expectativa; nada toca install, list, doctor, el manifiesto, los hosts, el plugin, SKILL.md, data/, evals ni la web; README.md y CHANGELOG.md según FR-017."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún nolint, t.Skip ni TODO previsto. TestTomarCandado con t.Setenv sin t.Parallel, que paralleltest admite (research.md D7). Que ningún fallo se propague lo pide FR-012 y el resultado observable es la línea (D11)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md documenta lo rechazado en D1-D7 y D12; tras la corrección, D4 pesa también el coste de ampliar superficieDelContrato y descarta internal/disco e internal/app (permisosDelDirectorio no se exporta, internal/cache/abrir.go:26, comprobado), además de flock y un candado en ~/.agents/skills."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión lo que añade la corrección: superficie_test.go:59-93 y 112-140; aviso_test.go:191-195; abrir.go:26 (0o700) y :55 (MkdirAll); las citas de H7; las posiciones de las líneas de §6 en las copias activas y congeladas; que los otros seis guiones con install -g usan kitlegal de desarrollo (h19-skills-doctor-hallazgos.txtar:383 con PATH=$PATH_ORIGINAL). Que mcp serve --no-graph lleva --no-graph a cada llamada (herramientas.go:193-194), así que el «nada escrito» con ! exists $KITLEGAL_CACHE_DIR de las excluidas se sostiene. Lo no ejecutable (binarios, touch del runner, Windows) va como supuesto no verificado."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "La única línea nueva, go test -run 'TestTomarCandado|TestSuperficieExportada' ./internal/cache/, nombra tests que existen o que el plan crea en ese paquete. El resto sin cambios: main.version para -X (cmd/kitlegal/main.go:22), HOME y KITLEGAL_CACHE_DIR dentro de $t, limpieza con rm -rf $t; declarados sin ejecutar (research.md)."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguna fuente, grabación, data/ ni evidencias/ (plan, «Datos externos»; research.md, «Datos externos»)."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica ni mide CI o evals; los guiones de H19 los cambia una tarea [datos] que declara las seis rutas (FR-018)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Rehecho y sin cambios por la corrección: la línea de FR-006 mide 119 bytes (120 con v0.10.1/v0.9.0), sale una vez por actualización y se apaga en la siguiente consulta (versiones iguales, paso 1 de §2); 0 bytes por norma o bloque, así que con meses de uso y miles de bloques mide igual, unos 120 bytes al mes con una actualización mensual. FR-009, 122 bytes solo con --dry-run. La de hoy, 123 bytes por orden mientras algo está tocado, es el contrato de H19 que el spec deja igual. Planificar lee como mucho 18 ficheros y 81 433 bytes, solo con alguna versión menor. Ninguna SKILL.md trata la línea."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Todo se traza: permiso (FR-001/002/009), Reinstalacion y Avisar (FR-003-007, 011-014), segunda evaluación (FR-010), precedencia SemVer (FR-004), puerto y cache.TomarCandado (FR-010), la entrada de superficieDelContrato (lo que exige exportar TomarCandado), la fila del local inservible («Edge Cases», FR-003 a) y las devoluciones a la v1 (FR-018, para que los casos que siguen conserven su premisa). Ningún paquete, orden ni bandera nuevos."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Una fila por SC-001 a SC-007 y por la caducidad de 10 minutos de FR-010, cada una con su ci:<ruta>[:Test]. Rehecho el recorrido: con skills list -g fuera de la fila «ayuda», cada caso de excluidas.txtar tiene una referencia que la implementación correcta reproduce (version y las ayudas no dependen de lo instalado; el local inservible no da línea ni crea la caché), así que TestEntregaDelHito solo sale en rojo si la medida pasa del umbral. TestReinstalacionConcurrente sale en rojo sin candado o sin segunda evaluación (D7); TestTomarCandado, si falta O_EXCL o la caducidad; TestArquitectura, si el aviso alcanza la red."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Huérfano tomado por dos invocaciones a la vez (D5; gates/supuestos.md): retirar y crear no es atómico, así que dos que ven el mismo huérfano en el mismo instante pueden reinstalar las dos y dar cada una la línea de FR-006, con el árbol de una sola. El spec fija un candado por fecha de modificación y flock no está en syscall para Windows; queda documentado como decisión.",
+    "La guarda del Enlazador nulo (D12) se traza a la constitución IV y no a un FR; ninguna composición de producción ni del e2e llega a ese estado, pero sí los TestAvisoDeVersion de hoy, que construyen DependenciasDeSkills sin Enlazador. Es una línea, como la guarda Skills == nil que ya tiene AvisoDeVersion.",
+    "La fila de SC-005 dice que ningún paquete del aviso alcanza net; en sentido estricto go list -deps ./internal/cache incluye net por modernc.org/sqlite y google/uuid, fuera del módulo. La subprueba «sin red» solo sigue aristas del módulo y el candado no abre conexiones: sin diferencia observable.",
+    "Pedido vacío (un global viejo que solo declara skills no empotradas ni retiradas) daría la línea de FR-006 en cada consulta; no hay vía: ninguna release empotró una skill que no sea de hoy o retirada, y un binario sin -X es dev.",
+    "El comentario de compruebaRuta (internal/cache/ruta.go:101) dice que su os.Stat es el único que el paquete hace sobre el directorio efectivo; con candado.go deja de ser cierto. Es documentación del código, no un control.",
+    "Si falla la fase 4 de Aplicar ya escrito el manifiesto (fase 3), la consulta siguiente no dice nada aunque falten ficheros: es el orden de fases de H19 que FR-011 acepta («o da lo de hoy en ese estado»).",
+    "contracts/aceptacion.md §6 dice que el diff entre cada guion activo y su copia congelada «solo da líneas que esto no toca, como los códigos… en 216-222». Es cierto para las líneas que toca FR-018, pero las copias difieren en mucho más (nombres de skill legal-core y boe-legislacion, clase inesperado y código 1, recuentos de grep): la tarea [datos] edita cada copia por su línea, no copiando la activa.",
+    "Tras la corrección, el local inservible con un global de otra versión queda cubierto tres veces (excluidas.txtar, TestReinstalacion y los guiones de H19 con el global devuelto a la v1). Lo pidió el veredicto anterior y no añade mecanismo.",
+    "El «Input» del spec apunta a docs/roadmap/in-progress/, pero el fichero del hito está en docs/roadmap/done/ (commit 082f78e3)."
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt vacío. Las filas I-X, R1-R7 y la garantía sin red son ciertas para este plan: internal/app ya importa internal/cache (internal/app/boe.go:8); internal/cache importa en el módulo solo internal/core e internal/core/schema (go list), que no llegan a net, y compruebaSinRed solo sigue aristas del módulo (internal/arch_test.go:661-701), así que aviso.go sigue en ficherosSinRed (línea 720) sin violar nada; la línea sale por render.Presentador.Aviso (internal/render/render.go:76); ningún os.Exit, sobre, código ni dependencia nuevos. No falta ninguna regla de dependencia de la constitución IV."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: la precedencia SemVer es propia (research.md D6, golang.org/x/mod/semver descartada y fuera de go.mod); el candado usa os, path/filepath, time, errors e io/fs. Complexity Tracking vacío y no hace falta."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "reinstalacion.go, version.go y puertos.go solo con la biblioteca estándar y el puerto TomarCandado (R1); candado.go en internal/cache sin SQLite nuevo fuera de los tres paquetes (R3); nada importa net/http (R2) ni el SDK de MCP (R7); ningún os.Exit (R4); nada escribe en stdout (R5)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo y ningún error que cambie la invocación: FR-012 lo exige y D11 lo decide igual que avisar en H19 (internal/app/main.go:430-446). Los guiones comprueban el código de cada orden contra su referencia (contracts/aceptacion.md §1)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": false,
+      "evidencia": "Nombra los cuatro guiones congelados, los cinco unitarios, la tabla de TestAvisoDelKernel y los seis guiones de FR-018, pero (1) no declara internal/cache/superficie_test.go, que el candado exportado pone en rojo; (2) la fila «ayuda» de contracts/aceptacion.md §4 pide para skills list -g una salida estándar que no puede tener; (3) los cambios de FR-018 dejan en vacío los casos de H19 del local inservible con un global de otra versión, y el plan no cubre ese estado en otro sitio. Detalle en motivos."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada mecanismo sale del spec (Trazabilidad de plan.md); nada toca install, list, doctor, el manifiesto, los hosts, el plugin, SKILL.md, data/, evals ni la web; README.md y CHANGELOG.md según FR-017."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún nolint, t.Skip ni TODO previsto. TestTomarCandado sin t.Parallel por t.Setenv, que paralleltest v1.0.15 admite (paralleltest.go:80-92 y 145-152, versión de tools/golangci-lint/go.sum:397), con el mismo patrón que TestAdaptadorConVariableDeEntorno (internal/cache/adaptador_test.go:488-496). Que ningún fallo se propague lo pide FR-012, no es un silencio (D11)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md documenta lo rechazado en D1 (orquestar en app), D2 (literales mcp/serve, os.Args), D3 (una evaluación, candado primero), D4 (internal/disco, flock, ~/.agents/skills), D6 (x/mod/semver, go/version), D7 (exportar el comparador, gorrutinas con sleep) y D12 (un segundo registro). Lo que D4 no pesa de internal/cache va en el motivo [e]."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión: O_CREAT|O_EXCL pasa a CREATE_NEW en Windows (syscall_windows.go:436-437); testscript v1.16.0 tiene exec con &nombre& y wait nombre (doc.go:155-172, 238-250); default-signifies-exhaustive: true (.golangci.yml:257); permisosDelDirectorio 0o700 y MkdirAll (internal/cache/abrir.go:26 y 55); almacén nulo con --no-graph (main.go:202-207); v0.1.0/v0.2.0 (e2e_test.go:125-126); TestFalloAMitadSeCompleta (aplicar_test.go:341); las líneas de FR-018 en 119, 152/156/160 y 203; con wc -c, 119, 120, 122 y 123 bytes; con du -sb, 81 433 bytes en 18 ficheros. Lo que no se pudo ejecutar (los binarios, el touch del runner, Windows) va como supuesto no verificado."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "main.version existe (cmd/kitlegal/main.go:22) para -X; testscript nombra cada subprueba por su fichero, así que TestEntregaDelHito/^h38- sirve (e2e_test.go:556-568); ./internal/ es el paquete de arch_test.go; HOME y KITLEGAL_CACHE_DIR apuntan siempre dentro de $t, --no-graph impide world.db en la caché y la limpieza borra $t. Los escenarios se declaran sin ejecutar (research.md)."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguna fuente, grabación, data/ ni evidencias/ (plan, «Datos externos»; research.md, «Datos externos»)."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica ni mide CI o evals; los guiones de H19 los cambia una tarea [datos] que declara las seis rutas (FR-018)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Rehecho: la línea de FR-006 mide 119 bytes (120 con v0.10.1/v0.9.0), sale una vez por actualización y se apaga en la siguiente consulta porque las versiones ya son iguales; 0 bytes por norma o bloque, así que con meses de uso, cientos de normas y miles de bloques mide igual: unos 120 bytes al mes con una actualización mensual. La de FR-009 mide 122 bytes, solo con --dry-run. La de hoy (123 bytes por orden mientras algo está tocado) es el contrato de H19 que el spec deja igual, y con el candado se apaga a los 10 minutos. Planificar lee como mucho 18 ficheros y 81 433 bytes, solo con alguna versión menor. Ninguna SKILL.md trata la línea (grep sin coincidencias)."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Permiso (FR-001/002/009), Reinstalacion y Avisar (FR-003-007, 011-014), segunda evaluación (FR-010 «como mucho una»), precedencia SemVer (FR-004), puerto del candado (control determinista de SC-004) y cache.TomarCandado (FR-010): todo se traza. Ningún paquete, orden ni bandera nuevos; la sustitución del huérfano no añade mecanismo (D5)."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": false,
+      "evidencia": "Hay una fila por SC-001 a SC-007 y por el umbral de 10 minutos de FR-010, cada una con su ci:<ruta>[:Test]; rehecho el recorrido: TestReinstalacionConcurrente sale en rojo sin el candado o sin la segunda evaluación (intercalados de D7), y TestTomarCandado si falta O_EXCL (el caso reciente se tomaría). Pero el control de SC-003 (TestEntregaDelHito sobre excluidas.txtar) lleva un caso, skills list -g contra la referencia sin skills, que con la implementación correcta sale en rojo (motivo [e][o])."
+    }
+  ],
+  "motivos": [
+    "[e] El candado exportado pone en rojo un control de make ci que el plan no declara. internal/cache/superficie_test.go lleva la lista cerrada superficieDelContrato (líneas 65-93), y TestSuperficieExportada la compara en los dos sentidos: lo exportado que no está en ella es un t.Errorf («está exportado y no está en la lista del contrato… se cambia primero el contrato del puerto y el cliente §2 y después esta lista», líneas 112-140). El plan exporta la función TomarCandado en internal/cache/candado.go (Source Code, Diseño 3, data-model §3, contracts/aviso-y-reinstalacion.md §4), pero en ningún sitio nombra ese test: Project Structure solo lista candado.go y candado_test.go, «Controles mecánicos que el hito añade o toca» no lo nombra y Scale/Scope no lo cuenta. Vía: go test ./... en make ci sobre el código del plan. Diferencia: TestSuperficieExportada en rojo (SC-007), o una tarea que toca un fichero que no declara (guardián de diff, cuarentena). Qué cambiar: declarar en Project Structure, en Trazabilidad (FR-010) y en «Controles mecánicos» que la entrada «func TomarCandado» entra en superficieDelContrato con su comentario, como hizo H7 con func Directorio, y recoger ese coste en research.md D4; o, si no, elegir un sitio que no amplíe esa superficie y documentar la alternativa.",
+    "[e][o] La fila «ayuda (US3.4, FR-002)» de contracts/aceptacion.md §4 no puede pasar con la implementación correcta. Pide para skills list -g «la salida estándar de la referencia», y §1 define la referencia como la misma orden con HOME vacío y sin skills. skills list -g da lo que declara el manifiesto global (internal/app/instalacion.go, listar). Sobre la instalación v1 lista cuatro skills; la referencia no lista ninguna. Vía: excluidas.txtar escrito según el contrato por la tarea [aceptacion] y congelado. Diferencia: TestEntregaDelHito en rojo para siempre (el control de SC-003 de la sección «Controles de umbral»), o un guion que se aparta de su contrato. Qué cambiar: quitar skills list -g de esa fila; que skills no busca el aviso ya lo vigilan TestAvisoDelKernel (filas skills-*) y los guiones de H19. Si se quiere conservar, comprobar solo que la salida de error está vacía y que no se escribe nada, comparar su salida estándar con la de la misma orden sobre el mismo estado, y precisarlo en SC-003 (el corrector puede tocar spec.md por este criterio).",
+    "[e] Los cambios de FR-018 de contracts/aceptacion.md §6 dejan en vacío los únicos controles de un estado que el spec fija: un local inservible tapa al global, «sin reinstalar» («Edge Cases», FR-003 a). Ningún artefacto del plan lo cubre en otro sitio. En h19-skills-aviso-sin-aviso.txtar, el tercer control (líneas 159-160) ya reinstala, y los casos que siguen con HOME=home-v1 (agents-fichero, skills-colgando, skills-enlace y local-ilegible, líneas 162-190, «! stderr .») corren con el global ya en la versión del binario, aunque su comentario dice «con su manifiesto de otra versión». En h19-skills-conflictos-dentro.txtar, el caso (h) (líneas 189-230, «aunque … en HOME otro de otra versión») corre tras la reinstalación de la línea 201. Los dos pasarían igual si el aviso mirase el global. La tabla local de excluidas.txtar (§4) solo tiene «local viejo» y «local al día», y TestReinstalacion (D7), lo mismo. Vía: un proyecto cuyo ./.agents es un fichero, o cuyo ./.agents/skills es un enlace, o cuyo kitlegal.json es ilegible, con un global v1 y el binario v2. Diferencia: una implementación que mirase el global reescribiría ~/.agents/skills y daría la línea de FR-006, y make ci seguiría en verde. Qué cambiar: añadir ese caso a la tabla del ámbito local de contracts/aceptacion.md §4 y a TestReinstalacion (local inservible con global v1: ninguna línea, árbol del global sin cambios y sin directorio de caché). En los dos guiones de H19, devolver el global a la v1 (exec $KITLEGAL_V1_BIN skills install -g) tras el último control, como §6 ya hace entre los tres, para que su premisa siga siendo cierta sin cambiar ninguna expectativa."
+  ],
+  "observaciones": [
+    "Huérfano tomado por dos invocaciones a la vez (D5; gates/supuestos.md, línea 4): retirar y crear no es atómico, así que dos que ven el mismo huérfano en el mismo instante pueden reinstalar las dos y dar cada una la línea de FR-006, con el árbol de una sola. El spec fija un candado por fecha de modificación, y la exclusión del sistema (flock) no está en syscall para Windows ni cumple US4.1, donde el candado lo crea una persona. Queda documentado como decisión.",
+    "La guarda del Enlazador nulo (D12) se traza a la constitución IV y no a un FR. Ninguna composición de producción ni del e2e llega a ese estado (DependenciasDeSkillsDelSistema, instalacion.go:78), pero sí los TestAvisoDeVersion de hoy, que construyen DependenciasDeSkills sin Enlazador. Es una línea, como la guarda Skills == nil que ya tiene AvisoDeVersion.",
+    "La fila de SC-005 dice que ningún paquete del aviso ni de la reinstalación alcanza net. En sentido estricto, go list -deps ./internal/cache incluye net y net/url, por modernc.org/sqlite y github.com/google/uuid, que están fuera del módulo. La subprueba «sin red» solo sigue aristas del módulo y pasa, y el candado no abre ninguna conexión: no hay diferencia observable.",
+    "Pedido vacío: un manifiesto global de versión anterior que solo declara skills que el binario no empotra y que no son nombres retirados. Planificar no planifica nada, Contenido devuelve nil y el manifiesto no se reescribe, así que la línea de FR-006 saldría en cada consulta. No hay vía: ninguna release (v0.1.0 a v0.10.1, git ls-tree skills/) empotró una skill que no sea de hoy o retirada, y un binario de otra rama sin -X es dev, que no reinstala.",
+    "El comentario de compruebaRuta (internal/cache/ruta.go:101) dice que su os.Stat es el único que el paquete hace sobre el directorio efectivo. Con candado.go (MkdirAll) deja de ser cierto. Es documentación del código, no un control.",
+    "Si falla la fase 4 de Aplicar cuando el manifiesto ya se escribió (fase 3), la consulta siguiente ve las versiones iguales y no dice nada, aunque falten ficheros. Es el orden de fases de H19, que FR-011 acepta («o da lo de hoy en ese estado»); con los binarios del arnés la fase 4 no escribe nada.",
+    "El «Input» del spec apunta a docs/roadmap/in-progress/, pero el fichero del hito está en docs/roadmap/done/ (commit 082f78e3). Lo he leído allí, como el juez del spec."
+  ]
+}
