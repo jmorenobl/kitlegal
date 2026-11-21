@@ -1,6 +1,6 @@
 # 0019 · Distribución: el binario por gestor de paquetes, con las skills dentro
 
-- **Estado**: aceptada
+- **Estado**: aceptada; precisada por el ADR 0060 en lo que dice del aviso: las skills globales se reinstalan con un binario más nuevo si nadie las ha tocado.
 - **Fecha**: 2026-09-26
 - **Hito**: H19, adelantado a la fase 1 (detrás de H6) por el disparador que fijó el ADR 0013. Enmienda el ADR 0001 en
   lo que dice de `scripts/boe` y el ADR 0008 en lo que dice de `scripts/`; sustituye la frase «hasta entonces
