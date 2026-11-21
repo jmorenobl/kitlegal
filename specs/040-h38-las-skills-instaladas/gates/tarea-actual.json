@@ -1,16 +1,14 @@
 {
-  "id": "T002",
-  "texto": "T002 El dominio que decide y reinstala, con sus unitarios (FR-003, FR-004, FR-005, FR-006, FR-007, FR-009, FR-011, FR-013, FR-014, FR-019; SC-001, SC-002, SC-006; contracts/aviso-y-reinstalacion.md §2 y §3; data-model §1 a §6; research.md D1, D3, D6, D7, D11): internal/core/instalacion/reinstalacion.go (nuevo), internal/core/instalacion/puertos.go, internal/core/instalacion/version.go, internal/core/instalacion/discoEnMemoria_test.go",
+  "id": "T003",
+  "texto": "T003 [P] El candado en la caché, con su test y la superficie del paquete (FR-010, FR-013, FR-016; SC-004; contracts/aviso-y-reinstalacion.md §4; data-model §3; research.md D4, D5, D7): internal/cache/candado.go (nuevo), internal/cache/superficie_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "b86c320132fd9ed9f4c4108f6b4e09aebe0cd0f5",
+  "base": "36b4cf0f9ce4c7ecc0c5c6c457bf08f68be9be38",
   "rutas": [
     "contracts/aviso-y-reinstalacion.md",
-    "internal/core/instalacion/discoEnMemoria_test.go",
-    "internal/core/instalacion/puertos.go",
-    "internal/core/instalacion/reinstalacion.go",
-    "internal/core/instalacion/version.go",
+    "internal/cache/candado.go",
+    "internal/cache/superficie_test.go",
     "research.md"
   ],
   "cierre": false,

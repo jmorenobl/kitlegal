@@ -152,7 +152,7 @@ que no (ADR 0018; plan.md «Aceptación e2e»; contracts/aceptacion.md).
     Verificación: `go test -race -count=1 -run 'TestReglaDeVersiones|TestReinstalacion' ./internal/core/instalacion/`
     y `make ci` en verde.
 
-- [ ] T003 [P] El candado en la caché, con su test y la superficie del paquete (FR-010, FR-013, FR-016; SC-004; contracts/aviso-y-reinstalacion.md §4; data-model §3; research.md D4, D5, D7): internal/cache/candado.go (nuevo), internal/cache/superficie_test.go
+- [X] T003 [P] El candado en la caché, con su test y la superficie del paquete (FR-010, FR-013, FR-016; SC-004; contracts/aviso-y-reinstalacion.md §4; data-model §3; research.md D4, D5, D7): internal/cache/candado.go (nuevo), internal/cache/superficie_test.go
   - **candado.go**: `func TomarCandado(nombre string, caducidad time.Duration) (liberar func(), tomado bool)`: resuelve
     `Directorio()`; `os.MkdirAll` con `permisosDelDirectorio` (0o700); `os.OpenFile` con `O_WRONLY|O_CREATE|O_EXCL` y
     0o600 sobre `filepath.Clean(filepath.Join(directorio, nombre))`, vacío; si ya existe, `os.Lstat` y `time.Since` de
