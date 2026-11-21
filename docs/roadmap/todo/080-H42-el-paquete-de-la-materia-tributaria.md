@@ -19,10 +19,10 @@ depende_de: [H36]
     reclamación económico-administrativa (art. 235 LGT), con cada precepto leído con `kitlegal boe articulo` antes de
     fijarlo— como datos del motor de H36;
   - lo que salga de `regulados_aparte` por quedar cubierto, y nada más.
+  La doctrina de la DGT y del TEAC llega con H44, sobre este paquete.
   Todo entra sin tocar Go ni el protocolo de ninguna skill (principio X).
 - **Alcance**: es el paquete de materia, no la vertical fiscal (ADR 0059, punto 2). Quedan fuera, y siguen declarados
   no cubiertos cuando ya lo están:
-  - la doctrina de la DGT y del TEAC;
   - el calendario del contribuyente y los plazos de fecha fija;
   - los modelos y las autoliquidaciones;
   - el sancionador tributario (DA 1ª.2.c);

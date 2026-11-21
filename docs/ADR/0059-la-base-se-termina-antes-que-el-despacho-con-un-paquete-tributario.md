@@ -43,7 +43,7 @@ la fase 2 y la fase 3, y H9.1 y H27 van los últimos de la cola.
 
 ## Decisión
 
-1. **La fase 1 termina la base, en este orden**: H38, H36, H42, H34, H35, H37 y H43.
+1. **La fase 1 termina la base, en este orden**: H38, H36, H42, H34, H35, H44, H37 y H43.
    - **H38** va primero porque no depende de nada y es corto.
    - **H36** valida el motor con el cómputo civil de la LEC (arts. 130.2 y 133) como segunda implementación, con sus
      goldens. El art. 5 del Código Civil queda como opcional. La modalidad procesal de la LRJS como dato de entrada,
@@ -51,8 +51,16 @@ la fase 2 y la fase 3, y H9.1 y H27 van los últimos de la cola.
      desde un día inicial (el calendario del contribuyente), los declara fuera el ADR de H36.
    - **H42**, el paquete de la materia tributaria, va justo detrás de H36. Así los defectos del molde aparecen antes de
      diseñar los otros puertos, y H37 tiene su segundo caso real (punto 2).
-   - **H34** y **H35** no cambian de alcance, salvo que H35 incluye el PDF con texto. Un PDF escaneado se declara no
-     legible, sin OCR.
+   - **H34** no cambia de alcance.
+   - **H35** incluye el PDF. El binario extrae el texto de un PDF que lo tiene y coteja con él, sin OCR. Un PDF
+     escaneado, sin capa de texto, no se cierra como ilegible: lo lee el modelo del agente, que entiende imágenes, y lo
+     que cite de él va marcado como no cotejado por el binario.
+   - **H44**, la doctrina administrativa como capacidad, va detrás de H35. Valida la capacidad con dos implementaciones
+     reales: las consultas de la DGT y las resoluciones del TEAC. Si sus condiciones admiten un programa, un applet lee
+     un documento por su identificador. Si no, la skill prepara la búsqueda, la persona trae el documento y el binario
+     lo coteja con lo de H35, como en `jurisprudencia` (ADR 0036). Ninguna doctrina se cita ni se caracteriza sin leerla,
+     y se distingue de la norma: una consulta vinculante obliga a la Administración en los términos del art. 89 LGT, y
+     lo que no lo es se dice. H28 suma después la doctrina que publica el BOE como tercera fuente de la misma capacidad.
    - **H37** toma como segunda implementación del destinatario el órgano tributario de H42, si tiene un esquema de
      identificador abierto. Si no lo tiene, H37 se recorta al diseño del asunto y va junto a H10. El punto 5 del ADR
      0040 sigue vigente.
@@ -64,8 +72,8 @@ la fase 2 y la fase 3, y H9.1 y H27 van los últimos de la cola.
    0044 nombra (punto 5), y las asesorías la piden.
    - **Lo que trae H42**: sus normas con `vertical: fiscal`, una referencia en `plazos-y-territorio` y otra en
      `normativa`, sus filas de `cubierto` y los plazos de la revisión en vía administrativa como datos del motor de
-     H36, con cada precepto leído antes de fijarlo.
-   - **Lo que deja fuera**: la doctrina de la DGT y del TEAC, el calendario del contribuyente, los modelos, el
+     H36, con cada precepto leído antes de fijarlo. Su doctrina, la de la DGT y el TEAC, llega con H44.
+   - **Lo que deja fuera**: el calendario del contribuyente, los modelos, el
      sancionador tributario, las aduanas, las haciendas forales y los escritos.
    - **La vertical fiscal**, con todo eso, sigue en la fase 3 y entra cuando lo pida `docs/USO.md`. H42 es su paquete
      de materia, no la vertical.
@@ -74,15 +82,16 @@ la fase 2 y la fase 3, y H9.1 y H27 van los últimos de la cola.
 
 3. **Las condiciones de las fuentes se revisan en una sesión interactiva, no en un run.** Son las de BORME, PETETE,
    DYCTEA y REGCON. Las de EUR-Lex van en H34, que ya lo pedía. Cada fila de `docs/SOURCES.md` la revisa una persona,
-   y las sesiones de un run no tienen red. Se hace en paralelo a la fase 1 y no bloquea ninguno de sus hitos. Decide
-   qué verticales pueden leer su doctrina por programa y cuáles siguen el patrón de `jurisprudencia`, en el que la
-   persona trae el documento (ADR 0036).
+   y las sesiones de un run no tienen red. Se hace en paralelo a la fase 1, y la de PETETE y DYCTEA, antes de
+   escribir la entrada de H44: decide si su doctrina se lee por programa o sigue el patrón de `jurisprudencia`, en el
+   que la persona trae el documento (ADR 0036). Nada de esas bases se lee sin sus condiciones revisadas.
 
 4. **Fase 2, los despachos y lo administrativo, en entregas cortas.** Cada hito entrega algo que un despacho o una
    persona usa al cerrarlo, sin tocar la base. El orden es: H9.1, H8, H27, H10, H11, H15, H16 y H28.
    - **H9.1** solo añade el cómputo social, los tipos de plazo, la skill y las evals, porque el cómputo civil llega con
      H36.
-   - **H8** revisa también un escrito en PDF, con lo que trae H35.
+   - **H8** revisa también un escrito en PDF, con lo que trae H35; si es escaneado, lo lee el agente y lo marca como no
+     cotejado.
    - **H11** saca el escrito también en DOCX.
    - H9.1 y H27 pasan de la fase 3 a la 2.
    - **La fase 3** queda para las verticales —la fiscal completa primero—, en el orden de `docs/USO.md`, con los packs a
@@ -102,7 +111,7 @@ las verticales como paquetes, el CENDOJ y la frontera humana siguen igual.
 
 **En contra, y asumido**
 
-- La fase 1 gana dos hitos, H42 y H43, y H36 crece. Lo del despacho llega más tarde que con la cola de antes para H8,
+- La fase 1 gana tres hitos, H42, H43 y H44, y H36 crece. Lo del despacho llega más tarde que con la cola de antes para H8,
   y antes para H9.1 y H27.
 - H42 corre el riesgo de crecer hacia la vertical. Su entrada lleva la lista cerrada de lo que deja fuera.
 - Etiquetar normas cambia `data/` y dispara las evals de las skills que las leen, entre ellas la 04 de `normativa`.

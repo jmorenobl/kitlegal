@@ -1,7 +1,7 @@
 ---
 id: H43
 fase: "1"
-depende_de: [H42, H37]
+depende_de: [H42, H44, H37]
 ---
 
 # H43 · La aceptación de la fase 1: evals de varias materias sobre la base (ADR 0059)
