@@ -1,6 +1,6 @@
 ---
 id: H27
-fase: "3"
+fase: "2"
 ---
 
 # H27 · El Tribunal Constitucional por el BOE: `jurisprudencia` lee la sentencia sin que la persona la traiga (ADR 0040)
@@ -10,3 +10,4 @@ fase: "3"
 - **Alcance**: solo lo que publica el BOE. El CENDOJ no cambia (ADR 0036): ni búsqueda automática, ni descarga. Una sentencia del TC que no se resuelve es la fila de «no encontrado» (ADR 0023) y no se cita.
 - **Controles**: fixtures grabados del BOE; golden de la resolución de un ECLI que existe, de uno que no y de una sentencia del Supremo que anula una disposición; evals de `jurisprudencia` con una sentencia del TC que la persona no trae, juzgadas por su juez (ADR 0037).
 - **Aceptación**: «¿qué dijo el Constitucional en la STC N/AAAA sobre X?» se responde con el texto de la sentencia leído del BOE y su cita, sin pedir el documento.
+- [enmienda 2026-11-21, ADR 0059] Pasa a la fase 2, detrás de H9.1 y H8.
