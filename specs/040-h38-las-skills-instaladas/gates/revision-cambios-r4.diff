@@ -1,0 +1,60 @@
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index c6f12813..607725ae 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -1880,11 +1880,14 @@ y en los dos modos; cada una es
+ `make ci` lo comprueba sin modelo: `TestVariantesDeControl` (cada fichero de cada `<skill>-control` tiene la huella
+ SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de cada familia tiene un directorio por variante versionada
+ y ninguno `<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl`
+-(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41, y
+-`skills/plazos-y-territorio`, la que da sobre `plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara
+-H41.1 y, desde H33, los tres cambios de su `SKILL.md` y el de `references/administrativo.md` —la plantilla única
+-`⚠ NO CUBIERTO:` y sus dos motivos—, con cada región generada de una referencia escrita a mano reducida a sus
+-marcas; todas con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
++(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41 y, en
++`skills/normativa`, desde la reparación del cierre de H38, el párrafo de `references/lecturas_que_fallan.md` que dice
++dónde va el aviso de lo que no se pudo leer; y `skills/plazos-y-territorio`, la que da sobre
++`plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara H41.1, desde H33, los tres cambios de su
++`SKILL.md` y el de `references/administrativo.md` —la plantilla única `⚠ NO CUBIERTO:` y sus dos motivos— y, desde la
++reparación del cierre de H38, las cuatro líneas de «La reclamación del art. 24.2 LTAIBG» de esa referencia, que dicen
++ante quién se reclama solo con el art. 24 LTAIBG leído y citado, con cada región generada de una referencia escrita a
++mano reducida a sus marcas; todas con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
+ `laboratorio/producto-descripciones-cortas/`), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
+ declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFamilias`, `TestTablaDeLasFamilias`,
+ `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias: ninguna variante versionada
+diff --git a/specs/040-h38-las-skills-instaladas/plan.md b/specs/040-h38-las-skills-instaladas/plan.md
+index 5bc20c65..b5ecf156 100644
+--- a/specs/040-h38-las-skills-instaladas/plan.md
++++ b/specs/040-h38-las-skills-instaladas/plan.md
+@@ -265,7 +265,11 @@ cuatro respuestas trasladan lo que prevé el art. 24.6 LTAIBG, que la referencia
+ `plazos-y-territorio` daba hecho sin pedir su lectura (la misma frase ya marcó una respuesta en el cierre de H33), y
+ las otras dos cuentan una lectura fallida dentro de una materia o retirando lo dicho. Cambian esas dos referencias:
+ `administrativo.md` deja de dar ante quién se reclama y lo pide con el art. 24 leído y citado, y
+-`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Se hace porque el umbral que no se
++`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Con ello cambia cómo se cumple FR-044
++de H9: la variación autonómica del órgano ante el que se reclama deja de señalarse con el contenido de la referencia y
++pasa a señalarse solo con el art. 24 LTAIBG leído y citado; en la pregunta de la reclamación sigue, porque
++`plazos calcular acceso-reclamar` da el bloque `a24` en `data.preceptos` y el paso 10 lo lee; si esa lectura falla, la
++respuesta no dice ante quién se reclama, y en la del plazo para resolver solo lo dice si lee el art. 24. Se hace porque el umbral que no se
+ cumple es de las skills y se arregla en la skill (ADR 0029); se descartan volver a medir sin cambio, grabar los bloques
+ que fallaron (cambia las evals y lo grabado) y tocar el cuerpo de `normativa`. Ningún `SKILL.md`, eval, umbral ni
+ grabación cambia. El efecto no se ha medido en el run: lo mide el job de evals de la medición siguiente.
+diff --git a/specs/040-h38-las-skills-instaladas/research.md b/specs/040-h38-las-skills-instaladas/research.md
+index 12287f30..2fb1bc10 100644
+--- a/specs/040-h38-las-skills-instaladas/research.md
++++ b/specs/040-h38-las-skills-instaladas/research.md
+@@ -319,7 +319,13 @@ la referencia deja de dar ante quién se reclama. Pide señalarlo como variació
+ el plazo para resolver, cuyo precepto solo remite a la reclamación—, ni ante quién se reclama ni qué prevé el art. 24:
+ o se lee antes de escribir, o la reclamación va con las palabras del precepto leído. El bloque `a24` está entre las
+ `lecturas` de la eval 17, que entran en la caché preparada de sus sesiones (`internal/evals/consultas.go`, punto 4).
+-Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
++Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. Las dos líneas retiradas eran cómo se
++cumplía FR-044 de H9 (`specs/023-h9-internal-core-plazos/spec.md`, FR-044), que pide señalar como variación autonómica
++el órgano ante el que se reclama en la reclamación del art. 24.2 LTAIBG: la reparación cambia cómo se cumple, y la
++señal deja de darse con el contenido de la referencia y pasa a darse solo con el art. 24 LTAIBG leído y citado. Su
++impacto: en la pregunta de la reclamación la señal sigue, con cita, porque `plazos calcular acceso-reclamar` da en
++`data.preceptos` el bloque `a24` (`data/plazos.yaml`) y el paso 10 lo lee; si esa lectura falla, la respuesta no dice
++ante quién se reclama; y en la pregunta del plazo para resolver solo lo dice si lee el art. 24. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
+ gana un párrafo: lo no leído se dice en una frase aparte, al final, con el número y la causa y nada más («No he podido
+ leer el artículo N de <norma>: <causa>.»), nunca en la viñeta ni en la frase de una materia ni colgada de ella, y lo
+ escrito de ese bloque antes de que la lectura fallara no se retira con sus palabras, porque retirarlo así lo repite.
