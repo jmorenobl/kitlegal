@@ -46,6 +46,13 @@ export const evaluacion: Pagina = {
     "Las mismas preguntas en cada cambio, un revisor comprobado con casos conocidos y los errores que quedan, con su ejemplo, su fecha y su fuente.",
 };
 
+export const plan: Pagina = {
+  ruta: "/plan/",
+  titulo: "El plan de kitlegal: lo hecho, lo que viene y tu opinión",
+  descripcion:
+    "Lo que kitlegal hace hoy, lo que viene para despachos y asesorías, lo que no hará nunca y una encuesta anónima para que un jurista revise el plan.",
+};
+
 export const rastreador: Pagina = {
   ruta: "/bot/",
   titulo: "El rastreador de kitlegal",

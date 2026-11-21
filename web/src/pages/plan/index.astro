@@ -1,0 +1,335 @@
+---
+// El plan de kitlegal para juristas y despachos: lo que hace hoy, lo que viene,
+// lo que no hará y una encuesta anónima para revisarlo. El estado y el orden de
+// cada hito salen de docs/roadmap/ al construir, y lo que hace hoy, de
+// data/cobertura.yaml; los textos en lenguaje llano, de data/plan.ts. La página
+// no cita el texto de ninguna norma: nombra los preceptos para que se revisen.
+//
+// La encuesta se envía a un formulario de Google solo cuando la persona pulsa
+// «Enviar»: la página no carga nada de Google (ADR 0034, enmienda del
+// 2026-11-21).
+import Prosa from "../../components/Prosa.astro";
+import { bloques, huellaDe } from "../../data/encuesta";
+import formulario from "../../data/encuesta-formulario.json";
+import { plan as pagina } from "../../data/paginas";
+import { enLlano, etapas, fasesHechas, nunca, otrasMaterias } from "../../data/plan";
+import Base from "../../layouts/Base.astro";
+import { migas } from "../../lib/estructurados";
+import { CORREO, REPOSITORIO, enlaceCorreo } from "../../lib/proyecto";
+import { cubierto, type Estado, type Hito, hitos } from "../../lib/roadmap";
+
+const todos = hitos();
+const hechos = todos.filter((h) => h.estado === "hecho");
+const enCurso = todos.find((h) => h.estado === "en-curso");
+const cola = todos.filter((h) => h.estado === "en-cola");
+const siguiente = enCurso ?? cola[0];
+
+// Todo hito pendiente sale en la página: con su texto y en una etapa.
+const pendientes = todos.filter((h) => h.estado !== "hecho");
+const sinTexto = pendientes.filter((h) => !enLlano[h.id]).map((h) => h.id);
+if (sinTexto.length > 0) {
+  throw new Error(`plan: falta en data/plan.ts (enLlano) el texto de ${sinTexto.join(", ")}`);
+}
+const fases = new Set([...etapas.map((e) => e.fase), ...fasesHechas]);
+const sinEtapa = todos.filter((h) => !fases.has(h.fase)).map((h) => `${h.id} (fase ${h.fase})`);
+if (sinEtapa.length > 0) {
+  throw new Error(`plan: data/plan.ts no tiene etapa para ${sinEtapa.join(", ")}`);
+}
+
+const nombre = (id: string) => enLlano[id]?.titulo ?? todos.find((h) => h.id === id)?.titulo ?? id;
+const estadoDe = (id: string) => todos.find((h) => h.id === id)?.estado;
+
+const etiqueta: Record<Estado, string> = {
+  hecho: "Hecho",
+  "en-curso": "En marcha",
+  "en-cola": "En cola",
+  pendiente: "Sin fecha",
+};
+const estilo: Record<Estado, string> = {
+  hecho: "border-vigente-borde bg-vigente-fondo text-vigente-tinta",
+  "en-curso": "border-sello bg-white text-sello-tinta",
+  "en-cola": "border-linea-2 bg-panel text-tinta",
+  pendiente: "border-linea bg-white text-tenue",
+};
+const esSiguiente = (h: Hito) => h === siguiente && h.estado === "en-cola";
+function pastilla(h: Hito): string {
+  if (esSiguiente(h)) return "Lo siguiente";
+  return h.estado === "en-cola" ? `${etiqueta[h.estado]} · ${h.puesto}º` : etiqueta[h.estado];
+}
+const estiloDe = (h: Hito) => (esSiguiente(h) ? estilo["en-curso"] : estilo[h.estado]);
+
+const porEtapa = etapas.map((e) => {
+  const suyos = todos.filter((h) => h.fase === e.fase);
+  return { ...e, numeroHechos: suyos.filter((h) => h.estado === "hecho").length, pendientes: suyos.filter((h) => h.estado !== "hecho") };
+});
+
+// La primera frase del alcance de cada capacidad: la que corta en un punto
+// seguido de mayúscula, para no partir «art. 30».
+const hoy = cubierto().map(({ capacidad, alcance }) => ({
+  capacidad: capacidad.charAt(0).toUpperCase() + capacidad.slice(1),
+  alcance: (alcance.split(/(?<=\.) (?=[A-ZÁÉÍÓÚÑ])/)[0] ?? alcance).replaceAll("`", ""),
+}));
+
+// La encuesta. Sin formulario conectado, la página se publica sin ella; en
+// local (make web-dev) se ve como borrador, sin enviar nada. Conectada, la
+// construcción falla si la dirección no es la de un formulario de Google, si
+// falta el campo de una pregunta o si las preguntas cambiaron después de crear
+// el formulario (la huella).
+const claves = bloques.flatMap((b) => b.preguntas.map((p) => p.clave));
+const { campos, huella } = formulario as { campos: Record<string, string>; huella: unknown };
+const accion = (formulario as { accion: unknown }).accion;
+const conectado = typeof accion === "string";
+if (conectado) {
+  if (!/^https:\/\/docs\.google\.com\/forms\/d\/e\/[\w-]+\/formResponse$/.test(accion)) {
+    throw new Error("plan: encuesta-formulario.json no lleva la dirección formResponse de un formulario de Google");
+  }
+  const sinCampo = claves.filter((c) => !/^entry\.\d+$/.test(campos[c] ?? ""));
+  if (sinCampo.length > 0) throw new Error(`plan: encuesta-formulario.json no tiene el campo de ${sinCampo.join(", ")}`);
+  if (huella !== (await huellaDe(bloques))) {
+    throw new Error(
+      "plan: las preguntas de data/encuesta.ts no son las del formulario de Google. Vuelve a crearlo con `node web/scripts/encuesta.mjs` y copia lo que devuelve en web/src/data/encuesta-formulario.json",
+    );
+  }
+}
+const conEncuesta = conectado || import.meta.env.DEV;
+const origen = conectado ? new URL(accion).origin : undefined;
+const campo = (clave: string) => campos[clave] ?? clave;
+---
+
+<Base
+  titulo={pagina.titulo}
+  descripcion={pagina.descripcion}
+  imagen="plan"
+  formulario={origen}
+  datos={migas({ nombre: "El plan", ruta: pagina.ruta })}
+>
+  <Prosa
+    etiqueta="Para juristas y despachos"
+    titulo="El plan de kitlegal"
+    entradilla={conEncuesta
+      ? "Lo que kitlegal hace hoy, lo que viene, en qué orden y lo que no hará nunca. Y, al final, una encuesta anónima para que nos digas si el plan es correcto y qué necesitas."
+      : "Lo que kitlegal hace hoy, lo que viene, en qué orden y lo que no hará nunca."}
+  >
+    <h2>Cómo trabaja</h2>
+    <ul>
+      <li>
+        <strong>Nada de memoria.</strong> Cada afirmación lleva la cita de la norma, leída en el BOE en la redacción vigente
+        o en la de la fecha que se pida.
+      </li>
+      <li>
+        <strong>Lo que no cubre, lo dice.</strong> Con un aviso fijo y la norma que haya leído, sin dar de memoria ningún
+        plazo, órgano ni vía de recurso, ni aplicar los de otra materia. Lo que busque por su cuenta para completar la
+        respuesta lo marca como no verificado.
+      </li>
+      <li><strong>El programa corre en tu ordenador</strong>, dentro de tu asistente de IA.</li>
+    </ul>
+
+    <h2>Lo que hace hoy</h2>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {
+        hoy.map(({ capacidad, alcance }) => (
+          <div class="rounded-lg border border-linea bg-white p-5 shadow-xs">
+            <p class="font-mono text-estampa font-semibold uppercase text-vigente-tinta">{capacidad}</p>
+            <p class="mt-2 text-sm leading-relaxed text-tinta">{alcance}</p>
+          </div>
+        ))
+      }
+    </div>
+    <p class="text-sm text-tenue">
+      Son {hechos.length} entregas terminadas. El detalle de cada una está en{" "}
+      <a href={`${REPOSITORIO}/blob/main/docs/HISTORIAL.md`}>el historial del proyecto</a>.
+    </p>
+
+    <h2>Ahora</h2>
+    {
+      siguiente ? (
+        <p>
+          {enCurso ? "Se está haciendo" : "No hay ningún trabajo en marcha en este momento. Lo siguiente es"} «
+          <strong>{nombre(siguiente.id)}</strong>»: {enLlano[siguiente.id]?.frase}
+        </p>
+      ) : (
+        <p>No hay nada en marcha ni en la cola.</p>
+      )
+    }
+
+    {
+      porEtapa.map((e) => (
+        <section aria-labelledby={`etapa-${e.fase}`} class="space-y-5">
+          <h2 id={`etapa-${e.fase}`}>
+            <span class="block font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
+              {e.nombre}
+            </span>
+            {e.titulo}
+          </h2>
+          <p>{e.texto}</p>
+          {e.numeroHechos > 0 && (
+            <p class="text-sm text-tenue">
+              Ya hechas en esta etapa: {e.numeroHechos} entregas.{e.hechas && ` ${e.hechas}`}
+            </p>
+          )}
+          <div class="space-y-2">
+            {e.pendientes.map((h) => (
+              <details open={esSiguiente(h) || h.estado === "en-curso"} class="group rounded-lg border border-linea bg-white shadow-xs open:shadow-sm">
+                <summary class="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
+                  <span
+                    class={`mt-0.5 shrink-0 rounded border px-2 py-0.5 font-mono text-estampa font-semibold uppercase ${estiloDe(h)}`}
+                  >
+                    {pastilla(h)}
+                  </span>
+                  <span class="flex-1 font-semibold text-tinta">{nombre(h.id)}</span>
+                  <span aria-hidden="true" class="text-tenue transition-transform group-open:rotate-90">
+                    ›
+                  </span>
+                </summary>
+                <div class="space-y-2 border-t border-linea px-4 py-3 text-sm leading-relaxed">
+                  <p>{enLlano[h.id]?.frase}</p>
+                  {h.dependeDe.length > 0 && (
+                    <p class="text-tenue">
+                      Necesita antes:{" "}
+                      {h.dependeDe.map((d) => `«${nombre(d)}»${estadoDe(d) === "hecho" ? " (hecho)" : ""}`).join("; ")}.
+                    </p>
+                  )}
+                  <p class="font-mono text-xs text-tenue">
+                    Referencia interna: <a href={`${REPOSITORIO}/blob/main/${h.ruta}`}>{h.id}</a>
+                  </p>
+                </div>
+              </details>
+            ))}
+            {e.sinNumero?.map((v) => (
+              <div class="flex items-start gap-3 rounded-lg border border-dashed border-linea-2 bg-white p-4">
+                <span
+                  class={`mt-0.5 shrink-0 rounded border px-2 py-0.5 font-mono text-estampa font-semibold uppercase ${estilo.pendiente}`}
+                >
+                  Sin fecha
+                </span>
+                <span class="flex-1 text-sm leading-relaxed">
+                  <strong class="text-tinta">{v.titulo}.</strong> {v.frase}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {(
+              [
+                ["Ciudadanía", e.ganan.ciudadania],
+                ["Despacho", e.ganan.despacho],
+                ["Asesoría", e.ganan.asesoria],
+              ] as const
+            ).map(([quien, que]) => (
+              <div class="rounded-lg bg-panel p-4">
+                <p class="font-mono text-estampa font-semibold uppercase text-tenue">Al terminar · {quien}</p>
+                <p class="mt-1.5 text-sm leading-relaxed text-tinta">{que}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+    <p class="text-sm text-tenue">{otrasMaterias}</p>
+
+    <h2>Lo que nunca hará</h2>
+    <div class="space-y-3 rounded-xl border-2 border-derogada-borde bg-derogada-fondo p-5">
+      {
+        nunca.map(({ titulo, texto }) => (
+          <p class="text-sm leading-relaxed">
+            <strong class="text-derogada-tinta">{titulo}.</strong> {texto}
+          </p>
+        ))
+      }
+    </div>
+
+    {
+      !conEncuesta && (
+        <>
+          <h2>Tu opinión</h2>
+          <p>
+            Si eres jurista y quieres decirnos si el plan es correcto o qué necesitas, escríbenos a{" "}
+            <a href={enlaceCorreo("El plan de kitlegal")}>{CORREO}</a>.
+          </p>
+        </>
+      )
+    }
+    {
+      conEncuesta && (
+        <>
+          <h2 id="encuesta">Tu opinión</h2>
+          <p>
+            Si eres jurista, te pedimos que revises el plan. Basta con marcar una respuesta en cada punto; los comentarios
+            son opcionales. Es anónima: no pedimos tu nombre ni tu correo.
+          </p>
+          {!conectado && (
+            <p class="rounded-lg border border-sello bg-white p-4 text-sm font-semibold text-sello-tinta">
+              Borrador local: la encuesta no está conectada a su formulario, no envía nada y no se publica así.
+            </p>
+          )}
+          <form method="post" action={conectado ? accion : undefined} class="space-y-10" {...{ rel: "noreferrer" }}>
+            {bloques.map((b) => (
+              <fieldset class="space-y-6">
+                <legend class="font-serif text-xl font-semibold text-tinta">{b.titulo}</legend>
+                <p class="-mt-3 text-sm text-tenue">{b.texto}</p>
+                {b.preguntas.map((p) =>
+                  p.tipo === "texto" ? (
+                    <div class="space-y-2">
+                      <label for={`p-${p.clave}`} class="block text-[0.9375rem] font-semibold text-tinta">
+                        {p.titulo}
+                      </label>
+                      {p.ayuda && (
+                        <p id={`a-${p.clave}`} class="text-sm text-tenue">
+                          {p.ayuda}
+                        </p>
+                      )}
+                      <textarea
+                        id={`p-${p.clave}`}
+                        name={campo(p.clave)}
+                        rows="4"
+                        maxlength="3000"
+                        aria-describedby={p.ayuda ? `a-${p.clave}` : undefined}
+                        class="block w-full rounded-md border border-linea-2 bg-white p-3 text-[0.9375rem] focus:border-noche focus:outline-2 focus:outline-noche/30"
+                      />
+                    </div>
+                  ) : (
+                    <fieldset class="space-y-3 rounded-lg border border-linea bg-white p-4 shadow-xs">
+                      <legend class="float-left mb-3 w-full text-[0.9375rem] leading-relaxed text-tinta">{p.titulo}</legend>
+                      <div class="clear-left flex flex-wrap gap-2">
+                        {p.opciones?.map((o, i) => (
+                          <label
+                            for={`p-${p.clave}-${i}`}
+                            class="inline-flex cursor-pointer items-center gap-2 rounded-md border border-linea-2 px-3 py-2 text-sm font-medium text-tinta transition-colors hover:bg-panel has-checked:border-noche has-checked:bg-panel-2 has-focus-visible:outline-2 has-focus-visible:outline-noche"
+                          >
+                            <input
+                              id={`p-${p.clave}-${i}`}
+                              type={p.tipo === "una" ? "radio" : "checkbox"}
+                              name={campo(p.clave)}
+                              value={o}
+                              class="accent-noche"
+                            />
+                            {o}
+                          </label>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ),
+                )}
+              </fieldset>
+            ))}
+            <div class="space-y-3">
+              <button
+                type="submit"
+                disabled={!conectado}
+                class="inline-flex items-center gap-2 rounded-md bg-noche px-5 py-3 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-noche-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Enviar mis respuestas
+              </button>
+              <p class="text-sm text-tenue">
+                Las respuestas se guardan en un formulario de Google de kitlegal, sin tu nombre ni tu correo. Google recibe
+                el envío como cualquier web que visitas; kitlegal solo ve las respuestas. Al enviarlas verás la página de
+                confirmación de Google. Para algo más largo, o si quieres que te respondamos, escríbenos a{" "}
+                <a href={enlaceCorreo("El plan de kitlegal")}>{CORREO}</a>.
+              </p>
+            </div>
+          </form>
+        </>
+      )
+    }
+  </Prosa>
+</Base>
