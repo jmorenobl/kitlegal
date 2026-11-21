@@ -16,7 +16,15 @@ export interface Etapa {
   ganan: { ciudadania: string; despacho: string; asesoria: string };
   // Lo que la etapa trae sin número de hito todavía (las verticales, del backlog).
   sinNumero?: { titulo: string; frase: string }[];
+  // Qué fueron las entregas ya hechas de la etapa, si las hay. Sin ella, la
+  // página da solo su número.
+  hechas?: string;
 }
+
+// Las fases de docs/roadmap/ que no son etapas de la página: están hechas y se
+// cuentan en «Lo que hace hoy». Un hito pendiente de cualquier otra fase sin
+// etapa hace fallar la construcción.
+export const fasesHechas = ["0", "terreno-y-memoria"];
 
 export const etapas: Etapa[] = [
   {
@@ -30,6 +38,8 @@ export const etapas: Etapa[] = [
       despacho: "Normativa europea leída y citada; lo que dice un contrato o una póliza sale del documento, también en PDF.",
       asesoria: "Los plazos de la revisión tributaria con su precepto, y la doctrina de la DGT y del TEAC leída.",
     },
+    hechas:
+      "Las trece primeras reorganizaron por capacidades y midieron las instrucciones del asistente, y declararon lo que cubre.",
   },
   {
     fase: "2",
@@ -58,7 +68,7 @@ export const etapas: Etapa[] = [
       {
         titulo: "Fiscal",
         frase:
-          "IVA, sociedades, haciendas locales, el calendario del contribuyente, las haciendas forales y los escritos, sobre lo tributario de la etapa 1.",
+          "Sobre lo tributario de la etapa 1: el IVA y el impuesto sobre sociedades si no entraron antes, el calendario del contribuyente, los modelos, el sancionador, las haciendas forales y los escritos.",
       },
       { titulo: "Laboral", frase: "Estatuto de los Trabajadores, jurisdicción social, Seguridad Social y convenios colectivos." },
       { titulo: "Mercantil", frase: "Sociedades de capital, Ley Concursal, Código de Comercio y BORME." },
@@ -84,11 +94,11 @@ export const etapas: Etapa[] = [
 export const enLlano: Record<string, { titulo: string; frase: string }> = {
   H38: {
     titulo: "Que se actualice solo",
-    frase: "Al actualizar el programa, las instrucciones del asistente se actualizan con él, y se avisa de que valen desde la conversación siguiente.",
+    frase: "Al actualizar el programa, las instrucciones del asistente instaladas para todo el equipo se actualizan con él, salvo que las hayas modificado, y se avisa de que valen desde la conversación siguiente.",
   },
   H36: {
     titulo: "Plazos de cualquier materia",
-    frase: "Cada forma de contar un plazo se describe con sus preceptos, empezando por el cómputo civil de la LEC, con agosto y del 24 de diciembre al 6 de enero inhábiles.",
+    frase: "Cada forma de contar un plazo se describe con sus preceptos, empezando por los dos de hoy, y se prueba con el cómputo civil de la LEC, con agosto y del 24 de diciembre al 6 de enero inhábiles.",
   },
   H42: {
     titulo: "Lo tributario, como segunda materia",
@@ -116,7 +126,7 @@ export const enLlano: Record<string, { titulo: string; frase: string }> = {
   },
   "H9.1": {
     titulo: "Plazos procesales civiles y sociales",
-    frase: "El último día de un plazo de la LEC o de la LRJS, con su precepto. En lo social, si la pregunta no dice la modalidad procesal, se pide antes de calcular.",
+    frase: "El último día de un plazo de la LEC o de la LRJS, con su precepto. En lo social, si la pregunta no dice la modalidad procesal, se pide antes de calcular, porque en algunas agosto y del 24 de diciembre al 6 de enero cuentan.",
   },
   H8: {
     titulo: "Revisar las citas de un escrito",
@@ -153,6 +163,10 @@ export const enLlano: Record<string, { titulo: string; frase: string }> = {
   H18: { titulo: "Presupuestos municipales", frase: "Lo presupuestado y lo liquidado por un ayuntamiento, con sus desviaciones." },
 };
 
+// Lo que queda en el backlog, sin número ni orden (ADR 0044, punto 2).
+export const otrasMaterias =
+  "Sin número ni fecha quedan otras materias, que entran cuando el uso las pida: civil, consumo y seguros, familia y el procedimiento sancionador de tráfico. Penal queda fuera mientras no se decida abrirlo.";
+
 // Lo que kitlegal no hará, por decisión (ADR 0004, 0027 y 0036).
 export const nunca = [
   {
@@ -165,7 +179,8 @@ export const nunca = [
     texto: "Todo lo que pide identidad termina en un fichero listo para que la persona lo firme y lo presente ella.",
   },
   {
-    titulo: "Enviar tus consultas a un servidor",
-    texto: "Ni preguntas, ni asuntos, ni datos de uso, tampoco con consentimiento: todo corre en tu ordenador.",
+    titulo: "Enviar tus consultas a un servidor de kitlegal",
+    texto:
+      "Ni preguntas, ni asuntos, ni datos de uso llegan a kitlegal, tampoco con consentimiento: el programa corre en tu ordenador. Lo que escribes a tu asistente sigue las condiciones de ese asistente.",
   },
 ];

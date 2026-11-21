@@ -4,10 +4,14 @@
 // función crearEncuesta y el registro de ejecución devuelve el JSON que va en
 // src/data/encuesta-formulario.json, y la hoja de cálculo de las respuestas.
 //
-// Uso: pnpm --dir web encuesta > encuesta.gs
-// Node lee el .ts sin compilarlo (web/.node-version: Node 24).
+// Uso, desde la raíz: node web/scripts/encuesta.mjs > "/tmp/encuesta.gs"
+// (con pnpm, `pnpm --dir web --silent encuesta`: sin --silent, pnpm escribe su
+// cabecera en la misma salida y el guion no compila). Node lee el .ts sin
+// compilarlo (web/.node-version: Node 24).
 
-import { bloques } from "../src/data/encuesta.ts";
+import { bloques, huellaDe } from "../src/data/encuesta.ts";
+
+const huella = await huellaDe(bloques);
 
 const guion = `// Crea el formulario de la encuesta del plan de kitlegal. Generado por
 // web/scripts/encuesta.mjs: no editar; se cambian las preguntas en
@@ -18,11 +22,13 @@ function crearEncuesta() {
   form.setDescription("Encuesta anónima sobre el plan de kitlegal (https://kitlegal.es/plan/). Las respuestas llegan desde la web.");
   // Anónima: ni correo, ni inicio de sesión, ni límite por persona, que lo exigiría.
   form.setCollectEmail(false);
-  try { form.setRequireLogin(false); } catch (e) {}
+  // Solo existe en las cuentas de Google Workspace; en una personal falla, y el
+  // formulario no pide iniciar sesión.
+  try { form.setRequireLogin(false); } catch (e) { Logger.log("setRequireLogin: " + e); }
   form.setLimitOneResponsePerUser(false);
   form.setAllowResponseEdits(false);
   form.setShowLinkToRespondAgain(false);
-  form.setConfirmationMessage("Gracias. Tus respuestas han llegado a kitlegal.");
+  form.setConfirmationMessage("Gracias. Tus respuestas han llegado a kitlegal. Puedes volver a https://kitlegal.es/plan/");
   const hoja = SpreadsheetApp.create("kitlegal · respuestas a la encuesta del plan");
   form.setDestination(FormApp.DestinationType.SPREADSHEET, hoja.getId());
   const campos = {};
@@ -44,7 +50,9 @@ function crearEncuesta() {
     }
   }
   const accion = form.getPublishedUrl().replace(/\\/viewform.*$/, "/formResponse");
-  Logger.log("Copia esto en web/src/data/encuesta-formulario.json:\\n" + JSON.stringify({ accion: accion, campos: campos }, null, 2));
+  Logger.log("Copia esto en web/src/data/encuesta-formulario.json:\\n" + JSON.stringify({ accion: accion, campos: campos, huella: "${huella}" }, null, 2));
+  if (typeof form.isPublished === "function") Logger.log("Publicado: " + form.isPublished());
+  Logger.log("Antes de conectarlo, abre " + form.getPublishedUrl() + " en una ventana privada: si pide iniciar sesión, la encuesta no es anónima.");
   Logger.log("Formulario: " + form.getEditUrl());
   Logger.log("Hoja de respuestas: " + hoja.getUrl());
 }
