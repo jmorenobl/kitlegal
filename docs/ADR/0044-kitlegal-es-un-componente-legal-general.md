@@ -1,7 +1,8 @@
 # 0044 · kitlegal es un componente legal general: la base genérica, lo administrativo y los profesionales, con las materias en el backlog
 
 - **Estado**: aceptada (2026-10-22); precisada en parte por el ADR 0058: la línea única de H33 (punto 4) no nombra
-  ninguna herramienta, y el territorio se declara cubierto en todas las materias.
+  ninguna herramienta, y el territorio se declara cubierto en todas las materias; y por el ADR 0059 en el orden de la
+  fase 1 y en el contenido de las fases 2 y 3 (punto 2), y en el paquete tributario antes de la vertical (punto 5).
 - **Fecha**: 2026-10-22
 - **Hito**: H29, fuera de un run, como documentación. Sustituye al ADR 0027 en la frontera de la base (punto 3) y en el
   encuadre de la fase 3 (punto 7), y al ADR 0040 en el orden (puntos 1 a 4); precisa el ADR 0012 (qué es una

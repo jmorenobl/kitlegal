@@ -10,3 +10,4 @@ fase: "2"
 - **Alcance**: fuera, la doctrina que no publica el BOE —DGT y TEAC con su vertical, tras revisar sus términos; AEPD, TACRC y Consejo de Transparencia, desde el backlog de fuentes— y la doctrina académica.
 - **Controles**: los de una fuente nueva (fixtures, golden, `verify-sources`); evals de `doctrina` y su juez, medido contra respuestas reales antes de decidir (ADR 0037).
 - **Aceptación**: «¿qué ha dicho el Consejo de Estado sobre X en el dictamen N/AAAA?» se responde con el texto del dictamen y su cita, o con la búsqueda preparada y el cotejo del documento que trae la persona.
+- [enmienda 2026-11-21, ADR 0059] La capacidad de doctrina, con su skill y sus reglas, nace en H44 con la DGT y el TEAC; H28 suma la doctrina que publica el BOE como tercera fuente, sin cambiar la capacidad.
