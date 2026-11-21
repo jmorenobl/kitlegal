@@ -25,7 +25,7 @@ fase: "1"
 - **Entrega**:
   - **Qué invocaciones reinstalan** (ADR 0060, punto 1). Solo una invocación de la CLI que cumpla las tres condiciones:
     - que su análisis termine bien y decida ejecutar;
-    - que no lleve `--dry-run`, `--describe` ni la ayuda;
+    - que no lleve `--dry-run` ni `--describe`. La ayuda no avisa hoy (`buscaElAviso`, `internal/app/main.go`) y sigue sin avisar;
     - que no sea del applet `skills` ni del verbo `mcp serve` y sus llamadas. Las llamadas ya usan
       `registro.sinAvisador()`, así que no avisan.
 
@@ -44,15 +44,17 @@ fase: "1"
       ajeno sí lo es. Una skill retirada que no se puede retirar porque se ha editado («sin retirar») cuenta como tocada:
       no reinstala. Los hosts son los de `Planificar`: enlaza en todo host cuyo directorio existe ahora y quita del
       manifiesto el que ya no existe. Una entrada ajena en un host es conflicto;
-    - **se puede escribir**: el binario puede escribir y toma el candado.
+    - **toma el candado.** No hay prueba previa del permiso: si una escritura falla, es el fallo a mitad y sale la línea de hoy.
   - **Las dos líneas** (ADR 0060, punto 2), en la salida de error y una sola por invocación.
     - Si reinstala: `aviso: kitlegal <versión del binario> ha actualizado las skills globales, que eran de <versión que nombraría la línea de hoy>; se aplican en la próxima conversación`.
     - En cualquier otro caso, la línea de hoy, sin cambiar un byte.
     - Con `--dry-run`, si se cumplen las tres primeras condiciones, la misma línea con «se actualizarían» en lugar de
       «ha actualizado». No toma el candado, no prueba el permiso y no escribe nada. Como `install --dry-run`, admite la
       sonda de enlace que `Planificar` crea y retira (`Enlazador.Disponible`).
-  - **El candado** (ADR 0060, punto 6). Es `skills-global.lock`, en el directorio de caché de kitlegal
-    (`internal/cache`), creado en exclusiva y borrado al terminar, salga bien o mal. Si existe y su fecha de
+  - **El candado** (ADR 0060, punto 6). Es `skills-global.lock`, en la ruta de `cache.Directorio()`
+    (`internal/cache/ruta.go`), creado en exclusiva y borrado al terminar, salga bien o mal. Si el directorio no existe, se
+    crea con los permisos de la caché. Si `Directorio()` falla, o no se pueden crear el directorio o el candado, no se
+    reinstala y sale la línea de hoy. Si existe y su fecha de
     modificación tiene menos de 10 minutos, no se reinstala y sale la línea de hoy. Si tiene más, se sustituye. No va en
     `~/.agents/skills`, así que no cambia lo que ven `install`, `list` ni `doctor`.
   - **Un fallo a mitad** deja lo que repara `kitlegal skills install -g` (FR-044). El candado se borra, y la invocación
@@ -80,17 +82,18 @@ fase: "1"
     - **un fichero que falta**: reinstala;
     - **un fichero editado, uno ajeno, una entrada ajena en un host o una retirada «sin retirar»**: la línea de hoy, y
       el árbol del global no cambia;
-    - **sin permiso de escritura**: la línea de hoy y el árbol sin cambios. Se hace con `chmod`, devolviendo los
-      permisos al final, como `h19-instalador-rechazos.txtar`;
+    - **sin permiso de escritura en `~/.agents/skills`**: la línea de hoy, el árbol sin cambios y el candado borrado.
+      Se hace con `chmod` sobre ese directorio, con la caché escribible, devolviendo los permisos al final, como
+      `h19-instalador-rechazos.txtar`;
     - **un binario más viejo que lo instalado, o con metadatos de construcción**: la línea de hoy y nada escrito;
     - **una skill declarada en una versión anterior a la del manifiesto**: reinstala, y la línea nombra la versión que
       nombraría la de hoy;
     - **un manifiesto que declara un nombre retirado**: queda la heredera y la retirada se va;
     - **el ámbito local**: un local viejo solo avisa, y un local al día con un global viejo ni avisa ni reinstala;
     - **`mcp serve`**: solo avisa;
-    - **`--describe`, la ayuda y un análisis fallido** (exit 2): la línea de hoy, sin escribir;
+    - **`--describe` y un análisis fallido** (exit 2): la línea de hoy, sin escribir. **La ayuda**: ninguna línea, como hoy;
     - **una orden que termina con exit 4**: reinstala;
-    - **el candado**: tomado y reciente da la línea de hoy; huérfano de más de 10 minutos, reinstala;
+    - **el candado**, en `$KITLEGAL_CACHE_DIR/skills-global.lock`, que el arnés fija dentro de `$WORK`: tomado y reciente da la línea de hoy; huérfano de más de 10 minutos (con `touch -t`), reinstala; sin directorio de caché todavía, lo crea y reinstala;
     - **`--dry-run`**: dice «se actualizarían» y no escribe.
   - **Unitarios** del orden SemVer (prereleases, metadatos de construcción y versiones sin forma) y de un fallo a mitad
     de la escritura que repara `kitlegal skills install -g` (FR-044).

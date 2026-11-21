@@ -39,7 +39,7 @@ Hay tres hechos que limitan qué se puede hacer:
 
 1. **Cuándo se reinstala.** Reinstala una invocación de la CLI que cumpla tres condiciones:
    - su análisis termina bien y decide ejecutar;
-   - no lleva `--dry-run`, `--describe` ni la ayuda;
+   - no lleva `--dry-run` ni `--describe` (la ayuda no avisa, como hoy);
    - no es del applet `skills` ni del servidor MCP.
 
    La invocación multicall cuenta como CLI, y el código con que acabe el verbo no importa. Además tienen que cumplirse
@@ -51,7 +51,7 @@ Hay tres hechos que limitan qué se puede hacer:
    - `Planificar` sale sin conflictos, sin `--host`. El pedido son las skills declaradas que el binario empotra más las
      herederas de las declaradas con nombre retirado, y nada más. Un fichero que falta no es un conflicto (FR-044); uno
      editado o ajeno sí, y una retirada que no se puede retirar cuenta como tocada;
-   - el binario puede escribir y toma el candado.
+   - toma el candado. No hay prueba previa del permiso: si una escritura falla, sale la línea de hoy.
 2. **Qué se dice.** Si reinstala, escribe en la salida de error una sola línea:
    `aviso: kitlegal <versión> ha actualizado las skills globales, que eran de <versión que nombraría la línea de hoy>; se aplican en la próxima conversación`.
    En cualquier otro caso escribe la línea de hoy, sin cambios.
@@ -65,8 +65,8 @@ Hay tres hechos que limitan qué se puede hacer:
    puede escribir en `~/.agents/skills` y en los enlaces de sus hosts, solo en el caso del punto 1.
 5. **Una vez.** No hace falta ninguna marca: cuando la reinstalación sale bien, la invocación siguiente ve la misma
    versión y no hace nada. En el servidor MCP no se reinstala nada, y el aviso sigue saliendo una vez por arranque.
-6. **El candado.** Es `skills-global.lock`, en el directorio de caché de kitlegal, fuera de `~/.agents/skills`, así
-   que no lo ven `install`, `list` ni `doctor`. Se crea en exclusiva y se borra al terminar, salga bien o mal. Si existe
+6. **El candado.** Es `skills-global.lock`, en la ruta de `cache.Directorio()`, fuera de `~/.agents/skills`, así que no
+   lo ven `install`, `list` ni `doctor`. Si el directorio no existe, se crea; si no se puede, no se reinstala. Se crea en exclusiva y se borra al terminar, salga bien o mal. Si existe
    y tiene menos de 10 minutos, la invocación da la línea de hoy sin esperar; si tiene más, se sustituye.
 
 ## Consecuencias
