@@ -1880,11 +1880,14 @@ y en los dos modos; cada una es
 `make ci` lo comprueba sin modelo: `TestVariantesDeControl` (cada fichero de cada `<skill>-control` tiene la huella
 SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de cada familia tiene un directorio por variante versionada
 y ninguno `<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl`
-(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41, y
-`skills/plazos-y-territorio`, la que da sobre `plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara
-H41.1 y, desde H33, los tres cambios de su `SKILL.md` y el de `references/administrativo.md` —la plantilla única
-`⚠ NO CUBIERTO:` y sus dos motivos—, con cada región generada de una referencia escrita a mano reducida a sus
-marcas; todas con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
+(`skills/normativa` y `skills/jurisprudencia` son las que dan sobre su control los cambios que declara H41 y, en
+`skills/normativa`, desde la reparación del cierre de H38, el párrafo de `references/lecturas_que_fallan.md` que dice
+dónde va el aviso de lo que no se pudo leer; y `skills/plazos-y-territorio`, la que da sobre
+`plazos-y-territorio-sin-condicion` el movimiento de esa frase que declara H41.1, desde H33, los tres cambios de su
+`SKILL.md` y el de `references/administrativo.md` —la plantilla única `⚠ NO CUBIERTO:` y sus dos motivos— y, desde la
+reparación del cierre de H38, las cuatro líneas de «La reclamación del art. 24.2 LTAIBG» de esa referencia, que dicen
+ante quién se reclama solo con el art. 24 LTAIBG leído y citado, con cada región generada de una referencia escrita a
+mano reducida a sus marcas; todas con el frontmatter de su control salvo la `description`, que desde H41.4 es la de
 `laboratorio/producto-descripciones-cortas/`), `TestVariantesDePlazosYTerritorio` (cada forma es la que da su
 declaración sobre control y no toca más que esas órdenes), `TestArnesDeLasFamilias`, `TestTablaDeLasFamilias`,
 `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias: ninguna variante versionada

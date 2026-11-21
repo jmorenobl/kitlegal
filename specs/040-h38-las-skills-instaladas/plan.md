@@ -265,7 +265,11 @@ cuatro respuestas trasladan lo que prevé el art. 24.6 LTAIBG, que la referencia
 `plazos-y-territorio` daba hecho sin pedir su lectura (la misma frase ya marcó una respuesta en el cierre de H33), y
 las otras dos cuentan una lectura fallida dentro de una materia o retirando lo dicho. Cambian esas dos referencias:
 `administrativo.md` deja de dar ante quién se reclama y lo pide con el art. 24 leído y citado, y
-`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Se hace porque el umbral que no se
+`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Con ello cambia cómo se cumple FR-044
+de H9: la variación autonómica del órgano ante el que se reclama deja de señalarse con el contenido de la referencia y
+pasa a señalarse solo con el art. 24 LTAIBG leído y citado; en la pregunta de la reclamación sigue, porque
+`plazos calcular acceso-reclamar` da el bloque `a24` en `data.preceptos` y el paso 10 lo lee; si esa lectura falla, la
+respuesta no dice ante quién se reclama, y en la del plazo para resolver solo lo dice si lee el art. 24. Se hace porque el umbral que no se
 cumple es de las skills y se arregla en la skill (ADR 0029); se descartan volver a medir sin cambio, grabar los bloques
 que fallaron (cambia las evals y lo grabado) y tocar el cuerpo de `normativa`. Ningún `SKILL.md`, eval, umbral ni
 grabación cambia. El efecto no se ha medido en el run: lo mide el job de evals de la medición siguiente.

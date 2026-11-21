@@ -319,7 +319,13 @@ la referencia deja de dar ante quién se reclama. Pide señalarlo como variació
 el plazo para resolver, cuyo precepto solo remite a la reclamación—, ni ante quién se reclama ni qué prevé el art. 24:
 o se lee antes de escribir, o la reclamación va con las palabras del precepto leído. El bloque `a24` está entre las
 `lecturas` de la eval 17, que entran en la caché preparada de sus sesiones (`internal/evals/consultas.go`, punto 4).
-Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
+Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. Las dos líneas retiradas eran cómo se
+cumplía FR-044 de H9 (`specs/023-h9-internal-core-plazos/spec.md`, FR-044), que pide señalar como variación autonómica
+el órgano ante el que se reclama en la reclamación del art. 24.2 LTAIBG: la reparación cambia cómo se cumple, y la
+señal deja de darse con el contenido de la referencia y pasa a darse solo con el art. 24 LTAIBG leído y citado. Su
+impacto: en la pregunta de la reclamación la señal sigue, con cita, porque `plazos calcular acceso-reclamar` da en
+`data.preceptos` el bloque `a24` (`data/plazos.yaml`) y el paso 10 lo lee; si esa lectura falla, la respuesta no dice
+ante quién se reclama; y en la pregunta del plazo para resolver solo lo dice si lee el art. 24. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
 gana un párrafo: lo no leído se dice en una frase aparte, al final, con el número y la causa y nada más («No he podido
 leer el artículo N de <norma>: <causa>.»), nunca en la viñeta ni en la frase de una materia ni colgada de ella, y lo
 escrito de ese bloque antes de que la lectura fallara no se retira con sus palabras, porque retirarlo así lo repite.
