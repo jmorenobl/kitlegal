@@ -108,7 +108,10 @@ env HOME=$WORK/home
 
 # --- Solo un manifiesto global de otra versión (US3.2) ---
 #
-# Sin nada en el directorio de trabajo, el global: la línea propone -g.
+# Sin nada en el directorio de trabajo, el global. Desde H38 la consulta
+# reinstala el global de otra versión que nadie ha tocado, con la salida
+# estándar de siempre, y lo dice en su lugar con la línea de FR-006 de H38
+# (ADR 0060; FR-001, FR-006, FR-018 de H38).
 env HOME=$WORK/home-global
 mkdir $WORK/home-global
 exec $KITLEGAL_V1_BIN skills install -g
@@ -116,7 +119,11 @@ mkdir $WORK/solo-global
 cd $WORK/solo-global
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 cmp stdout $WORK/territorio.json
-stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+# La reinstalación deja el global en v0.2.0; v0.1.0 lo devuelve a otra versión,
+# para que los casos siguientes comprueben que, con un manifiesto local, el
+# aviso no mira un global que sí avisaría (contracts/aceptacion.md §6 de H38).
+exec $KITLEGAL_V1_BIN skills install -g
 
 # Con un manifiesto local, manda el local y el global no se mira: el de
 # proyecto, de otra versión, avisa sin -g; uno local al día no avisa, aunque el

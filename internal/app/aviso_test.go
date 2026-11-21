@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -15,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
@@ -375,8 +378,11 @@ func avisoDeLasDePrueba(t *testing.T, version string) (string, bool) {
 
 // avisoConCualquierPermiso llama al avisador con cada uno de los tres permisos
 // que el kernel le puede dar (data-model §1 de H38) y exige que den todos lo
-// mismo: el avisador del binario da con cualquiera la línea de hoy, la de
-// contracts/aviso.md §4 de H19. Devuelve esa.
+// mismo y que ninguno escriba en la caché: fuera de un manifiesto global de otra
+// versión que se puede reinstalar —con el manifiesto local, sin manifiesto, con
+// un binario de desarrollo, sin lo empotrado o sin Enlazador—, el avisador del
+// binario da con cualquiera la línea de hoy, la de contracts/aviso.md §4 de H19,
+// y no toma el candado (FR-003, FR-013, FR-014 de H38). Devuelve esa.
 func avisoConCualquierPermiso(t *testing.T, avisador Avisador) (string, bool) {
 	t.Helper()
 
@@ -388,7 +394,71 @@ func avisoConCualquierPermiso(t *testing.T, avisador Avisador) (string, bool) {
 		assert.Equal(t, linea, lineaDelPermiso, "con el permiso %d, la misma línea que con SoloAvisar", permiso)
 	}
 
+	assert.NoDirExists(t, os.Getenv(cache.VariableDirectorio), "con ningún permiso se crea la caché ni el candado")
+
 	return linea, hay
+}
+
+// avisoQueReinstala y avisoDelEnsayo son las líneas de FR-006 y FR-009 de H38
+// (contracts/aviso-y-reinstalacion.md §3) para las skills de prueba instaladas
+// en el ámbito global con versionDeSkills y un binario versionDelAvisoNueva. Se
+// escriben aquí enteras, y no con las del dominio, para que un cambio en ellas
+// no pase por aquí en silencio.
+const (
+	avisoQueReinstala = "aviso: kitlegal " + versionDelAvisoNueva + " ha actualizado las skills globales, " +
+		"que eran de " + versionDeSkills + "; se aplican en la próxima conversación"
+	avisoDelEnsayo = "aviso: kitlegal " + versionDelAvisoNueva + " se actualizarían las skills globales, " +
+		"que eran de " + versionDeSkills + "; se aplican en la próxima conversación"
+)
+
+// candadoDeLaReinstalacion es el nombre del candado en el directorio de la
+// caché (contracts/aviso-y-reinstalacion.md §4), escrito aquí entero por lo
+// mismo que las líneas.
+const candadoDeLaReinstalacion = "skills-global.lock"
+
+// avisoDeLasDePruebaCon es el aviso que compone AvisoDeVersion con las skills
+// de prueba empotradas, el creador de enlaces del sistema y la versión
+// versionDelAvisoNueva, con ese permiso.
+func avisoDeLasDePruebaCon(t *testing.T, permiso instalacion.PermisoDelAviso) (string, bool) {
+	t.Helper()
+
+	dependencias := dependenciasDePrueba(disco.Enlazador{})
+	dependencias.Version = versionDelAvisoNueva
+
+	return AvisoDeVersion(dependencias)(permiso)
+}
+
+// globalDeOtraVersion instala con versionDeSkills las skills de prueba en el
+// ámbito global de HOME y deja como directorio de trabajo otro sin nada local,
+// de modo que el aviso compara el global; devuelve HOME.
+func globalDeOtraVersion(t *testing.T) string {
+	t.Helper()
+
+	enUnProyecto(t)
+	instalarLasDePrueba(t, versionDeSkills, "-g")
+	enUnProyecto(t)
+
+	return os.Getenv(variableHome)
+}
+
+// rutaDelCandado es la del candado de la reinstalación en el directorio de la
+// caché que declara la variable, la que fija cada subtest.
+func rutaDelCandado() string {
+	return filepath.Join(os.Getenv(cache.VariableDirectorio), candadoDeLaReinstalacion)
+}
+
+// ponerElCandado deja en candado, y en su directorio si no existe, el candado
+// de la reinstalación, vacío y con la fecha de modificación de hace edad, como
+// lo dejaría otra invocación: solo para su propietario (gosec G301 y G306) y
+// desde un auxiliar distinto del que lee la variable (G703).
+func ponerElCandado(t *testing.T, candado string, edad time.Duration) {
+	t.Helper()
+
+	require.NoError(t, os.MkdirAll(filepath.Dir(candado), 0o700))
+	require.NoError(t, os.WriteFile(candado, nil, 0o600))
+
+	fecha := time.Now().Add(-edad)
+	require.NoError(t, os.Chtimes(candado, fecha, fecha))
 }
 
 // TestAvisoDeVersion comprueba la composición del aviso (contracts/aviso.md;
@@ -406,11 +476,25 @@ func avisoConCualquierPermiso(t *testing.T, avisador Avisador) (string, bool) {
 //   - y sin lo empotrado, o con lo empotrado que no se puede leer, no hay aviso:
 //     el aviso nunca es un error (data-model §7).
 //
-// En cada caso, con cualquiera de los tres permisos que le da el kernel, el
-// mismo aviso (avisoConCualquierPermiso; data-model §1 de H38).
+// En esos casos, con cualquiera de los tres permisos que le da el kernel, el
+// mismo aviso (avisoConCualquierPermiso; data-model §1 de H38), salvo el del
+// manifiesto global, que da la de hoy con SoloAvisar. Y desde H38, la
+// composición que reinstala las skills globales (contracts/aviso-y-
+// reinstalacion.md §2 y §4; research.md D4 y D12 de H38), sobre un global de
+// otra versión:
+//
+//   - con Reinstalar, la línea de FR-006 y el global como lo deja install -g
+//     con el binario nuevo, sin candado (FR-005, FR-006);
+//   - con Ensayar, la de FR-009, y con SoloAvisar, la de hoy, sin escribir nada,
+//     ni el directorio de la caché (FR-009, FR-013);
+//   - con un candado de hace menos de la caducidad, la de hoy y el global sin
+//     cambios; con uno de hace la caducidad, la de FR-006 (FR-010);
+//   - y sin Enlazador, la de hoy y nada escrito (research.md D12).
 //
 // No es paralelo: el ámbito local es el directorio de trabajo, que cada subtest
-// cambia con t.Chdir, y el global sale de HOME, que cada uno fija.
+// cambia con t.Chdir, y el global sale de HOME y la caché de su variable, que
+// cada uno fija dentro de t.TempDir(): ninguno escribe en la cuenta de quien lo
+// ejecuta (research.md D7 de H38).
 func TestAvisoDeVersion(t *testing.T) {
 	t.Setenv(cli.VariableNivel, "")
 
@@ -426,11 +510,17 @@ func TestAvisoDeVersion(t *testing.T) {
 		{"manifiesto-global", compruebaAvisoGlobal},
 		{"sin-home", compruebaAvisoSinHome},
 		{"sin-lo-empotrado", compruebaAvisoSinLoEmpotrado},
+		{"global-de-otra-version-reinstala", compruebaReinstalaElGlobal},
+		{"global-de-otra-version-ensaya", compruebaEnsayaElGlobal},
+		{"candado-reciente-no-reinstala", compruebaCandadoReciente},
+		{"candado-huerfano-reinstala", compruebaCandadoHuerfano},
+		{"sin-enlazador-solo-avisa", compruebaSinEnlazador},
 	}
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Setenv(variableHome, t.TempDir())
+			t.Setenv(cache.VariableDirectorio, filepath.Join(t.TempDir(), "cache"))
 
 			caso.comprueba(t)
 		})
@@ -538,18 +628,121 @@ func compruebaAvisoDeUnaSkill(t *testing.T) {
 	assert.False(t, hay, "la versión de una skill que el binario no empotra no se compara")
 }
 
+// compruebaAvisoGlobal da, con SoloAvisar, la línea de hoy del manifiesto
+// global, y no escribe nada: ni en el global ni en la caché (FR-002, FR-013 de
+// H38). Con los otros dos permisos el global se ensaya o se reinstala
+// (compruebaEnsayaElGlobal, compruebaReinstalaElGlobal).
 func compruebaAvisoGlobal(t *testing.T) {
 	t.Helper()
 
-	enUnProyecto(t)
-	instalarLasDePrueba(t, versionDeSkills, "-g")
-
 	// En otro directorio de trabajo, sin nada local, cuenta el global.
-	enUnProyecto(t)
+	home := globalDeOtraVersion(t)
+	antes := arbolDelProyecto(t, home)
 
-	linea, hay := avisoDeLasDePrueba(t, versionDelAvisoNueva)
+	linea, hay := avisoDeLasDePruebaCon(t, instalacion.SoloAvisar)
 	require.True(t, hay, "el manifiesto global es de otra versión")
 	assert.Equal(t, avisoDeOtraVersion+" -g", linea, "la orden que lo arregla es la del ámbito global")
+	assert.Equal(t, antes, arbolDelProyecto(t, home), "solo avisar no cambia el global")
+	assert.NoDirExists(t, os.Getenv(cache.VariableDirectorio), "solo avisar no crea la caché")
+}
+
+// compruebaReinstalaElGlobal reinstala, con Reinstalar, el global de otra
+// versión sin tocar: la línea de FR-006, el global igual al de un HOME gemelo
+// con la misma preparación sobre el que se ejecuta install -g con el binario
+// nuevo, el manifiesto en la versión del binario y sin candado (FR-005, FR-006,
+// FR-010 de H38). La invocación siguiente ya no tiene nada que decir.
+func compruebaReinstalaElGlobal(t *testing.T) {
+	t.Helper()
+
+	home := globalDeOtraVersion(t)
+
+	gemelo := t.TempDir()
+	t.Setenv(variableHome, gemelo)
+	instalarLasDePrueba(t, versionDeSkills, "-g")
+	instalarLasDePrueba(t, versionDelAvisoNueva, "-g")
+	t.Setenv(variableHome, home)
+
+	linea, hay := avisoDeLasDePruebaCon(t, instalacion.Reinstalar)
+	require.True(t, hay, "el manifiesto global era de otra versión")
+	assert.Equal(t, avisoQueReinstala, linea, "la línea de FR-006")
+
+	despues := arbolDelProyecto(t, home)
+	assert.Equal(t, arbolDelProyecto(t, gemelo), despues, "el global, como lo deja install -g con el binario nuevo")
+
+	manifiesto := despues[".agents/skills/kitlegal.json"]
+	assert.Contains(t, manifiesto, `"`+versionDelAvisoNueva+`"`, "el manifiesto, en la versión del binario")
+	assert.NotContains(t, manifiesto, `"`+versionDeSkills+`"`, "nada queda declarado con la versión anterior")
+	assert.NoFileExists(t, rutaDelCandado(), "el candado se retira al terminar")
+
+	_, hay = avisoDeLasDePruebaCon(t, instalacion.Reinstalar)
+	assert.False(t, hay, "reinstalado, el global está al día y no hay aviso")
+}
+
+// compruebaEnsayaElGlobal da, con Ensayar, la línea de FR-009 sobre el global
+// de otra versión sin tocar, sin escribir nada: ni el global, ni el candado, ni
+// el directorio de la caché (FR-009, FR-013 de H38).
+func compruebaEnsayaElGlobal(t *testing.T) {
+	t.Helper()
+
+	home := globalDeOtraVersion(t)
+	antes := arbolDelProyecto(t, home)
+
+	linea, hay := avisoDeLasDePruebaCon(t, instalacion.Ensayar)
+	require.True(t, hay, "el manifiesto global es de otra versión")
+	assert.Equal(t, avisoDelEnsayo, linea, "la línea de FR-009")
+	assert.Equal(t, antes, arbolDelProyecto(t, home), "ensayar no cambia el global")
+	assert.NoDirExists(t, os.Getenv(cache.VariableDirectorio), "ensayar no crea la caché ni el candado")
+}
+
+// compruebaCandadoReciente fija la caducidad de la composición por debajo: un
+// candado de hace 9 min 30 s es de otra invocación, así que Reinstalar da la
+// línea de hoy, el global sigue igual y el candado ajeno queda donde estaba
+// (FR-010 de H38; contracts/aviso-y-reinstalacion.md §4).
+func compruebaCandadoReciente(t *testing.T) {
+	t.Helper()
+
+	home := globalDeOtraVersion(t)
+	candado := rutaDelCandado()
+	ponerElCandado(t, candado, 9*time.Minute+30*time.Second)
+	antes := arbolDelProyecto(t, home)
+
+	linea, hay := avisoDeLasDePruebaCon(t, instalacion.Reinstalar)
+	require.True(t, hay, "el manifiesto global es de otra versión")
+	assert.Equal(t, avisoDeOtraVersion+" -g", linea, "con el candado de otra invocación, la línea de hoy")
+	assert.Equal(t, antes, arbolDelProyecto(t, home), "sin el candado no se reinstala nada")
+	assert.FileExists(t, candado, "el candado de otra invocación no se toca")
+}
+
+// compruebaCandadoHuerfano fija la caducidad de la composición por arriba: un
+// candado de hace 10 minutos es huérfano, así que Reinstalar lo sustituye,
+// reinstala y lo retira al terminar (FR-010 de H38).
+func compruebaCandadoHuerfano(t *testing.T) {
+	t.Helper()
+
+	globalDeOtraVersion(t)
+	candado := rutaDelCandado()
+	ponerElCandado(t, candado, 10*time.Minute)
+
+	linea, hay := avisoDeLasDePruebaCon(t, instalacion.Reinstalar)
+	require.True(t, hay, "el manifiesto global era de otra versión")
+	assert.Equal(t, avisoQueReinstala, linea, "un candado huérfano no impide reinstalar")
+	assert.NoFileExists(t, candado, "el candado sustituido se retira al terminar")
+}
+
+// compruebaSinEnlazador exige que unas dependencias sin Enlazador, un defecto
+// de composición, den solo la línea de hoy con cualquier permiso, sin escribir
+// nada y sin entrar en pánico (research.md D12 de H38; constitución IV).
+func compruebaSinEnlazador(t *testing.T) {
+	t.Helper()
+
+	home := globalDeOtraVersion(t)
+	antes := arbolDelProyecto(t, home)
+
+	linea, hay := avisoConCualquierPermiso(t,
+		AvisoDeVersion(DependenciasDeSkills{Version: versionDelAvisoNueva, Skills: skillsDePrueba()}))
+	require.True(t, hay, "el manifiesto global es de otra versión")
+	assert.Equal(t, avisoDeOtraVersion+" -g", linea, "sin Enlazador, solo la línea de hoy")
+	assert.Equal(t, antes, arbolDelProyecto(t, home), "sin Enlazador no se reinstala nada")
 }
 
 func compruebaAvisoSinHome(t *testing.T) {
