@@ -1,6 +1,7 @@
 # 0034 · La web habla a quien tiene el asunto: portada de la ciudadanía, despachos, consultas con su cita y un buzón
 
-- **Estado**: aceptada
+- **Estado**: aceptada; **enmendada el 2026-11-21**: la página `/plan/` lleva una encuesta anónima que se envía a un
+  formulario de Google («Enmienda: la encuesta del plan»). Sigue en pie el buzón, y ninguna otra página envía nada.
 - **Fecha**: 2026-10-01
 - **Hito**: transversal (tras v0.3.2, antes de H20). Enmienda el ADR 0024 en «Una URL por audiencia» y extiende su
   regla de las citas a lo que la web dice de una norma con otras palabras. No cambia el producto.
@@ -100,3 +101,40 @@ con sus citas.
 - Lo que cuenten los despachos por correo entra en `docs/USO.md`, la bitácora con la que se reprioriza el roadmap
   (ADR 0013). Que ninguna de las dos audiencias trabaje en una terminal es una entrada de esa bitácora, no una
   decisión de este ADR: el servidor MCP y el plugin siguen en el backlog de distribución.
+
+## Enmienda: la encuesta del plan (2026-11-21)
+
+**Contexto.** La persona que mantiene el proyecto quiere que juristas que no usan Claude revisen el plan —lo hecho, lo
+que viene y en qué orden— y digan si es correcto y qué necesitan, y poder contar las respuestas: cuántos piden una
+cosa u otra, desde qué tipo de despacho y en qué áreas. El buzón sirve para conversar con alguien, no para contar
+respuestas. Una encuesta que no pide nombre, correo ni ningún dato que identifique a nadie no recoge datos personales
+ni datos de uso del producto: lo que el ADR 0027 prohíbe es que kitlegal envíe a un servidor las preguntas, los
+asuntos o el uso de quien lo usa, y eso no cambia.
+
+**Decisión.**
+
+- **`/plan/` cuenta el plan en lenguaje llano** y termina con una encuesta anónima. El estado y el orden de cada hito
+  salen de `docs/roadmap/` al construir, y lo que kitlegal hace hoy, de `data/cobertura.yaml`; los textos llanos
+  viven en `web/src/data/plan.ts`, y la construcción falla si un hito pendiente no tiene el suyo.
+- **La encuesta es un formulario HTML sin JavaScript que se envía a un formulario de Google** solo cuando la persona
+  pulsa «Enviar». La página no carga nada de Google: ni scripts, ni marcos, ni fuentes. La política de seguridad de
+  contenido de esa página admite enviar el formulario al origen `https://docs.google.com` y a ningún otro; las demás
+  páginas siguen con `form-action 'none'`.
+- **Es anónima.** No pide nombre ni correo, el formulario de Google no recoge el correo ni pide iniciar sesión, y los
+  campos libres piden no incluir datos de clientes ni de asuntos. La página dice que Google recibe el envío como
+  cualquier web que se visita y que kitlegal solo ve las respuestas.
+- **Las preguntas tienen una sola fuente**, `web/src/data/encuesta.ts`. `web/scripts/encuesta.mjs` genera con ellas
+  el guion de Google Apps Script que crea el formulario, y lo que el guion devuelve —la dirección de envío, el campo de
+  cada pregunta y la huella de las preguntas— va en `web/src/data/encuesta-formulario.json`. Si las preguntas cambian
+  después de crear el formulario, la huella deja de coincidir y la construcción falla. Sin formulario conectado, la
+  página se publica sin la encuesta.
+- Esto precisa la opción 2 de este ADR («Un formulario. Rechazada») y su decisión «No hay formulario ni nada de
+  terceros», y la consecuencia «Sin nada de terceros en la página» del ADR 0024, solo para `/plan/`: allí el tercero
+  aparece en el envío, nunca al cargar la página.
+
+**Consecuencias.**
+
+- Las respuestas llegan a una hoja de cálculo de Google de la persona, que se descarga para analizarlas. Lo que digan
+  entra en `docs/USO.md`, como lo que llega por correo (ADR 0013).
+- Un cambio en `docs/roadmap/` vuelve a construir y publicar la web (`.github/workflows/web.yml`), y una entrada nueva
+  en la cola necesita su texto llano en `web/src/data/plan.ts`.

@@ -33,7 +33,7 @@ Una visita sale bien cuando la persona:
 ## Operating Context
 
 - Se usa dentro de un agente (Claude Code, Claude Desktop y otros hosts de skills o MCP local), no en la web: la web no ejecuta consultas.
-- Páginas: la portada para juristas y despachos (`/`, con la comparativa de mercado, el bloque de Ventanilla Legal y la invitación a escribir a `info@kitlegal.es`), una página por consulta en `/consultas/<slug>/`, `/instalar/` paso a paso, `/como-se-evalua/`, `/bot/` (identificación del rastreador), `/schemas/`, `llms.txt`.
+- Páginas: la portada para juristas y despachos (`/`, con la comparativa de mercado, el bloque de Ventanilla Legal y la invitación a escribir a `info@kitlegal.es`), una página por consulta en `/consultas/<slug>/`, `/instalar/` paso a paso, `/como-se-evalua/`, `/plan/` (el plan en lenguaje llano, con su encuesta anónima), `/bot/` (identificación del rastreador), `/schemas/`, `llms.txt`.
 - La visibilidad se sigue en Search Console (`docs/SEO.md`).
 
 ## Capabilities and Constraints
@@ -64,5 +64,5 @@ Una visita sale bien cuando la persona:
 1. **Nada sin cita.** Lo que la web afirma sobre la ley se puede comprobar, y se comprueba al construir.
 2. **Honestidad sobre los límites.** Decir qué no hace y por qué pesa tanto como decir qué hace.
 3. **El profesional decide.** El diseño sirve primero a quien firma y responde de lo que presenta.
-4. **Local y sin rastreo.** La web no recoge nada; la conversación con el usuario es el correo.
+4. **Local y sin rastreo.** La web no rastrea a nadie ni carga nada de terceros. La conversación con el usuario es el correo, y la única excepción es la encuesta anónima de `/plan/`, que solo se envía a un formulario de Google cuando la persona pulsa «Enviar» (ADR 0034, enmienda del 2026-11-21).
 5. **Quitar la barrera de instalar** antes que añadir mensajes.

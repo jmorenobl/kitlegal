@@ -17,6 +17,7 @@ const imagenes: Record<string, { titulo: string; subtitulo: string }> = {
     ]),
   ),
   evaluacion: { titulo: "Cómo se evalúa kitlegal", subtitulo: "Qué se comprueba en cada cambio y qué errores quedan" },
+  plan: { titulo: "El plan de kitlegal", subtitulo: "Lo hecho, lo que viene y lo que no hará nunca" },
   bot: { titulo: "El rastreador de kitlegal", subtitulo: "Qué es, cómo se comporta con tu sitio y cómo limitarlo" },
 };
 
