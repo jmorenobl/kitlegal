@@ -45,6 +45,15 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **Dos referencias de las skills dejan de dar pie a decir lo que no se ha leído** (H38, reparación del cierre).
+  `plazos-y-territorio` ya no da en `administrativo.md` ante quién se presenta la reclamación del art. 24.2 LTAIBG: lo
+  señala como variación autonómica solo con el art. 24 leído en la conversación y con su cita, y sin su texto deja la
+  reclamación con las palabras del precepto leído. `normativa` dice en `lecturas_que_fallan.md` dónde va el aviso de
+  un bloque que no se pudo leer: en una frase aparte, al final, con su número y la causa, nunca en la viñeta ni en la
+  frase de una materia, y sin retirar con sus palabras lo escrito antes de que la lectura fallara. En la medición 1
+  del cierre de H38, el juez marcó por esas dos formas 4 de las 120 respuestas de `normativa` en `afirma_lo_no_leido`
+  (el tope es 2,8 %); el efecto del cambio lo mide el job de evals de la medición siguiente. Ningún `SKILL.md`, eval
+  ni umbral cambia.
 - **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).
   Con una intercalación de idioma, como `en_US.UTF-8`, GNU sort ordenaba las líneas de `git status --porcelain` sin
   mirar su prefijo, y GNU comm daba esa salida por desordenada y salía con 1. En el run de H33, el primero en Linux con

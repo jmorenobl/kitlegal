@@ -38,6 +38,12 @@ De lo que no se pudo leer, la respuesta dice qué bloques, por su número, y por
 estaba disponible, limitó las consultas o no fecha sus redacciones. No da el código, ni de qué tratan esos bloques, ni
 para qué los pedías, y no suple su texto.
 
+Lo dice en una frase aparte, al final, con el número y la causa y nada más: «No he podido leer el artículo N de
+<norma>: <causa>.» No va en la viñeta ni en la frase de una materia, ni colgada de ella («su artículo N», «<materia>,
+que regula el artículo N»): puesta ahí, dice de qué trata el bloque. Y lo que escribiste de ese bloque antes de que la
+lectura fallara no se retira con sus palabras («antes dije que el artículo N…»): retirarlo así lo repite. Basta la
+frase.
+
 ## Si `kitlegal graph check` falla
 
 Si la lectura sin fecha devuelve el texto del bloque y, detrás, `kitlegal graph check` termina con otro código que `0`

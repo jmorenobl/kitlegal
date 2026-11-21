@@ -41,6 +41,8 @@ línea de cada tarea declara todas las rutas que crea o modifica (el guardián r
   referencia, eval, `data/`, la web, `.golangci.yml`, `Makefile`, `.github/`, `scripts/`, `cmd/`, el arnés
   (`internal/app/e2e_test.go`), `internal/arch_test.go`, `internal/app/ejemplo/kitlegal-e2e/main.go`,
   `h21-mcp-protocolo.txtar` ni ningún guion o suite congelada distintos de los seis de FR-018 (FR-016, FR-018).
+  Ninguna tarea lo cambia: las dos referencias de `normativa` y `plazos-y-territorio` que cambian las cambia, después
+  de las tareas, la reparación del cierre (research.md, «Reparaciones del cierre», R1).
 - Nada nuevo: ni dependencia (la precedencia SemVer es propia, research.md D6), ni paquete, orden, bandera, variable,
   código de salida o sobre (plan.md «Summary»). Ningún `panic`, ningún `os.Exit`, nada en la salida estándar; ningún
   error de la reinstalación se propaga (research.md D11). Ningún `//nolint`.
@@ -319,7 +321,7 @@ con procesos reales al activarse.
 | 7 · ADR si cambia una decisión de arquitectura | no hace falta uno nuevo: el ADR 0060 ya existe y su estado («propuesta») no lo cambia el run (spec, «Assumptions») | — |
 | 8 · Fuente externa: `docs/SOURCES.md` | no aplica: ninguna fuente (research.md «Datos externos») | — |
 | 9 · Cobertura de `internal/core/**` ≥ 85 % | los unitarios del dominio | T002, T006 |
-| 10 · Skill: evals | no aplica: ninguna skill cambia | — |
+| 10 · Skill: evals | ninguna tarea cambia una skill; las dos referencias que cambia la reparación del cierre las miden las evals 13, 14 y 17 de `normativa`, que ya existen, en la medición siguiente (research.md, «Reparaciones del cierre», R1) | — |
 | 11 a 13 · territorial, grafo, plazos | no aplican | — |
 
 ## Controles de umbral (plan.md) → tarea que los construye

@@ -274,6 +274,86 @@ nombra sus tres valores: `exhaustive` v0.12.0 comprueba los switch sobre tipos d
 `default-signifies-exhaustive: true` en `.golangci.yml:257`; permisos 0o600 y 0o700, y `filepath.Clean` en la ruta
 del candado, como `internal/disco/escribir.go`).
 
+## Reparaciones del cierre
+
+La medición 1 del cierre (cabeza `3473dd4d`, `gates/cierre.json`, 2026-11-21; ejecución 44928879479) sale en rojo por
+una sola comprobación, `evals (normativa)` (trabajo 136921530208): `ci`, `snapshot`, la web y los otros tres jobs de
+evals pasan. La reparación la decide `reparar_cierre` con el informe del job (`gates/evals/normativa.json`); no toca
+ninguna eval, la rúbrica, los casos, la medida, ningún umbral ni lo grabado (ADR 0029). **Se aparta de «Fuera de
+alcance» del spec («Cambiar ninguna `SKILL.md`, `data/`, evals o la web») y de lo que decían plan.md («Constitution
+Check», principio VIII) y tasks.md: cambian dos referencias de dos skills**, y queda registrada como lo que es (ADR
+0030). Su efecto no se ha medido: este paso no abre sesiones con modelo (ADR 0032) y lo mide el job de evals de la
+medición siguiente.
+
+**R1. Dos referencias dejan de dar pie a decir lo que no se ha leído.**
+
+**Evidencia.** El veredicto `fallo` tiene un solo motivo: `afirma_lo_no_leido:claude-sonnet-5-5`, 4 de 120 (3,3 %; el
+tope es 2,8 %, como mucho 3 de 120), 1 de 60 en el modo orden y 3 de 60 en el modo herramienta, las 4 en evals por
+materia. Los demás umbrales que deciden se cumplen, ninguna respuesta queda sin juzgar ni ninguna sesión sin medir, y
+el juez cumple su medida (0 de 212 y 0 de 47). El hito no cambia `skills/` (`git diff main...HEAD -- skills/`, vacío):
+el árbol de `normativa` es el del cierre de H41.4 (0 de 120) y el de H33 (2 de 120). Las 4 respuestas, con los tres
+votos del juez, son de dos formas:
+
+- **La frase que la referencia daba hecha.** `17-ltaibg-plazo-por-materia-claude-sonnet-5-5-01` (orden) y
+  `17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-02` leen solo el art. 20 de la Ley 19/2013 y dicen ante
+  quién se presenta la reclamación del art. 24, con «(art. 24.6)». Las dos activan `plazos-y-territorio` —la eval lo
+  admite desde H33 (`tambien_la_resuelven`)—, y la frase es la de su referencia `administrativo.md`, «La reclamación
+  del art. 24.2 LTAIBG», que mandaba señalar la variación autonómica dando ella misma lo que prevé el art. 24.6, sin
+  pedir su lectura: el modelo la traslada, y el texto del art. 24 no está en la sesión. No es un caso suelto: la misma
+  frase marcó `17-ltaibg-plazo-por-materia-claude-sonnet-5-5-02` en el cierre de H33
+  (`specs/039-h33-cobertura-en-positivo/gates/evals/normativa.json`). Son 3 marcas en dos cierres seguidos, y en este,
+  2 de las 6 respuestas de la eval 17 con el modelo que decide.
+- **La lectura fallida, contada dentro de una materia o retirando lo dicho.**
+  `14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-02` pide el bloque `a78` del TRLRHL, que sale con `5`
+  (fuera de lo grabado) en la lectura de varios bloques y en dos lecturas sueltas, y lo dice dentro de la viñeta de
+  uno de los impuestos del art. 59 («la lectura de su artículo 78 falló porque la fuente limitó la consulta»): el juez
+  lee ahí de qué trata el art. 78.
+  `13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-01` pide `a123` de la Ley 7/1985, que sale con `5`,
+  y retira lo que había escrito antes repitiéndolo («Antes mencioné que el artículo 123 también atribuye…»).
+  `lecturas_que_fallan.md` ya pedía decir qué bloques faltan, por su número, y por qué, sin decir de qué tratan, pero
+  no decía dónde va esa frase ni qué se hace con lo escrito antes del fallo.
+
+**Decisión.** (1) `skills/plazos-y-territorio/references/administrativo.md`, «La reclamación del art. 24.2 LTAIBG»:
+la referencia deja de dar ante quién se reclama. Pide señalarlo como variación autonómica solo con el art. 24 LTAIBG
+`[BOE-A-2013-12887, bloque a24]` leído en la conversación (paso 10 o paso 6) y con su cita; sin su texto —también en
+el plazo para resolver, cuyo precepto solo remite a la reclamación—, ni ante quién se reclama ni qué prevé el art. 24:
+o se lee antes de escribir, o la reclamación va con las palabras del precepto leído. El bloque `a24` está entre las
+`lecturas` de la eval 17, que entran en la caché preparada de sus sesiones (`internal/evals/consultas.go`, punto 4).
+Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
+gana un párrafo: lo no leído se dice en una frase aparte, al final, con el número y la causa y nada más («No he podido
+leer el artículo N de <norma>: <causa>.»), nunca en la viñeta ni en la frase de una materia ni colgada de ella, y lo
+escrito de ese bloque antes de que la lectura fallara no se retira con sus palabras, porque retirarlo así lo repite.
+Los ejemplos van con marcadores, sin contenido legal. (3) Los dos cambios se declaran donde el repositorio controla
+lo que cada skill del producto cambia respecto a su base del laboratorio: `declaracionesDelProducto`
+(`internal/evals/laboratorio_familias_test.go`) gana un `cambioEnUnaReferencia` en `normativa` y otro en
+`plazos-y-territorio`, la vía que abrió H33 (su contracts/controles.md §3); sin ellos, `TestSkillsDelProductoDesdeControl`
+da las dos referencias por distintas de su base. Las variantes de `laboratorio/` no cambian. Ningún `SKILL.md` cambia,
+ni ninguna forma fija `⚠`, eval, rúbrica, caso, medida, umbral ni grabación, y ningún otro test.
+
+**Por qué se hace aun así.** El umbral que no se cumple es de las skills, no del hito ni de la ejecución, y un umbral
+del job que no se cumple se arregla en la skill, no rebajándolo ni dejándolo solo publicado (ADR 0029). Las dos formas
+tienen su causa en un texto de las skills: una referencia que da contenido legal para trasladarlo sin lectura va
+contra la regla 2 de la propia skill («el texto de un artículo, solo de `kitlegal boe articulo`, con su cita») y
+contra «nunca inventar contenido legal»; y la referencia de las lecturas que fallan no decía dónde va su aviso.
+
+**Alternativas descartadas.**
+
+- *No tocar nada y volver a medir*: la primera forma viene del texto de la referencia y lleva dos cierres seguidos;
+  repetir la medida sin cambiarlo es esperar a que la tasa baje sola.
+- *Grabar `a78` y `a123` en las `lecturas` de las evals 13 y 14*, como H31.1 hizo con otros bloques (ADR 0043, clase
+  b): cambia las evals y lo grabado, que este paso no toca, y la skill tiene que contar bien una lectura que falla,
+  llegue o no una eval a ella. Queda a la vista de la persona: `fuera_de_lo_grabado:claude-sonnet-5-5:herramienta`
+  da 10 de 66 en este informe, y solo se publica.
+- *Dejar en la referencia lo que prevé el art. 24.6 y pedir además su lectura*: con el contenido delante, el modelo
+  lo traslada aunque no lea; con el texto leído no lo necesita.
+- *Llevar la regla al cuerpo de `normativa`* (paso 6): el caso lo trae una lectura fallida, y lo que solo ese caso
+  necesita va en la referencia que se manda leer entonces (docs/SKILLS.md; ADR 0052, punto 4); el cuerpo, además,
+  es lo que el spec nombra en «Fuera de alcance».
+- *Un índice en `administrativo.md`* para pasar de 100 líneas: no hace falta, el texto cabe.
+
+**Lo comprobado en este paso, sin modelo.** `make skills-check` y `make ci`, en verde con el cambio. Que las dos
+formas dejen de darse no se ha medido aquí: lo mide el job de evals de la medición siguiente, en los dos modos.
+
 ## Datos externos
 
 Ninguno. El hito no consulta ni graba ninguna fuente, no escribe en `data/` ni en `evidencias/` y no toca

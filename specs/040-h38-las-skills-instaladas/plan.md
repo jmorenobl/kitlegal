@@ -54,13 +54,13 @@ cambian; 2 documentos.
 | Principio o regla | Cómo lo cumple este hito |
 |---|---|
 | I · Fuentes públicas y frontera humana (INNEGOCIABLE) | No toca ninguna fuente ni `internal/httpx`; ninguna petición. Lo que escribe es local, en la cuenta de quien usa el kit, y solo lo que ya escribe `install -g` (FR-005) |
-| II · Nada sin cita ni fuente | Ningún sobre cambia: la salida estándar es la de hoy, byte a byte (FR-012); la línea va a la salida de error. Ninguna skill ni referencia cambia |
+| II · Nada sin cita ni fuente | Ningún sobre cambia: la salida estándar es la de hoy, byte a byte (FR-012); la línea va a la salida de error. El diseño del hito no cambia ninguna skill ni referencia; la reparación del cierre cambia dos referencias para que ninguna dé contenido legal sin su lectura («Decisiones»; research R1) |
 | III · Tests primero y offline | Primero los cuatro guiones de `aceptacion/`, que fallan hoy por una aserción (cada uno lleva un caso que reinstala o la línea de FR-009); unitarios offline sobre el disco en memoria y `t.TempDir()`; ninguna grabación ni fixture nuevo; ninguna salida de applet nueva que validar contra `schemas/`. El código nuevo de `internal/core/instalacion` lo cubren `TestReinstalacion*` y `TestReglaDeVersiones` (umbral de cobertura de `internal/core/**`) |
 | IV · Arquitectura hexagonal con reglas ejecutables | El dominio decide y define el puerto `TomarCandado`; la entrada y salida la hacen `internal/disco` y `internal/cache`; `internal/app` compone. Ningún código de salida nuevo: un fallo de la reinstalación no es un error de la invocación (FR-012) y se queda en la línea de hoy (research.md D11). Ningún `panic`: sin `Enlazador` el avisador solo da la línea de hoy (D12) |
 | V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia: la precedencia SemVer es propia (D6; `golang.org/x/mod/semver` descartada). Ningún paquete nuevo; cada tipo, función, fichero y test se traza a un FR («Trazabilidad»); la sustitución del huérfano no lleva más mecanismo que el que pide FR-010 (D5) |
 | VI · Un binario, convenciones de agente | Un binario; ninguna orden, bandera ni variable nueva (`KITLEGAL_CACHE_DIR` es la de H3). Igual por el primer argumento y por multicall (US1.8). `--dry-run` describe y no escribe (FR-009); `--describe` no cambia |
 | VII · Grafo y privacidad | No toca el grafo. El candado es un fichero vacío: no guarda ningún dato de nadie |
-| VIII · Skills primero; el binario es la herramienta | Protege las skills existentes: las que instaló la persona le llegan al día con el binario, sin cambiar ninguna `SKILL.md`, referencia ni eval (fundación de la distribución, ADR 0019 y 0060). Ninguna skill lee la línea (spec, «Contexto») |
+| VIII · Skills primero; el binario es la herramienta | Protege las skills existentes: las que instaló la persona le llegan al día con el binario, sin cambiar ninguna `SKILL.md` ni eval (fundación de la distribución, ADR 0019 y 0060); las dos referencias que cambia la reparación del cierre no son del diseño del hito («Decisiones»; research R1). Ninguna skill lee la línea (spec, «Contexto») |
 | IX · Genericidad territorial, validación local | Nada territorial; las consultas de los e2e usan `territorio resolver Leganés` solo como orden sin red y de salida fija |
 | X · Genericidad por materia, validación administrativa | Nada por materia: el pedido son las skills declaradas, sean de la materia que sean, más sus herederas |
 | R1 · `internal/core/**` no importa el kernel, adaptadores ni entrada y salida | `reinstalacion.go`, `version.go` y `puertos.go` solo usan la biblioteca estándar sin entrada y salida y los tipos del propio paquete; el candado llega como puerto |
@@ -257,3 +257,15 @@ D3 (dos evaluaciones), D4 (el candado en la caché), D5 (cuándo no se toma y lo
 huérfano), D6 (precedencia SemVer propia), D7 (unitarios por la API pública, deterministas), D8 (la concurrencia en
 e2e como aceptación), D9 (cómo se construyen los estados), D10 (la orden de las consultas), D11 (ningún error se
 propaga), D12 (la firma del avisador) y D13 (skills de Go).
+
+**Reparación del cierre** (research «Reparaciones del cierre», R1), con la medición 1 del cierre como evidencia y
+**apartándose de «Fuera de alcance» del spec**, que no deja cambiar ninguna skill: `evals (normativa)` sale en rojo
+por `afirma_lo_no_leido:claude-sonnet-5-5`, 4 de 120 (tope, 2,8 %), con `skills/` sin tocar por el hito. Dos de las
+cuatro respuestas trasladan lo que prevé el art. 24.6 LTAIBG, que la referencia `administrativo.md` de
+`plazos-y-territorio` daba hecho sin pedir su lectura (la misma frase ya marcó una respuesta en el cierre de H33), y
+las otras dos cuentan una lectura fallida dentro de una materia o retirando lo dicho. Cambian esas dos referencias:
+`administrativo.md` deja de dar ante quién se reclama y lo pide con el art. 24 leído y citado, y
+`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Se hace porque el umbral que no se
+cumple es de las skills y se arregla en la skill (ADR 0029); se descartan volver a medir sin cambio, grabar los bloques
+que fallaron (cambia las evals y lo grabado) y tocar el cuerpo de `normativa`. Ningún `SKILL.md`, eval, umbral ni
+grabación cambia. El efecto no se ha medido en el run: lo mide el job de evals de la medición siguiente.
