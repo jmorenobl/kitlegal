@@ -3,7 +3,7 @@
 - **Estado**: propuesta (2026-11-21); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
 - **Fecha**: 2026-11-21
 - **Hito**: H38. Se escribe con su entrada, antes del run y fuera de él, en una sesión interactiva. Cambia el contrato
-  del aviso de versión de H19 (`specs/009-h19-instalar-sin-clonar/contracts/aviso.md`, §5; FR-070 a FR-077), como pide
+  del aviso de versión de H19 (`specs/009-h19-instalar-sin-clonar/contracts/aviso.md`, §3 y §4; FR-071, FR-077 y SC-013), como pide
   el ADR 0044, punto 7. Precisa el ADR 0019 en lo que dice del aviso.
 
 ## Contexto y problema
@@ -67,7 +67,7 @@ Hay tres hechos que limitan qué se puede hacer:
    versión y no hace nada. En el servidor MCP no se reinstala nada, y el aviso sigue saliendo una vez por arranque.
 6. **El candado.** Es `skills-global.lock`, en la ruta de `cache.Directorio()`, fuera de `~/.agents/skills`, así que no
    lo ven `install`, `list` ni `doctor`. Si el directorio no existe, se crea; si no se puede, no se reinstala. Se crea en exclusiva y se borra al terminar, salga bien o mal. Si existe
-   y tiene menos de 10 minutos, la invocación da la línea de hoy sin esperar; si tiene más, se sustituye.
+   y tiene menos de 10 minutos, la invocación da la línea de hoy sin esperar; si tiene 10 minutos o más, se sustituye.
 
 ## Consecuencias
 

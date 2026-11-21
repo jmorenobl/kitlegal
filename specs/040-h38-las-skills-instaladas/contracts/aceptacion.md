@@ -84,8 +84,8 @@ tocar, sobre el que se lanzan todas las invocaciones excluidas, y tras cada una 
 
 `kitlegal skills …` (FR-002) no va en este guion: su salida estándar es lo que hay instalado, así que no tiene
 referencia sin skills. Que el applet `skills` no busca el aviso lo vigilan las filas `skills-*` de
-`TestAvisoDelKernel` (`internal/app/aviso_test.go:191-195`, `avisa: false`), donde el kernel no da ninguna línea del
-avisador, y los guiones de H19.
+`TestAvisoDelKernel` (`internal/app/aviso_test.go:205-209` en la rama, con `nil` como permisos pedidos: el kernel no
+llama al avisador; eran las 191-195, con `avisa: false`, en `main`), y los guiones de H19.
 
 Y el ámbito local, cada caso en su directorio de proyecto y con el `HOME` de las excluidas, cuyo global sigue en la v1
 porque ninguna de ellas reinstala:

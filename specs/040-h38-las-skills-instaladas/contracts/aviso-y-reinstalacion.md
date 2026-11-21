@@ -32,8 +32,9 @@ Por el primer argumento o por el nombre del applet (multicall) es la misma: las 
    declara y el binario empotra) no tiene forma SemVer, o alguna comparada es mayor que la del binario en precedencia
    SemVer 2.0.0, o ninguna es menor, la línea de hoy.
 5. **Plan (FR-003 c, FR-005).** `Planificar(Disco, Enlazador, pedido, Empotradas, Retiradas, Version)` con el pedido
-   de data-model §4. Si devuelve un error —un conflicto o un fallo del disco o de la sonda— o alguna skill del plan
-   sale «sin retirar», la línea de hoy.
+   de data-model §4. Si el pedido sale vacío (ninguna skill declarada que el binario empotre ni herede), `Planificar`
+   no se llama y da la línea de hoy (gates/supuestos.md, T002). Si devuelve un error —un conflicto o un fallo del disco
+   o de la sonda— o alguna skill del plan sale «sin retirar», la línea de hoy.
 6. **Ensayo (FR-009).** Con `Ensayar`, la línea de FR-009 con la versión que nombra la de hoy. No toma el candado ni
    escribe; la sonda de enlace de `Planificar` se crea y se retira, como en `install --dry-run`.
 7. **Candado (FR-010).** `liberar, tomado := Candado()`. Sin tomarlo, la línea de hoy. Tomado, `liberar` se llama al

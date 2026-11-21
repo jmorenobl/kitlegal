@@ -325,7 +325,7 @@ Definiciones que usan los requisitos:
   pide ni la trata (comprobado: ver Contexto); la ve el agente en cualquiera de las órdenes que una skill lanza por
   pregunta (de una a varias `kitlegal boe articulo`, `cita`, `plazos`, `territorio`). Sale **una vez por actualización
   del binario**: en la primera consulta tras ella; en la siguiente las versiones coinciden y no sale nada (FR-003 b,
-  escenario 2 de US1). Mide una línea de unos 115 bytes con versiones como `v0.10.1` y `v0.9.0`, y no depende del uso
+  escenario 2 de US1). Mide una línea de 120 bytes, con su salto, con versiones como `v0.10.1` y `v0.9.0`, y no depende del uso
   acumulado: cientos de normas y miles de bloques consultados no entran en ella, solo dos versiones. La reinstalación
   examina las skills del pedido (cuatro hoy) y sus ficheros, no la caché ni el grafo.
 - **La línea de FR-009** la ve quien pide `--dry-run`, una vez por esa orden; deja de darse cuando la reinstalación se

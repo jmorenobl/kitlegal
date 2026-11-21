@@ -84,8 +84,9 @@ file must not exist», `go doc os.O_EXCL`), también en Windows, donde `syscall.
 (`$(go env GOROOT)/src/syscall/syscall_windows.go:436-437`). `os.MkdirAll` aplica los permisos antes de la umask a lo
 que crea y no hace nada si ya existe (`go doc os.MkdirAll`).
 
-**Coste.** `internal/cache` exporta una lista cerrada, `superficieDelContrato` (`internal/cache/superficie_test.go:59-93`),
-y `TestSuperficieExportada` la compara en los dos sentidos con lo que el paquete declara exportado (líneas 112-140):
+**Coste.** `internal/cache` exporta una lista cerrada, `superficieDelContrato` (`internal/cache/superficie_test.go:59-93` en
+`main`; 60-99 en la rama), y `TestSuperficieExportada` la compara en los dos sentidos con lo que el paquete declara
+exportado (líneas 112-140 en `main`; la comparación, en las 133-144 de la rama):
 `cache.TomarCandado` la pondría en rojo. La lista gana la entrada `"func TomarCandado"` y su comentario nombra el
 candado de H38 (contracts/aviso-y-reinstalacion.md §4), como ganó `"func Directorio"` en H7
 (specs/010-h7-internal-graph-grafo/plan.md:494). La función no recibe ni devuelve nada de `database/sql` ni de SQLite
@@ -102,7 +103,8 @@ candado en `~/.agents/skills`: lo prohíben FR-010 y FR-016.
 
 **Decisión.** `TomarCandado` devuelve `tomado == false`, sin haber creado nada que quede, si `Directorio()` falla, si
 `MkdirAll` falla, o si la creación exclusiva falla por otra causa que «ya existe». Si ya existe: `os.Lstat`; si su
-fecha de modificación es de hace menos de la caducidad (`time.Since(mtime) < caducidad`), no tomado y sin tocarlo; si
+fecha de modificación es de hace menos de la caducidad (`ahora().Sub(mtime) < caducidad`, con `ahora` = `time.Now`,
+lo mismo que `time.Since`; gates/supuestos.md, T003), no tomado y sin tocarlo; si
 es de hace la caducidad o más, `os.Remove` y una sola creación exclusiva más; si la retirada o esa creación fallan, no
 tomado. Nunca espera ni reintenta más (fuera de alcance del spec).
 
@@ -168,13 +170,18 @@ dominio), sobre `discoEnMemoria`:
   que falla en la operación n: la línea de hoy del estado anterior, `liberar` llamado, y después `Planificar`+`Aplicar`
   con el pedido de `install -g` sin conflictos y con el estado final de la reinstalación sin fallos. Si la operación n
   es el enlace, `Aplicar` no se para y sigue con su copia (FR 024 de H19): la reinstalación sale bien y da la línea de
-  FR-006, como `install`. Es el patrón de `TestFalloAMitadSeCompleta` (`aplicar_test.go:341-393`).
+  FR-006, como `install`. Es el patrón de `TestFalloAMitadSeCompleta` (`aplicar_test.go:341-393`). Con una salvedad,
+  la de `install`: si la operación n deja a medias la retirada de la skill de nombre retirado, `install -g` la conserva
+  «sin retirar» con lo que queda (FR-027 de H32), y el test lo espera así (gates/supuestos.md, T006).
 
 En `internal/cache/candado_test.go`, `TestTomarCandado` (FR-010) con `t.Setenv(KITLEGAL_CACHE_DIR)` y sin
 `t.Parallel()`, como `TestAdaptadorConVariableDeEntorno` (`internal/cache/adaptador_test.go:488-496`): libre →
 tomado y el fichero existe; `liberar` → no existe; reciente (`os.Chtimes` a hace 9 min 30 s) → no tomado, intacto;
-huérfano (a hace 10 min y a hace un año) → tomado; sin directorio → creado con 0o700 y tomado; `KITLEGAL_CACHE_DIR`
-vacía o que es un fichero → no tomado y nada creado. `paralleltest` no pide `t.Parallel()` a una prueba que llama a
+huérfano (a hace 10 min y a hace un año) → tomado; la frontera exacta, con un reloj parado en el `tomarCandado` sin
+exportar (a un nanosegundo de los 10 minutos, no tomado; a los 10 justos, tomado; gates/supuestos.md, T003); sin
+directorio → creado con 0o700 y tomado; `KITLEGAL_CACHE_DIR` vacía o que es un fichero, un directorio que no se puede
+crear, una creación que falla por otra causa → no tomado y nada creado; un huérfano que no se puede retirar → no
+tomado y queda. `paralleltest` no pide `t.Parallel()` a una prueba que llama a
 `Setenv` (`~/go/pkg/mod/github.com/kunwardeep/paralleltest@v1.0.15/pkg/paralleltest/paralleltest.go:87,150,178,337`;
 la versión es la de `tools/golangci-lint/go.sum:397`). `os.Chtimes` cambia la fecha de modificación (`go doc
 os.Chtimes`).
@@ -234,7 +241,7 @@ directorio que crea el candado se ve solo (FR-010).
 **Decisión.** Ni `TomarCandado` ni `Avisar` devuelven error: lo que falla se queda en la línea de hoy, que es lo que
 FR-010, FR-011 y FR-012 piden («un fallo de la reinstalación nunca es un error de la invocación»), y el borrado del
 candado que no se puede borrar se deja como está (lo sustituye la siguiente tras la caducidad). Es la misma decisión
-que el kernel tomó en H19 para la escritura del aviso (`avisar`, `internal/app/main.go:430-446`; research.md D5 de
+que el kernel tomó en H19 para la escritura del aviso (`avisar`, `internal/app/main.go:430-446` en `main`, 469-485 en la rama; research.md D5 de
 H19), y no un error silenciado: el resultado observable es la línea.
 
 **Descartado.** Devolver el error y registrarlo con `slog`: el avisador no tiene registrador y la línea ya dice lo
@@ -276,5 +283,7 @@ Ninguno. El hito no consulta ni graba ninguna fuente, no escribe en `data/` ni e
   --help`); el de `ubuntu-latest` no se ha visto aquí. `-t` con ese formato es de POSIX.
 - **Windows.** Más allá de `O_EXCL` → `CREATE_NEW` (D4), nada de la reinstalación se ha comprobado en Windows; FR-017
   lo declara sin probar en `CHANGELOG.md`.
-- **Los escenarios de `quickstart.md`** describen el binario entregado: no se han ejecutado en esta sesión (ver «Lo
-  medido en esta sesión») y con el código de hoy fallan, porque el binario de hoy solo da la línea de H19.
+- **Los escenarios de `quickstart.md`** describen el binario entregado: no se ejecutaron en la sesión del plan (ver
+  «Lo medido en esta sesión») y con el código de `main` fallan, porque aquel binario solo da la línea de H19. Los de su
+  §3 los ejecutó el barrido global con los binarios de la rama, sin un host que enlazar, y dieron lo esperado
+  (quickstart.md, al principio).

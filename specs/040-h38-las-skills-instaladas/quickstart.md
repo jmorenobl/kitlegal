@@ -5,8 +5,14 @@ red). Ninguno escribe fuera de un directorio de `mktemp -d` (que vive en `$TMPDI
 y de la caché de compilación de Go; ninguno toca el árbol de trabajo, el índice ni el historial de git, ni la cuenta de
 quien los ejecuta (`HOME` y `KITLEGAL_CACHE_DIR` apuntan siempre dentro del temporal).
 
-Describen el binario entregado: con el código de hoy fallan, porque el binario de hoy solo da la línea de H19, y en la
-sesión del plan no se ejecutaron (research.md, «Lo medido en esta sesión»).
+Describen el binario entregado: con el código de `main` fallan, porque aquel binario solo da la línea de H19, y en la
+sesión del plan no se ejecutaron (research.md, «Lo medido en esta sesión»). En el barrido global (2026-11-21) se
+ejecutaron los escenarios de §3 con los binarios de la rama, por un programa de Go fuera del repositorio y sin
+`$t/home/.claude` (el sandbox de aquella sesión no deja crear un directorio `.claude`, así que no hubo host que
+enlazar), y dieron lo esperado: las tres líneas, de 119, 122 y 123 bytes; el manifiesto sin `v0.1.0`; la caché vacía
+tras reinstalar; ninguna línea en la segunda consulta; `skills doctor -g` con código 0 y ningún hallazgo; `$t/cache2`
+y `$t/cache3` sin crear donde no reinstala; el candado reciente intacto y el huérfano sustituido y retirado. Con
+`v0.10.1` sobre una instalación `v0.9.0`, la línea de FR-006 midió 120 bytes.
 
 ## 1 · Los unitarios
 

@@ -137,7 +137,9 @@ y lleva el kernel.
    componen aquí, junto a la de hoy.
 3. **Candado** (`internal/cache/candado.go`, D4, D5). `TomarCandado(nombre, caducidad)` con contracts §4: `Directorio()`,
    `MkdirAll` con `permisosDelDirectorio`, `OpenFile` con `O_WRONLY|O_CREATE|O_EXCL` y 0o600 sobre
-   `filepath.Clean(filepath.Join(directorio, nombre))`, la fecha de modificación con `os.Lstat` y `time.Since`.
+   `filepath.Clean(filepath.Join(directorio, nombre))`, la fecha de modificación con `os.Lstat`, comparada con
+   `ahora().Sub(fecha) < caducidad`: `TomarCandado` llama a `tomarCandado`, sin exportar, con `time.Now` (lo mismo que
+   `time.Since`), y el test fija la frontera exacta con un reloj parado (gates/supuestos.md, T003).
 4. **Composición** (`internal/app/aviso.go`, D12). `Avisador func(instalacion.PermisoDelAviso) (string, bool)`;
    `AvisoDeVersion` compone `Reinstalacion` con lo mismo con que instala `install` y con
    `func() (func(), bool) { return cache.TomarCandado(ficheroDelCandado, caducidadDelCandado) }`, con
@@ -200,8 +202,9 @@ Según «Gates» de la constitución, capa 1:
   pasa sobre el código nuevo con la configuración de hoy: `exhaustive` sobre el switch del permiso (research.md D13),
   `paralleltest` con `t.Setenv` sin `t.Parallel` (D7), `gosec`, `depguard` y `forbidigo`. El candado sigue el patrón
   de `internal/disco` (`filepath.Clean` en la ruta; permisos 0o600 y 0o700).
-- **Superficie exportada de `internal/cache`**: `TestSuperficieExportada` (`internal/cache/superficie_test.go:112-140`)
-  compara en los dos sentidos lo que el paquete exporta con la lista cerrada `superficieDelContrato` (líneas 59-93), y
+- **Superficie exportada de `internal/cache`**: `TestSuperficieExportada` (`internal/cache/superficie_test.go:118`, la
+  comparación en las líneas 133-144) compara en los dos sentidos lo que el paquete exporta con la lista cerrada
+  `superficieDelContrato` (líneas 60-99), y
   `cache.TomarCandado` sería una declaración exportada fuera de ella. La misma tarea que crea `candado.go` añade la
   entrada `"func TomarCandado"` a la lista y nombra el candado de H38 en su comentario y en el de cabecera, como H7 hizo
   con `"func Directorio"` (specs/010-h7-internal-graph-grafo/plan.md:324 y :494). Su firma no nombra `database/sql` ni

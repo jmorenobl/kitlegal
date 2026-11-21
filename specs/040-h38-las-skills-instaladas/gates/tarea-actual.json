@@ -1,15 +1,11 @@
 {
-  "id": "T007",
-  "texto": "T007 [P] [US5] La documentación y la verificación final de la rama (FR-017; SC-007; US5.1, US5.2; DoD §1.6; plan.md «Diseño» 5): README.md, CHANGELOG.md",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "09dd877671aecbb908c9ac0e95c996b629d5af1e",
-  "rutas": [
-    "CHANGELOG.md",
-    "README.md",
-    "plan.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"
