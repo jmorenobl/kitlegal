@@ -261,7 +261,9 @@ vez activados, pueden pasar.
     research.md D7 forzados desde los propios puertos: (1) la primera escritura de A ejecuta B entera, que encuentra el
     candado tomado y da la línea de hoy, y A da la de FR-006; (2) el `TomarCandado` de B, ya evaluado el estado viejo,
     ejecuta antes A entera, que reinstala y suelta; B toma el candado, vuelve a evaluar y no da ninguna línea. En los
-    dos, una sola línea de FR-006 y el estado final el de una reinstalación. `TestReinstalacionFalloAMitad` (patrón de
+    dos, una sola línea de FR-006 y el estado final el de una reinstalación. Y los dos del paso 8 que no se cumple
+    (revisión final): (3) el `TomarCandado` de B ejecuta antes, entera, una `Reinstalacion` v0.3.0, y (4) antes de que B
+    lo tome se edita un fichero del global; en los dos, B da la línea de hoy de ahora y no escribe nada. `TestReinstalacionFalloAMitad` (patrón de
     `TestFalloAMitadSeCompleta`, `aplicar_test.go:341-393`): para cada operación n de una reinstalación con las cuatro
     fases (una retirada intacta, un fichero que se reescribe, un enlace de host nuevo y el manifiesto), un `Escritor`
     que falla en la n: la línea de hoy del estado anterior, `liberar` llamado, y después `Planificar`+`Aplicar` con el
@@ -270,8 +272,9 @@ vez activados, pueden pasar.
   - reinstalacion.go cambia solo si uno de estos tests descubre que el código de T002 no cumple contracts §2 (y entonces
     lo mínimo que lo cumple); discoEnMemoria_test.go, solo si le falta el gancho de la escritura que falla.
   - Control de umbral (ADR 0029), la fila de SC-004 con `TestReinstalacionConcurrente`: un mutante sin el candado (el
-    paso 7 que siempre toma) o sin la segunda evaluación (el paso 8 que reutiliza el plan del paso 5) da dos líneas de
-    FR-006 y pone el test en rojo; un mutante que no llama a `liberar` tras un fallo pone en rojo
+    paso 7 que siempre toma) o sin la segunda evaluación (el paso 8 que reutiliza el plan del paso 5) pone el test en
+    rojo: sin el candado salen dos líneas de FR-006, y sin la segunda evaluación B reescribe el disco de ahora en los
+    intercalados (3) y (4); un mutante que no llama a `liberar` tras un fallo pone en rojo
     `TestReinstalacionFalloAMitad`. Verificación: `go test -race -count=1 -run 'TestReinstalacion'
     ./internal/core/instalacion/` y `make ci` en verde.
 
@@ -327,7 +330,7 @@ con procesos reales al activarse.
 | SC-002 | `h38-tocadas` | T001 | `rojo-primero`: el control del guion no reinstala hoy |
 | SC-003, FR-008, FR-012 | los cuatro guiones | T001 | `rojo-primero` de cada guion |
 | SC-004, FR-010 (e2e) | `h38-candado` | T001 | `rojo-primero`: el huérfano y sin directorio no reinstalan hoy |
-| SC-004, FR-010 (concurrencia) | `TestReinstalacionConcurrente` | T006 | mutante sin candado o sin segunda evaluación: dos líneas de FR-006 |
+| SC-004, FR-010 (concurrencia) | `TestReinstalacionConcurrente` | T006 | mutante sin candado: dos líneas de FR-006; sin segunda evaluación: la que llega reescribe el disco de ahora |
 | FR-010 (caducidad) | `TestTomarCandado` | T003 | mutante con `<=` o que trata el reciente como huérfano; y en T005 `TestAvisoDeVersion` con `caducidadDelCandado = 0` |
 | SC-005, FR-012 | subprueba «sin red» de `TestArquitectura` | T005 | mutante `import _ "net"` en `internal/app/aviso.go` |
 | SC-006, FR-013, FR-009 | `h38-excluidas` y `h38-tocadas` | T001 | `rojo-primero`: el control de cada guion y el `--dry-run` no dan hoy sus líneas |

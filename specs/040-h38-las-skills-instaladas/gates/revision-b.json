@@ -1,0 +1,93 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log: «0 issues.» (línea 5), todos los paquetes en ok, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0»; su fecha (17:26:22) es la del commit de cabeza 2190df5c. Reproducido en un clon de la cabeza en el temporal: `go build ./...`, `go test -race ./internal/core/instalacion ./internal/cache` (1242 pruebas en verde), `go test -race ./internal/app -run 'TestEntregaDelHito|TestAvisoDelKernel|TestAvisoDeVersion'` (135 en verde) y `TestArquitectura` (8 en verde). No ejecuté `make ci` ni el linter: para ellos me apoyo en ci.log. Árbol: `git status` solo da gates/ (modelos.jsonl, revision-cambios.md, revision-ciclo.json); nada de internal/, cmd/, data/, skills/, docs/, README.md, CHANGELOG.md, go.mod ni Makefile."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "La suite congelada está intacta, activada y en verde: los sha256 de los 4 guiones de aceptacion/ y de sus 4 copias internal/app/testdata/script/h38-*.txtar son los de gates/aceptacion-congelada.json, y TestEntregaDelHito pasa en el clon. Mutantes que sí se detectan (en el clon): sin candado, sin ninguna reevaluación bajo el candado, sin `algunaSinRetirar`, con todas las empotradas en el pedido, sin la comprobación de forma, con los metadatos ordenando, `mcp serve` reinstalando, `--dry-run` reinstalando, `<=` en la caducidad y sin `liberar` tras un fallo. Pero la segunda evaluación de los pasos 3 a 5 bajo el candado (internal/core/instalacion/reinstalacion.go:141-144) no la fija ningún test: la línea 143 tiene cobertura 0 (`go test -coverprofile` del paquete) y el mutante que conserva el `Aviso` de la línea 136 y aplica el plan de antes del candado pasa `go test -race -count=1 ./internal/core/instalacion ./internal/app ./internal/cache ./internal` entero. tasks.md:272-274 y plan.md («Trazabilidad», fila «La segunda evaluación bajo el candado», y la fila de SC-004 de «Controles de umbral») dicen que TestReinstalacionConcurrente pone en rojo el paso 8 que reutiliza el plan del paso 5. Con ese mutante compilado como v0.2.0 y un v0.3.0 sin mutar, 8 consultas a la vez sobre un global v0.1.0: en 7 de 40 rondas el manifiesto acabó de vuelta en v0.2.0 después de que v0.3.0 reinstalara; con el código de la rama, 0 de 40. También sin test: internal/cache/candado.go:102-106 (cobertura 0)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Las líneas añadidas en internal/ no traen net/http, os.Exit ni fmt.Print* (grep sobre `git diff main...HEAD`). internal/core/instalacion/reinstalacion.go importa solo `slices`; version.go, `cmp`, `regexp`, `slices` y `strings`; internal/cache/candado.go, `errors`, `io/fs`, `os`, `path/filepath` y `time`. TestArquitectura en verde en el clon y en ci.log; con `_ \"net\"` añadido a candado.go, su subprueba «sin red» sale en rojo por app/aviso.go → internal/cache."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia: `git diff main...HEAD --stat -- schemas testdata data` no da nada, ci.log trae `TestEsquemasPublicados` en ok, y los cuatro guiones comparan la salida estándar byte a byte con la de la misma orden sin skills (p. ej. internal/app/testdata/script/h38-reinstala.txtar:90, `cmp stdout $WORK/territorio.json`). Las tres líneas van a la salida de error por `Presentador.Aviso` (internal/app/main.go, `avisar`)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida nuevo y ningún error se propaga (`Avisar` y `TomarCandado` no devuelven error). Medido con los binarios v0.1.0 y v0.2.0 del arnés: `version` y `--version` salen con 0 sin línea y sin escribir; `mcp serve --dry-run` da solo la línea de hoy; el exit 4 se conserva (h38-reinstala). Sin pánico: `argumentos.(servidor)` con coma-ok en internal/app/main.go:457-460 y la guarda del Enlazador nulo en internal/app/aviso.go:76-78, con su caso «sin-enlazador-solo-avisa» en aviso_test.go:517."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:31-44, bajo «[Unreleased]» > «Cambiado» (líneas 13 y 15), con Windows sin probar; README.md, párrafo «Actualizar» (160-165), con lo de FR-017; ADR 0060 presente y con su estado sin cambiar («propuesta»); no toca ninguna fuente. Lo que dicen de las líneas coincide con lo medido en el binario: 119 bytes la de FR-006, 122 la de FR-009, 123 la de hoy y 0 en la segunda consulta. Ver la observación de la consulta lanzada desde HOME."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición ni fuente nueva: nada del diff toca internal/httpx ni internal/source; el candado es un fichero vacío de 0o600 en el directorio de la caché; los e2e corren con los proxies del arnés cerrados (HTTP_PROXY=http://127.0.0.1:9) y la subprueba «sin red» de TestArquitectura cubre aviso.go, instalacion, disco y, por sus importaciones, cache (mutante comprobado en c). Ningún dato personal ni secreto; ningún dato externo ni cambio en data/ o evidencias/."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Las líneas añadidas no traen nolint, t.Skip, TODO, time.Sleep ni gorrutinas. El único resultado descartado a propósito es `_ = os.Remove(ruta)` (internal/cache/candado.go:117), con su razón en el comentario y en research.md D11. Los tres guiones de H19 cambian solo en sus casos globales y en la vuelta a v0.1.0 que declaran FR-018 y gates/supuestos.md (31 líneas añadidas y 8 quitadas, las mismas en sus copias de specs/009-h19-instalar-sin-clonar/aceptacion/); go.mod, tools/, .golangci.yml, Makefile e internal/arch_test.go no cambian."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff se queda en los ficheros de plan.md («Source Code»), más la documentación del barrido (ADR 0060 con dos precisiones de texto, docs/HISTORIAL.md, docs/ROADMAP.md, los doc.go). `skills install`, `list`, `doctor`, el manifiesto y los hosts no cambian; ninguna SKILL.md, data/, evals ni web. Los supuestos de gates/supuestos.md son lecturas que hacen menos que su alternativa y están registradas; el de T002 lo es también, pero su rama no pasa el criterio k."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido con los binarios v0.1.0 y v0.2.0 en un HOME temporal: la primera consulta escribe 119 bytes en la salida de error (la línea de FR-006), la segunda 0, con `--dry-run` la línea de FR-009 mide 122 y la de hoy 123. Las tres solo llevan dos versiones: no crecen con normas ni bloques consultados, porque la reinstalación no lee la caché ni el grafo. La de FR-006 sale una vez por actualización y se apaga sola; la de hoy se repite solo donde ya se repetía en H19 (algo tocado, ámbito local) o mientras dura un candado, que caduca a los 10 minutos. Ninguna SKILL.md pide una invocación más. En estado tocado y con `--dry-run` la consulta no cambia la fecha de modificación de ~/.claude/skills, ~/.claude, ~/.agents/skills ni ~/.agents (stat antes y después) ni crea el directorio de la caché. Con 12 consultas a la vez, 5 rondas: siempre 1 línea de FR-006, de 8 a 10 de hoy, de 1 a 3 sin línea, el candado borrado y `doctor -g` sin hallazgos."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": false,
+      "evidencia": "Dos ramas no se trazan a ningún FR/SC y solo sirven a un estado por debajo del umbral. (1) internal/core/instalacion/reinstalacion.go:176-180, el pedido vacío, con su caso «ninguna skill que pedir» (reinstalacion_test.go:508-514) y el supuesto de T002: FR-003 dice «si y solo si» (a) a (d) y no lo nombra, y un global cuyas skills declaradas el binario ni empotra ni hereda no lo produce ningún emisor que exista: las etiquetas v0.1.0, v0.7.0, v0.8.0 y v0.9.0 solo llevan boe-legislacion y legal-core (las dos con heredera en internal/app/retiradas.go:10-13), jurisprudencia, consulta-juridica, normativa y plazos-y-territorio (`git ls-tree`). (2) internal/cache/candado.go:102-106, retirar el candado si falla el `Close` de un fichero recién creado en el que no se ha escrito nada: ningún FR lo pide, no hay vía real para llegar a él y no tiene test. Sin las dos ramas, en el clon, solo falla ese caso unitario: TestEntregaDelHito, internal/cache e internal/ siguen en verde, así que ningún guion congelado las exige. Lo demás se traza: el permiso (FR-001, FR-002, FR-009, FR-015), las dos evaluaciones (FR-010, y la segunda impide volver atrás, FR-004), la precedencia propia (FR-004), el reloj de `tomarCandado` (la frontera de FR-010), el nombre y la caducidad como parámetros (FR-010)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» tiene su control y falla con su mutante (en el clon). SC-001, SC-002, SC-003 y SC-006: los guiones h38-* con `stderr` anclado de principio a fin, `cmp` del árbol y `! exists $KITLEGAL_CACHE_DIR` (h38-tocadas.txtar:59-62, 81-84, 101-104, 122-125, 136-139, 155-158); `mcp serve` o `--dry-run` reinstalando ponen en rojo h38-excluidas. SC-004, como mucho una: sin candado o sin reevaluar bajo él, TestReinstalacionConcurrente en rojo. FR-010, 10 minutos: la constante de producción (internal/app/aviso.go:22) la fijan por los dos lados `compruebaCandadoReciente` (9 min 30 s, aviso_test.go:706) y `compruebaCandadoHuerfano` (10 min, aviso_test.go:724): con `10 * time.Hour` sale en rojo TestAvisoDeVersion/candado-huerfano-reinstala; la frontera exacta, con `<=`, pone en rojo TestTomarCandado. SC-005: mutante de c. SC-007: ci.log."
+    }
+  ],
+  "motivos": [
+    "[b] Ningún test fija la segunda evaluación de los pasos 3 a 5 bajo el candado (internal/core/instalacion/reinstalacion.go:141-144; contracts/aviso-y-reinstalacion.md §2, paso 8: «si alguno no se cumple, la línea de hoy de ahora»): la línea 143 tiene cobertura 0 y el mutante que aplica el plan de antes del candado pasa todas las suites, contra lo que dicen tasks.md:272-274 y la fila de plan.md «La segunda evaluación bajo el candado». Con ese mutante, un binario v0.2.0 devuelve a v0.2.0 lo que un v0.3.0 acaba de reinstalar (7 de 40 rondas medidas). Qué cambiar, sin tocar código de producción: en `TestReinstalacionConcurrente` (internal/core/instalacion/reinstalacion_test.go) añade un tercer intercalado, forzado desde el puerto del candado como los dos que hay: B, con la versión v0.2.0, ya ha evaluado el global v0.1.0; su `TomarCandado` ejecuta antes, entera, otra `Reinstalacion` de una versión mayor (v0.3.0), que reinstala y suelta; B toma el candado y tiene que dar la línea de hoy de ese momento («las skills instaladas son de kitlegal v0.3.0 y este binario es kitlegal v0.2.0; ejecuta: kitlegal skills install -g»), dejar el disco como lo dejó la otra (la misma `instantanea`) y llamar a `liberar` una vez. Comprueba que el test sale en rojo con el paso 8 que reutiliza el plan del paso 5.",
+    "[k] Retira la rama del pedido vacío de `evaluar` (internal/core/instalacion/reinstalacion.go:176-180, con su comentario) y su caso «ninguna skill que pedir» (internal/core/instalacion/reinstalacion_test.go:508-514): ningún FR la pide —FR-003 reinstala «si y solo si» (a) a (d)— y solo sirve a un global cuyas skills declaradas el binario ni empotra ni hereda, que ningún emisor existente produce. Quita también lo que la describe: la frase «Si el pedido sale vacío…» de contracts/aviso-y-reinstalacion.md §2, paso 5 (líneas 35-36), y data-model.md:56 y :81; y deja dicho en gates/supuestos.md que el supuesto de T002 se retira por proporcionalidad. Ningún guion congelado la exige: sin ella TestEntregaDelHito sigue en verde.",
+    "[b][k] Retira la rama que borra el candado cuando falla su `Close` (internal/cache/candado.go:102-106): deja `return candado.Close()` y ajusta el comentario de `creaEnExclusiva` (líneas 94-95), que la describe. No tiene test (cobertura 0), ningún FR la pide y el estado —que falle el cierre de un fichero recién creado en el que no se ha escrito— no tiene vía real. No añadas un test con un cierre inyectado: sería más mecanismo para el mismo estado."
+  ],
+  "observaciones": [
+    "Consulta lanzada desde HOME (cwd igual a HOME): el manifiesto global se lee como local, así que no reinstala y da en cada consulta la línea de hoy sin ` -g` (medido: dos consultas seguidas, el manifiesto sigue en v0.1.0; desde otro directorio reinstala). Es la regla de búsqueda de H19 que FR-003 (a) conserva; el párrafo «Actualizar» de README.md no lo dice.",
+    "Con varias órdenes a la vez en la primera consulta, una dice «ha actualizado» y las demás piden `kitlegal skills install -g` cuando la reinstalación ya está en marcha (medido: 1 y de 8 a 10 de 12). Es lo que fija FR-010 y ocurre una vez por actualización; ejecutar la orden es inocuo.",
+    "La sustitución del huérfano no es atómica (internal/cache/candado.go:75-90): dos invocaciones que examinan el mismo huérfano en la misma ventana pueden tomarlo las dos y dar dos líneas de FR-006. Está registrado en research.md D5 y en gates/supuestos.md; pide una interrupción previa y una ventana de microsegundos, y no lo he reproducido.",
+    "`errDelAnalisis != nil` en `permisoDelAviso` (internal/app/main.go:451) es redundante con la decisión: `cli.Analizar` devuelve `Analisis{}` en todos sus errores (internal/cli/parse.go:108-127), y el mutante sin esa condición pasa internal/app. Sigue la regla 2 de contracts §1; sin diferencia observable.",
+    "La guarda del Enlazador nulo (internal/app/aviso.go:76-78) solo la alcanza una composición de test: la de producción siempre pasa `disco.Enlazador{}` (internal/app/instalacion.go:78). plan.md la traza al principio IV y repite el `errSinEnlazador` de H19; no la cuento en k.",
+    "Sin cobertura y sin motivo: internal/cache/candado.go:78 (el candado desaparece entre la creación fallida y el `Lstat`; es la propagación del error, no una rama propia) e internal/core/instalacion/reinstalacion.go:107 (el `return` tras el switch, que pide el compilador).",
+    "`make install` da versiones `vX.Y.Z-N-gHASH` (Makefile:28), que en precedencia SemVer van antes que `vX.Y.Z`: un binario de desarrollo se ordena por debajo de la release de la que parte y con skills de esa release solo avisa. Solo afecta al bucle de desarrollo.",
+    "Las copias de specs/009-h19-instalar-sin-clonar/aceptacion/ ya diferían en `main` de los guiones activos en líneas que H38 no toca (nombres de skills y códigos de salida de hitos anteriores); el cambio de H38 es el mismo en las dos.",
+    "No ejecuté `make ci`, el linter ni nada en Windows; los binarios los ejecuté a través del arnés testscript del clon, con un guion de sonda que no está en el repositorio."
+  ]
+}

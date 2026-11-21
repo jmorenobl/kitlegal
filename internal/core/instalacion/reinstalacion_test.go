@@ -506,13 +506,6 @@ func casosDeLoTocado() []casoDeReinstalacion {
 			esperada: avisoGlobal("0.2.0+abc", versionNueva),
 		},
 		{
-			nombre: "ninguna skill que pedir",
-			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, ambitoGlobal(d.t, homeDePrueba)).noEmpotrada("de-otra-rama", versionDePrueba).escribir()
-			},
-			esperada: hoy,
-		},
-		{
 			nombre:   "las versiones ya iguales",
 			preparar: func(d *discoEnMemoria) { enGlobal(d, versionNueva).escribir() },
 		},
@@ -692,24 +685,35 @@ func reinstaladas(lineas ...string) int {
 // dos invocaciones que piden a la vez el aviso con Reinstalar sobre el mismo
 // global sin tocar, con el mismo candado, reinstala una sola; la otra da la
 // línea de hoy si llega mientras la primera tiene el candado, y ninguna si lo
-// toma cuando la primera ya terminó. Los dos intercalados que importan se
-// fuerzan desde los propios puertos, sin gorrutinas ni esperas:
+// toma cuando la primera ya terminó. Y lo que decide bajo el candado es el
+// disco de ahora (contracts/aviso-y-reinstalacion.md §2, paso 8). Los
+// intercalados que importan se fuerzan desde los propios puertos, sin
+// gorrutinas ni esperas:
 //
 //   - la primera escritura de A ejecuta B entera: B evalúa el estado viejo,
 //     pide el candado, lo encuentra tomado y da la línea de hoy, sin escribir
 //     nada; A reinstala y da la de FR-006;
 //   - el candado de B, pedido con el estado viejo ya evaluado, ejecuta antes A
 //     entera, que reinstala, da la de FR-006 y lo suelta; B lo toma, vuelve a
-//     evaluar sobre el disco de ahora y no da ninguna línea ni escribe nada.
+//     evaluar sobre el disco de ahora y no da ninguna línea ni escribe nada;
+//   - el candado de B ejecuta antes, entera, una invocación de un binario
+//     mayor, que reinstala y lo suelta: B lo toma y da la línea de hoy que
+//     nombra la versión mayor, sin escribir nada (FR-004);
+//   - antes de que B tome el candado se edita un fichero del global: B lo toma
+//     y da la línea de hoy, sin escribir nada (FR-005).
 //
-// En los dos sale una sola línea de FR-006, el disco queda como lo deja una
-// reinstalación y cada candado tomado se libera una vez. Sin el candado, o sin
-// la segunda evaluación bajo él, las dos reinstalan.
+// En los dos primeros sale una sola línea de FR-006 y el disco queda como lo
+// deja una reinstalación; en los dos últimos, como lo dejó lo que pasó antes
+// del candado; en todos, cada candado tomado se libera una vez. Sin el
+// candado, o sin la segunda evaluación bajo él, las dos reinstalan; con el paso
+// 8 que reutiliza el plan del paso 5, B reescribe el disco de ahora.
 func TestReinstalacionConcurrente(t *testing.T) {
 	t.Parallel()
 
 	t.Run("la otra llega mientras esta escribe: el candado tomado", probarLaOtraMientrasEscribe)
 	t.Run("la otra reinstala antes del candado de esta: ninguna línea", probarLaOtraAntesDelCandado)
+	t.Run("una mayor reinstala antes del candado de esta: la línea de hoy de ahora", probarUnaMayorAntesDelCandado)
+	t.Run("el global se toca antes del candado de esta: la línea de hoy de ahora", probarElGlobalTocadoAntesDelCandado)
 }
 
 // probarLaOtraMientrasEscribe es el primer intercalado: B entera dentro de la
@@ -788,6 +792,81 @@ func probarLaOtraAntesDelCandado(t *testing.T) {
 	assert.Equal(t, 2, candado.liberados, "las dos lo toman, una tras otra, y lo sueltan una vez")
 	assert.False(t, candado.ocupado, "el candado queda libre")
 	assert.Equal(t, final, d.instantanea(), "el disco, el de una reinstalación (FR-005)")
+	exigirDiscoRespetado(t, d, homeDePrueba)
+}
+
+// probarUnaMayorAntesDelCandado es el tercer intercalado: el candado de B
+// ejecuta antes, entera, una invocación del binario v0.3.0, que reinstala el
+// global y lo suelta. Bajo el candado, el global ya es de una versión que va
+// después de la de B.
+func probarUnaMayorAntesDelCandado(t *testing.T) {
+	t.Parallel()
+
+	const mayor = "v0.3.0"
+
+	probarElDiscoCambiaAntesDelCandado(t, func(d *discoEnMemoria, candado *candadoDePrueba) {
+		linea, hay := reinstalacionEn(d, mayor, nil, candado).Avisar(instalacion.Reinstalar)
+
+		require.Equal(t, "aviso: kitlegal "+mayor+" ha actualizado las skills globales, que eran de "+versionDePrueba+
+			"; se aplican en la próxima conversación", linea, "la v0.3.0 reinstala y suelta el candado (FR-006)")
+		require.True(t, hay)
+	}, avisoGlobal(mayor, versionNueva))
+}
+
+// probarElGlobalTocadoAntesDelCandado es el cuarto intercalado: antes de que B
+// tome el candado, se edita el SKILL.md de normativa. Bajo el candado, el
+// global tiene algo que install -g no reescribiría sin --force, y la línea de
+// hoy sigue siendo la del global de la v0.1.0.
+func probarElGlobalTocadoAntesDelCandado(t *testing.T) {
+	t.Parallel()
+
+	probarElDiscoCambiaAntesDelCandado(t, func(d *discoEnMemoria, _ *candadoDePrueba) {
+		d.fichero(rutaGlobal(".agents/skills/normativa/SKILL.md"), "# normativa, editada\n")
+	}, avisoGlobal(versionDePrueba, versionNueva))
+}
+
+// probarElDiscoCambiaAntesDelCandado pide el aviso con Reinstalar a B, del
+// binario v0.2.0, sobre el global sin tocar de la v0.1.0, con un candado que,
+// pedido con ese estado ya evaluado, deja antes el disco con cambiar —que
+// recibe el mismo candado— y después se toma. B vuelve a evaluar bajo el
+// candado, sobre el disco de ahora (contracts/aviso-y-reinstalacion.md §2,
+// paso 8): los pasos 3 a 5 ya no se cumplen, y B da esperada, la línea de hoy
+// del disco de ahora, no escribe nada, deja el disco como lo dejó cambiar y
+// suelta el candado.
+func probarElDiscoCambiaAntesDelCandado(
+	t *testing.T, cambiar func(d *discoEnMemoria, candado *candadoDePrueba), esperada string,
+) {
+	t.Helper()
+
+	d := nuevoDiscoEnMemoria(t)
+	d.directorio(temporal)
+	globalDeLaV1(d).escribir()
+
+	candado := &candadoDePrueba{}
+
+	var (
+		pedidosDeB int
+		cambiado   map[string]nodoEnMemoria
+	)
+
+	b, escritorDeB := reinstalacionConEscritor(d, versionNueva, nil, candado)
+	b.Candado = func() (func(), bool) {
+		pedidosDeB++
+		cambiar(d, candado)
+		cambiado = d.instantanea()
+
+		return candado.tomar()
+	}
+
+	linea, hay := b.Avisar(instalacion.Reinstalar)
+
+	require.Equal(t, 1, pedidosDeB, "B pide el candado una vez, con el global sin tocar ya evaluado")
+	assert.Equal(t, esperada, linea, "B vuelve a evaluar bajo el candado: la línea de hoy de ahora (paso 8)")
+	assert.True(t, hay)
+	assert.Empty(t, escritorDeB.operaciones, "B no escribe nada")
+	assert.Equal(t, candado.pedidos, candado.liberados, "cada candado tomado se libera una vez")
+	assert.False(t, candado.ocupado, "B suelta el candado")
+	assert.Equal(t, cambiado, d.instantanea(), "el disco, como lo dejó lo que pasó antes del candado")
 	exigirDiscoRespetado(t, d, homeDePrueba)
 }
 

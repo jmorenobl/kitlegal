@@ -173,11 +173,6 @@ func (r Reinstalacion) evaluar() (reinstalable, bool) {
 	}
 
 	pedido := pedidoDeReinstalacion(ambito, manifiesto, r.Empotradas, r.Retiradas)
-	if len(pedido.Skills) == 0 {
-		// Sin ninguna skill que pedir, reinstalar solo cambiaría la versión
-		// del manifiesto: callaría el aviso sin poner nada al día.
-		return reinstalable{}, false
-	}
 
 	plan, err := Planificar(r.Disco, r.Enlazador, pedido, r.Empotradas, r.Retiradas, r.Version)
 	if err != nil || algunaSinRetirar(plan) {

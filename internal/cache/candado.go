@@ -21,12 +21,12 @@ import (
 // más es un huérfano que dejó una invocación interrumpida, y se retira y se crea
 // otra vez en exclusiva, una sola vez (research.md D5).
 //
-// Con tomado, liberar retira el candado. Sin él, liberar es nil y el candado no
-// queda: si Directorio() falla, si el directorio no se puede crear, o si la
-// creación, la retirada del huérfano o la segunda creación fallan por otra
-// causa, no hay candado ni nada que soltar. Ningún fallo se devuelve: quien lo
-// pide da entonces la línea de hoy, que es lo que FR-010 pide, y la decisión es
-// la del aviso de H19 (research.md D11).
+// Con tomado, liberar retira el candado. Sin él, liberar es nil y no hay nada
+// que soltar: si Directorio() falla, si el directorio no se puede crear, o si
+// la creación, la retirada del huérfano o la segunda creación fallan por otra
+// causa, queda lo que hubiera (contracts/aviso-y-reinstalacion.md §4). Ningún
+// fallo se devuelve: quien lo pide da entonces la línea de hoy, que es lo que
+// FR-010 pide, y la decisión es la del aviso de H19 (research.md D11).
 //
 // No espera ni reintenta, y no recibe ni devuelve nada de la base de datos.
 func TomarCandado(nombre string, caducidad time.Duration) (liberar func(), tomado bool) {
@@ -91,21 +91,14 @@ func sustituyeElHuerfano(ruta string, caducidad time.Duration, ahora func() time
 
 // creaEnExclusiva crea el candado vacío solo si no existe: con O_EXCL, la
 // creación falla con fs.ErrExist si ya hay algo en la ruta, también en Windows,
-// donde se traduce a CREATE_NEW (research.md D4). Si no se puede cerrar, lo
-// retira: un candado que no se toma no queda.
+// donde se traduce a CREATE_NEW (research.md D4).
 func creaEnExclusiva(ruta string) error {
 	candado, err := os.OpenFile(filepath.Clean(ruta), os.O_WRONLY|os.O_CREATE|os.O_EXCL, permisosDelFichero)
 	if err != nil {
 		return err
 	}
 
-	if err := candado.Close(); err != nil {
-		retira(ruta)
-
-		return err
-	}
-
-	return nil
+	return candado.Close()
 }
 
 // retira borra el candado. El resultado no se comprueba, y no es un error

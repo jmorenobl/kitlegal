@@ -53,8 +53,6 @@ Las skills que se reinstalan, en orden de nombre y cada una una vez:
 - más, por cada declarada con un nombre de `Retiradas`, sus herederas (`Retiradas[nombre]`);
 - y ninguna más.
 
-Si sale vacío, no se reinstala: la línea de hoy, sin candado y sin escribir nada (gates/supuestos.md, T002).
-
 Con el ámbito global de `HOME` y sin `--host`, es un `instalacion.Pedido{Ambito, Skills, Hosts: nil}`, el mismo que
 `ValidarInvocacion` da a `kitlegal skills install -g <esas skills>`.
 
@@ -78,7 +76,6 @@ las dos tal como están.
 | sin tocar, alguna versión comparada menor y ninguna mayor | como `install -g` del pedido | FR-006 |
 | igual que el anterior con algún fichero que falta | como `install -g` del pedido | FR-006 |
 | con un conflicto de `Planificar` o una retirada «sin retirar» | sin cambios | de hoy |
-| ninguna skill declarada que el binario empotre ni herede (el pedido, vacío) | sin cambios | de hoy |
 | alguna versión comparada mayor que el binario, o sin forma, o solo metadatos distintos | sin cambios | de hoy |
 | candado tomado (menos de 10 minutos) | sin cambios | de hoy |
 | una escritura que falla a mitad | lo que `install -g` completa sin conflictos | de hoy (del estado anterior) |

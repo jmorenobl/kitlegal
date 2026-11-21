@@ -164,7 +164,9 @@ dominio), sobre `discoEnMemoria`:
   primera escritura de A ejecuta B entera, que encuentra el candado tomado y da la línea de hoy, y A da la de FR-006;
   (2) el `TomarCandado` de B, ya evaluado el estado viejo, ejecuta antes A entera, que reinstala y suelta; B toma el
   candado, vuelve a evaluar y no da ninguna línea. En los dos, una sola línea de FR-006 y el estado final el de una
-  reinstalación.
+  reinstalación. Y dos del paso 8 que no se cumple: (3) el `TomarCandado` de B ejecuta antes, entera, una invocación de
+  un binario mayor, que reinstala y suelta, y (4) antes de que B lo tome se edita un fichero del global. En los dos, B
+  toma el candado, da la línea de hoy de ahora, no escribe nada y deja el disco como estaba.
 - `TestReinstalacionFalloAMitad` (FR-011, FR-019, US4.5): para cada operación n de una reinstalación con las cuatro
   fases (una retirada intacta, un fichero que se reescribe, un enlace de host nuevo y el manifiesto), un `Escritor`
   que falla en la operación n: la línea de hoy del estado anterior, `liberar` llamado, y después `Planificar`+`Aplicar`
