@@ -1,0 +1,174 @@
+# El candado y los fallos no dejan nada roto: un candado reciente en la caché
+# da la línea de hoy sin esperar y sin tocarlo; uno huérfano de hace más de 10
+# minutos se sustituye y la consulta reinstala; sin directorio de caché, se
+# crea y reinstala; sin permiso de escritura en ~/.agents/skills, la línea de
+# hoy, el árbol sin cambios y el candado borrado, y con los permisos devueltos
+# la consulta siguiente reinstala; y de dos consultas a la vez, una sola
+# reinstala. Tras cualquier reinstalación, ningún candado. La salida estándar y
+# el código de salida son, byte a byte, los de la misma orden sin skills
+# instaladas.
+#
+# Cubre: US4.1 a US4.4 y US4.6 · FR-010, FR-011, FR-013 · SC-003, SC-004
+# (specs/040-h38-las-skills-instaladas; contracts/aceptacion.md §1 y §5). US4.5,
+# el fallo a mitad de las escrituras, es un unitario (FR-019; research.md D7).
+#
+# El candado es $KITLEGAL_CACHE_DIR/skills-global.lock (FR-010), y cada caso
+# tiene su HOME y su KITLEGAL_CACHE_DIR dentro de $WORK. «Reinstala» es que el
+# árbol de HOME es el de un HOME gemelo con la misma preparación sobre el que
+# se ejecuta `$KITLEGAL_V2_BIN skills install -g` directo, que el manifiesto
+# ya no nombra la v1 y que el candado no queda. Que las dos consultas a la vez
+# se solapen no está garantizado: el guion comprueba que, con procesos reales,
+# no sale nada más que una reinstalación (research.md D8). Los permisos se
+# quitan y se devuelven dentro de la misma orden, para que testscript pueda
+# borrar $WORK aunque la consulta falle. Los binarios son los del arnés de H19:
+# $KITLEGAL_V1_BIN (v0.1.0) y $KITLEGAL_V2_BIN (v0.2.0).
+
+# --- Referencias: la consulta con un HOME vacío y sin skills ---
+env HOME=$WORK/sin-skills
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-skills
+mkdir $WORK/consultas
+cd $WORK/consultas
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/territorio.json
+! exists $KITLEGAL_CACHE_DIR
+
+# --- El gemelo: `V2 skills install -g` directo sobre una v1 con hosts ---
+env HOME=$WORK/gemelo
+mkdir $HOME/.claude $HOME/.gemini/config
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/gemelo.txt
+
+# --- Un candado reciente (US4.1; SC-004) ---
+#
+# Recién copiado, su fecha de modificación es de hace menos de 10 minutos: la
+# línea de hoy, sin esperar, y el árbol, el candado y la caché sin cambios.
+env HOME=$WORK/reciente
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-reciente
+exec $KITLEGAL_V1_BIN skills install -g
+mkdir $KITLEGAL_CACHE_DIR
+cp $WORK/candado.txt $KITLEGAL_CACHE_DIR/skills-global.lock
+arbol $HOME
+cp stdout $WORK/antes.txt
+arbol $KITLEGAL_CACHE_DIR
+cp stdout $WORK/cache-antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+cmp $KITLEGAL_CACHE_DIR/skills-global.lock $WORK/candado.txt
+arbol $KITLEGAL_CACHE_DIR
+cmp stdout $WORK/cache-antes.txt
+
+# --- Un candado huérfano, de hace más de 10 minutos (US4.2; SC-004) ---
+env HOME=$WORK/huerfano
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-huerfano
+exec $KITLEGAL_V1_BIN skills install -g
+mkdir $KITLEGAL_CACHE_DIR
+cp $WORK/candado.txt $KITLEGAL_CACHE_DIR/skills-global.lock
+exec touch -t 202001010000 $KITLEGAL_CACHE_DIR/skills-global.lock
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Sin directorio de caché todavía (US4.3; SC-004) ---
+env HOME=$WORK/sin-cache
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-cache
+exec $KITLEGAL_V1_BIN skills install -g
+! exists $KITLEGAL_CACHE_DIR
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+exists $KITLEGAL_CACHE_DIR
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Sin permiso de escritura en ~/.agents/skills (US4.4; FR-011) ---
+#
+# ~/.agents/skills y lo que contiene, sin permiso de escritura, con la caché
+# escribible: la línea de hoy, el código y la salida estándar de la referencia,
+# el árbol como estaba con los permisos devueltos y el candado borrado. La
+# consulta siguiente reinstala.
+env HOME=$WORK/sin-permiso
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-permiso
+exec $KITLEGAL_V1_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec sh -c 'chmod -R a-w "$HOME/.agents/skills" && "$KITLEGAL_V2_BIN" territorio resolver Leganés --json --no-graph; codigo=$?; chmod -R u+w "$HOME/.agents/skills"; exit $codigo'
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Dos consultas a la vez (US4.6; SC-004) ---
+#
+# Cada una sale con 0 y la salida estándar de la referencia; entre las dos,
+# una sola línea de FR-006, y la otra da la línea de hoy o ninguna; el árbol,
+# el de una reinstalación, y ningún candado.
+env HOME=$WORK/dos
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-dos
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph &a&
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph &b&
+wait a
+cmp stdout $WORK/territorio.json
+cp stderr $WORK/a.err
+wait b
+cmp stdout $WORK/territorio.json
+cp stderr $WORK/b.err
+exec sh $WORK/una-reinstala.sh $WORK/a.err $WORK/b.err
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+-- candado.txt --
+Un candado que dejó otra invocación.
+-- reinstala.err --
+aviso: kitlegal v0.2.0 ha actualizado las skills globales, que eran de v0.1.0; se aplican en la próxima conversación
+-- hoy.err --
+aviso: las skills instaladas son de kitlegal v0.1.0 y este binario es kitlegal v0.2.0; ejecuta: kitlegal skills install -g
+-- ninguna.err --
+-- una-reinstala.sh --
+# una-reinstala.sh <a> <b>: de las salidas de error de dos consultas lanzadas a
+# la vez, exactamente una es la línea de FR-006 (reinstala.err) y la otra es la
+# línea de hoy (hoy.err) o nada (ninguna.err), byte a byte (US4.6; SC-004).
+set -u
+es() { cmp -s "$1" "$WORK/$2"; }
+if es "$1" reinstala.err; then
+	otra=$2
+elif es "$2" reinstala.err; then
+	otra=$1
+else
+	echo "ninguna de las dos dio la línea de FR-006:" >&2
+	cat "$1" "$2" >&2
+	exit 1
+fi
+if ! es "$otra" hoy.err && ! es "$otra" ninguna.err; then
+	echo "la otra no dio ni la línea de hoy ni ninguna:" >&2
+	cat "$otra" >&2
+	exit 1
+fi

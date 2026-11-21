@@ -1,0 +1,246 @@
+# El binario nuevo pone al día las skills globales en la primera consulta: con
+# ~/.agents/skills instalado por la v1 sin tocar, la primera orden de la v2 de
+# un applet que no es skills deja el global y sus hosts como los dejaría
+# `kitlegal skills install -g` de la v2, y dice en la salida de error una sola
+# línea que lo cuenta; la segunda no dice nada. También cuando falta un fichero,
+# cuando una skill declarada sigue en otra versión que el manifiesto, con una
+# skill de nombre retirado intacta, con una orden que sale con 4 y por el nombre
+# de un applet (multicall). La salida estándar y el código de salida son, byte a
+# byte, los de la misma orden sin skills instaladas.
+#
+# Cubre: US1.1 a US1.8 · FR-001, FR-003, FR-004, FR-005, FR-006, FR-008,
+# FR-012, FR-013 · SC-001, SC-003 (specs/040-h38-las-skills-instaladas;
+# contracts/aceptacion.md §1 y §2).
+#
+# El binario que reinstala es $KITLEGAL_V2_BIN (v0.2.0) y el que instala,
+# $KITLEGAL_V1_BIN (v0.1.0): el mismo binario, con las mismas skills empotradas
+# (specs/009-h19-instalar-sin-clonar/contracts/arnes-e2e.md §2), así que el
+# pedido son todas las empotradas. Cada caso tiene su HOME y su
+# KITLEGAL_CACHE_DIR, que no existe hasta que algo la crea. «Reinstala» es que
+# el árbol de HOME es el de un HOME gemelo con la misma preparación sobre el
+# que se ejecuta `$KITLEGAL_V2_BIN skills install -g` directo, que el
+# manifiesto ya no nombra la v1 y que el candado no queda (FR-005, FR-010). La
+# consulta es `territorio resolver Leganés --json --no-graph`, cuya salida
+# estándar no depende del reloj y que no escribe en la caché (research.md
+# D10). Ninguna orden abre la red: los proxies del arnés están cerrados.
+
+# --- Referencias: cada orden del guion con un HOME vacío y sin skills ---
+env HOME=$WORK/sin-skills
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-skills
+mkdir $WORK/consultas
+cd $WORK/consultas
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/territorio.json
+! exists $KITLEGAL_CACHE_DIR
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo BOE-A-2015-10565 a99 --offline; test $? -eq 4'
+! stdout .
+cp stderr $WORK/sin-cache-sin.err
+mkdir $WORK/bin
+symlink $WORK/bin/territorio -> $KITLEGAL_V2_BIN
+exec $WORK/bin/territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/multicall.json
+
+# --- Los gemelos: `V2 skills install -g` directo sobre cada preparación ---
+env HOME=$WORK/gemelo
+mkdir $HOME/.claude $HOME/.gemini/config
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/gemelo.txt
+
+env HOME=$WORK/gemelo-falta
+mkdir $HOME/.claude $HOME/.gemini/config
+exec $KITLEGAL_V1_BIN skills install -g
+rm $HOME/.agents/skills/normativa/references/normas.md
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/gemelo-falta.txt
+
+env HOME=$WORK/gemelo-subconjunto
+mkdir $HOME/.claude $HOME/.gemini/config
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN skills install -g plazos-y-territorio
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/gemelo-subconjunto.txt
+
+env HOME=$WORK/gemelo-retirada
+mkdir $HOME
+exec $KITLEGAL_V1_BIN skills install -g
+mv $HOME/.agents/skills/normativa $HOME/.agents/skills/boe-legislacion
+exec sh $WORK/retira.sh $HOME/.agents/skills/kitlegal.json
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/gemelo-retirada.txt
+
+# --- La primera y la segunda consulta (US1.1, US1.2, US1.3; SC-001) ---
+#
+# La primera: la salida estándar y el código de la referencia, exactamente la
+# línea de FR-006 en la salida de error, y el global reinstalado; doctor no da
+# ningún hallazgo. La segunda: ninguna línea y nada escrito, ni en HOME ni en
+# la caché que creó la primera.
+env HOME=$WORK/primera
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-primera
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+exec $KITLEGAL_V2_BIN skills doctor -g --json
+stdout '"hallazgos":\[\]\}\}\n\z'
+! stderr .
+
+arbol $KITLEGAL_CACHE_DIR
+cp stdout $WORK/cache-primera.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+! stderr .
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+arbol $KITLEGAL_CACHE_DIR
+cmp stdout $WORK/cache-primera.txt
+
+# --- Falta un fichero de una skill (US1.4) ---
+#
+# Un fichero que falta no es un conflicto (FR 044 de H19): reinstala y vuelve.
+env HOME=$WORK/falta
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-falta
+exec $KITLEGAL_V1_BIN skills install -g
+rm $HOME/.agents/skills/normativa/references/normas.md
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+exists $HOME/.agents/skills/normativa/references/normas.md
+arbol $HOME
+cmp stdout $WORK/gemelo-falta.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Una skill declarada en otra versión que el manifiesto (US1.5) ---
+#
+# Tras instalar un subconjunto con la v2, el manifiesto está en la v2 pero tres
+# skills siguen declaradas en la v1: reinstala, y la línea nombra v0.1.0, la
+# versión que nombraría la línea de hoy.
+env HOME=$WORK/subconjunto
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-subconjunto
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN skills install -g plazos-y-territorio
+grep -count=2 '"v0\.2\.0"' $HOME/.agents/skills/kitlegal.json
+grep -count=3 '"v0\.1\.0"' $HOME/.agents/skills/kitlegal.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo-subconjunto.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Una skill con nombre retirado, intacta (US1.6) ---
+#
+# Sin hosts: en la instalación v1, normativa pasa a llamarse boe-legislacion,
+# su nombre retirado, en el disco y en el manifiesto, con los mismos bytes y
+# por tanto las mismas huellas. Queda su heredera, normativa, y la retirada se
+# va del disco y del manifiesto.
+env HOME=$WORK/retirada
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-retirada
+exec $KITLEGAL_V1_BIN skills install -g
+mv $HOME/.agents/skills/normativa $HOME/.agents/skills/boe-legislacion
+exec sh $WORK/retira.sh $HOME/.agents/skills/kitlegal.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+exists $HOME/.agents/skills/normativa/SKILL.md
+! exists $HOME/.agents/skills/boe-legislacion
+! grep 'boe-legislacion' $HOME/.agents/skills/kitlegal.json
+arbol $HOME
+cmp stdout $WORK/gemelo-retirada.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Una orden que termina con exit 4 (US1.7; FR-001, FR-012) ---
+#
+# El código sigue siendo 4 y la salida estándar, vacía como la de la
+# referencia; la salida de error es la de la referencia con una línea de aviso
+# más, la de FR-006.
+env HOME=$WORK/exit-4
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-exit-4
+exec $KITLEGAL_V1_BIN skills install -g
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo BOE-A-2015-10565 a99 --offline; test $? -eq 4'
+! stdout .
+cp stderr $WORK/sin-cache-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/sin-cache-sin.err $WORK/sin-cache-con.err 'aviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+# --- Por el nombre de un applet (US1.8; FR-001) ---
+env HOME=$WORK/multicall
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-multicall
+exec $KITLEGAL_V1_BIN skills install -g
+exec $WORK/bin/territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/multicall.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+arbol $HOME
+cmp stdout $WORK/gemelo.txt
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+! exists $KITLEGAL_CACHE_DIR/skills-global.lock
+
+-- retira.sh --
+# retira.sh <manifiesto>: cambia en el texto del manifiesto cada «"normativa»
+# por «"boe-legislacion», el nombre retirado del que normativa es heredera
+# (internal/app/retiradas.go): la entrada de la skill y las rutas de sus
+# ficheros. La comilla deja fuera jerarquia_normativa.md, de otra skill, y sin
+# hosts no hay ninguna ruta de host que cambiar (research.md D9).
+set -eu
+sed 's/"normativa/"boe-legislacion/g' "$1" > "$1.nuevo"
+mv "$1.nuevo" "$1"
+if grep -q '"normativa' "$1"; then
+	echo "$1 sigue declarando normativa" >&2
+	exit 1
+fi
+grep -q '"boe-legislacion": {' "$1"
+-- una-linea-mas.sh --
+# una-linea-mas.sh <referencia> <obtenida> <patrón>: la salida de error
+# <obtenida> tiene exactamente una línea que empieza por «aviso: », esa línea
+# casa entera con <patrón> (una expresión regular extendida) y, sin ella, es
+# byte a byte <referencia>, que no tiene ninguna (spec, «Una línea de aviso
+# más»; SC-003). La línea del registro de eventos de una orden que falla lleva
+# su instante (time=) y su duración (duracion=), que cambian de una ejecución a
+# otra: se igualan en las dos antes de comparar, y nada más.
+set -u
+if grep -q '^aviso: ' "$1"; then
+	echo "la referencia $1 ya tiene una línea de aviso" >&2
+	exit 1
+fi
+avisos=$(grep -c '^aviso: ' "$2")
+if [ "$avisos" -ne 1 ]; then
+	echo "$2 tiene $avisos líneas de aviso:" >&2
+	cat "$2" >&2
+	exit 1
+fi
+if ! grep '^aviso: ' "$2" | grep -qxE -- "$3"; then
+	echo "la línea de aviso de $2 no es la esperada:" >&2
+	grep '^aviso: ' "$2" >&2
+	exit 1
+fi
+igualar='s/^time=[^ ]* /time=… /; s/ duracion=[^ ]* / duracion=… /'
+grep -v '^aviso: ' "$1" | sed -e "$igualar" > "$2.referencia"
+grep -v '^aviso: ' "$2" | sed -e "$igualar" > "$2.sin-aviso"
+if ! cmp "$2.referencia" "$2.sin-aviso"; then
+	echo "sin la línea de aviso, $2 no es la referencia $1:" >&2
+	cat "$2" >&2
+	exit 1
+fi
