@@ -115,7 +115,7 @@ que no (ADR 0018; plan.md «Aceptación e2e»; contracts/aceptacion.md).
 **Propósito**: las tres piezas que T005 compone, cada una con sus unitarios, sin que ninguna invocación cambie todavía
 (los e2e de H19 siguen en verde tal como están).
 
-- [ ] T002 El dominio que decide y reinstala, con sus unitarios (FR-003, FR-004, FR-005, FR-006, FR-007, FR-009, FR-011, FR-013, FR-014, FR-019; SC-001, SC-002, SC-006; contracts/aviso-y-reinstalacion.md §2 y §3; data-model §1 a §6; research.md D1, D3, D6, D7, D11): internal/core/instalacion/reinstalacion.go (nuevo), internal/core/instalacion/puertos.go, internal/core/instalacion/version.go, internal/core/instalacion/discoEnMemoria_test.go
+- [X] T002 El dominio que decide y reinstala, con sus unitarios (FR-003, FR-004, FR-005, FR-006, FR-007, FR-009, FR-011, FR-013, FR-014, FR-019; SC-001, SC-002, SC-006; contracts/aviso-y-reinstalacion.md §2 y §3; data-model §1 a §6; research.md D1, D3, D6, D7, D11): internal/core/instalacion/reinstalacion.go (nuevo), internal/core/instalacion/puertos.go, internal/core/instalacion/version.go, internal/core/instalacion/discoEnMemoria_test.go
   - **puertos.go**: `type TomarCandado func() (liberar func(), tomado bool)`, con el comentario de data-model §3 (con
     `tomado == false`, `liberar` es nil y no queda nada escrito).
   - **version.go**: la precedencia SemVer 2.0.0 §11, no exportada, junto a `FormaSemVer` y `MismaVersion` (research.md

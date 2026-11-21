@@ -1,0 +1,10 @@
+{
+  "tarea": "T001",
+  "commit": "b86c320132fd9ed9f4c4108f6b4e09aebe0cd0f5",
+  "ficheros": {
+    "specs/040-h38-las-skills-instaladas/aceptacion/candado.txtar": "9e694a4db5a4936a9a02b5e9c1093faba78596d7fda943faaaed503bcbab5f7b",
+    "specs/040-h38-las-skills-instaladas/aceptacion/excluidas.txtar": "260999f8451f9c0198573fc670fb81c52af55ed117587d3591628e7ef07d96a7",
+    "specs/040-h38-las-skills-instaladas/aceptacion/reinstala.txtar": "33b915eea9392e4baf7e8eaea8ca72a71d586cf0ecda2a090c44d808b3c2567f",
+    "specs/040-h38-las-skills-instaladas/aceptacion/tocadas.txtar": "60b9b81dc890dd605446fbbd23130471dfd0c138cca5d1cc1ffef636c6b9f59c"
+  }
+}

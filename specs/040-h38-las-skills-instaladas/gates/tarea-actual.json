@@ -1,16 +1,17 @@
 {
-  "id": "T001",
-  "texto": "T001 [aceptacion] Escribir, a partir del spec y de contracts/aceptacion.md §1 a §5, sin código de producto y sin evals (ninguna skill cambia: spec «Fuera de alcance»), los cuatro guiones testscript specs/040-h38-las-skills-instaladas/aceptacion/reinstala.txtar (US1 · FR-001, FR-003, FR-004, FR-005, FR-006, FR-008, FR-012, FR-013 · SC-001, SC-003), specs/040-h38-las-skills-instaladas/aceptacion/tocadas.txtar (US2 · FR-003, FR-004, FR-005, FR-007, FR-013 · SC-002, SC-003, SC-006), specs/040-h38-las-skills-instaladas/aceptacion/excluidas.txtar (US3 y el local inservible de «Edge Cases» · FR-001, FR-002, FR-003, FR-009, FR-013, FR-014, FR-015 · SC-003, SC-006) y specs/040-h38-las-skills-instaladas/aceptacion/candado.txtar (US4.1 a US4.4 y US4.6 · FR-010, FR-011, FR-013 · SC-003, SC-004), cada uno con un comentario de cabecera que nombra los FR y SC que cubre y que falla hoy por una aserción",
+  "id": "T002",
+  "texto": "T002 El dominio que decide y reinstala, con sus unitarios (FR-003, FR-004, FR-005, FR-006, FR-007, FR-009, FR-011, FR-013, FR-014, FR-019; SC-001, SC-002, SC-006; contracts/aviso-y-reinstalacion.md §2 y §3; data-model §1 a §6; research.md D1, D3, D6, D7, D11): internal/core/instalacion/reinstalacion.go (nuevo), internal/core/instalacion/puertos.go, internal/core/instalacion/version.go, internal/core/instalacion/discoEnMemoria_test.go",
   "intento": 1,
   "datos": false,
-  "aceptacion": true,
-  "base": "18e80c22056ee0a4f30b5ba4c622d1a879ef13d7",
+  "aceptacion": false,
+  "base": "b86c320132fd9ed9f4c4108f6b4e09aebe0cd0f5",
   "rutas": [
-    "contracts/aceptacion.md",
-    "specs/040-h38-las-skills-instaladas/aceptacion/candado.txtar",
-    "specs/040-h38-las-skills-instaladas/aceptacion/excluidas.txtar",
-    "specs/040-h38-las-skills-instaladas/aceptacion/reinstala.txtar",
-    "specs/040-h38-las-skills-instaladas/aceptacion/tocadas.txtar"
+    "contracts/aviso-y-reinstalacion.md",
+    "internal/core/instalacion/discoEnMemoria_test.go",
+    "internal/core/instalacion/puertos.go",
+    "internal/core/instalacion/reinstalacion.go",
+    "internal/core/instalacion/version.go",
+    "research.md"
   ],
   "cierre": false,
   "converger": false,
