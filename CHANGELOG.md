@@ -45,15 +45,17 @@ sustituyen a este fichero.
 
 ### Corregido
 
-- **Dos referencias de las skills dejan de dar pie a decir lo que no se ha leído** (H38, reparación del cierre).
-  `plazos-y-territorio` ya no da en `administrativo.md` ante quién se presenta la reclamación del art. 24.2 LTAIBG: lo
-  señala como variación autonómica solo con el art. 24 leído en la conversación y con su cita, y sin su texto deja la
-  reclamación con las palabras del precepto leído. `normativa` dice en `lecturas_que_fallan.md` dónde va el aviso de
-  un bloque que no se pudo leer: en una frase aparte, al final, con su número y la causa, nunca en la viñeta ni en la
-  frase de una materia, y sin retirar con sus palabras lo escrito antes de que la lectura fallara. En la medición 1
-  del cierre de H38, el juez marcó por esas dos formas 4 de las 120 respuestas de `normativa` en `afirma_lo_no_leido`
-  (el tope es 2,8 %); el efecto del cambio lo mide el job de evals de la medición siguiente. Ningún `SKILL.md`, eval
-  ni umbral cambia.
+- **`plazos-y-territorio` ya no da hecho ante quién se presenta la reclamación del art. 24 LTAIBG, y `normativa` dice
+  dónde va el aviso de una lectura que falla** (H38, reparación del cierre). `administrativo.md` señala el órgano de
+  la reclamación como variación autonómica solo con el art. 24 leído en la conversación y con su cita, y sin su texto
+  deja la reclamación con las palabras del precepto leído. `lecturas_que_fallan.md` pone el aviso de un bloque que no
+  se pudo leer en una frase aparte, al final, con su número y la causa, nunca en la viñeta ni en la frase de una
+  materia, y sin retirar con sus palabras lo escrito antes de que la lectura fallara. En la medición 1 del cierre de
+  H38, el juez marcó 4 de las 120 respuestas de `normativa` en `afirma_lo_no_leido` (el tope es 2,8 %): dos de la
+  eval 17 repetían el órgano del art. 24.6 que daba la referencia, y una de la 13 y otra de la 14 retiraban lo escrito
+  tras una lectura fallida. En la medición 2, con los dos cambios, marcó 3 de 120, las tres de la eval 17 en el modo
+  orden y con otras frases: la frase del art. 24.6 no ha vuelto a salir en sus 6 sesiones, pero la tasa de la clase
+  no baja de forma que se distinga del azar. Ningún `SKILL.md`, eval ni umbral cambia.
 - **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).
   Con una intercalación de idioma, como `en_US.UTF-8`, GNU sort ordenaba las líneas de `git status --porcelain` sin
   mirar su prefijo, y GNU comm daba esa salida por desordenada y salía con 1. En el run de H33, el primero en Linux con
