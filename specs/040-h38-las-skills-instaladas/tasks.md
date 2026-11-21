@@ -255,7 +255,7 @@ vez activados, pueden pasar.
 
 **Independent Test**: `TestReinstalacionConcurrente` y `TestReinstalacionFalloAMitad`; en e2e, `aceptacion/candado.txtar`.
 
-- [ ] T006 [P] [US4] Los unitarios de la concurrencia y del fallo a mitad, sobre el dominio de T002 (FR-010, FR-011, FR-019; SC-004; US4.5, US4.6; contracts/aviso-y-reinstalacion.md §2 pasos 7 a 9; research.md D3, D7): internal/core/instalacion/reinstalacion.go, internal/core/instalacion/discoEnMemoria_test.go
+- [X] T006 [P] [US4] Los unitarios de la concurrencia y del fallo a mitad, sobre el dominio de T002 (FR-010, FR-011, FR-019; SC-004; US4.5, US4.6; contracts/aviso-y-reinstalacion.md §2 pasos 7 a 9; research.md D3, D7): internal/core/instalacion/reinstalacion.go, internal/core/instalacion/discoEnMemoria_test.go
   - **Tests** en internal/core/instalacion/reinstalacion_test.go, sin gorrutinas ni esperas: `TestReinstalacionConcurrente`
     con dos `Reinstalacion` sobre el mismo `discoEnMemoria` y un candado falso compartido, y los dos intercalados de
     research.md D7 forzados desde los propios puertos: (1) la primera escritura de A ejecuta B entera, que encuentra el

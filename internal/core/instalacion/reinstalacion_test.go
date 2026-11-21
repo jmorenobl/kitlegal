@@ -1,7 +1,11 @@
 package instalacion_test
 
 import (
+	"fmt"
+	"maps"
 	"path"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,18 +65,29 @@ func (c *candadoDePrueba) tomar() (func(), bool) {
 func reinstalacionEn(
 	d *discoEnMemoria, version string, retiradas instalacion.Retiradas, candado *candadoDePrueba,
 ) instalacion.Reinstalacion {
+	reinstalacion, _ := reinstalacionConEscritor(d, version, retiradas, candado)
+
+	return reinstalacion
+}
+
+// reinstalacionConEscritor es reinstalacionEn con su escritor en memoria, del
+// que se leen las operaciones que se le piden o se hace fallar una.
+func reinstalacionConEscritor(
+	d *discoEnMemoria, version string, retiradas instalacion.Retiradas, candado *candadoDePrueba,
+) (instalacion.Reinstalacion, *escritorEnMemoria) {
 	enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
+	escritor := &escritorEnMemoria{disco: d, enlazador: enlazador}
 
 	return instalacion.Reinstalacion{
 		Disco:      d,
 		Enlazador:  enlazador,
-		Escritor:   &escritorEnMemoria{disco: d, enlazador: enlazador},
+		Escritor:   escritor,
 		Candado:    candado.tomar,
 		Home:       homeDePrueba,
 		Version:    version,
 		Empotradas: empotradasDePrueba(),
 		Retiradas:  retiradas,
-	}
+	}, escritor
 }
 
 // instalarGlobal deja d como lo deja kitlegal skills install -g <nombres> del
@@ -582,5 +597,354 @@ func casosDelPermisoYElCandado() []casoDeReinstalacion {
 			esperada:      hoy,
 			pideElCandado: true,
 		},
+	}
+}
+
+// escritorQueInterrumpe es el Escritor de una invocación que, al pedírsele la
+// primera operación y antes de hacerla, deja correr antes —otra invocación
+// entera— y después sigue con escritor: el intercalado de una invocación que
+// llega mientras esta reinstala, forzado desde el puerto y sin gorrutinas
+// (research.md D7).
+type escritorQueInterrumpe struct {
+	escritor instalacion.Escritor
+	antes    func()
+}
+
+// El escritor que interrumpe es un Escritor.
+var _ instalacion.Escritor = (*escritorQueInterrumpe)(nil)
+
+// interrumpir deja correr antes la primera vez que se le llama, y ninguna más.
+func (e *escritorQueInterrumpe) interrumpir() {
+	if e.antes == nil {
+		return
+	}
+
+	antes := e.antes
+	e.antes = nil
+
+	antes()
+}
+
+// CrearDirectorio interrumpe y crea el directorio con escritor.
+func (e *escritorQueInterrumpe) CrearDirectorio(ruta string) error {
+	e.interrumpir()
+
+	return e.escritor.CrearDirectorio(ruta)
+}
+
+// EscribirFichero interrumpe y escribe el fichero con escritor.
+func (e *escritorQueInterrumpe) EscribirFichero(ruta string, contenido []byte) error {
+	e.interrumpir()
+
+	return e.escritor.EscribirFichero(ruta, contenido)
+}
+
+// Retirar interrumpe y retira la entrada con escritor.
+func (e *escritorQueInterrumpe) Retirar(ruta string) error {
+	e.interrumpir()
+
+	return e.escritor.Retirar(ruta)
+}
+
+// Enlazar interrumpe y crea el enlace con escritor.
+func (e *escritorQueInterrumpe) Enlazar(destino, ruta string) error {
+	e.interrumpir()
+
+	return e.escritor.Enlazar(destino, ruta)
+}
+
+// globalSinTocarYSuFinal es el disco del global sin tocar de la v0.1.0 y el
+// estado en que lo deja una reinstalación con el binario v0.2.0: el de
+// kitlegal skills install -g de las dos skills, sobre un disco gemelo
+// (FR-005).
+func globalSinTocarYSuFinal(t *testing.T) (*discoEnMemoria, map[string]nodoEnMemoria) {
+	t.Helper()
+
+	preparar := func(d *discoEnMemoria) {
+		d.directorio(temporal)
+		globalDeLaV1(d).escribir()
+	}
+
+	d := nuevoDiscoEnMemoria(t)
+	preparar(d)
+
+	gemelo := nuevoDiscoEnMemoria(t)
+	preparar(gemelo)
+	instalarGlobal(t, gemelo, versionNueva, nil, todasLasDePrueba()...)
+
+	return d, gemelo.instantanea()
+}
+
+// reinstaladas cuenta las líneas de FR-006 que hay entre lineas.
+func reinstaladas(lineas ...string) int {
+	cuantas := 0
+
+	for _, linea := range lineas {
+		if linea == reinstaladaDeLaV1 {
+			cuantas++
+		}
+	}
+
+	return cuantas
+}
+
+// TestReinstalacionConcurrente fija FR-010 y SC-004 (research.md D3 y D7): de
+// dos invocaciones que piden a la vez el aviso con Reinstalar sobre el mismo
+// global sin tocar, con el mismo candado, reinstala una sola; la otra da la
+// línea de hoy si llega mientras la primera tiene el candado, y ninguna si lo
+// toma cuando la primera ya terminó. Los dos intercalados que importan se
+// fuerzan desde los propios puertos, sin gorrutinas ni esperas:
+//
+//   - la primera escritura de A ejecuta B entera: B evalúa el estado viejo,
+//     pide el candado, lo encuentra tomado y da la línea de hoy, sin escribir
+//     nada; A reinstala y da la de FR-006;
+//   - el candado de B, pedido con el estado viejo ya evaluado, ejecuta antes A
+//     entera, que reinstala, da la de FR-006 y lo suelta; B lo toma, vuelve a
+//     evaluar sobre el disco de ahora y no da ninguna línea ni escribe nada.
+//
+// En los dos sale una sola línea de FR-006, el disco queda como lo deja una
+// reinstalación y cada candado tomado se libera una vez. Sin el candado, o sin
+// la segunda evaluación bajo él, las dos reinstalan.
+func TestReinstalacionConcurrente(t *testing.T) {
+	t.Parallel()
+
+	t.Run("la otra llega mientras esta escribe: el candado tomado", probarLaOtraMientrasEscribe)
+	t.Run("la otra reinstala antes del candado de esta: ninguna línea", probarLaOtraAntesDelCandado)
+}
+
+// probarLaOtraMientrasEscribe es el primer intercalado: B entera dentro de la
+// primera escritura de A.
+func probarLaOtraMientrasEscribe(t *testing.T) {
+	t.Parallel()
+
+	d, final := globalSinTocarYSuFinal(t)
+	candado := &candadoDePrueba{}
+
+	b, escritorDeB := reinstalacionConEscritor(d, versionNueva, nil, candado)
+
+	var (
+		lineaDeB   string
+		hayDeB     bool
+		pasadasDeB int
+	)
+
+	a, escritorDeA := reinstalacionConEscritor(d, versionNueva, nil, candado)
+	a.Escritor = &escritorQueInterrumpe{escritor: escritorDeA, antes: func() {
+		pasadasDeB++
+		lineaDeB, hayDeB = b.Avisar(instalacion.Reinstalar)
+	}}
+
+	lineaDeA, hayDeA := a.Avisar(instalacion.Reinstalar)
+
+	require.Equal(t, 1, pasadasDeB, "B corre entera dentro de la primera escritura de A")
+	assert.Equal(t, reinstaladaDeLaV1, lineaDeA, "A tiene el candado y reinstala (FR-006)")
+	assert.True(t, hayDeA)
+	assert.Equal(t, avisoGlobal(versionDePrueba, versionNueva), lineaDeB,
+		"B encuentra el candado tomado: la línea de hoy (FR-010)")
+	assert.True(t, hayDeB)
+	assert.Equal(t, 1, reinstaladas(lineaDeA, lineaDeB), "una sola línea de FR-006 (SC-004)")
+	assert.Empty(t, escritorDeB.operaciones, "B no escribe nada")
+	assert.Equal(t, 2, candado.pedidos, "las dos piden el candado: las dos ven el global sin tocar")
+	assert.Equal(t, 1, candado.liberados, "solo A lo toma, y lo suelta una vez")
+	assert.False(t, candado.ocupado, "el candado queda libre")
+	assert.Equal(t, final, d.instantanea(), "el disco, el de una reinstalación (FR-005)")
+	exigirDiscoRespetado(t, d, homeDePrueba)
+}
+
+// probarLaOtraAntesDelCandado es el segundo intercalado: A entera dentro del
+// candado de B, que ya evaluó el estado viejo.
+func probarLaOtraAntesDelCandado(t *testing.T) {
+	t.Parallel()
+
+	d, final := globalSinTocarYSuFinal(t)
+	candado := &candadoDePrueba{}
+
+	a := reinstalacionEn(d, versionNueva, nil, candado)
+
+	var (
+		lineaDeA   string
+		hayDeA     bool
+		pasadasDeA int
+	)
+
+	b, escritorDeB := reinstalacionConEscritor(d, versionNueva, nil, candado)
+	b.Candado = func() (func(), bool) {
+		pasadasDeA++
+		lineaDeA, hayDeA = a.Avisar(instalacion.Reinstalar)
+
+		return candado.tomar()
+	}
+
+	lineaDeB, hayDeB := b.Avisar(instalacion.Reinstalar)
+
+	require.Equal(t, 1, pasadasDeA, "A corre entera dentro del candado de B")
+	assert.Equal(t, reinstaladaDeLaV1, lineaDeA, "A reinstala y suelta el candado (FR-006)")
+	assert.True(t, hayDeA)
+	assert.Empty(t, lineaDeB, "B vuelve a evaluar bajo el candado: A ya reinstaló, ninguna línea (research.md D3)")
+	assert.False(t, hayDeB)
+	assert.Equal(t, 1, reinstaladas(lineaDeA, lineaDeB), "una sola línea de FR-006 (SC-004)")
+	assert.Empty(t, escritorDeB.operaciones, "B no escribe nada")
+	assert.Equal(t, 2, candado.pedidos, "las dos piden el candado")
+	assert.Equal(t, 2, candado.liberados, "las dos lo toman, una tras otra, y lo sueltan una vez")
+	assert.False(t, candado.ocupado, "el candado queda libre")
+	assert.Equal(t, final, d.instantanea(), "el disco, el de una reinstalación (FR-005)")
+	exigirDiscoRespetado(t, d, homeDePrueba)
+}
+
+// globalDeLasCuatroFases deja el global de un binario v0.1.0 con
+// plazos-y-territorio, enlazada en claude y con un SKILL.md que aquel binario
+// empotraba distinto, y antigua, de un nombre que este binario retira y cuyas
+// preguntas hereda normativa, intacta: su reinstalación pasa por las cuatro
+// fases de Aplicar —retira antigua, enlaza normativa en claude, escribe el
+// manifiesto y escribe los ficheros, entre ellos el SKILL.md que se reescribe—.
+func globalDeLasCuatroFases(d *discoEnMemoria) {
+	d.directorio(temporal)
+	globalConAntigua(d).
+		deOtroBinario("plazos-y-territorio", "SKILL.md", "# plazos-y-territorio de la v0.1.0\n").
+		escribir()
+}
+
+// reinstalacionSinFallos reinstala el global de las cuatro fases sin ningún
+// fallo y devuelve cada operación que pidió al Escritor, en orden, y el estado
+// final del disco.
+func reinstalacionSinFallos(t *testing.T) ([]string, map[string]nodoEnMemoria) {
+	t.Helper()
+
+	d := nuevoDiscoEnMemoria(t)
+	globalDeLasCuatroFases(d)
+
+	reinstalacion, escritor := reinstalacionConEscritor(d, versionNueva, retiradaPorNormativa(), &candadoDePrueba{})
+
+	linea, hay := reinstalacion.Avisar(instalacion.Reinstalar)
+	require.Equal(t, reinstaladaDeLaV1, linea, "sin fallos, reinstala")
+	require.True(t, hay)
+
+	return escritor.operaciones, d.instantanea()
+}
+
+// exigirLasCuatroFases exige que las operaciones de la reinstalación pasen
+// por las cuatro fases: retirar antigua, enlazar normativa en claude, escribir
+// el manifiesto y reescribir el SKILL.md de plazos-y-territorio.
+func exigirLasCuatroFases(t *testing.T, operaciones []string) {
+	t.Helper()
+
+	ambito := ambitoGlobal(t, homeDePrueba)
+	fases := []string{
+		"retirar " + path.Join(ambito.RutaDeSkill("antigua"), "SKILL.md"),
+		"enlazar " + ambito.RutaDeHost("claude", "normativa") + " -> ",
+		"escribir " + ambito.RutaDelManifiesto(),
+		"escribir " + path.Join(ambito.RutaDeSkill("plazos-y-territorio"), "SKILL.md"),
+	}
+
+	for _, fase := range fases {
+		assert.True(t, slices.ContainsFunc(operaciones, func(operacion string) bool {
+			return strings.HasPrefix(operacion, fase)
+		}), "la reinstalación pasa por %q; pide %q", fase, operaciones)
+	}
+}
+
+// conAntiguaSinRetirar es lo que deja install -g sobre una retirada a medias:
+// el estado final de la reinstalación sin fallos con lo que queda de antigua,
+// restos, sin tocar, y en el manifiesto su declaración de antes, declarada.
+// Su directorio ya no tiene exactamente los ficheros que el manifiesto le
+// declara, así que install -g no la retira y la conserva «sin retirar», como a
+// cualquier retirada que no está intacta (FR-026 y FR-027 de H32).
+func conAntiguaSinRetirar(
+	t *testing.T, final, restos map[string]nodoEnMemoria, declarada instalacion.SkillDeclarada,
+) map[string]nodoEnMemoria {
+	t.Helper()
+
+	ruta := ambitoGlobal(t, homeDePrueba).RutaDelManifiesto()
+
+	manifiesto, err := instalacion.LeerManifiesto(final[ruta].contenido)
+	require.NoError(t, err, "el manifiesto de la reinstalación sin fallos")
+
+	manifiesto.Skills["antigua"] = declarada
+
+	contenido, err := manifiesto.Bytes()
+	require.NoError(t, err)
+
+	esperado := maps.Clone(final)
+	maps.Copy(esperado, restos)
+	esperado[ruta] = nodoEnMemoria{tipo: instalacion.EntradaFichero, contenido: contenido}
+
+	return esperado
+}
+
+// antiguaDeclarada es la declaración de antigua en el manifiesto global de d.
+func antiguaDeclarada(t *testing.T, d *discoEnMemoria) instalacion.SkillDeclarada {
+	t.Helper()
+
+	manifiesto, err := instalacion.LeerManifiesto(
+		d.instantanea()[ambitoGlobal(t, homeDePrueba).RutaDelManifiesto()].contenido)
+	require.NoError(t, err, "el manifiesto global de antes")
+	require.Contains(t, manifiesto.Skills, "antigua")
+
+	return manifiesto.Skills["antigua"]
+}
+
+// TestReinstalacionFalloAMitad fija FR-011 y FR-019 (US4.5, US4.6;
+// research.md D7) con el patrón de TestFalloAMitadSeCompleta: sobre el global
+// de las cuatro fases, para cada operación n que la reinstalación sin fallos
+// pide al Escritor, un Escritor que falla en la n, como falla un disco lleno o
+// sin permiso. Si la n no es un enlace, la reinstalación se para en ella y da
+// la línea de hoy del estado anterior a intentarlo; si lo es, Aplicar sigue
+// con su copia (FR-024 de H19) y da la de FR-006, como install. En todas, el
+// candado se toma y se libera una vez, y después kitlegal skills install -g de
+// las dos skills planifica sin ningún conflicto (FR 044 de H19) y deja el
+// disco como la reinstalación sin fallos: lo que queda a medias, install -g lo
+// completa. Con una salvedad, la de install: si la n deja antigua a medias
+// —retirada en parte—, install -g la conserva «sin retirar» con lo que queda
+// (FR-027 de H32; gates/supuestos.md, T006).
+func TestReinstalacionFalloAMitad(t *testing.T) {
+	t.Parallel()
+
+	operaciones, final := reinstalacionSinFallos(t)
+	exigirLasCuatroFases(t, operaciones)
+
+	rutaDeAntigua := ambitoGlobal(t, homeDePrueba).RutaDeSkill("antigua")
+
+	for i, operacion := range operaciones {
+		t.Run(fmt.Sprintf("%d %s", i+1, operacion), func(t *testing.T) {
+			t.Parallel()
+
+			d := nuevoDiscoEnMemoria(t)
+			globalDeLasCuatroFases(d)
+
+			antigua := bajo(d.instantanea(), rutaDeAntigua)
+			declarada := antiguaDeclarada(t, d)
+			candado := &candadoDePrueba{}
+			reinstalacion, escritor := reinstalacionConEscritor(d, versionNueva, retiradaPorNormativa(), candado)
+			escritor.fallarEn = i + 1
+
+			linea, hay := reinstalacion.Avisar(instalacion.Reinstalar)
+
+			require.GreaterOrEqual(t, len(escritor.operaciones), i+1)
+			assert.Equal(t, operacion, escritor.operaciones[i], "la misma operación que sin fallos")
+
+			if strings.HasPrefix(operacion, "enlazar ") {
+				assert.Equal(t, reinstaladaDeLaV1, linea, "un enlace que no se puede crear pasa a su copia (FR-024 de H19)")
+			} else {
+				assert.Equal(t, avisoGlobal(versionDePrueba, versionNueva), linea,
+					"la línea de hoy del estado anterior a intentarlo (FR-011)")
+				assert.Len(t, escritor.operaciones, i+1, "se para en el primer fallo")
+			}
+
+			assert.True(t, hay)
+			assert.Equal(t, 1, candado.pedidos, "el candado se pide una vez")
+			assert.Equal(t, 1, candado.liberados, "el candado se libera también tras el fallo")
+			assert.False(t, candado.ocupado, "el candado queda libre")
+
+			esperado := final
+
+			// Aplicar solo retira, así que lo que queda de antigua es una parte
+			// de lo que había: si no es nada ni todo, está a medias.
+			if restos := bajo(d.instantanea(), rutaDeAntigua); len(restos) > 0 && len(restos) < len(antigua) {
+				esperado = conAntiguaSinRetirar(t, final, restos, declarada)
+			}
+
+			instalarGlobal(t, d, versionNueva, retiradaPorNormativa(), todasLasDePrueba()...)
+			assert.Equal(t, esperado, d.instantanea(), "install -g completa la reinstalación (FR-011)")
+		})
 	}
 }
