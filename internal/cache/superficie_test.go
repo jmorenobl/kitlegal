@@ -2,8 +2,9 @@
 // podría abrirse: lo que el paquete exporta. Ninguna declaración exportada nombra
 // la biblioteca de base de datos ni el controlador de SQLite, y el paquete no
 // exporta nada que no esté en la lista del contrato del puerto y el cliente §2,
-// del contrato de errores §2 y, desde H7, de la regla de ubicación que sirve
-// también al grafo del mundo. Con las dos cosas, quien usa la caché desde fuera
+// del contrato de errores §2, desde H7, de la regla de ubicación que sirve
+// también al grafo del mundo y, desde H38, del candado de la reinstalación de las
+// skills globales. Con las dos cosas, quien usa la caché desde fuera
 // no tiene forma de recibir la conexión, de construirla ni de pasarle una
 // sentencia: la imposibilidad de ejecutar SQL arbitrario es así del diseño y no
 // del control. La regla R3 de `depguard`, `sqlclosecheck`, `rowserrcheck` e
@@ -59,11 +60,15 @@ var paquetesDeLaBase = []string{"database/sql", "modernc.org/sqlite"}
 // superficieDelContrato es la lista cerrada de lo que el paquete exporta, con el
 // nombre con el que la revisión anota cada declaración: la constante y la regla
 // de ubicación que sirve también al grafo del mundo (H7,
-// contracts/almacen-world-db.md §2 y research D8), el tipo del cliente, el
-// constructor, el tipo de las opciones y las cuatro opciones; los tres métodos
-// del cliente; y Error con sus tres métodos y los cinco campos que el contrato
-// de errores §2 declara. Cliente no lleva ningún campo exportado: el contrato lo
-// declara privado entero.
+// contracts/almacen-world-db.md §2 y research D8), el candado con el que una
+// sola invocación a la vez reinstala las skills globales, en ese mismo
+// directorio (H38, contracts/aviso-y-reinstalacion.md §4 y research D4), el tipo
+// del cliente, el constructor, el tipo de las opciones y las cuatro opciones;
+// los tres métodos del cliente; y Error con sus tres métodos y los cinco campos
+// que el contrato de errores §2 declara. Cliente no lleva ningún campo
+// exportado: el contrato lo declara privado entero. El candado no recibe ni
+// devuelve nada de la base de datos ni ejecuta ninguna sentencia: es un fichero
+// vacío al lado de cache.db.
 //
 // Se compara en los dos sentidos. Lo que sobra es superficie que nadie aprobó; lo
 // que falta quiere decir que la revisión dejó de ver algo, y sin esa mitad el
@@ -71,6 +76,7 @@ var paquetesDeLaBase = []string{"database/sql", "modernc.org/sqlite"}
 var superficieDelContrato = []string{
 	"const VariableDirectorio",
 	"func Directorio",
+	"func TomarCandado",
 	"tipo Cliente",
 	"func New",
 	"tipo Opcion",

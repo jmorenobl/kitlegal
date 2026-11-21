@@ -1,0 +1,304 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index cd983147..4649a7d9 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -45,6 +45,15 @@ sustituyen a este fichero.
+ 
+ ### Corregido
+ 
++- **Dos referencias de las skills dejan de dar pie a decir lo que no se ha leído** (H38, reparación del cierre).
++  `plazos-y-territorio` ya no da en `administrativo.md` ante quién se presenta la reclamación del art. 24.2 LTAIBG: lo
++  señala como variación autonómica solo con el art. 24 leído en la conversación y con su cita, y sin su texto deja la
++  reclamación con las palabras del precepto leído. `normativa` dice en `lecturas_que_fallan.md` dónde va el aviso de
++  un bloque que no se pudo leer: en una frase aparte, al final, con su número y la causa, nunca en la viñeta ni en la
++  frase de una materia, y sin retirar con sus palabras lo escrito antes de que la lectura fallara. En la medición 1
++  del cierre de H38, el juez marcó por esas dos formas 4 de las 120 respuestas de `normativa` en `afirma_lo_no_leido`
++  (el tope es 2,8 %); el efecto del cambio lo mide el job de evals de la medición siguiente. Ningún `SKILL.md`, eval
++  ni umbral cambia.
+ - **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).
+   Con una intercalación de idioma, como `en_US.UTF-8`, GNU sort ordenaba las líneas de `git status --porcelain` sin
+   mirar su prefijo, y GNU comm daba esa salida por desordenada y salía con 1. En el run de H33, el primero en Linux con
+diff --git a/internal/evals/laboratorio_familias_test.go b/internal/evals/laboratorio_familias_test.go
+index a1b7a305..f9e58389 100644
+--- a/internal/evals/laboratorio_familias_test.go
++++ b/internal/evals/laboratorio_familias_test.go
+@@ -385,13 +385,57 @@ const siSaleConCuatroOCinco = "Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**:
+ const inicioDeLaCoberturaPorMateria = "<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y " +
+ 	"data/normas.yaml con make skills-sync, no editar -->\n"
+ 
++// noSupleSuTexto es la última línea del primer párrafo de «Qué dice la
++// respuesta» de lecturas_que_fallan.md de normativa: tras ella va el párrafo
++// dondeVaLoNoLeido (research «Reparaciones del cierre», R1, de H38).
++const noSupleSuTexto = "para qué los pedías, y no suple su texto.\n"
++
++// dondeVaLoNoLeido es el párrafo que la reparación del cierre de H38 añade a
++// «Qué dice la respuesta» de lecturas_que_fallan.md de normativa: el aviso de
++// lo que no se pudo leer va en una frase aparte, al final, con el número y la
++// causa, fuera de la viñeta o de la frase de una materia, y sin retirar con sus
++// palabras lo escrito antes del fallo (research «Reparaciones del cierre», R1,
++// de H38).
++const dondeVaLoNoLeido = "Lo dice en una frase aparte, al final, con el número y la causa y nada más: «No he podido " +
++	"leer el artículo N de\n" +
++	"<norma>: <causa>.» No va en la viñeta ni en la frase de una materia, ni colgada de ella («su artículo N», " +
++	"«<materia>,\n" +
++	"que regula el artículo N»): puesta ahí, dice de qué trata el bloque. Y lo que escribiste de ese bloque antes " +
++	"de que la\n" +
++	"lectura fallara no se retira con sus palabras («antes dije que el artículo N…»): retirarlo así lo repite. " +
++	"Basta la\n" +
++	"frase.\n"
++
++// anteQuienSeReclamaEnLaBase son las dos líneas de «La reclamación del art.
++// 24.2 LTAIBG» de administrativo.md de plazos-y-territorio-sin-condicion, que
++// daban lo que prevé el art. 24.6 LTAIBG sin pedir su lectura (research
++// «Reparaciones del cierre», R1, de H38).
++const anteQuienSeReclamaEnLaBase = "Señala como variación autonómica ante quién se reclama: el Consejo de " +
++	"Transparencia y Buen Gobierno o el órgano que\n" +
++	"la comunidad haya designado (art. 24.6).\n"
++
++// anteQuienSeReclama son las cuatro líneas que las sustituyen con la reparación
++// del cierre de H38: la referencia no da ante quién se reclama, y lo pide con el
++// art. 24 LTAIBG leído en la conversación y con su cita (research «Reparaciones
++// del cierre», R1, de H38).
++const anteQuienSeReclama = "Ante quién se reclama varía por comunidad y esta referencia no lo da: señálalo como " +
++	"variación autonómica solo con el\n" +
++	"art. 24 LTAIBG [BOE-A-2013-12887, bloque a24] leído en esta conversación (paso 10 o 6), con su cita. Sin su " +
++	"texto\n" +
++	"—también en el plazo para resolver, cuyo precepto solo remite a la reclamación—, no digas ante quién se " +
++	"reclama ni qué\n" +
++	"prevé el art. 24: o lo lees antes de escribir, o la reclamación va con las palabras del precepto leído y " +
++	"nada más.\n"
++
+ // declaracionesDelProducto son, por skill, la base, los cambios y los
+ // movimientos de las skills del producto, con los bytes de
+ // contracts/remisiones.md §2 a §4 de H41 y de contracts/controles.md §1.1 de
+-// H41.1.
++// H41.1, y los dos cambios en las referencias de la reparación del cierre de
++// H38 (research «Reparaciones del cierre», R1, de H38).
+ var declaracionesDelProducto = map[string]declaracionDelProducto{
+ 	// Las siete remisiones de R1 a R6, con la «o» de R4 (research D1), y la
+-	// salida de M-a y M-b (contracts/remisiones.md §2 y §3).
++	// salida de M-a y M-b (contracts/remisiones.md §2 y §3); y el párrafo de
++	// lecturas_que_fallan.md de la reparación del cierre de H38.
+ 	skillDeNormativa: {
+ 		cambios: []cambioDelCuerpo{
+ 			{
+@@ -469,6 +513,13 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
+ 				enLaReferencia: "\nSi una lectura falla, di qué bloques faltan y por qué.\n",
+ 			},
+ 		},
++		enLasReferencias: []cambioEnUnaReferencia{
++			{
++				referencia: "lecturas_que_fallan.md",
++				antes:      noSupleSuTexto,
++				despues:    noSupleSuTexto + "\n" + dondeVaLoNoLeido,
++			},
++		},
+ 	},
+ 	// La remisión a consulta_preparada.md pasa del final del paso 2 a la frase que
+ 	// nombra cita_preparar (J1), y la de documento_aportado.md, del final al
+@@ -506,7 +557,9 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
+ 	},
+ 	// La forma sin condición de H41 con M1 (FR-001 a FR-005 de H41.1; ADR 0053,
+ 	// punto 1) y los tres cambios del cuerpo y el de administrativo.md de H33
+-	// (FR-005 y FR-009 de H33; contracts/skills.md §2 y §3 de H33), y nada más.
++	// (FR-005 y FR-009 de H33; contracts/skills.md §2 y §3 de H33), las cuatro
++	// líneas de la reclamación del art. 24.2 LTAIBG de la reparación del cierre de
++	// H38, y nada más.
+ 	skillDeLaFamiliaDePlazos: {
+ 		desde: "plazos-y-territorio-sin-condicion",
+ 		cambios: []cambioDelCuerpo{
+@@ -571,6 +624,11 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
+ 					"\n" +
+ 					inicioDeLaCoberturaPorMateria,
+ 			},
++			{
++				referencia: "administrativo.md",
++				antes:      anteQuienSeReclamaEnLaBase,
++				despues:    anteQuienSeReclama,
++			},
+ 		},
+ 	},
+ }
+diff --git a/skills/normativa/references/lecturas_que_fallan.md b/skills/normativa/references/lecturas_que_fallan.md
+index a6819f85..81962494 100644
+--- a/skills/normativa/references/lecturas_que_fallan.md
++++ b/skills/normativa/references/lecturas_que_fallan.md
+@@ -38,6 +38,12 @@ De lo que no se pudo leer, la respuesta dice qué bloques, por su número, y por
+ estaba disponible, limitó las consultas o no fecha sus redacciones. No da el código, ni de qué tratan esos bloques, ni
+ para qué los pedías, y no suple su texto.
+ 
++Lo dice en una frase aparte, al final, con el número y la causa y nada más: «No he podido leer el artículo N de
++<norma>: <causa>.» No va en la viñeta ni en la frase de una materia, ni colgada de ella («su artículo N», «<materia>,
++que regula el artículo N»): puesta ahí, dice de qué trata el bloque. Y lo que escribiste de ese bloque antes de que la
++lectura fallara no se retira con sus palabras («antes dije que el artículo N…»): retirarlo así lo repite. Basta la
++frase.
++
+ ## Si `kitlegal graph check` falla
+ 
+ Si la lectura sin fecha devuelve el texto del bloque y, detrás, `kitlegal graph check` termina con otro código que `0`
+diff --git a/skills/plazos-y-territorio/references/administrativo.md b/skills/plazos-y-territorio/references/administrativo.md
+index ee1010e0..f834682c 100644
+--- a/skills/plazos-y-territorio/references/administrativo.md
++++ b/skills/plazos-y-territorio/references/administrativo.md
+@@ -72,8 +72,10 @@ No hay fecha, y no se pide ningún plazo. Cita los arts. 122.1 y 124.1 LPAC y el
+ 
+ ## La reclamación del art. 24.2 LTAIBG
+ 
+-Señala como variación autonómica ante quién se reclama: el Consejo de Transparencia y Buen Gobierno o el órgano que
+-la comunidad haya designado (art. 24.6).
++Ante quién se reclama varía por comunidad y esta referencia no lo da: señálalo como variación autonómica solo con el
++art. 24 LTAIBG [BOE-A-2013-12887, bloque a24] leído en esta conversación (paso 10 o 6), con su cita. Sin su texto
++—también en el plazo para resolver, cuyo precepto solo remite a la reclamación—, no digas ante quién se reclama ni qué
++prevé el art. 24: o lo lees antes de escribir, o la reclamación va con las palabras del precepto leído y nada más.
+ 
+ ## Las leyes vertebrales
+ 
+diff --git a/specs/040-h38-las-skills-instaladas/plan.md b/specs/040-h38-las-skills-instaladas/plan.md
+index 513f0ef5..5bc20c65 100644
+--- a/specs/040-h38-las-skills-instaladas/plan.md
++++ b/specs/040-h38-las-skills-instaladas/plan.md
+@@ -54,13 +54,13 @@ cambian; 2 documentos.
+ | Principio o regla | Cómo lo cumple este hito |
+ |---|---|
+ | I · Fuentes públicas y frontera humana (INNEGOCIABLE) | No toca ninguna fuente ni `internal/httpx`; ninguna petición. Lo que escribe es local, en la cuenta de quien usa el kit, y solo lo que ya escribe `install -g` (FR-005) |
+-| II · Nada sin cita ni fuente | Ningún sobre cambia: la salida estándar es la de hoy, byte a byte (FR-012); la línea va a la salida de error. Ninguna skill ni referencia cambia |
++| II · Nada sin cita ni fuente | Ningún sobre cambia: la salida estándar es la de hoy, byte a byte (FR-012); la línea va a la salida de error. El diseño del hito no cambia ninguna skill ni referencia; la reparación del cierre cambia dos referencias para que ninguna dé contenido legal sin su lectura («Decisiones»; research R1) |
+ | III · Tests primero y offline | Primero los cuatro guiones de `aceptacion/`, que fallan hoy por una aserción (cada uno lleva un caso que reinstala o la línea de FR-009); unitarios offline sobre el disco en memoria y `t.TempDir()`; ninguna grabación ni fixture nuevo; ninguna salida de applet nueva que validar contra `schemas/`. El código nuevo de `internal/core/instalacion` lo cubren `TestReinstalacion*` y `TestReglaDeVersiones` (umbral de cobertura de `internal/core/**`) |
+ | IV · Arquitectura hexagonal con reglas ejecutables | El dominio decide y define el puerto `TomarCandado`; la entrada y salida la hacen `internal/disco` y `internal/cache`; `internal/app` compone. Ningún código de salida nuevo: un fallo de la reinstalación no es un error de la invocación (FR-012) y se queda en la línea de hoy (research.md D11). Ningún `panic`: sin `Enlazador` el avisador solo da la línea de hoy (D12) |
+ | V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia: la precedencia SemVer es propia (D6; `golang.org/x/mod/semver` descartada). Ningún paquete nuevo; cada tipo, función, fichero y test se traza a un FR («Trazabilidad»); la sustitución del huérfano no lleva más mecanismo que el que pide FR-010 (D5) |
+ | VI · Un binario, convenciones de agente | Un binario; ninguna orden, bandera ni variable nueva (`KITLEGAL_CACHE_DIR` es la de H3). Igual por el primer argumento y por multicall (US1.8). `--dry-run` describe y no escribe (FR-009); `--describe` no cambia |
+ | VII · Grafo y privacidad | No toca el grafo. El candado es un fichero vacío: no guarda ningún dato de nadie |
+-| VIII · Skills primero; el binario es la herramienta | Protege las skills existentes: las que instaló la persona le llegan al día con el binario, sin cambiar ninguna `SKILL.md`, referencia ni eval (fundación de la distribución, ADR 0019 y 0060). Ninguna skill lee la línea (spec, «Contexto») |
++| VIII · Skills primero; el binario es la herramienta | Protege las skills existentes: las que instaló la persona le llegan al día con el binario, sin cambiar ninguna `SKILL.md` ni eval (fundación de la distribución, ADR 0019 y 0060); las dos referencias que cambia la reparación del cierre no son del diseño del hito («Decisiones»; research R1). Ninguna skill lee la línea (spec, «Contexto») |
+ | IX · Genericidad territorial, validación local | Nada territorial; las consultas de los e2e usan `territorio resolver Leganés` solo como orden sin red y de salida fija |
+ | X · Genericidad por materia, validación administrativa | Nada por materia: el pedido son las skills declaradas, sean de la materia que sean, más sus herederas |
+ | R1 · `internal/core/**` no importa el kernel, adaptadores ni entrada y salida | `reinstalacion.go`, `version.go` y `puertos.go` solo usan la biblioteca estándar sin entrada y salida y los tipos del propio paquete; el candado llega como puerto |
+@@ -257,3 +257,15 @@ D3 (dos evaluaciones), D4 (el candado en la caché), D5 (cuándo no se toma y lo
+ huérfano), D6 (precedencia SemVer propia), D7 (unitarios por la API pública, deterministas), D8 (la concurrencia en
+ e2e como aceptación), D9 (cómo se construyen los estados), D10 (la orden de las consultas), D11 (ningún error se
+ propaga), D12 (la firma del avisador) y D13 (skills de Go).
++
++**Reparación del cierre** (research «Reparaciones del cierre», R1), con la medición 1 del cierre como evidencia y
++**apartándose de «Fuera de alcance» del spec**, que no deja cambiar ninguna skill: `evals (normativa)` sale en rojo
++por `afirma_lo_no_leido:claude-sonnet-5-5`, 4 de 120 (tope, 2,8 %), con `skills/` sin tocar por el hito. Dos de las
++cuatro respuestas trasladan lo que prevé el art. 24.6 LTAIBG, que la referencia `administrativo.md` de
++`plazos-y-territorio` daba hecho sin pedir su lectura (la misma frase ya marcó una respuesta en el cierre de H33), y
++las otras dos cuentan una lectura fallida dentro de una materia o retirando lo dicho. Cambian esas dos referencias:
++`administrativo.md` deja de dar ante quién se reclama y lo pide con el art. 24 leído y citado, y
++`lecturas_que_fallan.md` de `normativa` dice dónde va el aviso de lo no leído. Se hace porque el umbral que no se
++cumple es de las skills y se arregla en la skill (ADR 0029); se descartan volver a medir sin cambio, grabar los bloques
++que fallaron (cambia las evals y lo grabado) y tocar el cuerpo de `normativa`. Ningún `SKILL.md`, eval, umbral ni
++grabación cambia. El efecto no se ha medido en el run: lo mide el job de evals de la medición siguiente.
+diff --git a/specs/040-h38-las-skills-instaladas/research.md b/specs/040-h38-las-skills-instaladas/research.md
+index cbd057e7..12287f30 100644
+--- a/specs/040-h38-las-skills-instaladas/research.md
++++ b/specs/040-h38-las-skills-instaladas/research.md
+@@ -274,6 +274,86 @@ nombra sus tres valores: `exhaustive` v0.12.0 comprueba los switch sobre tipos d
+ `default-signifies-exhaustive: true` en `.golangci.yml:257`; permisos 0o600 y 0o700, y `filepath.Clean` en la ruta
+ del candado, como `internal/disco/escribir.go`).
+ 
++## Reparaciones del cierre
++
++La medición 1 del cierre (cabeza `3473dd4d`, `gates/cierre.json`, 2026-11-21; ejecución 44928879479) sale en rojo por
++una sola comprobación, `evals (normativa)` (trabajo 136921530208): `ci`, `snapshot`, la web y los otros tres jobs de
++evals pasan. La reparación la decide `reparar_cierre` con el informe del job (`gates/evals/normativa.json`); no toca
++ninguna eval, la rúbrica, los casos, la medida, ningún umbral ni lo grabado (ADR 0029). **Se aparta de «Fuera de
++alcance» del spec («Cambiar ninguna `SKILL.md`, `data/`, evals o la web») y de lo que decían plan.md («Constitution
++Check», principio VIII) y tasks.md: cambian dos referencias de dos skills**, y queda registrada como lo que es (ADR
++0030). Su efecto no se ha medido: este paso no abre sesiones con modelo (ADR 0032) y lo mide el job de evals de la
++medición siguiente.
++
++**R1. Dos referencias dejan de dar pie a decir lo que no se ha leído.**
++
++**Evidencia.** El veredicto `fallo` tiene un solo motivo: `afirma_lo_no_leido:claude-sonnet-5-5`, 4 de 120 (3,3 %; el
++tope es 2,8 %, como mucho 3 de 120), 1 de 60 en el modo orden y 3 de 60 en el modo herramienta, las 4 en evals por
++materia. Los demás umbrales que deciden se cumplen, ninguna respuesta queda sin juzgar ni ninguna sesión sin medir, y
++el juez cumple su medida (0 de 212 y 0 de 47). El hito no cambia `skills/` (`git diff main...HEAD -- skills/`, vacío):
++el árbol de `normativa` es el del cierre de H41.4 (0 de 120) y el de H33 (2 de 120). Las 4 respuestas, con los tres
++votos del juez, son de dos formas:
++
++- **La frase que la referencia daba hecha.** `17-ltaibg-plazo-por-materia-claude-sonnet-5-5-01` (orden) y
++  `17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-02` leen solo el art. 20 de la Ley 19/2013 y dicen ante
++  quién se presenta la reclamación del art. 24, con «(art. 24.6)». Las dos activan `plazos-y-territorio` —la eval lo
++  admite desde H33 (`tambien_la_resuelven`)—, y la frase es la de su referencia `administrativo.md`, «La reclamación
++  del art. 24.2 LTAIBG», que mandaba señalar la variación autonómica dando ella misma lo que prevé el art. 24.6, sin
++  pedir su lectura: el modelo la traslada, y el texto del art. 24 no está en la sesión. No es un caso suelto: la misma
++  frase marcó `17-ltaibg-plazo-por-materia-claude-sonnet-5-5-02` en el cierre de H33
++  (`specs/039-h33-cobertura-en-positivo/gates/evals/normativa.json`). Son 3 marcas en dos cierres seguidos, y en este,
++  2 de las 6 respuestas de la eval 17 con el modelo que decide.
++- **La lectura fallida, contada dentro de una materia o retirando lo dicho.**
++  `14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-02` pide el bloque `a78` del TRLRHL, que sale con `5`
++  (fuera de lo grabado) en la lectura de varios bloques y en dos lecturas sueltas, y lo dice dentro de la viñeta de
++  uno de los impuestos del art. 59 («la lectura de su artículo 78 falló porque la fuente limitó la consulta»): el juez
++  lee ahí de qué trata el art. 78.
++  `13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-01` pide `a123` de la Ley 7/1985, que sale con `5`,
++  y retira lo que había escrito antes repitiéndolo («Antes mencioné que el artículo 123 también atribuye…»).
++  `lecturas_que_fallan.md` ya pedía decir qué bloques faltan, por su número, y por qué, sin decir de qué tratan, pero
++  no decía dónde va esa frase ni qué se hace con lo escrito antes del fallo.
++
++**Decisión.** (1) `skills/plazos-y-territorio/references/administrativo.md`, «La reclamación del art. 24.2 LTAIBG»:
++la referencia deja de dar ante quién se reclama. Pide señalarlo como variación autonómica solo con el art. 24 LTAIBG
++`[BOE-A-2013-12887, bloque a24]` leído en la conversación (paso 10 o paso 6) y con su cita; sin su texto —también en
++el plazo para resolver, cuyo precepto solo remite a la reclamación—, ni ante quién se reclama ni qué prevé el art. 24:
++o se lee antes de escribir, o la reclamación va con las palabras del precepto leído. El bloque `a24` está entre las
++`lecturas` de la eval 17, que entran en la caché preparada de sus sesiones (`internal/evals/consultas.go`, punto 4).
++Cuatro líneas donde había dos: la referencia queda en 100, el tope sin índice. (2) `skills/normativa/references/lecturas_que_fallan.md`, «Qué dice la respuesta»,
++gana un párrafo: lo no leído se dice en una frase aparte, al final, con el número y la causa y nada más («No he podido
++leer el artículo N de <norma>: <causa>.»), nunca en la viñeta ni en la frase de una materia ni colgada de ella, y lo
++escrito de ese bloque antes de que la lectura fallara no se retira con sus palabras, porque retirarlo así lo repite.
++Los ejemplos van con marcadores, sin contenido legal. (3) Los dos cambios se declaran donde el repositorio controla
++lo que cada skill del producto cambia respecto a su base del laboratorio: `declaracionesDelProducto`
++(`internal/evals/laboratorio_familias_test.go`) gana un `cambioEnUnaReferencia` en `normativa` y otro en
++`plazos-y-territorio`, la vía que abrió H33 (su contracts/controles.md §3); sin ellos, `TestSkillsDelProductoDesdeControl`
++da las dos referencias por distintas de su base. Las variantes de `laboratorio/` no cambian. Ningún `SKILL.md` cambia,
++ni ninguna forma fija `⚠`, eval, rúbrica, caso, medida, umbral ni grabación, y ningún otro test.
++
++**Por qué se hace aun así.** El umbral que no se cumple es de las skills, no del hito ni de la ejecución, y un umbral
++del job que no se cumple se arregla en la skill, no rebajándolo ni dejándolo solo publicado (ADR 0029). Las dos formas
++tienen su causa en un texto de las skills: una referencia que da contenido legal para trasladarlo sin lectura va
++contra la regla 2 de la propia skill («el texto de un artículo, solo de `kitlegal boe articulo`, con su cita») y
++contra «nunca inventar contenido legal»; y la referencia de las lecturas que fallan no decía dónde va su aviso.
++
++**Alternativas descartadas.**
++
++- *No tocar nada y volver a medir*: la primera forma viene del texto de la referencia y lleva dos cierres seguidos;
++  repetir la medida sin cambiarlo es esperar a que la tasa baje sola.
++- *Grabar `a78` y `a123` en las `lecturas` de las evals 13 y 14*, como H31.1 hizo con otros bloques (ADR 0043, clase
++  b): cambia las evals y lo grabado, que este paso no toca, y la skill tiene que contar bien una lectura que falla,
++  llegue o no una eval a ella. Queda a la vista de la persona: `fuera_de_lo_grabado:claude-sonnet-5-5:herramienta`
++  da 10 de 66 en este informe, y solo se publica.
++- *Dejar en la referencia lo que prevé el art. 24.6 y pedir además su lectura*: con el contenido delante, el modelo
++  lo traslada aunque no lea; con el texto leído no lo necesita.
++- *Llevar la regla al cuerpo de `normativa`* (paso 6): el caso lo trae una lectura fallida, y lo que solo ese caso
++  necesita va en la referencia que se manda leer entonces (docs/SKILLS.md; ADR 0052, punto 4); el cuerpo, además,
++  es lo que el spec nombra en «Fuera de alcance».
++- *Un índice en `administrativo.md`* para pasar de 100 líneas: no hace falta, el texto cabe.
++
++**Lo comprobado en este paso, sin modelo.** `make skills-check` y `make ci`, en verde con el cambio. Que las dos
++formas dejen de darse no se ha medido aquí: lo mide el job de evals de la medición siguiente, en los dos modos.
++
+ ## Datos externos
+ 
+ Ninguno. El hito no consulta ni graba ninguna fuente, no escribe en `data/` ni en `evidencias/` y no toca
+diff --git a/specs/040-h38-las-skills-instaladas/tasks.md b/specs/040-h38-las-skills-instaladas/tasks.md
+index 8c1fdd05..b8cfc6a2 100644
+--- a/specs/040-h38-las-skills-instaladas/tasks.md
++++ b/specs/040-h38-las-skills-instaladas/tasks.md
+@@ -41,6 +41,8 @@ línea de cada tarea declara todas las rutas que crea o modifica (el guardián r
+   referencia, eval, `data/`, la web, `.golangci.yml`, `Makefile`, `.github/`, `scripts/`, `cmd/`, el arnés
+   (`internal/app/e2e_test.go`), `internal/arch_test.go`, `internal/app/ejemplo/kitlegal-e2e/main.go`,
+   `h21-mcp-protocolo.txtar` ni ningún guion o suite congelada distintos de los seis de FR-018 (FR-016, FR-018).
++  Ninguna tarea lo cambia: las dos referencias de `normativa` y `plazos-y-territorio` que cambian las cambia, después
++  de las tareas, la reparación del cierre (research.md, «Reparaciones del cierre», R1).
+ - Nada nuevo: ni dependencia (la precedencia SemVer es propia, research.md D6), ni paquete, orden, bandera, variable,
+   código de salida o sobre (plan.md «Summary»). Ningún `panic`, ningún `os.Exit`, nada en la salida estándar; ningún
+   error de la reinstalación se propaga (research.md D11). Ningún `//nolint`.
+@@ -319,7 +321,7 @@ con procesos reales al activarse.
+ | 7 · ADR si cambia una decisión de arquitectura | no hace falta uno nuevo: el ADR 0060 ya existe y su estado («propuesta») no lo cambia el run (spec, «Assumptions») | — |
+ | 8 · Fuente externa: `docs/SOURCES.md` | no aplica: ninguna fuente (research.md «Datos externos») | — |
+ | 9 · Cobertura de `internal/core/**` ≥ 85 % | los unitarios del dominio | T002, T006 |
+-| 10 · Skill: evals | no aplica: ninguna skill cambia | — |
++| 10 · Skill: evals | ninguna tarea cambia una skill; las dos referencias que cambia la reparación del cierre las miden las evals 13, 14 y 17 de `normativa`, que ya existen, en la medición siguiente (research.md, «Reparaciones del cierre», R1) | — |
+ | 11 a 13 · territorial, grafo, plazos | no aplican | — |
+ 
+ ## Controles de umbral (plan.md) → tarea que los construye

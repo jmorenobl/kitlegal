@@ -100,3 +100,11 @@ type Escritor interface {
 	// Enlazador de la invocación.
 	Enlazar(destino, ruta string) error
 }
+
+// TomarCandado toma, sin esperar, el candado de la reinstalación de las skills
+// globales (data-model §3 de H38; FR-010): con tomado, la invocación es la
+// única que reinstala hasta que llama a liberar, que lo suelta salga bien o
+// mal la reinstalación. Sin tomarlo —otra invocación lo tiene, o no se pudo
+// crear—, liberar es nil y no queda nada escrito. Lo implementa
+// internal/cache.
+type TomarCandado func() (liberar func(), tomado bool)

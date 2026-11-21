@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
+	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 	"github.com/jmorenobl/kitlegal/internal/graph"
@@ -342,27 +343,42 @@ func TestRegistroDeProduccion(t *testing.T) {
 }
 
 // TestRegistroAvisa comprueba el aviso que lleva el registro: el valor cero no
-// tiene ninguno, Avisar registra el que se le da y uno nulo lo retira, sin tocar
-// los applets registrados (research.md D5 de H19).
+// tiene ninguno, Avisar registra el que se le da, que recibe el permiso que el
+// kernel pasa al registro (contracts/aviso-y-reinstalacion.md §1 de H38), y uno
+// nulo lo retira, sin tocar los applets registrados (research.md D5 de H19).
 func TestRegistroAvisa(t *testing.T) {
 	t.Parallel()
+
+	permisos := []instalacion.PermisoDelAviso{instalacion.SoloAvisar, instalacion.Ensayar, instalacion.Reinstalar}
 
 	var registro Registro
 
 	require.NoError(t, registro.Registrar(appletConVerbos("boe", verboDePrueba("articulo", true))))
 
-	_, hay := registro.aviso()
-	assert.False(t, hay, "el registro de valor cero no tiene aviso")
+	for _, permiso := range permisos {
+		_, hay := registro.aviso(permiso)
+		assert.False(t, hay, "el registro de valor cero no tiene aviso, con ningún permiso")
+	}
 
-	registro.Avisar(func() (string, bool) { return "aviso: de prueba", true })
+	var recibidos []instalacion.PermisoDelAviso
 
-	linea, hay := registro.aviso()
-	assert.True(t, hay)
-	assert.Equal(t, "aviso: de prueba", linea, "el aviso es el del avisador registrado, tal cual")
+	registro.Avisar(func(permiso instalacion.PermisoDelAviso) (string, bool) {
+		recibidos = append(recibidos, permiso)
+
+		return "aviso: de prueba", true
+	})
+
+	for _, permiso := range permisos {
+		linea, hay := registro.aviso(permiso)
+		assert.True(t, hay)
+		assert.Equal(t, "aviso: de prueba", linea, "el aviso es el del avisador registrado, tal cual")
+	}
+
+	assert.Equal(t, permisos, recibidos, "el avisador recibe, una vez por aviso, el permiso que se pasa al registro")
 
 	registro.Avisar(nil)
 
-	_, hay = registro.aviso()
+	_, hay := registro.aviso(instalacion.Reinstalar)
 	assert.False(t, hay, "un avisador nulo deja el registro sin aviso")
 	assert.Equal(t, []string{"boe"}, registro.Nombres(), "el aviso no toca los applets")
 }

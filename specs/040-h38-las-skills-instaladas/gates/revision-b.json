@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log de la cabeza 09cba100 está en rojo («kitlegal-verificacion exit=2», línea 180) y no he visto `make ci` entero en verde sobre la cabeza: lo digo tal cual. Todo ese rojo es el temporal del run sin cuota, no el hito. En ci.log pasan el formato y el linter («0 issues.», línea 5) y, en `make test`, todos los paquetes menos dos: internal/app, donde cinco tests fallan al construir el arnés («link: mapping output file failed: disk quota exceeded», líneas 14-137), e internal/graph («disk I/O error (778)», línea 163); lo que va detrás de `test` no llegó a ejecutarse. En un clon de 09cba100 en el temporal: `go test -race -count=1 ./internal/graph/`, 195 en verde; internal/app con `-race -shuffle=on` y el `-skip` del Makefile, 1120 en verde y los mismos cinco en rojo (TestEntregaDelHito, TestTuberiaCerrada, TestOrdenesDeDoctorConElBinario, TestVariablesDeLosGuiones y TestBinariosDelArnes), con «e2e: no se pudo publicar download/v0.1.0 en el origen …: disk quota exceeded»; `make schema-check`, ok; `make test` entero y `make skills-check` fallan solo con «disk quota exceeded» al escribir en el temporal. Sin ver en verde sobre la cabeza quedan esos cinco tests, test-integration, test-tiempos, vuln, goreleaser-check, secrets, mod-verify y mod-tidy-check. Lo que sostiene el criterio: el rango 886d808..09cba100 fuera de gates/ son tres Markdown (CONTRIBUTING.md, plan.md y research.md; `git diff --stat`), que no lee ningún test, guion e2e, script ni objetivo del Makefile (grep: solo los nombran comentarios), y sobre ese mismo código gates/ci.log acababa en «ci: todos los controles en verde» en 886d8086 (criterio a de gates/revision-a-r3.json y gates/revision-b-r3.json). Los tests de skills-check sí pasaron en la cabeza dentro de `make test` (internal/evals e internal/skills en ok, ci.log:156 y 172; los de internal/app, en el clon). Árbol: `git status` solo da registros del run en gates/ (modelos.jsonl, revision-cambios.md, la línea [proceso] de supuestos.md, revision-cambios-r4.diff y base-global-pendiente retirado) y los marcadores que el sandbox pone en la raíz."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no trae código ni tests: `git diff --stat 886d8086 HEAD -- internal cmd testdata schemas skills evals data` no da nada. La suite congelada está intacta y activada: `sha256sum` de los 4 guiones de aceptacion/ y de sus 4 copias internal/app/testdata/script/h38-*.txtar da las huellas de gates/aceptacion-congelada.json. En verde no la he podido ver sobre la cabeza: TestEntregaDelHito es uno de los cinco tests cuyo arnés no se construye sin cuota en el temporal (criterio a); pasó con sus 86 casos sobre 886d8086 (gates/revision-b-r3.json, criterio a) y el rango no toca nada de lo que lee. El control de los dos cambios declarados, TestSkillsDelProductoDesdeControl, vive en internal/evals, en ok en ci.log:156 de la cabeza; sus mutantes están en el veredicto de la ronda 3."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no trae Go: gates/revision-cambios-r4.diff son 27 líneas de CONTRIBUTING.md, plan.md y research.md. En ci.log de la cabeza el linter (depguard, forbidigo) da «0 issues.» (línea 5) y el paquete internal, con TestArquitectura, sale en ok (línea 12)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ninguna salida de applet, esquema ni testdata. `make schema-check` (TestEsquemasPublicados) sale en ok en el clon de 09cba100. Los guiones h38-*, que comparan la salida estándar byte a byte, no se han podido ejecutar sobre la cabeza (criterio a) y no cambian desde 886d8086 (huellas del criterio b)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni ruta de usuario cambia: el rango no toca código de producto ni el texto de ninguna skill (`git diff --stat 886d8086 HEAD -- skills internal cmd`, vacío)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Motivo [f] de la ronda 3, corregido: CONTRIBUTING.md:1883-1889 nombra ya los dos cambios de la reparación del cierre que declara `TestSkillsDelProductoDesdeControl` —el párrafo de references/lecturas_que_fallan.md en normativa y las cuatro líneas de «La reclamación del art. 24.2 LTAIBG» de references/administrativo.md en plazos-y-territorio—, que son los de internal/evals/laboratorio_familias_test.go:516-520 y 627-631 y los de skills/plazos-y-territorio/references/administrativo.md:75-78. El cambio se queda en ese paréntesis: las tablas de las familias no se tocan. Lo que añaden plan.md:268-272 y research.md:322-328 lo sostiene el repositorio: `acceso-reclamar` lleva el bloque a24 de BOE-A-2013-12887 en sus preceptos (data/plazos.yaml:37-42), el paso 10 lee cada precepto de `data.preceptos` (skills/plazos-y-territorio/SKILL.md:63) y FR-044 de H9 dice lo que se cita (specs/023-h9-internal-core-plazos/spec.md:280). El CHANGELOG no cambia en el rango ni tiene por qué: no cambia nada del producto."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade red, fuente, dato de data/, secreto ni dato personal: son tres Markdown de documentación y artefactos, leídos enteros en gates/revision-cambios-r4.diff."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún nolint, t.Skip, TODO ni error descartado en el rango. El rojo de `make ci` no se tapa ni se arregla tocando lo que mide: el commit lo dice en su título («make ci en rojo»), gates/supuestos.md:21 lo anota como [proceso], y `git diff --stat 886d8086 HEAD -- internal Makefile .github scripts testdata go.mod go.sum` no da nada."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Motivo [i] de la ronda 3, corregido: que la reparación del cierre cambia cómo se cumple FR-044 de H9, y su impacto, está registrado en research.md:322-328 (R1, «Decisión», punto 1), plan.md:268-272 («Decisiones», «Reparación del cierre») y gates/supuestos.md:20. Los tres dicen lo mismo: la señal de la variación autonómica pasa a darse solo con el art. 24 LTAIBG leído y citado; en la pregunta de la reclamación sigue; si esa lectura falla no se dice ante quién se reclama; y en la del plazo para resolver solo si se lee el art. 24. Se registró sin tocar el texto de la skill ni los documentos de H9, como pedía el motivo: el diff fuera de gates/ son exactamente los tres ficheros de los dos motivos (`git diff --stat 886d8086 HEAD`, 20 inserciones y 7 retiradas)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida del binario ni ningún texto que lea una skill: skills/ no cambia. Valen las medidas de la ronda 3 (gates/revision-b-r3.json, criterio j): administrativo.md, 10 635 bytes y 100 líneas; lecturas_que_fallan.md, 3 326 bytes; ninguna invocación más en la pregunta de la reclamación."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, opción ni test. Son las frases que pedían los dos motivos de la ronda 3, en los sitios que nombraban: un paréntesis de CONTRIBUTING.md (13 líneas tocadas), un párrafo de plan.md (6) y otro de research.md (8)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún umbral ni su control. El umbral que motivó la reparación sigue decidiendo: `afirma_lo_no_leido:claude-sonnet-5-5` en gates/evals/normativa.json, con decide true, 4 de 120 sobre 0,028 y veredicto fallo; lo vuelve a medir el cierre tras esta revisión. Los controles de «Controles de umbral» de plan.md, los guiones h38-* de TestEntregaDelHito, no se han podido ejecutar sobre la cabeza por la cuota del temporal (criterio a); son los de 886d8086 byte a byte (huellas del criterio b)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Para la persona: `make ci` no se ha visto en verde sobre la cabeza 09cba100 en este equipo, ni en gates/ci.log ni en mi copia, porque el volumen del temporal del run está en su cuota. `df` da 12,4-12,5 GB usados de 15,8 y 3,2 GB «libres», pero toda escritura falla con «disk quota exceeded», y la propia sesión avisó de «Disk quota used up». Lo llenan copias de jueces y tareas de H41.3, H41.4, H33 y H38 que ningún paso retira: 7,5 GB a la vista en el temporal (juez-b 1,5 GB, copia-t004 620 MB, juez-b-r2 616 MB, juezA-h38 571 MB…). No es motivo: no hay nada que un corrector pueda cambiar en el repositorio, y otra ronda dejaría dos copias más. Hace falta vaciar el temporal y repetir `make ci`; la integración continua de la plataforma mide la cabeza en el cierre.",
+    "El `make ci` del corrector (19:43, ya sin jueces en marcha) falló con la misma cuota: el rojo no viene de que los dos jueces trabajen a la vez, como supuse en la ronda 3.",
+    "No pude retirar mi copia, 125 MB en el directorio juezb-h38-r4 del temporal: `rm -rf` está denegado en esta sesión. Para comprobar la cuota copié tres veces un fichero de 114 MB; la segunda copia falló con la cuota y borré los tres.",
+    "En el directorio temporal de la sesión quedan un `kitlegal-e2e-*` de 224 MB y un `go-build*` de las 14:47 de hoy, y unos sesenta `go-test-script*` vacíos: restos de ejecuciones interrumpidas. No he mirado si algún test del hito los deja al terminar bien; mis ejecuciones de esta sesión no dejaron ninguno.",
+    "plan.md:271 y research.md:328 quedan con una línea más larga que el resto del párrafo, porque la frase nueva se insertó sin reajustar. Ningún control mira el ancho.",
+    "Siguen en pie, sin cambios en el rango, las observaciones de la ronda 3 (gates/revision-b-r3.json): el efecto de la reparación no está medido y lo mide el job de evals siguiente; la tasa base de `afirma_lo_no_leido` está cerca del tope (0, 2 y 4 de 120 con el mismo árbol de normativa); las dos afirmaciones a mano que conserva administrativo.md:75-77; la tensión entre lecturas_que_fallan.md:41 y el paso 6.2 de normativa; plan.md:16 y tasks.md:63, que no nombran las dos referencias; y las de la ronda 2.",
+    "No ejecuté `make ci` entero, test-integration, test-tiempos, govulncheck, goreleaser, gitleaks, ninguna eval ni nada en Windows. No hice mutantes: el rango no trae código."
+  ]
+}

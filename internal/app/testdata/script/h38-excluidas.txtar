@@ -1,0 +1,217 @@
+# Solo la CLI reinstala, y solo en el ámbito global: sobre una instalación
+# global v1 sin tocar, el servidor MCP, --describe, una orden cuyo análisis
+# falla y la ayuda se quedan como hoy y no escriben nada; --dry-run cuenta lo
+# que se haría, sin escribir; un manifiesto local viejo solo da la línea de
+# hoy, sin -g; un local al día con el global viejo no da ninguna; y un ámbito
+# local que no se puede leer (./.agents es un fichero) no tiene ningún efecto y
+# el global no se mira. La salida estándar y el código de salida son, byte a
+# byte, los de la misma orden sin skills instaladas.
+#
+# Cubre: US3.1 a US3.5 y el manifiesto local inservible de «Edge Cases» ·
+# FR-001, FR-002, FR-003 (a), FR-009, FR-013, FR-014, FR-015 · SC-003, SC-006
+# (specs/040-h38-las-skills-instaladas; contracts/aceptacion.md §1 y §4).
+#
+# Empieza por un control —la misma instalación v1 con hosts, en su propio HOME,
+# en la que una consulta sí reinstala—, de modo que en cada caso lo que impide
+# reinstalar sea la invocación o el ámbito. Las invocaciones excluidas van
+# todas sobre otro HOME con la misma instalación, y tras cada una «nada
+# escrito» (FR-013): el árbol de HOME, que arbol lista sin seguir enlaces, es
+# byte a byte el de antes, y el KITLEGAL_CACHE_DIR del caso, que ninguna de
+# estas órdenes crea sin skills, sigue sin existir. Como ninguna reinstala, el
+# global sigue en la v1 para los casos del ámbito local. La línea de hoy es la
+# de H19 (specs/009-h19-instalar-sin-clonar/contracts/aviso.md §4). `kitlegal
+# skills …` no va aquí: su salida estándar es lo instalado y no tiene
+# referencia sin skills (contracts/aceptacion.md §4). Los binarios son los del
+# arnés de H19: $KITLEGAL_V1_BIN (v0.1.0) y $KITLEGAL_V2_BIN (v0.2.0).
+
+# --- Referencias: cada orden del guion con un HOME vacío y sin skills ---
+env HOME=$WORK/sin-skills
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-skills
+mkdir $WORK/consultas
+cd $WORK/consultas
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/territorio.json
+mcp llamadas.txt $KITLEGAL_V2_BIN mcp serve --no-graph
+cp stdout $WORK/mcp-sin.txt
+mv $WORK/mcp-1.txt $WORK/herramientas-sin.txt
+mv $WORK/mcp-2.json $WORK/sobre-sin.json
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --describe --no-graph
+! stderr .
+cp stdout $WORK/describe.json
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+cp stderr $WORK/analisis-sin.err
+exec $KITLEGAL_V2_BIN territorio resolver --help
+! stderr .
+cp stdout $WORK/ayuda-verbo.txt
+exec $KITLEGAL_V2_BIN territorio --help
+! stderr .
+cp stdout $WORK/ayuda-applet.txt
+exec $KITLEGAL_V2_BIN version
+! stderr .
+cp stdout $WORK/version.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --dry-run --no-graph
+! stdout .
+cp stderr $WORK/dry-run-sin.err
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Control: una consulta sobre la misma instalación reinstala ---
+env HOME=$WORK/control
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-control
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+
+# --- Las invocaciones excluidas, sobre una instalación global v1 sin tocar ---
+env HOME=$WORK/excluidas
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-excluidas
+exec $KITLEGAL_V1_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/antes.txt
+
+# kitlegal mcp serve: la línea de hoy, una vez por arranque, con dos
+# operaciones hechas; lo que ve el cliente, como sin skills (US3.3; FR-002,
+# FR-015).
+mcp llamadas.txt $KITLEGAL_V2_BIN mcp serve --no-graph
+cmp stdout $WORK/mcp-sin.txt
+cmp $WORK/mcp-1.txt $WORK/herramientas-sin.txt
+cmp $WORK/mcp-2.json $WORK/sobre-sin.json
+grep -count=1 '^aviso: ' $WORK/mcp.err
+grep '^aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g$' $WORK/mcp.err
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --describe: la línea de hoy (US3.4; FR-002).
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --describe --no-graph
+cmp stdout $WORK/describe.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# Un análisis que falla (exit 2): la salida de error de la referencia con la
+# línea de hoy de más (US3.4; FR-002).
+exec sh -c '"$KITLEGAL_V2_BIN" boe articulo; test $? -eq 2'
+! stdout .
+cp stderr $WORK/analisis-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/analisis-sin.err $WORK/analisis-con.err 'aviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# La ayuda de un verbo y la de un applet, y version: ninguna línea (US3.4;
+# FR-002).
+exec $KITLEGAL_V2_BIN territorio resolver --help
+cmp stdout $WORK/ayuda-verbo.txt
+! stderr .
+exec $KITLEGAL_V2_BIN territorio --help
+cmp stdout $WORK/ayuda-applet.txt
+! stderr .
+exec $KITLEGAL_V2_BIN version
+cmp stdout $WORK/version.txt
+! stderr .
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --dry-run: la salida de error de la referencia con la línea de FR-009 de más,
+# y nada escrito (US3.5; FR-009).
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --dry-run --no-graph
+! stdout .
+cp stderr $WORK/dry-run-con.err
+exec sh $WORK/una-linea-mas.sh $WORK/dry-run-sin.err $WORK/dry-run-con.err 'aviso: kitlegal v0\.2\.0 se actualizarían las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --- El ámbito local, con el global de las excluidas, que sigue en la v1 ---
+#
+# Un manifiesto local viejo: la línea de hoy, sin -g, y nada escrito ni en el
+# proyecto ni en HOME (US3.1; FR-014).
+mkdir $WORK/local-viejo
+cd $WORK/local-viejo
+exec $KITLEGAL_V1_BIN skills install
+arbol .
+cp stdout $WORK/proyecto-antes.txt
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
+arbol .
+cmp stdout $WORK/proyecto-antes.txt
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# Un manifiesto local al día con el global viejo: ninguna línea y nada escrito
+# en HOME (US3.2; FR-014).
+mkdir $WORK/local-al-dia
+cd $WORK/local-al-dia
+exec $KITLEGAL_V2_BIN skills install
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+! stderr .
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# Un ./.agents que es un fichero, con el global viejo: el ámbito local cuenta
+# como ilegible y el global no se mira, así que ni línea ni reinstalación
+# (FR-003 a; «Edge Cases»).
+cd $WORK/agents-fichero
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+! stderr .
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+-- llamadas.txt --
+herramientas
+territorio_resolver {"consulta":"Leganés"}
+-- agents-fichero/.agents --
+No soy un directorio.
+-- una-linea-mas.sh --
+# una-linea-mas.sh <referencia> <obtenida> <patrón>: la salida de error
+# <obtenida> tiene exactamente una línea que empieza por «aviso: », esa línea
+# casa entera con <patrón> (una expresión regular extendida) y, sin ella, es
+# byte a byte <referencia>, que no tiene ninguna (spec, «Una línea de aviso
+# más»; SC-003). La línea del registro de eventos de una orden que falla lleva
+# su instante (time=) y su duración (duracion=), que cambian de una ejecución a
+# otra: se igualan en las dos antes de comparar, y nada más.
+set -u
+if grep -q '^aviso: ' "$1"; then
+	echo "la referencia $1 ya tiene una línea de aviso" >&2
+	exit 1
+fi
+avisos=$(grep -c '^aviso: ' "$2")
+if [ "$avisos" -ne 1 ]; then
+	echo "$2 tiene $avisos líneas de aviso:" >&2
+	cat "$2" >&2
+	exit 1
+fi
+if ! grep '^aviso: ' "$2" | grep -qxE -- "$3"; then
+	echo "la línea de aviso de $2 no es la esperada:" >&2
+	grep '^aviso: ' "$2" >&2
+	exit 1
+fi
+igualar='s/^time=[^ ]* /time=… /; s/ duracion=[^ ]* / duracion=… /'
+grep -v '^aviso: ' "$1" | sed -e "$igualar" > "$2.referencia"
+grep -v '^aviso: ' "$2" | sed -e "$igualar" > "$2.sin-aviso"
+if ! cmp "$2.referencia" "$2.sin-aviso"; then
+	echo "sin la línea de aviso, $2 no es la referencia $1:" >&2
+	cat "$2" >&2
+	exit 1
+fi

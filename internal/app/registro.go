@@ -12,6 +12,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/data"
 	"github.com/jmorenobl/kitlegal/internal/core"
+	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 )
@@ -159,14 +160,15 @@ func (r *Registro) sinAvisador() *Registro {
 	return &copia
 }
 
-// aviso es la línea del aviso registrado y si hay que darla. Sin avisador no
-// hay ninguna.
-func (r *Registro) aviso() (string, bool) {
+// aviso es la línea del aviso registrado y si hay que darla, con el permiso de
+// la invocación, que pasa tal cual al avisador (contracts/aviso-y-reinstalacion.md
+// §1 de H38). Sin avisador no hay ninguna, con ningún permiso.
+func (r *Registro) aviso(permiso instalacion.PermisoDelAviso) (string, bool) {
 	if r.avisador == nil {
 		return "", false
 	}
 
-	return r.avisador()
+	return r.avisador(permiso)
 }
 
 // validarNombre comprueba las tres primeras reglas del contrato: el nombre es

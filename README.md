@@ -157,9 +157,12 @@ Para tenerlas en todos tus proyectos a la vez, en lugar de en uno: `kitlegal ski
 `~/.agents/skills/` y las enlaza en `~/.claude/skills/` si usas Claude Code; si aún no lo has abierto,
 `--host claude` las enlaza igual.
 
-**Actualizar**: repite la primera orden (o `brew upgrade kitlegal`, o `scoop update kitlegal`) y vuelve a ejecutar
-`kitlegal skills install`. Mientras lo instalado sea de una versión anterior a la del programa, el programa se lo hace
-saber a tu agente en cada consulta, sin pedir nada a la red, y tu agente te lo dice.
+**Actualizar**: repite la primera orden (o `brew upgrade kitlegal`, o `scoop update kitlegal`). Las skills globales,
+las de `kitlegal skills install -g`, se ponen al día solas en la primera consulta con el programa nuevo, salvo que
+hayas tocado alguna —un fichero editado, algo tuyo con su nombre—, y se aplican en la próxima conversación. Las skills
+nuevas del producto y las de cada proyecto siguen pidiendo `kitlegal skills install`, con `-g` o sin él. Mientras lo
+instalado sea de una versión anterior a la del programa, el programa se lo hace saber a tu agente en cada consulta, sin
+pedir nada a la red, y tu agente te lo dice.
 
 Lo que conviene saber del instalador: no necesita nada que no traigan ya macOS y cualquier Linux (`curl`, `tar` y
 `sha256sum` o `shasum`); comprueba la huella SHA-256 de lo que descarga; deja `kitlegal` en `~/.local/bin` (o en
