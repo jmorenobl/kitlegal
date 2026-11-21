@@ -1,5 +1,26 @@
 {
-  "accion": null,
-  "campos": {},
-  "huella": null
+  "accion": "https://docs.google.com/forms/d/e/1FAIpQLSfnJ-i_Ne2xOs3UBUIzbcqHw-f9k1XyRFbGlKj3N0_N3faxww/formResponse",
+  "campos": {
+    "perfil": "entry.764229816",
+    "areas": "entry.1656269222",
+    "primero": "entry.2030674502",
+    "cendoj": "entry.227705693",
+    "aparte": "entry.2040779602",
+    "festivos": "entry.552244088",
+    "nota-hoy": "entry.1925599048",
+    "lec": "entry.376440164",
+    "lrjs": "entry.1751882943",
+    "lgt": "entry.738401588",
+    "dgt": "entry.178701292",
+    "escritos": "entry.558195706",
+    "ordenanzas": "entry.700917623",
+    "tc": "entry.896704174",
+    "nota-apoyos": "entry.1954148695",
+    "orden": "entry.363838704",
+    "falta": "entry.246028558",
+    "nunca": "entry.925801041",
+    "general": "entry.1948521179",
+    "comentario": "entry.1374405327"
+  },
+  "huella": "sha256:0fbbf626f203d63f0e3a2beab16ccaeeaa551626e1922e94e783ee9f305dbb76"
 }
