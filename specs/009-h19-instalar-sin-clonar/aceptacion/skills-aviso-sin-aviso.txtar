@@ -140,24 +140,32 @@ exec sh $WORK/mismas-lineas.sh $WORK/con-home.err $WORK/home-vacio.err
 
 # --- El ámbito local que no se puede leer, con un global de otra versión (FR-072) ---
 #
-# Control: sin nada local, el global de otra versión avisa con -g; y también
+# Control: sin nada local, el aviso mira el global de otra versión; y también
 # con un ./.agents real sin skills/, o con ./.agents/skills real y sin
 # manifiesto, porque ahí el local no tiene nada que leer (contracts/aviso.md
-# §2).
+# §2). Desde H38 cada control reinstala ese global, que nadie ha tocado, y lo
+# dice con la línea de FR-006 de H38 (ADR 0060; FR-001, FR-006, FR-018 de H38).
+# Como la reinstalación lo deja en v0.2.0, v0.1.0 lo devuelve a otra versión
+# antes de cada control siguiente y antes de los casos de un local inservible,
+# que así siguen distinguiendo un aviso que mirase el global: daría esa línea
+# (contracts/aceptacion.md §6 de H38).
 env HOME=$WORK/home-v1
 mkdir $WORK/home-v1
 exec $KITLEGAL_V1_BIN skills install -g
 cd $WORK/vacio
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
-stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+exec $KITLEGAL_V1_BIN skills install -g
 mkdir $WORK/agents-vacio/.agents
 cd $WORK/agents-vacio
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
-stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+exec $KITLEGAL_V1_BIN skills install -g
 mkdir $WORK/skills-vacio/.agents/skills
 cd $WORK/skills-vacio
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
-stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+exec $KITLEGAL_V1_BIN skills install -g
 
 # ./.agents es un fichero: sin aviso.
 cd $WORK/agents-fichero

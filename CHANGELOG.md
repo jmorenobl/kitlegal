@@ -28,9 +28,34 @@ sustituyen a este fichero.
   y el Estatuto de los Trabajadores, en la 02 dentro y en la 04 fuera, con el art. 59 grabado. Con ellas la skill gana
   `sin_activar`, sobre sus 12 respuestas de cada modo, y `cobertura_sin_declarar`, sobre las 6 de la 01 y la 04, los dos
   con 0 de tope y decidiendo en los dos modos.
+- **Las skills globales se ponen al día solas con el programa nuevo, salvo que se hayan tocado** (H38; ADR 0060). Tras
+  `brew upgrade kitlegal`, `scoop update kitlegal` o la orden de instalación, la primera consulta con el programa nuevo
+  reinstala las skills de `kitlegal skills install -g` que son de una versión anterior, con el mismo plan y las mismas
+  comprobaciones que `install -g`, y lo dice en la salida de error: `aviso: kitlegal <versión> ha actualizado las
+  skills globales, que eran de <versión>; se aplican en la próxima conversación`. Con `--dry-run` dice `aviso: kitlegal
+  <versión> se actualizarían las skills globales, que eran de <versión>; se aplican en la próxima conversación` y no
+  escribe nada. Si algo se ha tocado —un fichero editado o ajeno, una entrada ajena en un host, una skill retirada que
+  no se puede retirar porque se ha editado—, no reinstala y sigue la línea de siempre, que pide `kitlegal skills
+  install -g`. Las skills nuevas del producto y las locales siguen pidiendo `kitlegal skills install`, con `-g` o sin
+  él: el ámbito local no se reinstala nunca, el servidor MCP tampoco reinstala, y la ayuda, `kitlegal version` y
+  `kitlegal skills …` siguen sin aviso. La consulta que reinstala toma el candado `skills-global.lock` en el directorio
+  de la caché y lo borra al terminar; con él tomado, las demás dan la línea de siempre. La salida estándar y el código
+  de salida de cada orden no cambian, reinstale o no, y nada de esto abre la red. En Windows, sin probar: la CI es solo
+  Ubuntu.
 
 ### Corregido
 
+- **`plazos-y-territorio` ya no da hecho ante quién se presenta la reclamación del art. 24 LTAIBG, y `normativa` dice
+  dónde va el aviso de una lectura que falla** (H38, reparación del cierre). `administrativo.md` señala el órgano de
+  la reclamación como variación autonómica solo con el art. 24 leído en la conversación y con su cita, y sin su texto
+  deja la reclamación con las palabras del precepto leído. `lecturas_que_fallan.md` pone el aviso de un bloque que no
+  se pudo leer en una frase aparte, al final, con su número y la causa, nunca en la viñeta ni en la frase de una
+  materia, y sin retirar con sus palabras lo escrito antes de que la lectura fallara. En la medición 1 del cierre de
+  H38, el juez marcó 4 de las 120 respuestas de `normativa` en `afirma_lo_no_leido` (el tope es 2,8 %): dos de la
+  eval 17 repetían el órgano del art. 24.6 que daba la referencia, y una de la 13 y otra de la 14 retiraban lo escrito
+  tras una lectura fallida. En la medición 2, con los dos cambios, marcó 3 de 120, las tres de la eval 17 en el modo
+  orden y con otras frases: la frase del art. 24.6 no ha vuelto a salir en sus 6 sesiones, pero la tasa de la clase
+  no baja de forma que se distinga del azar. Ningún `SKILL.md`, eval ni umbral cambia.
 - **El paso `grabar_datos` del workflow `hito` ya no falla en Linux con la grabación hecha** (workflow `hito` 2.12.3).
   Con una intercalación de idioma, como `en_US.UTF-8`, GNU sort ordenaba las líneas de `git status --porcelain` sin
   mirar su prefijo, y GNU comm daba esa salida por desordenada y salía con 1. En el run de H33, el primero en Linux con

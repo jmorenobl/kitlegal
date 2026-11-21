@@ -72,8 +72,10 @@ No hay fecha, y no se pide ningún plazo. Cita los arts. 122.1 y 124.1 LPAC y el
 
 ## La reclamación del art. 24.2 LTAIBG
 
-Señala como variación autonómica ante quién se reclama: el Consejo de Transparencia y Buen Gobierno o el órgano que
-la comunidad haya designado (art. 24.6).
+Ante quién se reclama varía por comunidad y esta referencia no lo da: señálalo como variación autonómica solo con el
+art. 24 LTAIBG [BOE-A-2013-12887, bloque a24] leído en esta conversación (paso 10 o 6), con su cita. Sin su texto
+—también en el plazo para resolver, cuyo precepto solo remite a la reclamación—, no digas ante quién se reclama ni qué
+prevé el art. 24: o lo lees antes de escribir, o la reclamación va con las palabras del precepto leído y nada más.
 
 ## Las leyes vertebrales
 

@@ -2,7 +2,10 @@
 // SQLite sin cgo, y el único lugar del módulo donde se abre, se migra y se
 // consulta la base de datos de la caché (regla R3 de docs/ROADMAP.md §2). El
 // dominio declara qué es una caché; este paquete es el único que sabe que
-// detrás hay un fichero.
+// detrás hay un fichero. Fuera de la base de datos, solo exporta dónde vive
+// (VariableDirectorio y Directorio) y, desde H38, el candado con el que una sola invocación a la
+// vez reinstala las skills globales, un fichero vacío en ese mismo directorio
+// (TomarCandado).
 //
 // Lo que garantiza:
 //

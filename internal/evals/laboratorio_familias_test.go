@@ -385,13 +385,57 @@ const siSaleConCuatroOCinco = "Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: 
 const inicioDeLaCoberturaPorMateria = "<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y " +
 	"data/normas.yaml con make skills-sync, no editar -->\n"
 
+// noSupleSuTexto es la última línea del primer párrafo de «Qué dice la
+// respuesta» de lecturas_que_fallan.md de normativa: tras ella va el párrafo
+// dondeVaLoNoLeido (research «Reparaciones del cierre», R1, de H38).
+const noSupleSuTexto = "para qué los pedías, y no suple su texto.\n"
+
+// dondeVaLoNoLeido es el párrafo que la reparación del cierre de H38 añade a
+// «Qué dice la respuesta» de lecturas_que_fallan.md de normativa: el aviso de
+// lo que no se pudo leer va en una frase aparte, al final, con el número y la
+// causa, fuera de la viñeta o de la frase de una materia, y sin retirar con sus
+// palabras lo escrito antes del fallo (research «Reparaciones del cierre», R1,
+// de H38).
+const dondeVaLoNoLeido = "Lo dice en una frase aparte, al final, con el número y la causa y nada más: «No he podido " +
+	"leer el artículo N de\n" +
+	"<norma>: <causa>.» No va en la viñeta ni en la frase de una materia, ni colgada de ella («su artículo N», " +
+	"«<materia>,\n" +
+	"que regula el artículo N»): puesta ahí, dice de qué trata el bloque. Y lo que escribiste de ese bloque antes " +
+	"de que la\n" +
+	"lectura fallara no se retira con sus palabras («antes dije que el artículo N…»): retirarlo así lo repite. " +
+	"Basta la\n" +
+	"frase.\n"
+
+// anteQuienSeReclamaEnLaBase son las dos líneas de «La reclamación del art.
+// 24.2 LTAIBG» de administrativo.md de plazos-y-territorio-sin-condicion, que
+// daban lo que prevé el art. 24.6 LTAIBG sin pedir su lectura (research
+// «Reparaciones del cierre», R1, de H38).
+const anteQuienSeReclamaEnLaBase = "Señala como variación autonómica ante quién se reclama: el Consejo de " +
+	"Transparencia y Buen Gobierno o el órgano que\n" +
+	"la comunidad haya designado (art. 24.6).\n"
+
+// anteQuienSeReclama son las cuatro líneas que las sustituyen con la reparación
+// del cierre de H38: la referencia no da ante quién se reclama, y lo pide con el
+// art. 24 LTAIBG leído en la conversación y con su cita (research «Reparaciones
+// del cierre», R1, de H38).
+const anteQuienSeReclama = "Ante quién se reclama varía por comunidad y esta referencia no lo da: señálalo como " +
+	"variación autonómica solo con el\n" +
+	"art. 24 LTAIBG [BOE-A-2013-12887, bloque a24] leído en esta conversación (paso 10 o 6), con su cita. Sin su " +
+	"texto\n" +
+	"—también en el plazo para resolver, cuyo precepto solo remite a la reclamación—, no digas ante quién se " +
+	"reclama ni qué\n" +
+	"prevé el art. 24: o lo lees antes de escribir, o la reclamación va con las palabras del precepto leído y " +
+	"nada más.\n"
+
 // declaracionesDelProducto son, por skill, la base, los cambios y los
 // movimientos de las skills del producto, con los bytes de
 // contracts/remisiones.md §2 a §4 de H41 y de contracts/controles.md §1.1 de
-// H41.1.
+// H41.1, y los dos cambios en las referencias de la reparación del cierre de
+// H38 (research «Reparaciones del cierre», R1, de H38).
 var declaracionesDelProducto = map[string]declaracionDelProducto{
 	// Las siete remisiones de R1 a R6, con la «o» de R4 (research D1), y la
-	// salida de M-a y M-b (contracts/remisiones.md §2 y §3).
+	// salida de M-a y M-b (contracts/remisiones.md §2 y §3); y el párrafo de
+	// lecturas_que_fallan.md de la reparación del cierre de H38.
 	skillDeNormativa: {
 		cambios: []cambioDelCuerpo{
 			{
@@ -469,6 +513,13 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				enLaReferencia: "\nSi una lectura falla, di qué bloques faltan y por qué.\n",
 			},
 		},
+		enLasReferencias: []cambioEnUnaReferencia{
+			{
+				referencia: "lecturas_que_fallan.md",
+				antes:      noSupleSuTexto,
+				despues:    noSupleSuTexto + "\n" + dondeVaLoNoLeido,
+			},
+		},
 	},
 	// La remisión a consulta_preparada.md pasa del final del paso 2 a la frase que
 	// nombra cita_preparar (J1), y la de documento_aportado.md, del final al
@@ -506,7 +557,9 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 	},
 	// La forma sin condición de H41 con M1 (FR-001 a FR-005 de H41.1; ADR 0053,
 	// punto 1) y los tres cambios del cuerpo y el de administrativo.md de H33
-	// (FR-005 y FR-009 de H33; contracts/skills.md §2 y §3 de H33), y nada más.
+	// (FR-005 y FR-009 de H33; contracts/skills.md §2 y §3 de H33), las cuatro
+	// líneas de la reclamación del art. 24.2 LTAIBG de la reparación del cierre de
+	// H38, y nada más.
 	skillDeLaFamiliaDePlazos: {
 		desde: "plazos-y-territorio-sin-condicion",
 		cambios: []cambioDelCuerpo{
@@ -570,6 +623,11 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 					"```\n" +
 					"\n" +
 					inicioDeLaCoberturaPorMateria,
+			},
+			{
+				referencia: "administrativo.md",
+				antes:      anteQuienSeReclamaEnLaBase,
+				despues:    anteQuienSeReclama,
 			},
 		},
 	},

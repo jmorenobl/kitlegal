@@ -1,0 +1,82 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada punto de la «Entrega» del hito tiene su requisito: qué invocaciones reinstalan (FR-001, FR-002; multicall y exit 4 en FR-001, US1.7, US1.8), cuándo (FR-003 a-d; regla de versiones con v inicial, prerelease, metadatos y versiones sin forma en FR-004; pedido con herederas, empotradas nuevas fuera, fichero que falta, editado, ajeno, entrada ajena en un host, «sin retirar» y hosts de Planificar en FR-005 y en la definición «El pedido»), las dos líneas (FR-006, FR-007, FR-008, FR-009 con la sonda de Enlazador.Disponible), el candado (FR-010: ruta de cache.Directorio(), creación en exclusiva, directorio con los permisos de la caché, fallo de Directorio(), menos de 10 minutos, sustitución, fuera de ~/.agents/skills), el fallo a mitad (FR-011), README y CHANGELOG (FR-017), los e2e de H19 que cambian (FR-018) y los unitarios (FR-019). No añade comportamiento que el hito no pida: lo que precisa (FR-002 con `version` y la ayuda; FR-008 con el punto de salida) sale del contrato de H19 (contracts/aviso.md §1) que el hito deja igual. Los casos límite que enumera tienen vía real (variables de entorno, HOME, ficheros que toca la persona) o remiten a la regla genérica."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«## Fuera de alcance» recoge los diez puntos del «Fuera» del hito (ámbito local o MCP, volver atrás, conflictos o forzar, skills no pedidas, red, salida estándar y código, install/list/doctor/manifiesto/hosts, recargar la conversación, plugin/extensión/instaladores, Windows) y añade lo que el spec deja explícitamente fuera: el texto y la repetición de la línea de hoy (contrato de H19), esperar o reintentar con el candado tomado, reescribir los documentos de specs/009 salvo las copias congeladas, el estado del ADR 0060 y el ADR 0019, y las SKILL.md, data/, evals y la web."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "gates/clarify-preguntas.json es {\"preguntas\":[]} y gates/clarify-respuestas.json es {\"respuestas\":[]}; «## Clarifications» dice «Ninguna en esta sesión». No hay respuesta que reflejar."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "La aceptación del hito está literal en «Criterios del hito» y en forma Dado/Cuando/Entonces en US1.1, US1.2 y US2.1, con umbral en SC-001 y SC-002. Cada control del hito está trazado a un escenario o un SC: reinstala (US1.1-US1.3, FR-005), fichero que falta (US1.4), tocados (US2.1, US2.2, SC-002), sin permiso (US4.4), binario más viejo y metadatos (US2.3, US2.4), skill en versión anterior (US1.5), nombre retirado (US1.6), ámbito local (US3.1, US3.2), mcp serve (US3.3), --describe, análisis fallido y ayuda (US3.4), exit 4 (US1.7), candado (US4.1-US4.3, SC-004), --dry-run (US3.5), unitarios (FR-019, US4.5) y e2e de H19 que cambian (FR-018). Que la medida de la salida de error con --dry-run no se pueda cumplir tal como está escrita se trata en h."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "No reabre ninguna: sin red (FR-012, SC-005); el código de salida y el sobre no cambian (FR-012), así que ningún hito elige códigos (ADR 0005/0023); la reinstalación solo desde la CLI y en el global, como manda el ADR 0060, que precisa el 0019; la fusión y el estado del ADR los decide una persona («Assumptions», último punto); no toca skills, data/ ni la web."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": false,
+      "evidencia": "Hay dos marcas que no son ciertas. «Requirements are testable and unambiguous» no lo es: US3.5 y SC-003 piden exactamente una línea en la salida de error con --dry-run, y el kernel escribe siempre ahí su descripción de --dry-run; «nada escrito» y «0 entradas en la caché» (US1.2, SC-006) chocan con el world.db que escribe la propia consulta (ver h). «All functional requirements have clear acceptance criteria — FR-001 a FR-019, cada uno con su escenario o su control» tampoco: la cláusula de FR-010 «De dos o más invocaciones a la vez, como mucho una reinstala» no tiene escenario (US4 lo enuncia en su texto, pero US4.1-US4.5 solo prueban un candado creado a mano) ni control (ver j). Las demás marcas son ciertas: «Success criteria are measurable» (SC-001 a SC-006 nombran cada uno su comprobación de make ci), «Edge cases», «Scope» (FR-016 y «Fuera de alcance») y «Dependencies and assumptions»."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "Los nombres de código que cita (Planificar, ComprobarConflictos, cache.Directorio(), Enlazador.Disponible, Retiradas.Herederas, versionQueDifiere) los impone el hito («la reutiliza, sin escribir otra»). Los de tests (TestEntregaDelHito, TestArquitectura, testscript, touch -t, chmod) nombran la comprobación que hace cumplir cada umbral, como pide la constitución. No fija paquetes, tipos, el orden de las escrituras ni el mecanismo del candado más allá de lo que dice el hito."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": false,
+      "evidencia": "Dos defectos materiales. (1) US3.5 dice que con --dry-run «la salida de error es exactamente `aviso: kitlegal v0.2.0 se actualizarían …`», y SC-003, que «en el 100 % de los casos e2e del hito … la salida de error tiene exactamente 1 línea o 0». Pero con --dry-run el kernel escribe siempre en la salida de error su descripción «--dry-run: no se ha ejecutado nada; se habría ejecutado el applet …», también cuando el applet falla (internal/app/main.go:536-542 y :556-559, conDescripcion; prefijoDeEnsayo en :47; Presentador.Aviso en internal/render/render.go:71-78). Por eso h19-skills-aviso.txtar:75-80 comprueba ahí «una línea más» con una-linea-mas.sh y no \\A…\\n\\z. Una orden que falla sin --json también deja su mensaje en la salida de error (h19-skills-aviso.txtar:82-94). (2) US1.2 («nada cambia en el disco»), US2.3, US2.4, US3.1, US3.2 y US3.4 («nada escrito»), SC-006 («escriben 0 entradas en el árbol del global y en la caché»), FR-002 («Ninguna de ellas escribe … nada de lo que nombra FR-013») y FR-013 («el directorio de la caché si no existía … En cualquier otro caso … no cambia nada de eso») chocan con que la propia consulta escribe el grafo del mundo en el mismo directorio que da cache.Directorio(). territorio resolver entrega Grafo: resuelto.Observado() (internal/app/territorio.go:115), el grafo vive en ese directorio (internal/cache/ruta.go, comentario de Directorio) y el arnés fija KITLEGAL_CACHE_DIR dentro de $WORK. Las llamadas de mcp serve hacen lo mismo. El resto de los requisitos se derivan: FR-004 define el orden y sus bordes; «La línea de hoy», «La versión que nombra» y «El pedido» están definidos; FR-011 y SC-004 usan «reinstalación» también para la que falla, lo que concilia FR-011 con FR-013."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Quién consume cada salida, cuánto y hasta cuándo» lo cubre. Ninguna SKILL.md pide ni trata la línea: grep -n -i 'skills install|aviso:|salida de error|stderr' sobre skills/*/SKILL.md no da ninguna coincidencia en esta sesión. La línea de FR-006 la leen el agente y la persona: 1 línea de unos 120 bytes (contada: «aviso: kitlegal v0.10.1 ha actualizado … próxima conversación» y el salto), en 1 invocación por actualización del binario. Da igual cuántas órdenes lance cada pregunta, porque en la siguiente las versiones coinciden y sale 0 (FR-003 b, US1.2). Con meses de uso (cientos de normas, miles de bloques) sigue siendo 1 línea de dos versiones, y al cabo de un mes son 0 líneas hasta la próxima actualización. La reinstalación examina las 4 skills del pedido, no la caché ni el grafo. La línea de FR-009 sale una vez por cada --dry-run y deja de darse al reinstalar o al tocar lo instalado. La línea de hoy no cambia porque lo manda el hito («sin cambiar un byte»), y la del candado caduca a los 10 minutos (FR-010). El disco que queda lo leen install, list y doctor como si lo hubiera dejado install -g (FR-005, FR-016)."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": false,
+      "evidencia": "Tienen control: SC-001 (1 y 0 líneas, el e2e de aceptación en make ci, TestEntregaDelHito, que existe en internal/app/e2e_test.go:556), SC-002 (1 línea y el árbol sin cambiar un byte, e2e), SC-003 (100 % de los e2e, cada guion), SC-004 (menos de 10 minutos, más de 10 y 0 candados, e2e del candado), SC-005 (0 conexiones, TestArquitectura, subprueba «sin red» de internal/arch_test.go:145, con paquetesSinRed y ficherosSinRed en :708-720), SC-006 (0 entradas, sus e2e), FR-008 (una sola línea, vía SC-003) y FR-015 (una vez por arranque, h21-mcp-protocolo.txtar sin cambios). No tiene control FR-010: «De dos o más invocaciones a la vez, como mucho una reinstala» es un recuento que se puede medir en make ci, y ningún SC ni escenario nombra la comprobación que sale en rojo si reinstalan dos. SC-004 solo prueba un candado creado a mano con touch."
+    }
+  ],
+  "motivos": [
+    "[h][f] US3.5 y SC-003 piden «exactamente» una línea en la salida de error en todos los e2e, también con --dry-run. Pero con --dry-run el kernel escribe siempre su descripción «--dry-run: …» en la salida de error (internal/app/main.go:536-542 y :556-559; Presentador.Aviso), y una orden que falla sin --json deja allí su mensaje. Vía: la bandera --dry-run (y el exit 2 o 4 sin --json) de quien usa el kit. Diferencia: la suite de aceptación, que se escribe primero y queda congelada, saldría en rojo con una implementación correcta, o empujaría a suprimir la descripción de --dry-run, que el hito no cambia. Qué cambiar: en US3.5, en SC-003 y en la nota de los controles de «Criterios del hito», decir que la salida de error es la de la misma orden sin skills instaladas con exactamente una línea de aviso más (la de FR-006, la de FR-009 o la de hoy) en el sitio de la línea de hoy, o ninguna más, como hace una-linea-mas.sh en h19-skills-aviso.txtar:75-80. \\A…\\n\\z queda solo donde la misma orden sin skills deja vacía la salida de error (con --json y sin error).",
+    "[h][f] La propia consulta escribe el grafo del mundo (world.db) en el directorio que da cache.Directorio(). territorio resolver entrega Grafo en internal/app/territorio.go:115, el grafo comparte directorio con la caché (internal/cache/ruta.go) y las llamadas de mcp serve hacen lo mismo. Aun así, US1.2 dice «nada cambia en el disco»; US2.3, US2.4, US3.1, US3.2 y US3.4, «nada escrito»; SC-006, «0 entradas … en la caché»; FR-002, que ninguna de esas invocaciones escribe «nada de lo que nombra FR-013»; y FR-013 incluye «el directorio de la caché si no existía». Vía: cualquier consulta sin --no-graph en el ámbito local, con un binario más viejo o con metadatos de construcción (la orden que usan los e2e de H19 es territorio resolver Leganés --json), o una llamada de mcp serve con la caché sin crear. Diferencia: con una lectura, world.db y el directorio de la caché se crean como hoy; con la otra, la comprobación de SC-006 sale en rojo con una implementación correcta, o la implementación tendría que dejar de escribir el grafo. Qué cambiar: que FR-013 nombre lo que escribe la reinstalación (el árbol del global, el candado y el directorio de la caché que crea para tomarlo); que FR-002, US1.2, US2.3, US2.4, US3.1-US3.5 y SC-006 midan «nada escrito» sobre lo que nombra FR-013, con la caché comparada con la que deja la misma orden sin skills instaladas (sin candado y sin un directorio que esa orden no crearía), la misma referencia que FR-012 usa para la salida estándar y el código.",
+    "[j][f] FR-010 dice «De dos o más invocaciones a la vez, como mucho una reinstala», un umbral de recuento que se mide en make ci, y ningún SC ni escenario nombra la comprobación que lo hace cumplir. SC-004 y US4.1-US4.3 solo prueban un candado creado a mano con touch. Vía: dos invocaciones concurrentes del binario, que US4 da como caso real («el agente puede lanzar varias órdenes a la vez»). Diferencia: un candado comprobado y creado sin exclusividad, o un plan calculado antes de tomar el candado y aplicado después de que otra invocación terminase, deja reinstalar a las dos (dos líneas «ha actualizado» y escrituras cruzadas) con SC-004 en verde. Qué cambiar: añadir a SC-004, o a un SC nuevo, la comprobación de make ci que sale en rojo si, de dos invocaciones a la vez sobre la misma instalación global v1, reinstala más de una. Dónde vive y cómo se fuerza la concurrencia es cosa del plan. Con eso se corrige también la marca «All functional requirements have clear acceptance criteria» de checklists/requirements.md, que hoy no es cierta para esa cláusula de FR-010."
+  ],
+  "observaciones": [
+    "El fichero del hito está en docs/roadmap/done/H38-las-skills-instaladas-se-actualizan.md (lo movió allí el commit 082f78e3), no en docs/roadmap/in-progress/, que solo tiene README.md. El «Input» del spec apunta a in-progress/. Lo he leído en done/.",
+    "La sección de uso no cuenta el fallo permanente de escritura que el ADR 0060 da por asumido (el sandbox de Claude Code no escribe en ~/.agents). Ahí, cada consulta vuelve a planificar, toma y borra el candado, intenta escribir y da la línea de hoy. Lo acota el pedido de 4 skills y no crece con el uso, así que no llega a motivo.",
+    "Una `kitlegal skills install -g` lanzada por la persona mientras una consulta reinstala no toma el candado, porque el hito deja install sin cambios. Las dos escriben a la vez. Es consecuencia de una decisión del hito y no es motivo.",
+    "Un candado con fecha de modificación en el futuro (cambio de reloj tras una interrupción) contaría como tomado más de 10 minutos. Solo llega por manipulación o por un cambio de reloj, por debajo del umbral.",
+    "Dos invocaciones concurrentes con KITLEGAL_CACHE_DIR distinto miran candados distintos. La ruta la fija el hito.",
+    "La definición «Una consulta» (una orden de cualquier applet distinto de skills) es más amplia que la de «Assumptions» para «la primera consulta» (la primera invocación de FR-001). El comportamiento lo fija FR-001, así que no cambia lo observable.",
+    "La extensión del chmod a lo que contiene ~/.agents/skills está en «Assumptions» con su porqué, no en «## Clarifications» con el prefijo (auto). Es rastreable, y es coherente con el chmod -R u+w con que h19-instalador-rechazos.txtar devuelve los permisos.",
+    "FR-010 sustituye el candado «de hace 10 minutos o más» y el hito dice «si tiene más». La igualdad exacta no es observable en un e2e.",
+    "FR-013 no prevé que el directorio de la caché se cree y luego falle la creación del candado. Solo ocurre con el disco lleno, por debajo del umbral."
+  ],
+  "entrada": []
+}

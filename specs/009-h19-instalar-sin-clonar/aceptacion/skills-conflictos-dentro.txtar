@@ -194,14 +194,22 @@ cmp stdout $WORK/antes.txt
 # aviso no tiene ningún efecto, aunque al otro lado haya uno de otra versión y
 # en HOME otro de otra versión: el local es ilegible y el global no se busca
 # (FR-070, FR-072).
+#
+# Control: sin nada local, el aviso mira ese global. Desde H38 lo reinstala,
+# porque nadie lo ha tocado, y lo dice con la línea de FR-006 de H38 (ADR 0060;
+# FR-001, FR-006, FR-018 de H38). La reinstalación lo deja en v0.2.0, y v0.1.0
+# lo devuelve a otra versión antes del caso, que así sigue distinguiendo un
+# aviso que mirase el global: daría esa línea (contracts/aceptacion.md §6 de
+# H38).
 env HOME=$WORK/home-v1
 mkdir $WORK/home-v1
 exec $KITLEGAL_V1_BIN skills install -g
 mkdir $WORK/vacio
 cd $WORK/vacio
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
-stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
 cp stdout $WORK/territorio.json
+exec $KITLEGAL_V1_BIN skills install -g
 
 mkdir $WORK/manifiesto-enlace
 mkdir $WORK/fuera-manifiesto

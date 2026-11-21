@@ -1,0 +1,186 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-21 13:18:30.615725490 +0100
++++ ahora/checklists/requirements.md	2026-11-21 13:20:35.985585347 +0100
+@@ -17,7 +17,11 @@
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — ninguno: el hito y el ADR 0060 fijan condiciones, líneas y candado.
+ - [x] Requirements are testable and unambiguous — cada FR tiene un escenario Dado/Cuando/Entonces o un control
+-  literal del hito (sección «Criterios del hito»); las líneas de FR-006 y FR-009 están dadas byte a byte.
++  literal del hito (sección «Criterios del hito»); las líneas de FR-006 y FR-009 están dadas byte a byte. La salida de
++  error se mide contra la de la misma orden sin skills instaladas («Una línea de aviso más»), así que la descripción
++  de `--dry-run` y el mensaje de un error caben; «nada escrito» lo define FR-013 sobre lo que escribe la
++  reinstalación, con la caché comparada con la de esa misma orden, así que el grafo del mundo que escribe la consulta
++  no cuenta.
+ - [x] Success criteria are measurable — SC-001 a SC-006 dan recuentos de líneas, bytes, minutos o conexiones, y cada
+   uno nombra la comprobación de `make ci` que sale en rojo.
+ - [x] Success criteria are technology-agnostic (no implementation details) — se miden sobre lo que ve quien usa el
+@@ -33,7 +37,7 @@
+ ## Feature Readiness
+ 
+ - [x] All functional requirements have clear acceptance criteria — FR-001 a FR-019, cada uno con su escenario o su
+-  control (FR-017: US5; FR-018 y FR-019: SC-007).
++  control (FR-017: US5; FR-018 y FR-019: SC-007; la cláusula de dos invocaciones a la vez de FR-010: US4.6 y SC-004).
+ - [x] User scenarios cover primary flows — reinstalar (US1), no pisar (US2), exclusiones y `--dry-run` (US3), candado
+   y fallos (US4), documentación (US5).
+ - [x] Feature meets measurable outcomes defined in Success Criteria — SC-001 es la aceptación literal del hito.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-21 13:18:30.615746692 +0100
++++ ahora/spec.md	2026-11-21 13:20:59.707513312 +0100
+@@ -68,7 +68,7 @@
+    v0.1.0; se aplican en la próxima conversación` y su salto, y la salida estándar y el código de salida son, byte a
+    byte, los de la misma orden sin skills instaladas.
+ 2. **Dado** el estado que deja el escenario 1, **Cuando** se hace una segunda consulta con v2, **Entonces** la salida
+-   de error está vacía y nada cambia en el disco.
++   de error está vacía y nada escrito (FR-013).
+ 3. **Dado** el estado que deja el escenario 1, **Cuando** se compara con el que deja `V2 skills install -g` directo
+    sobre una instalación v1 igual, **Entonces** los dos árboles del global son iguales y `V2 skills doctor -g` no da
+    ningún hallazgo.
+@@ -90,8 +90,8 @@
+ ### User Story 2 - Lo que la persona ha tocado no se pisa (Priority: P1)
+ 
+ Si algo de lo instalado no es lo que instaló kitlegal —un fichero editado, uno ajeno, una entrada ajena en un host, una
+-skill con nombre retirado que se ha editado y no se puede retirar—, la consulta no escribe nada y da la línea de hoy,
+-que sigue pidiendo `kitlegal skills install -g`.
++skill con nombre retirado que se ha editado y no se puede retirar—, la consulta no escribe nada (FR-013) y da la
++línea de hoy, que sigue pidiendo `kitlegal skills install -g`.
+ 
+ **Why this priority**: es la condición que hace segura la reinstalación (ADR 0060, opción 3).
+ 
+@@ -131,12 +131,13 @@
+ 2. **Dado** un manifiesto local al día y uno global viejo, **Cuando** se hace una consulta, **Entonces** ninguna línea
+    y nada escrito.
+ 3. **Dado** una instalación global v1, **Cuando** v2 arranca `kitlegal mcp serve`, **Entonces** solo da la línea de
+-   hoy, una vez por arranque, y no escribe nada.
++   hoy, una vez por arranque, y nada escrito (FR-013).
+ 4. **Dado** una instalación global v1, **Cuando** se invoca v2 con `--describe` o con un análisis que falla (exit 2),
+-   **Entonces** la línea de hoy, sin escribir; **cuando** se pide la ayuda, ninguna línea, como hoy.
++   **Entonces** la línea de hoy y nada escrito; **cuando** se pide la ayuda, ninguna línea, como hoy.
+ 5. **Dado** una instalación global v1 sin nada tocado, **Cuando** se invoca una orden de v2 con `--dry-run`,
+-   **Entonces** la salida de error es exactamente `aviso: kitlegal v0.2.0 se actualizarían las skills globales, que
+-   eran de v0.1.0; se aplican en la próxima conversación` y nada queda escrito.
++   **Entonces** la salida de error es la de esa orden sin skills instaladas con una línea de aviso más, `aviso:
++   kitlegal v0.2.0 se actualizarían las skills globales, que eran de v0.1.0; se aplican en la próxima conversación`, y
++   nada escrito (FR-013).
+ 
+ ---
+ 
+@@ -148,7 +149,7 @@
+ **Why this priority**: el agente puede lanzar varias órdenes a la vez, y una orden puede interrumpirse a mitad.
+ 
+ **Independent Test**: e2e con `$KITLEGAL_CACHE_DIR/skills-global.lock` creado a mano y con `touch -t`, sin directorio
+-de caché, y con `~/.agents/skills` sin permiso de escritura; unitario del fallo a mitad.
++de caché, con `~/.agents/skills` sin permiso de escritura y con dos consultas a la vez; unitario del fallo a mitad.
+ 
+ **Acceptance Scenarios**:
+ 
+@@ -164,6 +165,8 @@
+    consulta siguiente reinstala.
+ 5. **Dado** una reinstalación que falla a mitad de sus escrituras, **Cuando** se ejecuta después `kitlegal skills
+    install -g`, **Entonces** completa la instalación sin conflictos.
++6. **Dado** una instalación global v1, **Cuando** se lanzan a la vez dos consultas de v2, **Entonces** como mucho una
++   da la línea de FR-006; la otra da la línea de hoy o ninguna, y el árbol queda como en el escenario 1 de US1.
+ 
+ ---
+ 
+@@ -215,6 +218,11 @@
+ - **El árbol del global**: `~/.agents/skills` entero y las entradas de skills de kitlegal en el directorio de skills de
+   cada host del ámbito global, comparados por ruta, tipo, contenido y destino de enlace.
+ - **Una consulta**: una orden de un applet distinto de `skills`.
++- **Una línea de aviso más**: la salida de error de la invocación es la de la misma orden sin skills instaladas con
++  exactamente una línea de aviso más (la de FR-006, la de FR-009 o la de hoy), en el sitio de la línea de hoy, o
++  ninguna más. Donde esa orden deja vacía la salida de error (con `--json` y sin error), es exactamente esa línea
++  (`\A…\n\z`) o nada; con `--dry-run`, cuya descripción escribe el kernel, o con un error sin `--json`, no. Así se lee
++  «la salida de error es exactamente la línea …» en este spec.
+ 
+ - **FR-001**: **Qué invocaciones pueden reinstalar.** Solo una invocación de la CLI —por el primer argumento o por el
+   nombre de un applet (multicall)— que cumple las tres condiciones: (1) su análisis termina bien y decide ejecutar;
+@@ -223,12 +231,12 @@
+ - **FR-002**: **Las invocaciones que no pueden reinstalar dan lo de hoy.** La ayuda (`kitlegal --help`, la de un applet
+   y la de un verbo) y `kitlegal version` no dan ninguna línea; `kitlegal skills …` tampoco; `kitlegal mcp serve` da la
+   línea de hoy una vez por arranque y sus llamadas ninguna; una invocación con `--describe` o cuyo análisis falla
+-  (exit 2) da la línea de hoy. Ninguna de ellas escribe en el disco nada de lo que nombra FR-013. `--dry-run` lo rige
++  (exit 2) da la línea de hoy. En todas, nada escrito (FR-013). `--dry-run` lo rige
+   FR-009.
+ - **FR-003**: **Cuándo reinstala.** Una invocación de FR-001 reinstala si y solo si se cumplen a la vez: (a) **no hay
+   manifiesto local**: el aviso de hoy, con su regla de búsqueda (FR 070 de H19), examinaría el manifiesto global, y la
+   versión del binario tiene forma SemVer; (b) **la regla de versiones** de FR-004; (c) **el plan sale sin conflictos**,
+-  con FR-005; (d) **toma el candado**, con FR-010. Si falla cualquiera, da la línea de hoy y no escribe nada de FR-013.
++  con FR-005; (d) **toma el candado**, con FR-010. Si falla cualquiera, da la línea de hoy y nada escrito (FR-013).
+ - **FR-004**: **La regla de versiones.** Cada versión comparada es menor o igual que la del binario en precedencia
+   SemVer 2.0.0, y al menos una es menor. Para ordenar, la `v` inicial no cuenta, una prerelease es anterior a su
+   versión final (`0.2.0-rc.1` < `0.2.0`) y los metadatos de construcción no ordenan (`0.1.0+abc` y `0.1.0` tienen la
+@@ -255,7 +263,7 @@
+ - **FR-009**: **`--dry-run`.** Una invocación que cumple FR-001 salvo por llevar `--dry-run` (sin `--describe`, con el
+   análisis bien) da, si se cumplen FR-003 (a), (b) y (c), exactamente `aviso: kitlegal <versión del binario> se
+   actualizarían las skills globales, que eran de <versión que nombra>; se aplican en la próxima conversación`; si no,
+-  la línea de hoy. En los dos casos no toma el candado, no prueba el permiso y no escribe nada de FR-013; como
++  la línea de hoy. En los dos casos no toma el candado, no prueba el permiso y nada escrito (FR-013); como
+   `install --dry-run`, admite la sonda de enlace que la planificación crea y retira (`Enlazador.Disponible`), que no
+   queda.
+ - **FR-010**: **El candado.** Es el fichero `skills-global.lock` del directorio que da `cache.Directorio()`
+@@ -274,9 +282,12 @@
+ - **FR-012**: **Lo que no cambia de ninguna invocación.** La salida estándar, byte a byte, y el código de salida son los
+   mismos que los de la misma orden sin skills instaladas, reinstale o no y falle o no la reinstalación; un fallo de la
+   reinstalación nunca es un error de la invocación. Ni la reinstalación ni su decisión abren red.
+-- **FR-013**: **Qué escribe, y solo cuando reinstala.** El árbol del global, el directorio de la caché si no existía y
+-  el candado. En cualquier otro caso —sin reinstalación, con `--dry-run`, con un plan con conflictos, con el candado
+-  tomado— no cambia nada de eso; la sonda de enlace que la planificación crea y retira no queda.
++- **FR-013**: **Qué escribe la reinstalación, y solo cuando reinstala.** El árbol del global, el candado y el
++  directorio de la caché que crea para tomarlo. En cualquier otro caso —sin reinstalación, con `--dry-run`, con un plan
++  con conflictos, con el candado tomado— **nada escrito**: el árbol del global no cambia y el directorio de la caché
++  queda como lo deja la misma orden sin skills instaladas (sin candado y sin un directorio que esa orden no crearía); lo
++  que escribe la propia orden, como el grafo del mundo, no cuenta. La sonda de enlace que la planificación crea y
++  retira no queda.
+ - **FR-014**: **El ámbito local** nunca se reinstala: un manifiesto local viejo da la línea de hoy, sin ` -g`; un local
+   al día con un global viejo no da ninguna línea ni reinstala.
+ - **FR-015**: **El servidor MCP** nunca reinstala: `kitlegal mcp serve` da la línea de hoy, una vez por arranque, y la
+@@ -338,18 +349,23 @@
+   error es exactamente 1 línea, la de hoy, y el árbol del global no cambia en ningún byte. Lo hace cumplir el e2e de
+   `make ci`, que sale en rojo si la línea es otra o si el árbol difiere del de antes de la consulta.
+ - **SC-003**: En el 100 % de los casos e2e del hito, la salida estándar y el código de salida son, byte a byte, los de
+-  la misma orden sin skills instaladas, y la salida de error tiene exactamente 1 línea o 0. Lo hace cumplir cada guion
+-  e2e del hito en `make ci`, que compara las dos salidas y el código y sale en rojo ante la primera diferencia.
++  la misma orden sin skills instaladas, y la salida de error es la de esa orden con una línea de aviso más o ninguna
++  más (definición en «Functional Requirements»). Lo hace cumplir cada guion e2e del hito en `make ci`, que compara con
++  esa orden la salida estándar, el código y la salida de error y sale en rojo ante la primera diferencia.
+ - **SC-004**: El candado de hace menos de 10 minutos da la línea de hoy y no reinstala; el de hace más de 10 minutos
+   (`touch -t`) se sustituye y reinstala; sin directorio de caché, se crea y reinstala; tras cualquier reinstalación,
+-  acabe bien o mal, 0 candados en `$KITLEGAL_CACHE_DIR`. Lo hace cumplir el e2e del candado en `make ci`, que sale en
+-  rojo si el reciente reinstala, si el huérfano no reinstala o si el candado queda.
++  acabe bien o mal, 0 candados en `$KITLEGAL_CACHE_DIR`; de dos invocaciones lanzadas a la vez sobre la misma
++  instalación global v1, reinstala como mucho 1. Lo hace cumplir el e2e del candado en `make ci`, que sale en rojo si
++  el reciente reinstala, si el huérfano no reinstala o si el candado queda; y una comprobación de `make ci` (dónde
++  vive y cómo fuerza la concurrencia es del plan) que sale en rojo si las dos invocaciones dan la línea de FR-006.
+ - **SC-005**: La reinstalación y su decisión abren 0 conexiones de red. Lo hace cumplir `TestArquitectura` (subprueba
+   sin red, `internal/arch_test.go`) en `make ci`, que sale en rojo si el código del aviso o de la reinstalación alcanza
+   un paquete de red; y los e2e corren con los proxies cerrados (arnés de H19).
+ - **SC-006**: Los casos excluidos de FR-002, FR-014 y FR-015 (`mcp serve`, `--describe`, análisis fallido, ayuda,
+-  ámbito local) y los de FR-004 (binario más viejo, metadatos de construcción) escriben 0 entradas en el árbol del
+-  global y en la caché. Lo hacen cumplir sus e2e en `make ci`, que salen en rojo si el árbol o la caché cambian.
++  ámbito local) y los de FR-004 (binario más viejo, metadatos de construcción) no escriben nada (FR-013): 0 cambios en
++  el árbol del global y 0 entradas en la caché que no deje la misma orden sin skills instaladas. Lo hacen cumplir sus
++  e2e en `make ci`, que salen en rojo si el árbol cambia o si la caché tiene un candado u otra entrada que esa orden
++  no deja.
+ - **SC-007**: `make ci` en verde, con los unitarios de FR-019 y con los únicos e2e de H19 cambiados que nombra FR-018.
+ 
+ ## Criterios del hito (literales)
+@@ -362,7 +378,9 @@
+ 
+ - **e2e (`testscript`, con los binarios v1 y v2 de H19).** En cada uno se compara la salida estándar y el código de
+   salida, byte a byte, con los de la misma orden sin skills instaladas, y se comprueba que la salida de error es
+-  exactamente una línea (`\A…\n\z`), o ninguna (SC-003):
++  exactamente una línea (`\A…\n\z`), o ninguna. Donde la misma orden sin skills ya escribe en la salida de error
++  (`--dry-run`, un error sin `--json`), se lee como «una línea de aviso más» (definición en «Functional Requirements»;
++  SC-003); «nada escrito» y «no escribe», como en FR-013 (SC-006):
+   - **reinstala**: el árbol del global queda igual al de `V2 skills install -g` directo, y `V2 skills doctor -g` no da
+     hallazgos. La segunda invocación no escribe nada en la salida de error (US1.1 a US1.3; FR-005);
+   - **un fichero que falta**: reinstala (US1.4);
+@@ -384,7 +402,7 @@
+   - **una orden que termina con exit 4**: reinstala (US1.7);
+   - **el candado**, en `$KITLEGAL_CACHE_DIR/skills-global.lock`, que el arnés fija dentro de `$WORK`: tomado y
+     reciente da la línea de hoy; huérfano de más de 10 minutos (con `touch -t`), reinstala; sin directorio de caché
+-    todavía, lo crea y reinstala (US4.1 a US4.3; SC-004);
++    todavía, lo crea y reinstala (US4.1 a US4.3; SC-004). De dos a la vez, como mucho una reinstala (US4.6; SC-004);
+   - **`--dry-run`**: dice «se actualizarían» y no escribe (US3.5; FR-009).
+ - **Unitarios** del orden SemVer (prereleases, metadatos de construcción y versiones sin forma) y de un fallo a mitad
+   de la escritura que repara `kitlegal skills install -g` (FR 044 de H19) (FR-019; US4.5).

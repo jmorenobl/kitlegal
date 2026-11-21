@@ -16,6 +16,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core"
+	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/render"
@@ -374,9 +375,11 @@ func resolverApplet(
 	// El applet está resuelto con su verbo y el verbo, analizado: es el único
 	// punto en que se busca el aviso, antes de atender la decisión y termine
 	// como termine el análisis, también con el error de argumentos que detecta
-	// el propio verbo (contracts/aviso.md §1; research.md D5 de H19).
+	// el propio verbo (contracts/aviso.md §1; research.md D5 de H19). Aquí el
+	// kernel ya sabe lo que la invocación permite hacer al aviso (FR-008 de
+	// H38; research.md D2 de H38).
 	if buscaElAviso(despacho.Applet, previo, analisis) {
-		avisar(p, registro)
+		avisar(p, registro, permisoDelAviso(gramatica, analisis, err))
 	}
 
 	if err != nil {
@@ -427,17 +430,53 @@ func buscaElAviso(applet Applet, previo cli.Preliminar, analisis cli.Analisis) b
 	return !ayuda && applet.Nombre() != appletSinAviso
 }
 
+// permisoDelAviso es lo que permite hacer al aviso una invocación que lo busca,
+// con su análisis y el error con que terminó (contracts/aviso-y-reinstalacion.md
+// §1; data-model §1 y research.md D2 de H38):
+//
+//   - solo avisar, si el análisis falló o la decisión no es ejecutar —la de
+//     --describe—, o si el verbo es un servidor (`mcp serve`), con o sin
+//     --dry-run (FR-015);
+//   - ensayar, si ejecuta con --dry-run (FR-009);
+//   - y reinstalar, en cualquier otra ejecución, termine como termine después
+//     el verbo (FR-001).
+//
+// El servidor se reconoce por su interfaz, como en ejecutarVerbo, y no por su
+// nombre, que así está escrito en un solo sitio.
+func permisoDelAviso(
+	gramatica gramaticaDelApplet,
+	analisis cli.Analisis,
+	errDelAnalisis error,
+) instalacion.PermisoDelAviso {
+	if errDelAnalisis != nil || analisis.Decision != cli.DecisionEjecutar {
+		return instalacion.SoloAvisar
+	}
+
+	// Un verbo que la gramática no tiene no es un servidor: lo da ejecutarVerbo
+	// como inesperado (errVerboDesconocido).
+	argumentos, _ := gramatica.argumentos(analisis.Verbo)
+	if _, sirve := argumentos.(servidor); sirve {
+		return instalacion.SoloAvisar
+	}
+
+	if analisis.Globales.DryRun {
+		return instalacion.Ensayar
+	}
+
+	return instalacion.Reinstalar
+}
+
 // avisar escribe el aviso de versión del registro, si hay que darlo, por el
 // presentador en la salida de error: una sola línea, que nunca va a la salida
-// estándar (contracts/aviso.md §4 y §5).
+// estándar (contracts/aviso.md §4 y §5). El permiso pasa tal cual al avisador.
 //
 // El error de su escritura no se propaga, y es una decisión y no un silencio
 // (research.md D5 de H19): el aviso nunca cambia el código de salida ni la
 // salida estándar (FR-072), y registrarlo iría al mismo descriptor que acaba de
 // fallar. Si la salida de error está rota, el fallo que sí cuenta —el mensaje de
 // un error, si lo hay— lo encuentra el kernel en su propia escritura.
-func avisar(p cli.Presentador, registro *Registro) {
-	linea, hay := registro.aviso()
+func avisar(p cli.Presentador, registro *Registro, permiso instalacion.PermisoDelAviso) {
+	linea, hay := registro.aviso(permiso)
 	if !hay {
 		return
 	}

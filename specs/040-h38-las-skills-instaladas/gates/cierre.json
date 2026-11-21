@@ -1,0 +1,129 @@
+{
+  "sha": "c392ef1b7feff98fac213030b0e6c1552e0ad76e",
+  "verde": true,
+  "fecha": "2026-11-21T19:27:48Z",
+  "ronda": 2,
+  "reparaciones": 1,
+  "checks": [
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/288",
+      "name": "codecov/project/internal/core",
+      "startedAt": "2026-11-21T19:18:55Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/288",
+      "name": "codecov/project/internal/cli",
+      "startedAt": "2026-11-21T19:18:55Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/288",
+      "name": "codecov/patch",
+      "startedAt": "2026-11-21T19:18:54Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "pass",
+      "link": "https://app.codecov.io/gh/jmorenobl/kitlegal/pull/288",
+      "name": "codecov/project",
+      "startedAt": "2026-11-21T19:18:53Z",
+      "state": "SUCCESS",
+      "workflow": ""
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938120845/job/136949465955",
+      "name": "desplegar",
+      "startedAt": "2026-11-21T18:56:26Z",
+      "state": "SKIPPED",
+      "workflow": "web"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949438421",
+      "name": "evals (plazos-y-territorio)",
+      "startedAt": "2026-11-21T18:56:22Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949438468",
+      "name": "evals (consulta-juridica)",
+      "startedAt": "2026-11-21T18:56:22Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949438294",
+      "name": "evals (jurisprudencia)",
+      "startedAt": "2026-11-21T18:56:22Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949438310",
+      "name": "evals (normativa)",
+      "startedAt": "2026-11-21T18:56:21Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949187449",
+      "name": "cambios",
+      "startedAt": "2026-11-21T18:55:25Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949152646",
+      "name": "tanda",
+      "startedAt": "2026-11-21T18:55:19Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938123332/job/136949153721",
+      "name": "medida del juez (${{ matrix.skill }})",
+      "startedAt": "2026-11-21T18:55:18Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938120845/job/136949145160",
+      "name": "construir",
+      "startedAt": "2026-11-21T18:55:18Z",
+      "state": "SUCCESS",
+      "workflow": "web"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938120846/job/136949145320",
+      "name": "snapshot",
+      "startedAt": "2026-11-21T18:55:17Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/44938120846/job/136949145158",
+      "name": "ci",
+      "startedAt": "2026-11-21T18:55:17Z",
+      "state": "SUCCESS",
+      "workflow": "ci"
+    }
+  ]
+}

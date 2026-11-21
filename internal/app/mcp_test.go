@@ -26,6 +26,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core"
+	"github.com/jmorenobl/kitlegal/internal/core/instalacion"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
@@ -1400,12 +1401,43 @@ func testSinRedEnCadaLlamada(t *testing.T) {
 	assert.Equal(t, 0, servidor.cerrar(t))
 }
 
+// avisosPedidos es el avisador de prueba del servidor: da siempre la misma
+// línea y anota el permiso de cada llamada. Lo llama la gorrutina de `mcp
+// serve` y lo lee el test, de ahí el cerrojo.
+type avisosPedidos struct {
+	cerrojo  sync.Mutex
+	permisos []instalacion.PermisoDelAviso
+}
+
+// avisador da la línea con cualquier permiso, y lo anota.
+func (a *avisosPedidos) avisador(linea string) app.Avisador {
+	return func(permiso instalacion.PermisoDelAviso) (string, bool) {
+		a.cerrojo.Lock()
+		defer a.cerrojo.Unlock()
+
+		a.permisos = append(a.permisos, permiso)
+
+		return linea, true
+	}
+}
+
+// pedidos son los permisos anotados, en el orden de las llamadas.
+func (a *avisosPedidos) pedidos() []instalacion.PermisoDelAviso {
+	a.cerrojo.Lock()
+	defer a.cerrojo.Unlock()
+
+	return slices.Clone(a.permisos)
+}
+
 // TestSalidaDeErrorDelServidor comprueba lo que `mcp serve` deja en la salida
 // de error mientras sirve (contracts/servidor-mcp.md §4 de H21): el aviso de
 // versión una vez por arranque y no una por llamada; un evento por llamada, a
 // nivel `warn` si falla y a `info` si termina bien, con el applet y el verbo de
 // su herramienta; el mensaje de cada llamada que falla, que es el de su sobre;
-// y, al terminar, el evento de `mcp serve` (FR-023). No es paralelo porque fija
+// y, al terminar, el evento de `mcp serve` (FR-023). El kernel pide ese aviso
+// una sola vez por arranque, con o sin --dry-run, y siempre con SoloAvisar: el
+// servidor no reinstala ni ensaya, y sus llamadas no piden ninguno (FR-015 de
+// H38; contracts/aviso-y-reinstalacion.md §1). No es paralelo porque fija
 // KITLEGAL_LOG, del que depende el nivel del registro de eventos.
 func TestSalidaDeErrorDelServidor(t *testing.T) {
 	t.Setenv(cli.VariableNivel, "")
@@ -1431,22 +1463,32 @@ func TestSalidaDeErrorDelServidor(t *testing.T) {
 		return mensajes
 	}
 
-	registroConAviso := func(t *testing.T) *app.Registro {
+	registroConAviso := func(t *testing.T) (*app.Registro, *avisosPedidos) {
 		t.Helper()
 
-		registro, _ := registroDeConsulta(t)
-		registro.Avisar(func() (string, bool) { return aviso, true })
+		avisos := &avisosPedidos{}
 
-		return registro
+		registro, _ := registroDeConsulta(t)
+		registro.Avisar(avisos.avisador(aviso))
+
+		return registro, avisos
 	}
+
+	// Lo que el kernel pide al avisador en cada arranque de `mcp serve`: una
+	// llamada, con SoloAvisar (FR-015 de H38).
+	soloAvisarUnaVez := []instalacion.PermisoDelAviso{instalacion.SoloAvisar}
 
 	t.Run("sin --verbose: el aviso una vez, y de cada llamada que falla su evento y su mensaje", func(t *testing.T) {
 		t.Setenv(cli.VariableNivel, "")
 
-		servidor := arrancarElServidor(t, registroConAviso(t), true)
+		registro, avisos := registroConAviso(t)
+		servidor := arrancarElServidor(t, registro, true)
 		mensajes := llamar(t, servidor)
 
 		require.Equal(t, 0, servidor.cerrar(t))
+
+		assert.Equal(t, soloAvisarUnaVez, avisos.pedidos(),
+			"con cuatro llamadas hechas, el kernel pide el aviso una vez, al arrancar, y con SoloAvisar")
 
 		lineas := servidor.errores.lineas()
 		require.Len(t, lineas, 5, "el aviso y, por cada llamada que falla, su evento y su mensaje: %q", lineas)
@@ -1465,11 +1507,13 @@ func TestSalidaDeErrorDelServidor(t *testing.T) {
 	t.Run("con --verbose: además, el evento de cada llamada que termina bien y el de mcp serve", func(t *testing.T) {
 		t.Setenv(cli.VariableNivel, "")
 
-		servidor := arrancarElServidor(t, registroConAviso(t), true, "--verbose")
+		registro, avisos := registroConAviso(t)
+		servidor := arrancarElServidor(t, registro, true, "--verbose")
 		llamar(t, servidor)
 
 		require.Equal(t, 0, servidor.cerrar(t))
 
+		assert.Equal(t, soloAvisarUnaVez, avisos.pedidos(), "el aviso, pedido una vez y con SoloAvisar")
 		assert.Equal(t, []string{aviso}, servidor.errores.lineasCon("aviso: "),
 			"con cuatro llamadas hechas, el aviso está una vez: es del arranque, no de cada llamada")
 
@@ -1483,6 +1527,28 @@ func TestSalidaDeErrorDelServidor(t *testing.T) {
 
 		eventos := servidor.errores.lineasCon("msg=invocación ")
 		assert.Equal(t, deMCP[0], eventos[len(eventos)-1], "y es el último")
+	})
+
+	t.Run("con --dry-run: no sirve, y el aviso se pide una vez y con SoloAvisar", func(t *testing.T) {
+		t.Setenv(cli.VariableNivel, "")
+
+		registro, avisos := registroConAviso(t)
+
+		// Una entrada ya cerrada: si sirviera, terminaría al leerla, sin
+		// quedarse esperando, y la salida de error no llevaría el ensayo.
+		require.NoError(t, registro.Registrar(app.AppletMCP(app.DependenciasDeMCP{
+			Entrada: strings.NewReader(""),
+			Version: versionDelEjemplo,
+		})))
+
+		res := invocarCon(t, registro, "mcp", "serve", "--dry-run")
+
+		assert.Equal(t, 0, res.codigo, res.errores)
+		assert.Empty(t, res.salida, "no atiende ningún mensaje ni escribe ningún sobre")
+		assert.Equal(t, soloAvisarUnaVez, avisos.pedidos(),
+			"`mcp serve --dry-run` es un servidor: solo avisa, y no ensaya (contracts/aviso-y-reinstalacion.md §1)")
+		assert.True(t, strings.HasPrefix(res.errores, aviso+"\n--dry-run: no se ha ejecutado nada; "),
+			"el aviso y, detrás, la descripción del kernel: %q", res.errores)
 	})
 }
 

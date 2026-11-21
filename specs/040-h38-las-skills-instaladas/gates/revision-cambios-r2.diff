@@ -1,0 +1,304 @@
+diff --git a/internal/cache/candado.go b/internal/cache/candado.go
+index 36d36b8f..905b9fec 100644
+--- a/internal/cache/candado.go
++++ b/internal/cache/candado.go
+@@ -21,12 +21,12 @@ import (
+ // más es un huérfano que dejó una invocación interrumpida, y se retira y se crea
+ // otra vez en exclusiva, una sola vez (research.md D5).
+ //
+-// Con tomado, liberar retira el candado. Sin él, liberar es nil y el candado no
+-// queda: si Directorio() falla, si el directorio no se puede crear, o si la
+-// creación, la retirada del huérfano o la segunda creación fallan por otra
+-// causa, no hay candado ni nada que soltar. Ningún fallo se devuelve: quien lo
+-// pide da entonces la línea de hoy, que es lo que FR-010 pide, y la decisión es
+-// la del aviso de H19 (research.md D11).
++// Con tomado, liberar retira el candado. Sin él, liberar es nil y no hay nada
++// que soltar: si Directorio() falla, si el directorio no se puede crear, o si
++// la creación, la retirada del huérfano o la segunda creación fallan por otra
++// causa, queda lo que hubiera (contracts/aviso-y-reinstalacion.md §4). Ningún
++// fallo se devuelve: quien lo pide da entonces la línea de hoy, que es lo que
++// FR-010 pide, y la decisión es la del aviso de H19 (research.md D11).
+ //
+ // No espera ni reintenta, y no recibe ni devuelve nada de la base de datos.
+ func TomarCandado(nombre string, caducidad time.Duration) (liberar func(), tomado bool) {
+@@ -91,21 +91,14 @@ func sustituyeElHuerfano(ruta string, caducidad time.Duration, ahora func() time
+ 
+ // creaEnExclusiva crea el candado vacío solo si no existe: con O_EXCL, la
+ // creación falla con fs.ErrExist si ya hay algo en la ruta, también en Windows,
+-// donde se traduce a CREATE_NEW (research.md D4). Si no se puede cerrar, lo
+-// retira: un candado que no se toma no queda.
++// donde se traduce a CREATE_NEW (research.md D4).
+ func creaEnExclusiva(ruta string) error {
+ 	candado, err := os.OpenFile(filepath.Clean(ruta), os.O_WRONLY|os.O_CREATE|os.O_EXCL, permisosDelFichero)
+ 	if err != nil {
+ 		return err
+ 	}
+ 
+-	if err := candado.Close(); err != nil {
+-		retira(ruta)
+-
+-		return err
+-	}
+-
+-	return nil
++	return candado.Close()
+ }
+ 
+ // retira borra el candado. El resultado no se comprueba, y no es un error
+diff --git a/internal/core/instalacion/reinstalacion.go b/internal/core/instalacion/reinstalacion.go
+index 2c2d15e5..c6acdaac 100644
+--- a/internal/core/instalacion/reinstalacion.go
++++ b/internal/core/instalacion/reinstalacion.go
+@@ -173,11 +173,6 @@ func (r Reinstalacion) evaluar() (reinstalable, bool) {
+ 	}
+ 
+ 	pedido := pedidoDeReinstalacion(ambito, manifiesto, r.Empotradas, r.Retiradas)
+-	if len(pedido.Skills) == 0 {
+-		// Sin ninguna skill que pedir, reinstalar solo cambiaría la versión
+-		// del manifiesto: callaría el aviso sin poner nada al día.
+-		return reinstalable{}, false
+-	}
+ 
+ 	plan, err := Planificar(r.Disco, r.Enlazador, pedido, r.Empotradas, r.Retiradas, r.Version)
+ 	if err != nil || algunaSinRetirar(plan) {
+diff --git a/internal/core/instalacion/reinstalacion_test.go b/internal/core/instalacion/reinstalacion_test.go
+index 072f04ea..1989478d 100644
+--- a/internal/core/instalacion/reinstalacion_test.go
++++ b/internal/core/instalacion/reinstalacion_test.go
+@@ -505,13 +505,6 @@ func casosDeLoTocado() []casoDeReinstalacion {
+ 			},
+ 			esperada: avisoGlobal("0.2.0+abc", versionNueva),
+ 		},
+-		{
+-			nombre: "ninguna skill que pedir",
+-			preparar: func(d *discoEnMemoria) {
+-				instalarEn(d, ambitoGlobal(d.t, homeDePrueba)).noEmpotrada("de-otra-rama", versionDePrueba).escribir()
+-			},
+-			esperada: hoy,
+-		},
+ 		{
+ 			nombre:   "las versiones ya iguales",
+ 			preparar: func(d *discoEnMemoria) { enGlobal(d, versionNueva).escribir() },
+@@ -692,24 +685,35 @@ func reinstaladas(lineas ...string) int {
+ // dos invocaciones que piden a la vez el aviso con Reinstalar sobre el mismo
+ // global sin tocar, con el mismo candado, reinstala una sola; la otra da la
+ // línea de hoy si llega mientras la primera tiene el candado, y ninguna si lo
+-// toma cuando la primera ya terminó. Los dos intercalados que importan se
+-// fuerzan desde los propios puertos, sin gorrutinas ni esperas:
++// toma cuando la primera ya terminó. Y lo que decide bajo el candado es el
++// disco de ahora (contracts/aviso-y-reinstalacion.md §2, paso 8). Los
++// intercalados que importan se fuerzan desde los propios puertos, sin
++// gorrutinas ni esperas:
+ //
+ //   - la primera escritura de A ejecuta B entera: B evalúa el estado viejo,
+ //     pide el candado, lo encuentra tomado y da la línea de hoy, sin escribir
+ //     nada; A reinstala y da la de FR-006;
+ //   - el candado de B, pedido con el estado viejo ya evaluado, ejecuta antes A
+ //     entera, que reinstala, da la de FR-006 y lo suelta; B lo toma, vuelve a
+-//     evaluar sobre el disco de ahora y no da ninguna línea ni escribe nada.
++//     evaluar sobre el disco de ahora y no da ninguna línea ni escribe nada;
++//   - el candado de B ejecuta antes, entera, una invocación de un binario
++//     mayor, que reinstala y lo suelta: B lo toma y da la línea de hoy que
++//     nombra la versión mayor, sin escribir nada (FR-004);
++//   - antes de que B tome el candado se edita un fichero del global: B lo toma
++//     y da la línea de hoy, sin escribir nada (FR-005).
+ //
+-// En los dos sale una sola línea de FR-006, el disco queda como lo deja una
+-// reinstalación y cada candado tomado se libera una vez. Sin el candado, o sin
+-// la segunda evaluación bajo él, las dos reinstalan.
++// En los dos primeros sale una sola línea de FR-006 y el disco queda como lo
++// deja una reinstalación; en los dos últimos, como lo dejó lo que pasó antes
++// del candado; en todos, cada candado tomado se libera una vez. Sin el
++// candado, o sin la segunda evaluación bajo él, las dos reinstalan; con el paso
++// 8 que reutiliza el plan del paso 5, B reescribe el disco de ahora.
+ func TestReinstalacionConcurrente(t *testing.T) {
+ 	t.Parallel()
+ 
+ 	t.Run("la otra llega mientras esta escribe: el candado tomado", probarLaOtraMientrasEscribe)
+ 	t.Run("la otra reinstala antes del candado de esta: ninguna línea", probarLaOtraAntesDelCandado)
++	t.Run("una mayor reinstala antes del candado de esta: la línea de hoy de ahora", probarUnaMayorAntesDelCandado)
++	t.Run("el global se toca antes del candado de esta: la línea de hoy de ahora", probarElGlobalTocadoAntesDelCandado)
+ }
+ 
+ // probarLaOtraMientrasEscribe es el primer intercalado: B entera dentro de la
+@@ -791,6 +795,81 @@ func probarLaOtraAntesDelCandado(t *testing.T) {
+ 	exigirDiscoRespetado(t, d, homeDePrueba)
+ }
+ 
++// probarUnaMayorAntesDelCandado es el tercer intercalado: el candado de B
++// ejecuta antes, entera, una invocación del binario v0.3.0, que reinstala el
++// global y lo suelta. Bajo el candado, el global ya es de una versión que va
++// después de la de B.
++func probarUnaMayorAntesDelCandado(t *testing.T) {
++	t.Parallel()
++
++	const mayor = "v0.3.0"
++
++	probarElDiscoCambiaAntesDelCandado(t, func(d *discoEnMemoria, candado *candadoDePrueba) {
++		linea, hay := reinstalacionEn(d, mayor, nil, candado).Avisar(instalacion.Reinstalar)
++
++		require.Equal(t, "aviso: kitlegal "+mayor+" ha actualizado las skills globales, que eran de "+versionDePrueba+
++			"; se aplican en la próxima conversación", linea, "la v0.3.0 reinstala y suelta el candado (FR-006)")
++		require.True(t, hay)
++	}, avisoGlobal(mayor, versionNueva))
++}
++
++// probarElGlobalTocadoAntesDelCandado es el cuarto intercalado: antes de que B
++// tome el candado, se edita el SKILL.md de normativa. Bajo el candado, el
++// global tiene algo que install -g no reescribiría sin --force, y la línea de
++// hoy sigue siendo la del global de la v0.1.0.
++func probarElGlobalTocadoAntesDelCandado(t *testing.T) {
++	t.Parallel()
++
++	probarElDiscoCambiaAntesDelCandado(t, func(d *discoEnMemoria, _ *candadoDePrueba) {
++		d.fichero(rutaGlobal(".agents/skills/normativa/SKILL.md"), "# normativa, editada\n")
++	}, avisoGlobal(versionDePrueba, versionNueva))
++}
++
++// probarElDiscoCambiaAntesDelCandado pide el aviso con Reinstalar a B, del
++// binario v0.2.0, sobre el global sin tocar de la v0.1.0, con un candado que,
++// pedido con ese estado ya evaluado, deja antes el disco con cambiar —que
++// recibe el mismo candado— y después se toma. B vuelve a evaluar bajo el
++// candado, sobre el disco de ahora (contracts/aviso-y-reinstalacion.md §2,
++// paso 8): los pasos 3 a 5 ya no se cumplen, y B da esperada, la línea de hoy
++// del disco de ahora, no escribe nada, deja el disco como lo dejó cambiar y
++// suelta el candado.
++func probarElDiscoCambiaAntesDelCandado(
++	t *testing.T, cambiar func(d *discoEnMemoria, candado *candadoDePrueba), esperada string,
++) {
++	t.Helper()
++
++	d := nuevoDiscoEnMemoria(t)
++	d.directorio(temporal)
++	globalDeLaV1(d).escribir()
++
++	candado := &candadoDePrueba{}
++
++	var (
++		pedidosDeB int
++		cambiado   map[string]nodoEnMemoria
++	)
++
++	b, escritorDeB := reinstalacionConEscritor(d, versionNueva, nil, candado)
++	b.Candado = func() (func(), bool) {
++		pedidosDeB++
++		cambiar(d, candado)
++		cambiado = d.instantanea()
++
++		return candado.tomar()
++	}
++
++	linea, hay := b.Avisar(instalacion.Reinstalar)
++
++	require.Equal(t, 1, pedidosDeB, "B pide el candado una vez, con el global sin tocar ya evaluado")
++	assert.Equal(t, esperada, linea, "B vuelve a evaluar bajo el candado: la línea de hoy de ahora (paso 8)")
++	assert.True(t, hay)
++	assert.Empty(t, escritorDeB.operaciones, "B no escribe nada")
++	assert.Equal(t, candado.pedidos, candado.liberados, "cada candado tomado se libera una vez")
++	assert.False(t, candado.ocupado, "B suelta el candado")
++	assert.Equal(t, cambiado, d.instantanea(), "el disco, como lo dejó lo que pasó antes del candado")
++	exigirDiscoRespetado(t, d, homeDePrueba)
++}
++
+ // globalDeLasCuatroFases deja el global de un binario v0.1.0 con
+ // plazos-y-territorio, enlazada en claude y con un SKILL.md que aquel binario
+ // empotraba distinto, y antigua, de un nombre que este binario retira y cuyas
+diff --git a/specs/040-h38-las-skills-instaladas/contracts/aviso-y-reinstalacion.md b/specs/040-h38-las-skills-instaladas/contracts/aviso-y-reinstalacion.md
+index 0c62e9ac..72d4a2d3 100644
+--- a/specs/040-h38-las-skills-instaladas/contracts/aviso-y-reinstalacion.md
++++ b/specs/040-h38-las-skills-instaladas/contracts/aviso-y-reinstalacion.md
+@@ -32,8 +32,7 @@ Por el primer argumento o por el nombre del applet (multicall) es la misma: las
+    declara y el binario empotra) no tiene forma SemVer, o alguna comparada es mayor que la del binario en precedencia
+    SemVer 2.0.0, o ninguna es menor, la línea de hoy.
+ 5. **Plan (FR-003 c, FR-005).** `Planificar(Disco, Enlazador, pedido, Empotradas, Retiradas, Version)` con el pedido
+-   de data-model §4. Si el pedido sale vacío (ninguna skill declarada que el binario empotre ni herede), `Planificar`
+-   no se llama y da la línea de hoy (gates/supuestos.md, T002). Si devuelve un error —un conflicto o un fallo del disco
++   de data-model §4. Si devuelve un error —un conflicto o un fallo del disco
+    o de la sonda— o alguna skill del plan sale «sin retirar», la línea de hoy.
+ 6. **Ensayo (FR-009).** Con `Ensayar`, la línea de FR-009 con la versión que nombra la de hoy. No toma el candado ni
+    escribe; la sonda de enlace de `Planificar` se crea y se retira, como en `install --dry-run`.
+diff --git a/specs/040-h38-las-skills-instaladas/data-model.md b/specs/040-h38-las-skills-instaladas/data-model.md
+index fa5a6bcc..80d45c2a 100644
+--- a/specs/040-h38-las-skills-instaladas/data-model.md
++++ b/specs/040-h38-las-skills-instaladas/data-model.md
+@@ -53,8 +53,6 @@ Las skills que se reinstalan, en orden de nombre y cada una una vez:
+ - más, por cada declarada con un nombre de `Retiradas`, sus herederas (`Retiradas[nombre]`);
+ - y ninguna más.
+ 
+-Si sale vacío, no se reinstala: la línea de hoy, sin candado y sin escribir nada (gates/supuestos.md, T002).
+-
+ Con el ámbito global de `HOME` y sin `--host`, es un `instalacion.Pedido{Ambito, Skills, Hosts: nil}`, el mismo que
+ `ValidarInvocacion` da a `kitlegal skills install -g <esas skills>`.
+ 
+@@ -78,7 +76,6 @@ las dos tal como están.
+ | sin tocar, alguna versión comparada menor y ninguna mayor | como `install -g` del pedido | FR-006 |
+ | igual que el anterior con algún fichero que falta | como `install -g` del pedido | FR-006 |
+ | con un conflicto de `Planificar` o una retirada «sin retirar» | sin cambios | de hoy |
+-| ninguna skill declarada que el binario empotre ni herede (el pedido, vacío) | sin cambios | de hoy |
+ | alguna versión comparada mayor que el binario, o sin forma, o solo metadatos distintos | sin cambios | de hoy |
+ | candado tomado (menos de 10 minutos) | sin cambios | de hoy |
+ | una escritura que falla a mitad | lo que `install -g` completa sin conflictos | de hoy (del estado anterior) |
+diff --git a/specs/040-h38-las-skills-instaladas/plan.md b/specs/040-h38-las-skills-instaladas/plan.md
+index a5d34c7d..513f0ef5 100644
+--- a/specs/040-h38-las-skills-instaladas/plan.md
++++ b/specs/040-h38-las-skills-instaladas/plan.md
+@@ -240,7 +240,7 @@ remotas; eso lo hace el workflow tras la revisión final.
+ | SC-002 | exactamente 1 línea, la de hoy, y 0 bytes cambiados en el árbol del global | `h38-tocadas`: `stderr '\A<hoy>\n\z'` y `cmp` de `arbol $HOME` antes y después en cada estado tocado | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
+ | SC-003, FR-008, FR-012 | 100 % de los casos: salida estándar y código iguales a los de la referencia sin skills; salida de error con 0 o 1 línea de aviso más | en los cuatro guiones, `cmp stdout`, `test $? -eq N`, `\A…\n\z` y `una-linea-mas.sh` | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
+ | SC-004, FR-010 | candado de menos de 10 min: no reinstala; de 10 min o más: reinstala; sin directorio: lo crea y reinstala; 0 candados tras reinstalar, bien o mal | `h38-candado`: los cuatro primeros casos de contracts/aceptacion.md §5 | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
+-| SC-004, FR-010 | de dos invocaciones a la vez, como mucho 1 línea de FR-006 | `TestReinstalacionConcurrente`: los dos intercalados de research.md D7; sin el candado o sin la segunda evaluación salen 2 | `ci:internal/core/instalacion/reinstalacion_test.go:TestReinstalacionConcurrente` |
++| SC-004, FR-010 | de dos invocaciones a la vez, como mucho 1 línea de FR-006 | `TestReinstalacionConcurrente`: los cuatro intercalados de research.md D7; sin el candado salen 2, y sin la segunda evaluación la que llega reescribe el disco de ahora | `ci:internal/core/instalacion/reinstalacion_test.go:TestReinstalacionConcurrente` |
+ | FR-010 | caducidad de 10 minutos: a 9 min 30 s no se toma; a 10 min o más, sí | `TestTomarCandado` con `os.Chtimes` | `ci:internal/cache/candado_test.go:TestTomarCandado` |
+ | SC-005, FR-012 | 0 conexiones: ningún paquete del aviso ni de la reinstalación alcanza `net`, `net/http` ni `internal/httpx` | subprueba «sin red» de `TestArquitectura` sobre `internal/app/aviso.go`, `internal/core/instalacion`, `internal/disco` y, por sus importaciones, `internal/cache` | `ci:internal/arch_test.go:TestArquitectura` |
+ | SC-006, FR-013, FR-009 | en los excluidos y los tocados, 0 cambios en el árbol y 0 entradas en la caché; con `--dry-run`, exactamente 1 línea más, la de FR-009 | `h38-excluidas` y `h38-tocadas`: `cmp` de `arbol $HOME`, `! exists $KITLEGAL_CACHE_DIR` y `una-linea-mas.sh` | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
+diff --git a/specs/040-h38-las-skills-instaladas/research.md b/specs/040-h38-las-skills-instaladas/research.md
+index b984480d..cbd057e7 100644
+--- a/specs/040-h38-las-skills-instaladas/research.md
++++ b/specs/040-h38-las-skills-instaladas/research.md
+@@ -164,7 +164,9 @@ dominio), sobre `discoEnMemoria`:
+   primera escritura de A ejecuta B entera, que encuentra el candado tomado y da la línea de hoy, y A da la de FR-006;
+   (2) el `TomarCandado` de B, ya evaluado el estado viejo, ejecuta antes A entera, que reinstala y suelta; B toma el
+   candado, vuelve a evaluar y no da ninguna línea. En los dos, una sola línea de FR-006 y el estado final el de una
+-  reinstalación.
++  reinstalación. Y dos del paso 8 que no se cumple: (3) el `TomarCandado` de B ejecuta antes, entera, una invocación de
++  un binario mayor, que reinstala y suelta, y (4) antes de que B lo tome se edita un fichero del global. En los dos, B
++  toma el candado, da la línea de hoy de ahora, no escribe nada y deja el disco como estaba.
+ - `TestReinstalacionFalloAMitad` (FR-011, FR-019, US4.5): para cada operación n de una reinstalación con las cuatro
+   fases (una retirada intacta, un fichero que se reescribe, un enlace de host nuevo y el manifiesto), un `Escritor`
+   que falla en la operación n: la línea de hoy del estado anterior, `liberar` llamado, y después `Planificar`+`Aplicar`
+diff --git a/specs/040-h38-las-skills-instaladas/tasks.md b/specs/040-h38-las-skills-instaladas/tasks.md
+index da1b4c42..8c1fdd05 100644
+--- a/specs/040-h38-las-skills-instaladas/tasks.md
++++ b/specs/040-h38-las-skills-instaladas/tasks.md
+@@ -261,7 +261,9 @@ vez activados, pueden pasar.
+     research.md D7 forzados desde los propios puertos: (1) la primera escritura de A ejecuta B entera, que encuentra el
+     candado tomado y da la línea de hoy, y A da la de FR-006; (2) el `TomarCandado` de B, ya evaluado el estado viejo,
+     ejecuta antes A entera, que reinstala y suelta; B toma el candado, vuelve a evaluar y no da ninguna línea. En los
+-    dos, una sola línea de FR-006 y el estado final el de una reinstalación. `TestReinstalacionFalloAMitad` (patrón de
++    dos, una sola línea de FR-006 y el estado final el de una reinstalación. Y los dos del paso 8 que no se cumple
++    (revisión final): (3) el `TomarCandado` de B ejecuta antes, entera, una `Reinstalacion` v0.3.0, y (4) antes de que B
++    lo tome se edita un fichero del global; en los dos, B da la línea de hoy de ahora y no escribe nada. `TestReinstalacionFalloAMitad` (patrón de
+     `TestFalloAMitadSeCompleta`, `aplicar_test.go:341-393`): para cada operación n de una reinstalación con las cuatro
+     fases (una retirada intacta, un fichero que se reescribe, un enlace de host nuevo y el manifiesto), un `Escritor`
+     que falla en la n: la línea de hoy del estado anterior, `liberar` llamado, y después `Planificar`+`Aplicar` con el
+@@ -270,8 +272,9 @@ vez activados, pueden pasar.
+   - reinstalacion.go cambia solo si uno de estos tests descubre que el código de T002 no cumple contracts §2 (y entonces
+     lo mínimo que lo cumple); discoEnMemoria_test.go, solo si le falta el gancho de la escritura que falla.
+   - Control de umbral (ADR 0029), la fila de SC-004 con `TestReinstalacionConcurrente`: un mutante sin el candado (el
+-    paso 7 que siempre toma) o sin la segunda evaluación (el paso 8 que reutiliza el plan del paso 5) da dos líneas de
+-    FR-006 y pone el test en rojo; un mutante que no llama a `liberar` tras un fallo pone en rojo
++    paso 7 que siempre toma) o sin la segunda evaluación (el paso 8 que reutiliza el plan del paso 5) pone el test en
++    rojo: sin el candado salen dos líneas de FR-006, y sin la segunda evaluación B reescribe el disco de ahora en los
++    intercalados (3) y (4); un mutante que no llama a `liberar` tras un fallo pone en rojo
+     `TestReinstalacionFalloAMitad`. Verificación: `go test -race -count=1 -run 'TestReinstalacion'
+     ./internal/core/instalacion/` y `make ci` en verde.
+ 
+@@ -327,7 +330,7 @@ con procesos reales al activarse.
+ | SC-002 | `h38-tocadas` | T001 | `rojo-primero`: el control del guion no reinstala hoy |
+ | SC-003, FR-008, FR-012 | los cuatro guiones | T001 | `rojo-primero` de cada guion |
+ | SC-004, FR-010 (e2e) | `h38-candado` | T001 | `rojo-primero`: el huérfano y sin directorio no reinstalan hoy |
+-| SC-004, FR-010 (concurrencia) | `TestReinstalacionConcurrente` | T006 | mutante sin candado o sin segunda evaluación: dos líneas de FR-006 |
++| SC-004, FR-010 (concurrencia) | `TestReinstalacionConcurrente` | T006 | mutante sin candado: dos líneas de FR-006; sin segunda evaluación: la que llega reescribe el disco de ahora |
+ | FR-010 (caducidad) | `TestTomarCandado` | T003 | mutante con `<=` o que trata el reciente como huérfano; y en T005 `TestAvisoDeVersion` con `caducidadDelCandado = 0` |
+ | SC-005, FR-012 | subprueba «sin red» de `TestArquitectura` | T005 | mutante `import _ "net"` en `internal/app/aviso.go` |
+ | SC-006, FR-013, FR-009 | `h38-excluidas` y `h38-tocadas` | T001 | `rojo-primero`: el control de cada guion y el `--dry-run` no dan hoy sus líneas |

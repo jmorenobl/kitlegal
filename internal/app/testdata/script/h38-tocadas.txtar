@@ -1,0 +1,187 @@
+# Lo que la persona ha tocado no se pisa: con un fichero editado, uno ajeno,
+# una entrada ajena en un host o una skill de nombre retirado editada («sin
+# retirar»), la consulta no escribe nada y da la línea de hoy, que sigue
+# pidiendo `kitlegal skills install -g`; y lo mismo con un binario más viejo
+# que lo instalado y con versiones que solo difieren en los metadatos de
+# construcción. La salida estándar y el código de salida son, byte a byte, los
+# de la misma orden sin skills instaladas.
+#
+# Cubre: US2.1 a US2.4 · FR-003, FR-004, FR-005, FR-007, FR-013 · SC-002,
+# SC-003, SC-006 (specs/040-h38-las-skills-instaladas; contracts/aceptacion.md
+# §1 y §3).
+#
+# Empieza por un control —la misma instalación v1 con hosts, sin tocar nada,
+# en la que la consulta sí reinstala—, de modo que en cada caso lo que impide
+# reinstalar sea lo tocado. «Nada escrito» (FR-013) es que el árbol de HOME, que
+# arbol lista sin seguir enlaces con su tipo, sus permisos, su huella y el
+# destino de cada enlace, es byte a byte el de antes de la consulta, y que el
+# KITLEGAL_CACHE_DIR del caso, que la consulta sin skills no crea, sigue sin
+# existir. La línea de hoy es la de H19 (specs/009-h19-instalar-sin-clonar/
+# contracts/aviso.md §4), sin cambiar un byte (FR-007). Los binarios son los
+# del arnés de H19: $KITLEGAL_V1_BIN (v0.1.0) y $KITLEGAL_V2_BIN (v0.2.0).
+
+# --- Referencias: cada orden del guion con un HOME vacío y sin skills ---
+env HOME=$WORK/sin-skills
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-skills
+mkdir $WORK/consultas
+cd $WORK/consultas
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/territorio.json
+exec $KITLEGAL_V1_BIN territorio resolver Leganés --json --no-graph
+! stderr .
+cp stdout $WORK/territorio-v1.json
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Control: nada tocado, la consulta reinstala ---
+env HOME=$WORK/control
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-control
+exec $KITLEGAL_V1_BIN skills install -g
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: kitlegal v0\.2\.0 ha actualizado las skills globales, que eran de v0\.1\.0; se aplican en la próxima conversación\n\z'
+! grep 'v0\.1\.0' $HOME/.agents/skills/kitlegal.json
+
+# --- Un fichero editado (US2.1; SC-002) ---
+#
+# La línea de hoy, el manifiesto sigue en la v1 y el árbol queda como estaba.
+env HOME=$WORK/editado
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-editado
+exec $KITLEGAL_V1_BIN skills install -g
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/plazos-y-territorio/SKILL.md"'
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+grep '"version": "v0\.1\.0"' $HOME/.agents/skills/kitlegal.json
+
+# --- Un fichero ajeno dentro de una skill (US2.2; SC-002) ---
+#
+# Se retira del manifiesto la declaración de una referencia de
+# plazos-y-territorio sin tocar nada más de su texto: el fichero que sigue en
+# el disco ya no es suyo, y install -g lo daría como «fichero ajeno».
+env HOME=$WORK/ajeno
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-ajeno
+exec $KITLEGAL_V1_BIN skills install -g
+exec sh $WORK/olvida.sh $HOME/.agents/skills/kitlegal.json plazos-y-territorio/references/jerarquia_normativa.md
+! grep 'jerarquia_normativa' $HOME/.agents/skills/kitlegal.json
+exists $HOME/.agents/skills/plazos-y-territorio/references/jerarquia_normativa.md
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Una entrada ajena en un host (US2.2; SC-002) ---
+#
+# La entrada de normativa en el directorio de skills de Claude Code apunta a
+# otro sitio: no es la que dejó kitlegal.
+env HOME=$WORK/host-ajeno
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-host-ajeno
+exec $KITLEGAL_V1_BIN skills install -g
+mkdir $WORK/fuera
+rm $HOME/.claude/skills/normativa
+symlink $HOME/.claude/skills/normativa -> $WORK/fuera
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Una skill de nombre retirado editada, «sin retirar» (US2.2; SC-002) ---
+#
+# Sin hosts: normativa pasa a llamarse boe-legislacion, su nombre retirado, en
+# el disco y en el manifiesto, y su SKILL.md se edita, así que no se puede
+# retirar: cuenta como tocada (FR-005).
+env HOME=$WORK/sin-retirar
+mkdir $HOME
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-retirar
+exec $KITLEGAL_V1_BIN skills install -g
+mv $HOME/.agents/skills/normativa $HOME/.agents/skills/boe-legislacion
+exec sh $WORK/retira.sh $HOME/.agents/skills/kitlegal.json
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/boe-legislacion/SKILL.md"'
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Un binario más viejo que lo instalado (US2.3; FR-004; SC-006) ---
+env HOME=$WORK/mas-viejo
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-mas-viejo
+exec $KITLEGAL_V2_BIN skills install -g
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V1_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio-v1.json
+stderr '\Aaviso: las skills instaladas son de kitlegal v0\.2\.0 y este binario es kitlegal v0\.1\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+# --- Versiones que solo difieren en los metadatos de construcción (US2.4; FR-004; SC-006) ---
+#
+# 0.2.0+abc y v0.2.0 tienen la misma precedencia SemVer: no reinstala, y la
+# línea de hoy las da como distintas, como en H19.
+env HOME=$WORK/metadatos
+mkdir $HOME/.claude $HOME/.gemini/config
+env KITLEGAL_CACHE_DIR=$WORK/cache-metadatos
+exec $KITLEGAL_V2_BIN skills install -g
+exec sh -c 'sed "s/\"v0\.2\.0\"/\"0.2.0+abc\"/g" "$HOME/.agents/skills/kitlegal.json" > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" "$HOME/.agents/skills/kitlegal.json"'
+grep -count=5 '"0\.2\.0\+abc"' $HOME/.agents/skills/kitlegal.json
+arbol $HOME
+cp stdout $WORK/antes.txt
+exec $KITLEGAL_V2_BIN territorio resolver Leganés --json --no-graph
+cmp stdout $WORK/territorio.json
+stderr '\Aaviso: las skills instaladas son de kitlegal 0\.2\.0\+abc y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install -g\n\z'
+arbol $HOME
+cmp stdout $WORK/antes.txt
+! exists $KITLEGAL_CACHE_DIR
+
+-- olvida.sh --
+# olvida.sh <manifiesto> <clave>: retira del texto del manifiesto la
+# declaración de <clave> —su nombre, su huella y la coma que la separa de la
+# siguiente—, sin tocar nada más, de modo que el manifiesto siga siendo
+# legible (specs/009-h19-instalar-sin-clonar/contracts/manifiesto.md §1). La
+# clave no puede ser la última de su objeto.
+set -eu
+clave=$(printf '%s' "$2" | sed 's/[.]/\\./g')
+sed "s|\"$clave\": *\"sha256:[0-9a-f]*\", *||" "$1" > "$1.nuevo"
+mv "$1.nuevo" "$1"
+if grep -q "\"$clave\"" "$1"; then
+	echo "$1 sigue declarando $2" >&2
+	exit 1
+fi
+-- retira.sh --
+# retira.sh <manifiesto>: cambia en el texto del manifiesto cada «"normativa»
+# por «"boe-legislacion», el nombre retirado del que normativa es heredera
+# (internal/app/retiradas.go): la entrada de la skill y las rutas de sus
+# ficheros. La comilla deja fuera jerarquia_normativa.md, de otra skill, y sin
+# hosts no hay ninguna ruta de host que cambiar (research.md D9).
+set -eu
+sed 's/"normativa/"boe-legislacion/g' "$1" > "$1.nuevo"
+mv "$1.nuevo" "$1"
+if grep -q '"normativa' "$1"; then
+	echo "$1 sigue declarando normativa" >&2
+	exit 1
+fi
+grep -q '"boe-legislacion": {' "$1"
