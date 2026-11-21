@@ -12,7 +12,12 @@ import (
 // las invocaciones que lo buscan, que la escribe en la salida de error
 // (contracts/aviso.md §1; research.md D5). Nunca devuelve error: lo que no le
 // permite decidir es que no hay aviso (data-model §7).
-type Avisador func() (linea string, hay bool)
+//
+// permiso es lo que la invocación permite hacer al aviso, y lo decide el
+// kernel con lo que ya analizó: solo avisar, ensayar o reinstalar las skills
+// globales (contracts/aviso-y-reinstalacion.md §1; data-model §1 y research.md
+// D2 y D12 de H38). El avisador no hace más de lo que su permiso le deja.
+type Avisador func(permiso instalacion.PermisoDelAviso) (linea string, hay bool)
 
 // AvisoDeVersion es el avisador del binario distribuido y del de e2e: el Aviso
 // del dominio sobre el disco real de internal/disco, con HOME tal como está en
@@ -20,6 +25,9 @@ type Avisador func() (linea string, hay bool)
 // dependencias de skills, las mismas con las que el applet instala, de modo que
 // el aviso compara con lo que una instalación dejaría (contracts/aviso.md §2-§4;
 // FR-070, FR-071). Componerlo no lee nada.
+//
+// Da la misma línea con cualquier permiso: solo lee, y no escribe nada en
+// ninguna invocación.
 //
 // Una versión sin forma SemVer es la de un binario de desarrollo, que no compara
 // (FR-073): el avisador lo decide antes de nada, así que ese binario no lee ni lo
@@ -29,7 +37,7 @@ type Avisador func() (linea string, hay bool)
 // publicar; el aviso no tiene con qué comparar y no avisa, porque nunca es un
 // error ni cambia la invocación que lo busca (FR-072).
 func AvisoDeVersion(dependencias DependenciasDeSkills) Avisador {
-	return func() (string, bool) {
+	return func(instalacion.PermisoDelAviso) (string, bool) {
 		if !instalacion.FormaSemVer(dependencias.Version) || dependencias.Skills == nil {
 			return "", false
 		}

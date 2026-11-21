@@ -172,7 +172,7 @@ que no (ADR 0018; plan.md «Aceptación e2e»; contracts/aceptacion.md).
     Verificación: `go test -race -count=1 -run 'TestTomarCandado|TestSuperficieExportada' ./internal/cache/` y `make ci`
     en verde.
 
-- [ ] T004 El permiso de cada invocación, del kernel al avisador, sin cambiar todavía lo que el avisador del binario hace (FR-001, FR-002, FR-008, FR-009, FR-015; contracts/aviso-y-reinstalacion.md §1; data-model §1; research.md D2, D12): internal/app/aviso.go, internal/app/main.go, internal/app/registro.go, internal/app/mcp_test.go
+- [X] T004 El permiso de cada invocación, del kernel al avisador, sin cambiar todavía lo que el avisador del binario hace (FR-001, FR-002, FR-008, FR-009, FR-015; contracts/aviso-y-reinstalacion.md §1; data-model §1; research.md D2, D12): internal/app/aviso.go, internal/app/main.go, internal/app/registro.go, internal/app/mcp_test.go
   - **aviso.go**: `type Avisador func(permiso instalacion.PermisoDelAviso) (linea string, hay bool)`, con su comentario;
     `AvisoDeVersion` devuelve un avisador de esa firma que sigue dando, con cualquier permiso, la línea de hoy tal como
     hoy (la composición de `Reinstalacion` llega con T005, junto a los e2e de H19 que cambian).
