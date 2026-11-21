@@ -37,33 +37,37 @@ Hay tres hechos que limitan qué se puede hacer:
 
 ## Decisión
 
-1. **Cuándo se reinstala.** Una orden de la CLI distinta de `skills`, de la ayuda y de `mcp serve` reinstala las skills
-   globales cuando se cumplen a la vez estas condiciones:
-   - no hay manifiesto local, que hoy tapa al global y lo sigue tapando;
-   - el manifiesto global es de una versión anterior a la del binario, en orden SemVer;
-   - `kitlegal skills install -g` saldría sin conflictos, con su misma comprobación: ningún fichero editado ni ajeno.
-     Un fichero que falta no es un conflicto, como en FR-044;
-   - el binario puede escribir y toma el candado de la reinstalación.
+1. **Cuándo se reinstala.** Reinstala una invocación de la CLI que cumpla tres condiciones:
+   - su análisis termina bien y decide ejecutar;
+   - no lleva `--dry-run`, `--describe` ni la ayuda;
+   - no es del applet `skills` ni del servidor MCP.
 
-   Reinstala lo mismo que haría esa orden: las skills que declara el manifiesto, no todas las empotradas, y en los
-   hosts de siempre. Nunca toca un ámbito local.
-2. **Qué se dice.** Si reinstala, escribe una línea en la salida de error:
-   `aviso: kitlegal <versión> ha actualizado las skills globales, que eran de <versión anterior>; se aplican en la próxima conversación`.
-   En cualquier otro caso escribe la línea de hoy, sin cambios: si el binario es más viejo o la versión no se puede
-   ordenar, si hay conflictos, si no puede escribir, si el candado está tomado, si la escritura falla, y siempre en el
-   ámbito local.
-3. **Lo que no cambia del contrato de H19.** La salida estándar, byte a byte, y el código de salida de la orden son los
-   mismos. No se abre red. Un fallo de la reinstalación nunca es un error de la orden: se queda en el aviso de hoy.
-   `--dry-run` y `--describe` no escriben nada. Con `--dry-run`, la línea dice que las skills «se actualizarían», con
-   las mismas versiones.
-4. **Lo que cambia.** El aviso puede escribir en `~/.agents/skills` y en los enlaces de sus hosts, solo en el caso del
-   punto 1. Deja de valer, solo para esa decisión, que el aviso no ordena versiones (FR-077). La línea de hoy se sigue
-   dando ante cualquier diferencia.
-5. **Una vez.** No hace falta ninguna marca: cuando la reinstalación sale bien, la orden siguiente ve la misma versión y
-   no hace nada. En el servidor MCP no se reinstala nada; el aviso sigue siendo una vez por arranque.
-6. **El candado.** Es un fichero que se crea en exclusiva junto al manifiesto global y se borra al terminar. Si existe,
-   el binario no espera y da el aviso de hoy. Si se queda huérfano porque el proceso murió, el spec fija desde cuándo se
-   ignora.
+   La invocación multicall cuenta como CLI, y el código con que acabe el verbo no importa. Además tienen que cumplirse
+   a la vez:
+   - no hay manifiesto local, que tapa al global como hoy;
+   - las versiones que compara hoy el aviso —la del manifiesto global y la de cada skill declarada que el binario
+     empotra— son todas menores o iguales que la del binario en precedencia SemVer, y al menos una es menor. Los
+     metadatos de construcción no ordenan, y una versión sin forma SemVer no reinstala;
+   - `Planificar` sale sin conflictos, sin `--host`. El pedido son las skills declaradas que el binario empotra más las
+     herederas de las declaradas con nombre retirado, y nada más. Un fichero que falta no es un conflicto (FR-044); uno
+     editado o ajeno sí, y una retirada que no se puede retirar cuenta como tocada;
+   - el binario puede escribir y toma el candado.
+2. **Qué se dice.** Si reinstala, escribe en la salida de error una sola línea:
+   `aviso: kitlegal <versión> ha actualizado las skills globales, que eran de <versión que nombraría la línea de hoy>; se aplican en la próxima conversación`.
+   En cualquier otro caso escribe la línea de hoy, sin cambios.
+3. **Lo que no cambia del contrato de H19.** La salida estándar, byte a byte, y el código de salida de la invocación
+   son los mismos. No se abre red. Un fallo de la reinstalación nunca es un error de la invocación: se queda en la línea
+   de hoy. Con `--dry-run`, si se cumplen las condiciones salvo las de escritura, la línea dice que las skills «se
+   actualizarían» y no se escribe nada, salvo la sonda de enlace que `Planificar` crea y retira, como en
+   `install --dry-run`.
+4. **Lo que cambia.** Del contrato de H19, sus §3 y §4 de `contracts/aviso.md`, FR-071 (la línea lleva siempre la orden
+   que ejecutar), FR-077 (no se ordenan versiones; deja de valer solo para decidir si se reinstala) y SC-013. El aviso
+   puede escribir en `~/.agents/skills` y en los enlaces de sus hosts, solo en el caso del punto 1.
+5. **Una vez.** No hace falta ninguna marca: cuando la reinstalación sale bien, la invocación siguiente ve la misma
+   versión y no hace nada. En el servidor MCP no se reinstala nada, y el aviso sigue saliendo una vez por arranque.
+6. **El candado.** Es `skills-global.lock`, en el directorio de caché de kitlegal, fuera de `~/.agents/skills`, así
+   que no lo ven `install`, `list` ni `doctor`. Se crea en exclusiva y se borra al terminar, salga bien o mal. Si existe
+   y tiene menos de 10 minutos, la invocación da la línea de hoy sin esperar; si tiene más, se sustituye.
 
 ## Consecuencias
 
@@ -80,3 +84,5 @@ Hay tres hechos que limitan qué se puede hacer:
 - Dentro del sandbox de Claude Code no se reinstala, y la persona sigue dependiendo del aviso.
 - Una orden de solo lectura escribe en disco en un caso. Lo acota el punto 1 y lo prueban sus e2e.
 - Cambian tres e2e globales de H19 y sus copias congeladas: dejan de esperar el aviso y esperan la reinstalación.
+- Una skill nueva del producto, que no hereda de ninguna instalada, sigue pidiendo `kitlegal skills install -g`.
+- Windows queda sin probar, porque la CI es solo Ubuntu.
