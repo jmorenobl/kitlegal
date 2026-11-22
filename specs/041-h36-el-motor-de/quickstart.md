@@ -69,10 +69,12 @@ emite; un subtest por regla de §C.2, el de dos defectos y el de la copia del co
 
 ```bash
 go test -count=1 -run '^(TestPreceptosDeLosPlazos|TestGrabacionesSinSolape|TestManifiestoDeGrabaciones)$' ./internal/evals/
+go test -count=1 -run '^TestEsquemaDeNormas$' ./internal/skills/
 ```
 
 En la rama, con `evidencias/h36/boe.legislacion-consolidada/` grabado por `grabar_datos`, pasa con los cinco preceptos
-del civil y la unión de cuatro conjuntos. Solo lee.
+del civil y la unión de cuatro conjuntos, y `rangos-grabados` con la búsqueda exigida a la unión, no al conjunto de
+H36, que no tiene ninguna (research D10). Solo lee.
 
 ## 7. Las referencias no cambian (SC-007)
 
@@ -91,4 +93,6 @@ make ci
 ```
 
 El veredicto del repositorio (`Makefile`, objetivo `ci`): no modifica ningún fichero versionado y pasa con los tests de
-H9 que nombra FR-017 cambiados y los demás intactos (SC-009). Deja `coverage.out`, que no está versionado.
+H9 que nombra FR-017 cambiados, más las tres desviaciones de research D10 (la raíz de `TestGrabarEvals`, la lista de
+`TestGrabacionesSinSolape` y la búsqueda de la unión en `rangosDeLasBusquedasGrabadas`) y la entrada de
+`probarLosDatosQueNoSeLeen` (`gates/supuestos.md`), y los demás intactos (SC-009). Deja `coverage.out`, que no está versionado.

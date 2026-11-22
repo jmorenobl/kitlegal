@@ -45,7 +45,8 @@ de aceptación congelados. Sin red ni modelo. Skills de Go en research D15.
 
 **Constraints**: con los datos de hoy, la salida estándar y el código de cada orden de `calcular`, byte a byte, los de
 `main` salvo `fecha_consulta` (FR-011); `--help` y `--describe` independientes de los datos (FR-012); ningún código de
-los datos en el Go que no es de test (FR-010); solo los tests de H9 que nombra FR-017.
+los datos en el Go que no es de test (FR-010); solo los tests de H9 que nombra FR-017, más las tres desviaciones que
+obliga FR-016 y la entrada de `probarLosDatosQueNoSeLeen` («Desviaciones declaradas»; `gates/supuestos.md`).
 
 **Scale/Scope**: 3 cómputos (uno sin tipos) y 7 tipos en `data/plazos.yaml`; 1 campo exportado nuevo (`Tipo.Da`), 2
 firmas que cambian, 10 constantes, 2 funciones y 1 tipo exportados que desaparecen; 1 error de argumentos nuevo; 6
@@ -78,9 +79,9 @@ de prueba y 4 ficheros de test nuevos; 2 guiones de aceptación.
 | R7 · solo el paquete del servidor importa el SDK de MCP | Nada nuevo lo importa; la herramienta `plazos_calcular` sale de `--describe`, como hoy |
 | Garantía sin red de `TestArquitectura` (`paquetesSinRed`, `ficherosSinRed`, `internal/arch_test.go:700-721`) | `internal/core/plazos` y `internal/app/plazos.go` siguen en las listas y no ganan ninguna importación que llegue a `net`, `net/http` ni `internal/httpx`; lo nuevo que importa `data` es `internal/evals/plazos.go`, que no está en ellas |
 
-Re-evaluado tras la fase 1: sin violaciones; Complexity Tracking, vacío. Dos desviaciones declaradas en «Decisiones»:
-FR-016 obliga a tocar `TestGrabacionesSinSolape` y la raíz del cliente de `TestGrabarEvals`, que FR-017 no nombra
-(research D10).
+Re-evaluado tras la fase 1: sin violaciones; Complexity Tracking, vacío. Tres desviaciones declaradas en «Decisiones»:
+FR-016 obliga a tocar `TestGrabacionesSinSolape`, la raíz del cliente de `TestGrabarEvals` y la exigencia por conjunto
+de `rangosDeLasBusquedasGrabadas` (`TestEsquemaDeNormas/rangos-grabados`), que FR-017 no nombra (research D10).
 
 ## Project Structure
 
@@ -151,7 +152,8 @@ CHANGELOG.md                                       # FR-019
    comprueba lo grabado (research D14).
 2. **El lector** (contracts/datos-de-plazos.md §2; FR-013). `LeerTipos` decodifica con `KnownFields(true)`, acumula los
    defectos de las diez reglas y los de hoy que no dependen de un código, y copia en cada tipo su cómputo y la posición
-   de este en el fichero (D1, D3).
+   de este en el fichero (D1, D3). Con las dos reglas de la duración que dependen de un código se va `fijaSuDuracion`
+   (`tipos.go:38`), sus únicos usos, que si no quedaría sin uso y `unused` pondría `make lint` en rojo.
 3. **El motor** (contracts/api-del-dominio.md §2 a §4; FR-004 a FR-008). `computar` cuenta por la unidad, con los periodos
    del cómputo (D2); `inhabil` suma los periodos `inhabil`; `da` decide la fecha; los avisos de periodo van en su sitio;
    el número de municipios y su mensaje salen del cómputo; la unidad que el cómputo no admite es el error nuevo, en el
@@ -164,8 +166,9 @@ CHANGELOG.md                                       # FR-019
 6. **La grabación y el civil** (contracts/grabacion.md; FR-014 a FR-016). La entrada de la Ley 1/2000 y el destino de la
    grabación; tras `grabar_datos`, la raíz de H36 en la unión, el civil en `data/plazos.yaml` y `TestPreceptosDeLosPlazos`
    también sobre los cómputos sin tipos, sin cambiar lo que la skill lleva a leer (D9 a D11).
-7. **Los tests** (FR-017, FR-021 a FR-024): los que cambian, solo los de FR-017 (más los dos de D10); los nuevos, los
-   de «Trazabilidad».
+7. **Los tests** (FR-017, FR-021 a FR-024): los que cambian, solo los de FR-017, más los tres de D10 («Desviaciones
+   declaradas») y la entrada de `probarLosDatosQueNoSeLeen` de H32 (`gates/supuestos.md`); los nuevos, los de
+   «Trazabilidad».
 8. **La documentación** (FR-019): `CHANGELOG.md`, en *Unreleased* > «Cambiado», las tres frases de FR-019.
 
 **Orden y piezas indivisibles** (para `tasks.md`): la tarea `[aceptacion]` va antes de cualquier cambio de producto,
@@ -224,6 +227,8 @@ Quién lee cada salida, cuánto mide y cuándo se apaga; el detalle, en contract
 | Las diez reglas de `LeerTipos` y sus defectos | FR-013 |
 | La entrada de la Ley 1/2000 en el manifiesto y el destino `$KITLEGAL_EVIDENCIAS` de `TestGrabarEvals` | FR-016; research D10 |
 | `GrabacionesDeH36` en `UnionDeGrabaciones` y su lugar en `TestGrabacionesSinSolape` | FR-016; research D10 |
+| La búsqueda grabada exigida a la unión, no a cada conjunto, en `rangosDeLasBusquedasGrabadas` | FR-016; research D10 |
+| La retirada de `fijaSuDuracion` con las reglas de la duración que dependen de un código | FR-010, FR-013; contracts/datos-de-plazos.md §2 |
 | Las lecturas de los cómputos sin tipos en `verificarPreceptos` y las palabras de `a130` y `a133` | FR-015 (con FR-014: `lecturasDeLosTipos` y el oráculo no cambian; research D11) |
 | `testdata/computo-de-ensayo.yaml` y `TestComputoDeEnsayo` | FR-022; US3.1 a US3.5 |
 | `testdata/tipos-de-prueba-civil.yaml` y la combinación con su base | FR-023, FR-024 |
@@ -274,6 +279,8 @@ Según «Gates» de la constitución, capa 1:
 | El ensayo (SC-003) | un motor que solo reconoce agosto; que ignora `dia-siguiente` fuera del silencio; que no comprueba las unidades del cómputo; que da los avisos de periodo con un texto fijo | `TestComputoDeEnsayo`: E1, E5, E12, E7 |
 | `LeerTipos` (SC-005) | quitar cada una de las diez reglas | su subtest de `TestLeerTipos` |
 | Los preceptos del civil (SC-006) | `vigente_desde` del 133.1 con el 2010-05-04; el del 130.2 con el 2015-10-07 | `TestPreceptosDeLosPlazos` |
+| La búsqueda grabada de la unión (desviación de D10) | `rutaDeLaBusqueda` de `internal/skills/normas_test.go` con otra ruta, que deja la unión sin búsquedas | `TestEsquemaDeNormas/rangos-grabados` |
+| El aviso de más de la copia (SC-005) | la sustitución de `TestDescribeDePlazosSinDatos` sin su periodo `aviso` | `TestDescribeDePlazosSinDatos` (su `require`) |
 
 **Aceptación e2e:** dos guiones testscript que escribe la primera tarea en `specs/041-h36-el-motor-de/aceptacion/` y
 quedan congelados (contracts/aceptacion.md): `plazos-de-hoy.txtar` (US1 · FR-005, FR-006, FR-008, FR-011, FR-012,
@@ -329,7 +336,7 @@ tipos de prueba por texto), D8 (dónde va cada test), D9 (la grabación en `evid
 obliga a tocar), D11 (los cómputos sin tipos en `TestPreceptosDeLosPlazos`), D12 (las copias de H39 sin su huella), D13
 (el error nuevo y su orden), D14 (`data/plazos.yaml` desde el spec) y D15 (skills de Go).
 
-**Desviaciones declaradas** (research D10), las dos por FR-016 y fuera de la lista cerrada de FR-017:
+**Desviaciones declaradas** (research D10), las tres por FR-016 y fuera de la lista cerrada de FR-017:
 
 - `TestGrabacionesSinSolape` (`internal/evals/grabaciones_test.go`) fija hoy que la unión son H4, H5 y H9; FR-016 obliga
   a añadir la raíz de H36, y su lista esperada gana ese elemento y nada más, aunque FR-017 solo nombra, en ese fichero,
@@ -338,3 +345,10 @@ obliga a tocar), D11 (los cómputos sin tipos en `TestPreceptosDeLosPlazos`), D1
   cliente de cada raíz con la de su conjunto (`httpx.ConRaizDeGrabacion(raiz)`, línea 94); FR-016 pide lo grabado bajo
   `evidencias/h36/`, así que cambia solo esa raíz, que es `$KITLEGAL_EVIDENCIAS` cuando la variable no está vacía, y
   la de su conjunto si lo está, como hoy. Sin ese cambio la grabación no queda donde la pide FR-016.
+- `rangosDeLasBusquedasGrabadas` (`internal/skills/normas_test.go:632-652`, de H5), que recorre `UnionDeGrabaciones()`
+  en `TestEsquemaDeNormas/rangos-grabados` (`normas_test.go:531-536`), exige hoy a cada conjunto alguna búsqueda grabada
+  (`require.NotEmpty`, línea 642). El conjunto de H36 solo guarda `robots.txt` y los bloques `a130` y `a133`: la
+  búsqueda «enjuiciamiento civil» ya la sirve el de H5 (contracts/grabacion.md §2; V16), y grabarla otra vez la rechaza
+  `TestGrabacionesSinSolape`, que solo deja compartir `robots.txt`. Cambia solo ese `require`, que pasa a la unión (entre
+  todos los conjuntos hay alguna búsqueda) con su comentario; lo comparado, el enum de rango con los rangos de todas las
+  búsquedas de la unión, no cambia. Sin ese cambio `make ci` sale en rojo en cuanto la raíz de H36 entra en la unión.

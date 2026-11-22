@@ -35,7 +35,10 @@ arregla el código.
   `fuentesDePlazos(t)`; los mismos con `Tipos` = `data/plazos.yaml` más un tipo de `lpac` y un periodo `aviso` de `lpac`
   con su código, su etiqueta y su texto (por sustitución de texto; la copia la lee `LeerTipos` sin defecto, que es lo
   que hace de ella «un tipo y un aviso más»); y los mismos con `Tipos` vacío, que no carga. Exige en los tres código 0 y
-  la salida igual, byte a byte, a `describe.json`.
+  la salida igual, byte a byte, a `describe.json`. Cuando `CodigosDeAviso` recibe los tipos (contracts/api-del-dominio.md
+  §1 y §5), la misma tarea que cambia su firma añade a la premisa de la copia que `CodigosDeAviso` de sus tipos dé un
+  código más que el de los de `data/plazos.yaml`, el del aviso añadido; antes no se puede contar, porque el cómputo
+  descrito no se exporta (research D1).
 - `compruebaDefectoDeComposicionDePlazos` y el caso «sin-los-tipos» no cambian: ya exigen 0 en `--help` y
   `--describe` y 1 (`inesperado`) al ejecutar (US4.2).
 

@@ -44,6 +44,9 @@ Una sola tarea, porque cada pieza sin las otras deja `make ci` en rojo o el civi
   `lecturasDeLosTipos` y `loQueLlevaALeerElRepositorio` no cambian: el civil no entra en lo que la skill lleva a leer
   ni en el oráculo de `TestLecturasDeLosDatos` y de `TestEvalsDelRepositorio/lo-que-lleva-a-leer` (FR-014; research
   V23).
+- `internal/skills/normas_test.go`: en `rangosDeLasBusquedasGrabadas`, que recorre la unión en
+  `TestEsquemaDeNormas/rangos-grabados`, la exigencia de alguna búsqueda grabada pasa de cada conjunto a la unión,
+  porque el conjunto de H36 no tiene ninguna (§2); lo comparado no cambia (desviación declarada, research D10).
 - `data/plazos.yaml`: el cómputo `civil` de contracts/datos-de-plazos.md §1.
 
 Con eso, `TestPreceptosDeLosPlazos` comprueba que los dos bloques están grabados, que llevan sus palabras y que cada

@@ -144,7 +144,7 @@ spec, y aquí solo se decide cómo se construye.
 
 ### D10 · Los tests que FR-016 obliga a tocar fuera de FR-017, y lo que cambia por FR-015
 
-- **Decisión**: dos desviaciones de la lista cerrada de FR-017, las dos por FR-016 y acotadas a lo que exige:
+- **Decisión**: tres desviaciones de la lista cerrada de FR-017, las tres por FR-016 y acotadas a lo que exige:
   1. `TestGrabacionesSinSolape` (`grabaciones_test.go:269-298`) exige hoy que la unión sean exactamente H4, H5 y H9;
      su lista esperada gana `GrabacionesDeH36` y nada más: su comprobación de que dos conjuntos solo comparten la
      grabación de `robots.txt` cubre el de H36 sin cambios, porque el cliente que graba pide `robots.txt` y lo graba en
@@ -153,14 +153,24 @@ spec, y aquí solo se decide cómo se construye.
      raíz con `httpx.ConRaizDeGrabacion(raiz)`, la de su conjunto (línea 94); cambia solo esa raíz, que es
      `$KITLEGAL_EVIDENCIAS` cuando la variable no está vacía, como la da el paso `grabar_datos` (D9), y la de su
      conjunto si lo está, como hoy, para `scripts/grabar-evals.sh`. Nada más del test cambia.
+  3. `rangosDeLasBusquedasGrabadas` (`internal/skills/normas_test.go:632-652`, de H5), que usa
+     `TestEsquemaDeNormas/rangos-grabados` sobre `UnionDeGrabaciones()`, exige hoy alguna búsqueda grabada en cada
+     conjunto (`require.NotEmpty`, línea 642). El de H36 solo guarda `robots.txt` y los bloques `a130` y `a133`, porque
+     la búsqueda «enjuiciamiento civil» ya está en el de H5 (V16) y `Preparar` no la vuelve a pedir; ese `require` pasa
+     a la unión, con su comentario, y lo comparado (el enum de rango del esquema de normas con los rangos de todas las
+     búsquedas grabadas de la unión) no cambia.
 
   Por FR-015, en `grabaciones_test.go` cambian solo `verificarPreceptos`, que gana las lecturas de los cómputos sin
   tipos (D11), y la tabla `palabrasClaveDeLosPreceptos`. `lecturasDeLosTipos` y `loQueLlevaALeerElRepositorio` no
   cambian (V23).
 - **Alternativas**: no añadir la raíz a la unión, o grabar en la raíz del conjunto de H9: incumplen FR-016 (D9 (b)).
+  Para la tercera: grabar también la búsqueda en el conjunto de H36 no lo hace `TestGrabarEvals` (solo pide lo que la
+  unión no tiene) y, hecho a mano, lo rechaza `TestGrabacionesSinSolape`, que solo deja compartir `robots.txt`; sacar el
+  conjunto de H36 del recorrido de `rangos-grabados` deja de comprobar la unión que reproducen las evals.
 - **Por qué**: FR-017 limita lo que cambia en `grabaciones_test.go` a lo de `TestPreceptosDeLosPlazos` y no nombra
-  `grabacion_test.go`; la lista de la unión y la raíz del cliente son consecuencia directa de FR-016: sin la primera,
-  `make ci` sale en rojo; sin la segunda, lo grabado no queda en `evidencias/h36/`. Se registran aquí y en
+  `grabacion_test.go` ni `internal/skills/normas_test.go`; la lista de la unión, la raíz del cliente y la búsqueda de
+  la unión son consecuencia directa de FR-016: sin la primera o la tercera, `make ci` sale en rojo; sin la segunda, lo
+  grabado no queda en `evidencias/h36/`. Se registran aquí y en
   «Decisiones» del plan.
 
 ### D11 · `TestPreceptosDeLosPlazos` lee los cómputos sin tipos (FR-015)
