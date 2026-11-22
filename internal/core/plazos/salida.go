@@ -13,15 +13,17 @@ import "time"
 // Las etiquetas jsonschema son la descripción formal de los valores, de la que
 // --describe genera el esquema del verbo. Una etiqueta no puede nombrar una
 // constante, así que los enumerados repiten los vocabularios del dominio
-// —CodigosDeTipo, Ambitos, CodigosDeAviso, AmbitosDeCobertura y
-// FaltasDeCobertura— y TestSalidaDePlazos exige que digan lo mismo.
+// —Ambitos, AmbitosDeCobertura y FaltasDeCobertura— y TestSalidaDePlazos exige
+// que digan lo mismo. El tipo y el código de un aviso son datos: llevan la
+// gramática de un código y ningún enumerado, y el esquema sale igual con
+// cualquier data/plazos.yaml.
 
 // Plazo es el plazo calculado: la fecha que se da y lo que la sostiene.
 type Plazo struct {
 	// Fecha es la que se da, AAAA-MM-DD.
 	Fecha string `json:"fecha" jsonschema:"pattern=^[0-9]{4}-[0-9]{2}-[0-9]{2}$"`
 	// Tipo es el pedido.
-	Tipo string `json:"tipo" jsonschema:"enum=alzada,enum=reposicion,enum=contencioso,enum=acceso-resolver,enum=acceso-reclamar,enum=silencio,enum=generico"`
+	Tipo string `json:"tipo" jsonschema:"pattern=^[a-z0-9]+(-[a-z0-9]+)*$"`
 	// Preceptos son los que fijan el plazo; en el contencioso, también el art.
 	// 128.2 LJCA.
 	Preceptos []PreceptoDelPlazo `json:"preceptos" jsonschema:"minItems=1"`
@@ -73,8 +75,8 @@ type FestivoSaltado struct {
 // Aviso es un aviso del plazo: su código y su texto, una línea con su forma
 // fija.
 type Aviso struct {
-	// Codigo es uno de CodigosDeAviso.
-	Codigo string `json:"codigo" jsonschema:"enum=faltan-festivos-nacionales-y-autonomicos,enum=faltan-festivos-locales,enum=dias-del-art-183-lopj,enum=festivo-de-una-parte"`
+	// Codigo es el del aviso.
+	Codigo string `json:"codigo" jsonschema:"pattern=^[a-z0-9]+(-[a-z0-9]+)*$"`
 	// Texto empieza por «⚠ <ETIQUETA>: ».
 	Texto string `json:"texto" jsonschema:"minLength=1"`
 }

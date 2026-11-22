@@ -205,7 +205,8 @@ type argumentoDeCalcular struct {
 // compruebaDeclaracionDePlazos exige la declaración del applet: su nombre, su
 // único verbo, sin verbo por omisión, y sus argumentos, todos de cadena y sin
 // enumerado de la gramática, que decide el dominio (research D2 y V12 de H9),
-// con una ayuda que nombra cada tipo y cada unidad.
+// con una ayuda de la unidad que nombra cada una. La del tipo no nombra los
+// tipos, que son datos y remiten a las referencias del paquete (H36 §C.7).
 func compruebaDeclaracionDePlazos(t *testing.T) {
 	t.Helper()
 
@@ -256,10 +257,6 @@ func compruebaDeclaracionDePlazos(t *testing.T) {
 		{campo: "Duracion", tipo: texto},
 		{campo: "Unidad", tipo: texto},
 	}, declarados, "los argumentos del contrato, y ninguno más")
-
-	for _, codigo := range plazos.CodigosDeTipo() {
-		assert.Contains(t, ayudas["Tipo"], codigo, "la ayuda del tipo nombra cada uno")
-	}
 
 	for _, unidad := range plazos.Unidades() {
 		assert.Contains(t, ayudas["Unidad"], string(unidad), "la ayuda de la unidad nombra cada una")
@@ -394,24 +391,73 @@ func compruebaDescribeDePlazos(t *testing.T) {
 		"las dos banderas propias de calcular")
 }
 
-// compruebaEnumeradosDePlazos exige que los enumerados de la salida publicada
-// en schemas/plazo.json, que salen de las etiquetas de los tipos de salida,
-// digan lo mismo que los vocabularios del dominio (contracts/applet-plazos.md
-// §7 de H9).
+// gramaticaDeUnCodigo es el pattern de un código de tipo, de cómputo o de
+// aviso de periodo en la salida publicada (H36 §C.8).
+const gramaticaDeUnCodigo = "^[a-z0-9]+(-[a-z0-9]+)*$"
+
+// compruebaEnumeradosDePlazos exige que los enumerados de la salida de
+// calcular digan lo mismo que los vocabularios del dominio
+// (contracts/applet-plazos.md §7 de H9), y que el tipo y el código de un aviso,
+// que son datos, lleven la gramática de un código y ningún enumerado (H36
+// §C.8). Lo exige en la parte publicada en schemas/plazo.json y en la que
+// emite --describe desde las etiquetas de los tipos de salida: así una
+// etiqueta cambiada lo pone en rojo aunque el fichero publicado no se haya
+// regenerado.
 func compruebaEnumeradosDePlazos(t *testing.T) {
 	t.Helper()
 
 	publicado, _ := ficheroPublicadoDelVerbo(t, "calcular")
 
-	enumerado := func(tipo, propiedad string) any {
-		return valorDelEsquema(t, publicado, "$defs", "calcular", "$defs", tipo, "properties", propiedad, "enum")
+	invocacion := slices.Concat([]string{"kitlegal", "plazos"}, argumentoDelContrato(t, "plazos", "calcular"),
+		[]string{"--describe"})
+
+	res := invocar(t, registroDePlazos(t, fuentesDePlazos(t)), invocacion...)
+	require.Equal(t, 0, res.codigo, res.errores)
+
+	emitido, err := objetoJSON([]byte(res.salida))
+	require.NoError(t, err, "--describe emite un único objeto JSON")
+
+	for _, parte := range []struct {
+		origen  string
+		esquema any
+	}{
+		{origen: "schemas/plazo.json", esquema: valorDelEsquema(t, publicado, "$defs", "calcular")},
+		{origen: "--describe", esquema: emitido},
+	} {
+		compruebaEnumeradosDeLaParte(t, parte.origen, parte.esquema)
+	}
+}
+
+// compruebaEnumeradosDeLaParte exige los enumerados y la gramática de
+// compruebaEnumeradosDePlazos en el esquema de calcular que viene de origen.
+func compruebaEnumeradosDeLaParte(t *testing.T, origen string, esquema any) {
+	t.Helper()
+
+	propiedad := func(tipo, nombre string) map[string]any {
+		objeto, esObjeto := valorDelEsquema(t, esquema, "$defs", tipo, "properties", nombre).(map[string]any)
+		require.True(t, esObjeto, "%s: %s.%s es un objeto", origen, tipo, nombre)
+
+		return objeto
 	}
 
-	assert.Equal(t, comoLista(plazos.CodigosDeTipo()), enumerado("plazos.Plazo", "tipo"))
-	assert.Equal(t, comoLista(plazos.Ambitos()), enumerado("plazos.FestivoSaltado", "ambito"))
-	assert.Equal(t, comoLista(plazos.CodigosDeAviso()), enumerado("plazos.Aviso", "codigo"))
-	assert.Equal(t, comoLista(plazos.AmbitosDeCobertura()), enumerado("plazos.TramoDeCobertura", "ambito"))
-	assert.Equal(t, comoLista(plazos.FaltasDeCobertura()), enumerado("plazos.TramoDeCobertura", "falta"))
+	enumerado := func(tipo, nombre string) any {
+		return valorDelEsquema(t, propiedad(tipo, nombre), "enum")
+	}
+
+	for _, deDatos := range []struct{ tipo, nombre string }{
+		{tipo: "plazos.Plazo", nombre: "tipo"},
+		{tipo: "plazos.Aviso", nombre: "codigo"},
+	} {
+		valores := propiedad(deDatos.tipo, deDatos.nombre)
+		assert.Equal(t, gramaticaDeUnCodigo, valores["pattern"], "%s: %s.%s lleva la gramática de un código",
+			origen, deDatos.tipo, deDatos.nombre)
+		assert.NotContains(t, valores, "enum", "%s: %s.%s: sus valores son datos, no un enumerado",
+			origen, deDatos.tipo, deDatos.nombre)
+	}
+
+	assert.Equal(t, comoLista(plazos.Ambitos()), enumerado("plazos.FestivoSaltado", "ambito"), origen)
+	assert.Equal(t, comoLista(plazos.AmbitosDeCobertura()), enumerado("plazos.TramoDeCobertura", "ambito"), origen)
+	assert.Equal(t, comoLista(plazos.FaltasDeCobertura()), enumerado("plazos.TramoDeCobertura", "falta"), origen)
 }
 
 // comoLista es un vocabulario como lo da el validador al leer un enumerado.
