@@ -2,6 +2,7 @@ package plazos
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -117,16 +118,29 @@ func unidadDeMas(tipo, unidad string) error {
 	return argumentos("el tipo %q fija su duración y su unidad: sobra la unidad %q", tipo, unidad)
 }
 
-// municipiosQueNoCuentan es un número de municipios distinto del de su
-// cómputo: dos en la LPAC (art. 30.6; FR-007) y uno en el contencioso (FR-010).
+// unidadQueSuComputoNoAdmite es la unidad del vocabulario dada a un tipo sin
+// duración cuyo cómputo no la admite (FR-007): nombra las que admite, en el
+// orden de Unidades.
+func unidadQueSuComputoNoAdmite(tipo Tipo, unidad Unidad) error {
+	admitidas := slices.DeleteFunc(Unidades(), func(una Unidad) bool {
+		return !slices.Contains(tipo.computo.Unidades, una)
+	})
+
+	return argumentos("el tipo %q no admite la unidad %q: su cómputo, %q, admite %s", tipo.Codigo, unidad,
+		tipo.Computo, alternativas(admitidas))
+}
+
+// municipiosQueNoCuentan es un número de municipios distinto del de los textos
+// de su cómputo (FR-006; spec §C.6), que el mensaje nombra: uno o dos, que
+// pueden ser el mismo.
 func municipiosQueNoCuentan(tipo Tipo, dados int) error {
-	if tipo.Computo == ComputoContencioso {
-		return argumentos("el tipo %q se cuenta con un municipio, el de la sede del juzgado, y se han dado %d",
-			tipo.Codigo, dados)
+	textos := tipo.computo.Municipios
+	if len(textos) == 1 {
+		return argumentos("el tipo %q se cuenta con un municipio, %s, y se han dado %d", tipo.Codigo, textos[0], dados)
 	}
 
-	return argumentos("el tipo %q se cuenta con dos municipios, el del interesado y el de la sede del órgano, que "+
-		"pueden ser el mismo, y se han dado %d", tipo.Codigo, dados)
+	return argumentos("el tipo %q se cuenta con dos municipios, %s, que pueden ser el mismo, y se han dado %d",
+		tipo.Codigo, strings.Join(textos, " y "), dados)
 }
 
 // plazoFueraDelCalendario es el plazo que acaba después del 31 de diciembre de

@@ -146,6 +146,9 @@ func comprobarTextos(t *testing.T) {
 	sintetica := resuelto("71001", "Villa Primera", "71", "Comunidad Sintética")
 	nacionales := &Alcance{Desde: 2041, Hasta: 2043, Disposicion: "PRUEBA-N-3"}
 	locales := &Alcance{Desde: 2041, Hasta: 2042, Disposicion: "PRUEBA-L-9"}
+	// El aviso del art. 183 LOPJ es el del periodo de aviso del contencioso, el
+	// que LeerTipos lee del contrato (TestLeerTipos).
+	_, contencioso := computosDelContrato()
 
 	for _, caso := range []struct {
 		aviso Aviso
@@ -182,7 +185,7 @@ func comprobarTextos(t *testing.T) {
 				"Los de Comunidad Sintética llegan a 2042 (PRUEBA-L-9).",
 		},
 		{
-			avisoDelArt183(),
+			avisoDeSuPeriodo(*contencioso.Periodos[1].Aviso),
 			"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ " +
 				"declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 " +
 				"LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más " +
