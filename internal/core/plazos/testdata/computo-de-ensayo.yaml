@@ -1,0 +1,34 @@
+# Cómputo de ensayo de H36 (spec §C.10): un cómputo inventado, que no es de ninguna materia, con sus preceptos
+# inventados de la norma BOE-A-0000-1. Lo lee LeerTipos en TestComputoDeEnsayo, sobre la rejilla de las propiedades, y
+# sus códigos los busca TestNingunCodigoDePlazosEnGo en el Go del binario.
+tipos:
+  - codigo: ensayo-fijo
+    nombre: tipo de ensayo con duración fija
+    computo: ensayo
+    duracion: {cantidad: 5, unidad: dias-habiles}
+    da: dia-siguiente
+    preceptos:
+      - {norma: BOE-A-0000-1, bloque: a1, apartado: "1.1", fija: duracion, vigente_desde: "2000-01-01"}
+  - codigo: ensayo-libre
+    nombre: tipo de ensayo sin duración
+    computo: ensayo
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-0000-1, bloque: a1, apartado: "1.2", fija: computo, vigente_desde: "2000-01-01"}
+computos:
+  - codigo: ensayo
+    municipios: [el del lugar del ensayo]
+    unidades: [dias-habiles, dias-naturales]
+    periodos:
+      - {desde: "04-06", hasta: "04-10", efecto: inhabil, precepto: {norma: BOE-A-0000-1, apartado: "2.1"}}
+      - desde: "10-19"
+        hasta: "10-23"
+        efecto: aviso
+        precepto: {norma: BOE-A-0000-1, apartado: "2.2"}
+        aviso:
+          codigo: periodo-de-ensayo
+          etiqueta: PERIODO DE ENSAYO
+          texto: "el plazo pasa por el periodo de ensayo, del 19 al 23 de octubre; sus días se han contado."
+    preceptos:
+      - {norma: BOE-A-0000-1, bloque: a2, apartado: "2.1", fija: inhabiles, vigente_desde: "2000-01-01"}
+      - {norma: BOE-A-0000-1, bloque: a2, apartado: "2.2", fija: aviso, vigente_desde: "2000-01-01"}

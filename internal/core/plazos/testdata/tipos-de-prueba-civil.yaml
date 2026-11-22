@@ -1,0 +1,16 @@
+# Tipos de prueba de H36 (FR-023): cuentan con el cómputo civil de data/plazos.yaml, sin duración y con da:
+# vencimiento. Ningún tipo de data/plazos.yaml cuenta con el civil, que es de H9.1. Los tests sustituyen la línea
+# tipos: de su fichero base por este fichero entero (research D7).
+tipos:
+  - codigo: prueba-civil-dias
+    nombre: tipo de prueba del cómputo civil en días hábiles
+    computo: civil
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-2000-323, bloque: a133, apartado: "133.2", fija: habiles, vigente_desde: "2010-05-04"}
+  - codigo: prueba-civil-meses
+    nombre: tipo de prueba del cómputo civil en meses
+    computo: civil
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-2000-323, bloque: a133, apartado: "133.3", fija: meses, vigente_desde: "2001-01-08"}

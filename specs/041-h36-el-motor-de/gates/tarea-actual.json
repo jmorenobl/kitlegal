@@ -1,18 +1,15 @@
 {
-  "id": "T005",
-  "texto": "T005 [US4] `TestDescribeDePlazosSinDatos`, nuevo, en internal/app/plazos_describe_test.go (FR-012; US4.1; SC-005; contracts/applet-calcular.md §3; research D7). Ejecuta `kitlegal plazos calcular x x x --describe` por `registroDePlazos` sobre tres juegos de `FicherosDePlazos`: `fuentesDePlazos(t)`; los mismos con `Tipos` = data/plazos.yaml más un tipo de `lpac` y un periodo `aviso` de `lpac` con su código, su etiqueta y su texto, añadidos por sustitución de texto como `sustituida` de `grabaciones_test.go` (un `require` exige que `LeerTipos` lea esa copia sin defecto y que dé un tipo más que la real, que es lo que fija contracts/applet-calcular.md §3: el periodo `aviso` mal formado lo rechazan las reglas 7 a 9, y el código de aviso de más no se puede contar todavía, porque `CodigosDeAviso()` no recibe los tipos hasta T008 y el cómputo descrito no se exporta, research D1; esa comprobación la añade T008); y los mismos con `Tipos` vacío, que no carga. Exige en los tres código 0 y la salida igual, byte a byte, al golden `describe.json` de T003, que solo lee. Sin código de producto: `--help` y `--describe` ya no cargan los datos (research D5), y `compruebaDefectoDeComposicionDePlazos` y el caso «sin-los-tipos» no cambian (US4.2). **Verificación**: `go test -count=1 -run '^TestDescribeDePlazosSinDatos$' ./internal/app/` y `make ci` en verde; en una copia bajo `$TMPDIR`, la ayuda de hoy devuelta a `internal/app/plazos.go` pone el test en rojo (mutante de SC-005).",
+  "id": "T006",
+  "texto": "T006 [datos] [US3] Los dos ficheros de prueba del dominio, sin código ni test (FR-022, FR-023; spec §C.9 y §C.10; contracts/datos-de-plazos.md §3 y §4; research D7, D8): internal/core/plazos/testdata/computo-de-ensayo.yaml, byte a byte el de §3 (cómputo `ensayo` con `municipios: [el del lugar del ensayo]`, `unidades: [dias-habiles, dias-naturales]`, el periodo `inhabil` del `04-06` al `04-10` y el `aviso` del `10-19` al `10-23` con `periodo-de-ensayo`; tipos `ensayo-fijo` y `ensayo-libre`; preceptos inventados de `BOE-A-0000-1` con `vigente_desde` `2000-01-01`), e internal/core/plazos/testdata/tipos-de-prueba-civil.yaml, byte a byte el de §4 (solo `tipos:` con `prueba-civil-dias`, con el 133.2, y `prueba-civil-meses`, con el 133.3, sin duración y con `da: vencimiento`, con la misma sangría que los tipos de data/plazos.yaml). Ningún test los lee todavía: los empotran T007, T008, T010 y T011. **Verificación**: `make ci` en verde; cada fichero empieza por su cabecera de comentarios de §3 y §4.",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "902d8282be72c50c9a3b4a3e99a899ac25c54512",
+  "base": "340c7c377a9dee26a7bfcaa660f01bf0c1d1ffb7",
   "rutas": [
-    "contracts/applet-calcular.md",
+    "contracts/datos-de-plazos.md",
     "data/plazos.yaml",
-    "describe.json",
-    "grabaciones_test.go",
-    "internal/app/",
-    "internal/app/plazos.go",
-    "internal/app/plazos_describe_test.go"
+    "internal/core/plazos/testdata/computo-de-ensayo.yaml",
+    "internal/core/plazos/testdata/tipos-de-prueba-civil.yaml"
   ],
   "cierre": false,
   "converger": false,
