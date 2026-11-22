@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-22T03:02:50Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2000-323/texto/bloque/a133",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "3505"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 22 Nov 2026 03:02:50 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a133\" tipo=\"precepto\" titulo=\"Artículo 133\">\n      <version id_norma=\"BOE-A-2000-323\" fecha_publicacion=\"20000108\" fecha_vigencia=\"20010108\">\n        <p class=\"articulo\">Artículo 133. Cómputo de los plazos.</p>\n        <p class=\"parrafo\">1. Los plazos comenzarán a correr desde el día siguiente a aquel en que se hubiere efectuado el acto de comunicación del que la Ley haga depender el inicio del plazo, y se contará en ellos el día del vencimiento, que expirará a las veinticuatro horas.</p>\n        <p class=\"parrafo\">No obstante, cuando la Ley señale un plazo que comience a correr desde la finalización de otro, aquél se computará, sin necesidad de nueva notificación, desde el día siguiente al del vencimiento de éste.</p>\n        <p class=\"parrafo\">2. En el cómputo de los plazos señalados por días se excluirán los inhábiles.</p>\n        <p class=\"parrafo\">Para los plazos que se hubiesen señalado en las actuaciones urgentes a que se refiere el apartado 2 del artículo 131 no se considerarán inhábiles los días del mes de agosto y sólo se excluirán del cómputo los domingos y festivos.</p>\n        <p class=\"parrafo\">3. Los plazos señalados por meses o por años se computarán de fecha a fecha.</p>\n        <p class=\"parrafo\">Cuando en el mes del vencimiento no hubiera día equivalente al inicial del cómputo, se entenderá que el plazo expira el último del mes.</p>\n        <p class=\"parrafo\">4. Los plazos que concluyan en domingo u otro día inhábil se entenderán prorrogados hasta el siguiente hábil.</p>\n      </version>\n      <version id_norma=\"BOE-A-2009-17493\" fecha_publicacion=\"20091104\" fecha_vigencia=\"20100504\">\n        <p class=\"articulo\">Artículo 133. Cómputo de los plazos.</p>\n        <p class=\"parrafo\">1. Los plazos comenzarán a correr desde el día siguiente a aquel en que se hubiere efectuado el acto de comunicación del que la Ley haga depender el inicio del plazo, y se contará en ellos el día del vencimiento, que expirará a las veinticuatro horas.</p>\n        <p class=\"parrafo\">No obstante, cuando la Ley señale un plazo que comience a correr desde la finalización de otro, aquél se computará, sin necesidad de nueva notificación, desde el día siguiente al del vencimiento de éste.</p>\n        <p class=\"parrafo\">2. En el cómputo de los plazos señalados por días se excluirán los inhábiles.</p>\n        <p class=\"parrafo\">Para los plazos que se hubiesen señalado en las actuaciones urgentes a que se refiere el apartado 2 del artículo 131 no se considerarán inhábiles los días del mes de agosto y sólo se excluirán del cómputo los sábados, domingos y festivos.</p>\n        <p class=\"parrafo\">3. Los plazos señalados por meses o por años se computarán de fecha a fecha.</p>\n        <p class=\"parrafo\">Cuando en el mes del vencimiento no hubiera día equivalente al inicial del cómputo, se entenderá que el plazo expira el último del mes.</p>\n        <p class=\"parrafo\">4. Los plazos que concluyan en sábado, domingo u otro día inhábil se entenderán prorrogados hasta el siguiente hábil.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifican los apartados 2 y 4 por el art. 15.69 de la Ley 13/2009, de 3 de noviembre. <a class=\"refPost\">Ref. BOE-A-2009-17493</a></p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
