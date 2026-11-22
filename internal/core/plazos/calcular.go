@@ -130,7 +130,7 @@ func preceptosPosterioresAlInicio(comprobada peticionComprobada) []Precepto {
 		del = append(del, precepto)
 	}
 
-	del = append(del, comprobada.tipo.PreceptosDelComputo...)
+	del = append(del, comprobada.tipo.computo.Preceptos...)
 
 	var posteriores []Precepto
 

@@ -498,7 +498,7 @@ func probarLosDatosQueNoSeLeen(t *testing.T) {
 	t.Parallel()
 
 	raiz := arbolDeRegiones(t)
-	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), "tipos: []\n")
+	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), "tipos: [{codigo: inventado}]\n")
 
 	regenerado := regenerar(t, raiz, nil)
 	defectos := presentarDefectos(regenerado.Defectos())

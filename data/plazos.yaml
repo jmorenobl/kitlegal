@@ -1,30 +1,36 @@
-# Tipos de plazo de `kitlegal plazos calcular`: su cómputo, la duración que fijan y los preceptos que los fundan, cada
-# uno con lo que fija. Lo lee plazos.LeerTipos, el binario y el generador de la región recursos_y_plazos de la
-# referencia de cada paquete, hoy skills/plazos-y-territorio/references/administrativo.md.
-# Los cómputos llevan los preceptos con que se cuenta cualquier plazo de su cómputo. Cada precepto lleva también
-# vigente_desde: el primer día en que su apartado dice lo que dice en la última redacción grabada, con la que está
-# escrito este fichero; plazos no da la fecha de un plazo que empieza antes de ese día en alguno de sus preceptos
-# (ADR 0042). Sin texto de ninguna norma: cada precepto se nombra por su identificador, su bloque y su apartado, y
-# TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo grabado del BOE que cada bloque existe, que el apartado
-# que fija la duración la dice en palabras, que cada precepto lleva sus palabras clave y que vigente_desde es el que
-# dan las redacciones grabadas.
+# Tipos de plazo de `kitlegal plazos calcular` y los cómputos con que se cuentan. Lo lee plazos.LeerTipos, el binario y
+# el generador de la región recursos_y_plazos de la referencia de cada paquete, hoy
+# skills/plazos-y-territorio/references/administrativo.md.
+# Cada tipo nombra su cómputo, dice qué fecha da (da: vencimiento, o dia-siguiente, el día siguiente al vencimiento),
+# lleva la duración que fija o la recibe con una unidad de su cómputo, y los preceptos que lo fundan, cada uno con lo
+# que fija. Cada cómputo dice los municipios que cuentan, con el texto que nombra a cada uno, las unidades que admite,
+# sus periodos del año (inhabil, no-corre o aviso, cada uno con su precepto) y los preceptos con que se cuenta
+# cualquier plazo suyo (ADR 0061). Cada precepto lleva también vigente_desde: el primer día en que su apartado dice lo
+# que dice en la última redacción grabada, con la que está escrito este fichero; plazos no da la fecha de un plazo que
+# empieza antes de ese día en alguno de sus preceptos (ADR 0042). Sin texto de ninguna norma: cada precepto se nombra
+# por su identificador, su bloque y su apartado, y TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo
+# grabado del BOE que cada bloque existe, que el apartado que fija la duración la dice en palabras, que cada precepto
+# lleva sus palabras clave y que vigente_desde es el que dan las redacciones grabadas.
 tipos:
   - codigo: alzada
     nombre: recurso de alzada
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
     preceptos:
       - {norma: BOE-A-2015-10565, bloque: a122, apartado: "122.1", fija: duracion, vigente_desde: "2016-10-02"}
   - codigo: reposicion
     nombre: recurso potestativo de reposición
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
     preceptos:
       - {norma: BOE-A-2015-10565, bloque: a124, apartado: "124.1", fija: duracion, vigente_desde: "2016-10-02"}
   - codigo: contencioso
     nombre: recurso contencioso-administrativo
     computo: contencioso
     duracion: {cantidad: 2, unidad: meses}
+    da: vencimiento
     preceptos:
       - {norma: BOE-A-1998-16718, bloque: a46, apartado: "46.1", fija: duracion, vigente_desde: "1998-12-14"}
       - {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2", fija: agosto, vigente_desde: "1998-12-14"}
@@ -32,29 +38,35 @@ tipos:
     nombre: plazo para resolver una solicitud de acceso a la información pública
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
     preceptos:
       - {norma: BOE-A-2013-12887, bloque: a20, apartado: "20.1", fija: duracion, vigente_desde: "2014-12-10"}
   - codigo: acceso-reclamar
     nombre: reclamación contra la resolución de una solicitud de acceso
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
     preceptos:
       - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion, vigente_desde: "2014-12-10"}
   - codigo: silencio
     nombre: día en que se produce el silencio administrativo
     computo: lpac
+    da: dia-siguiente
     preceptos:
       - {norma: BOE-A-2015-10565, bloque: a21, apartado: "21.3", fija: inicio, vigente_desde: "2016-10-02"}
       - {norma: BOE-A-2015-10565, bloque: a24, apartado: "24.4", fija: silencio, vigente_desde: "2016-10-02"}
   - codigo: generico
     nombre: plazo genérico
     computo: lpac
+    da: vencimiento
     unidades:
       dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
       dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
       meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo, vigente_desde: "2016-10-02"}
 computos:
   - codigo: lpac
+    municipios: [el del interesado, el de la sede del órgano]
+    unidades: [meses, dias-habiles, dias-naturales]
     preceptos:
       - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: habiles, vigente_desde: "2016-10-02"}
       - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.3", fija: inicio, vigente_desde: "2016-10-02"}
@@ -62,6 +74,18 @@ computos:
       - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.5", fija: prorroga, vigente_desde: "2016-10-02"}
       - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.6", fija: municipios, vigente_desde: "2016-10-02"}
   - codigo: contencioso
+    municipios: [el de la sede del juzgado]
+    unidades: [meses]
+    periodos:
+      - {desde: "08-01", hasta: "08-31", efecto: no-corre, precepto: {norma: BOE-A-1998-16718, apartado: "128.2"}}
+      - desde: "12-24"
+        hasta: "01-06"
+        efecto: aviso
+        precepto: {norma: BOE-A-1985-12666, apartado: "183"}
+        aviso:
+          codigo: dias-del-art-183-lopj
+          etiqueta: DÍAS DEL ART. 183 LOPJ
+          texto: "el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."
     preceptos:
       - {norma: BOE-A-1985-12666, bloque: acientoochentaydos, apartado: "182.1", fija: inhabiles, vigente_desde: "2022-12-23"}
       - {norma: BOE-A-1985-12666, bloque: acientoochentaytres, apartado: "183", fija: aviso, vigente_desde: "2022-12-23"}
