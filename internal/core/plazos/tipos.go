@@ -17,40 +17,10 @@ import (
 // repositorio, la que nombran sus defectos.
 const rutaDeLosTipos = "data/plazos.yaml"
 
-// Los siete códigos de tipo de FR-008 (contracts/datos-de-plazos.md §2).
-const (
-	TipoAlzada         = "alzada"
-	TipoReposicion     = "reposicion"
-	TipoContencioso    = "contencioso"
-	TipoAccesoResolver = "acceso-resolver"
-	TipoAccesoReclamar = "acceso-reclamar"
-	TipoSilencio       = "silencio"
-	TipoGenerico       = "generico"
-)
-
-// CodigosDeTipo son los siete códigos de tipo, en el orden del contrato.
-// Devuelve una lista nueva en cada llamada.
-func CodigosDeTipo() []string {
-	return []string{
-		TipoAlzada, TipoReposicion, TipoContencioso, TipoAccesoResolver, TipoAccesoReclamar, TipoSilencio, TipoGenerico,
-	}
-}
-
-// Computo es el código de la regla con que se cuenta un plazo.
+// Computo es el código de un cómputo de la sección computos de
+// data/plazos.yaml, la regla con que se cuenta un plazo. Los códigos de los
+// tipos y de los cómputos son datos: ningún Go los nombra (FR-010 de H36).
 type Computo string
-
-// Los dos cómputos: el de la LPAC (art. 30) y el del recurso
-// contencioso-administrativo (arts. 46 y 128 LJCA, 182 a 185 LOPJ).
-const (
-	ComputoLPAC        Computo = "lpac"
-	ComputoContencioso Computo = "contencioso"
-)
-
-// Computos es el vocabulario de cómputos. Devuelve una lista nueva en cada
-// llamada.
-func Computos() []Computo {
-	return []Computo{ComputoLPAC, ComputoContencioso}
-}
 
 // Unidad es la unidad en que se expresa una duración.
 type Unidad string
@@ -686,8 +656,8 @@ type avisosVistos struct {
 func avisosDelMotor() *avisosVistos {
 	vistos := &avisosVistos{delMotor: map[string]bool{}, codigos: map[string]bool{}, etiquetas: map[string]bool{}}
 
-	for _, codigo := range []string{AvisoFaltanNacionalesYAutonomicos, AvisoFaltanLocales, AvisoFestivoDeUnaParte} {
-		etiqueta, _ := EtiquetaDeAviso(codigo)
+	for _, codigo := range CodigosDeAviso(nil) {
+		etiqueta, _ := etiquetaDelMotor(codigo)
 
 		vistos.delMotor[codigo] = true
 		vistos.etiquetas[etiqueta] = true

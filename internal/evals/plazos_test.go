@@ -326,8 +326,9 @@ func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
 }
 
 // probarLosAvisosDelPlazo fija ExtraerAvisosDelPlazo: los códigos de
-// plazos.CodigosDeAviso cuya etiqueta, en su forma fija, lleva el texto, en el
-// orden de CodigosDeAviso; un aviso de vigencia del BOE no es de plazos.
+// plazos.CodigosDeAviso de los tipos del binario cuya etiqueta, en su forma
+// fija, lleva el texto, en el orden de CodigosDeAviso; un aviso de vigencia del
+// BOE no es de plazos.
 func probarLosAvisosDelPlazo(t *testing.T) {
 	t.Parallel()
 

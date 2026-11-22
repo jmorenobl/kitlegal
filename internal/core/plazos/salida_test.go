@@ -48,7 +48,7 @@ func TestSalidaDePlazos(t *testing.T) {
 		t.Parallel()
 
 		plazo, err := Calcular(calendarioDeLosCalculos(t), tiposDelContrato(t), Peticion{
-			Tipo: TipoReposicion, Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera),
+			Tipo: "reposicion", Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera),
 		})
 		require.NoError(t, err)
 

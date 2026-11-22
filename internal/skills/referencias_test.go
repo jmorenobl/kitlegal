@@ -297,7 +297,7 @@ func tiposDePrueba() []plazos.Tipo {
 		return plazos.Tipo{
 			Codigo:    codigo,
 			Nombre:    nombre,
-			Computo:   plazos.ComputoLPAC,
+			Computo:   "lpac",
 			Duracion:  &plazos.Duracion{Cantidad: cantidad, Unidad: unidad},
 			Preceptos: []plazos.Precepto{precepto},
 		}
@@ -309,7 +309,7 @@ func tiposDePrueba() []plazos.Tipo {
 		{
 			Codigo:   "contencioso",
 			Nombre:   "recurso | con una barra\nen dos líneas",
-			Computo:  plazos.ComputoContencioso,
+			Computo:  "contencioso",
 			Duracion: &plazos.Duracion{Cantidad: 2, Unidad: plazos.UnidadMeses},
 			Preceptos: []plazos.Precepto{
 				{Norma: "BOE-A-1998-16718", Bloque: "a46", Apartado: "46.1", Fija: plazos.FijaDuracion},
@@ -324,16 +324,16 @@ func tiposDePrueba() []plazos.Tipo {
 		{
 			Codigo:  "silencio",
 			Nombre:  "día en que se produce el silencio administrativo",
-			Computo: plazos.ComputoLPAC,
+			Computo: "lpac",
 			Preceptos: []plazos.Precepto{
 				{Norma: "BOE-A-2015-10565", Bloque: "a21", Apartado: "21.3", Fija: "inicio"},
 				{Norma: "BOE-A-2015-10565", Bloque: "a24", Apartado: "24.4", Fija: "silencio"},
 			},
 		},
 		{
-			Codigo:  plazos.TipoGenerico,
+			Codigo:  "generico",
 			Nombre:  "plazo genérico",
-			Computo: plazos.ComputoLPAC,
+			Computo: "lpac",
 			Unidades: map[plazos.Unidad]plazos.Precepto{
 				plazos.UnidadDiasNaturales: articulo302,
 				plazos.UnidadDiasHabiles:   articulo302,

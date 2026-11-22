@@ -22,6 +22,14 @@ const (
 	// codigoDelTipoAnadido es el código del tipo de más.
 	codigoDelTipoAnadido = "ensayo-del-esquema"
 
+	// codigoDelAvisoAnadido es el código del aviso del periodo de más.
+	codigoDelAvisoAnadido = "ensayo-del-esquema-aviso"
+
+	// avisosDelMotorDelante son los avisos del motor que van delante de los de
+	// periodo en plazos.CodigosDeAviso: los dos de los festivos que faltan
+	// (contracts/api-del-dominio.md §1 de H36).
+	avisosDelMotorDelante = 2
+
 	// tipoAnadido es el tipo de más, de lpac, con la sangría de los de
 	// data/plazos.yaml: entra detrás del último, delante de la lista de los
 	// cómputos.
@@ -42,7 +50,7 @@ const (
         efecto: aviso
         precepto: {norma: BOE-A-2015-10565, apartado: "30.2"}
         aviso:
-          codigo: ensayo-del-esquema-aviso
+          codigo: ` + codigoDelAvisoAnadido + `
           etiqueta: ENSAYO DEL ESQUEMA
           texto: "el plazo pasa por los días de un periodo de ensayo del esquema de calcular."
 `
@@ -95,8 +103,10 @@ func juegosDelDescribeDePlazos() []juegoDelDescribeDePlazos {
 // fuentesConUnTipoYUnAvisoMas son las del binario con data/plazos.yaml más el
 // tipo y el periodo de aviso de lpac de arriba, añadidos por sustitución de
 // texto (research D7 de H36). Exige que LeerTipos lea la copia sin defecto —las
-// reglas de §C.2 rechazan un periodo de aviso mal formado— y que dé un tipo más
-// que el fichero del binario, el añadido.
+// reglas de §C.2 rechazan un periodo de aviso mal formado—, que dé un tipo más
+// que el fichero del binario, el añadido, y que plazos.CodigosDeAviso de sus
+// tipos dé un código más que el de los del binario, el del aviso añadido, en el
+// lugar de su periodo (contracts/applet-calcular.md §3).
 func fuentesConUnTipoYUnAvisoMas(t *testing.T) FicherosDePlazos {
 	t.Helper()
 
@@ -115,6 +125,11 @@ func fuentesConUnTipoYUnAvisoMas(t *testing.T) FicherosDePlazos {
 	require.True(t, slices.ContainsFunc(ampliados, func(tipo plazos.Tipo) bool {
 		return tipo.Codigo == codigoDelTipoAnadido
 	}), "el tipo de más es el añadido")
+	require.Contains(t, copia, "\ncomputos:\n  - codigo: lpac\n", "premisa: lpac es el primer cómputo del fichero")
+	require.Equal(t, slices.Insert(plazos.CodigosDeAviso(reales), avisosDelMotorDelante, codigoDelAvisoAnadido),
+		plazos.CodigosDeAviso(ampliados),
+		"la copia da un código de aviso más que data/plazos.yaml, el añadido, en el lugar de su periodo: el de lpac, "+
+			"el primer cómputo del fichero, va detrás de los dos de los festivos que faltan")
 
 	fuentes.Tipos = []byte(copia)
 

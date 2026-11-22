@@ -10,6 +10,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
+	"github.com/jmorenobl/kitlegal/data"
 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 )
 
@@ -17,7 +18,7 @@ import (
 // plazos-y-territorio da un plazo, declara que un asunto no está cubierto
 // (contracts/evals-legal-core.md §2 de H9; FR-048) y, desde el ADR 0042, que
 // plazos no calcula un plazo. Las de los avisos de un plazo no van aquí: son las
-// de plazos.EtiquetaDeAviso.
+// de plazos.EtiquetaDeAviso de los tipos del binario.
 const (
 	etiquetaDelPlazo            = "PLAZO"
 	etiquetaDeNoCubierto        = "NO CUBIERTO"
@@ -55,14 +56,36 @@ var (
 	formaDeIdentificador = regexp.MustCompile(`\bBOE-A-[0-9]{4}-[0-9]{1,9}\b`)
 )
 
+// tiposDeLosPlazos lee una sola vez los tipos de data/plazos.yaml que empotra
+// el binario, los de los plazos que da la sesión que se juzga: de ellos salen
+// los códigos y las etiquetas de los avisos de un plazo (FR-009 de H36; research
+// D4 de H36). Con un fichero que no carga, ningún tipo y el error de
+// plazos.LeerTipos, que da ComprobarCodigosDeAvisoDelPlazo.
+var tiposDeLosPlazos = sync.OnceValues(func() ([]plazos.Tipo, error) {
+	return plazos.LeerTipos(data.Plazos)
+})
+
+// tiposLeidos son los tipos de tiposDeLosPlazos o, con un fichero que no carga,
+// ninguno: los avisos de un plazo son entonces los tres del motor, y el error lo
+// da ComprobarCodigosDeAvisoDelPlazo.
+func tiposLeidos() []plazos.Tipo {
+	tipos, err := tiposDeLosPlazos()
+	if err != nil {
+		return nil
+	}
+
+	return tipos
+}
+
 // formasDeAvisoDelPlazo son las expresiones de la forma fija de cada código de
-// plazos.CodigosDeAviso, compiladas una sola vez desde plazos.EtiquetaDeAviso
-// con formasFijas.
+// plazos.CodigosDeAviso de tiposLeidos, compiladas una sola vez desde
+// plazos.EtiquetaDeAviso de los mismos tipos con formasFijas.
 var formasDeAvisoDelPlazo = sync.OnceValue(func() map[string]*regexp.Regexp {
+	tipos := tiposLeidos()
 	etiquetas := map[string]string{}
 
-	for _, codigo := range plazos.CodigosDeAviso() {
-		if etiqueta, conEtiqueta := plazos.EtiquetaDeAviso(codigo); conEtiqueta {
+	for _, codigo := range plazos.CodigosDeAviso(tipos) {
+		if etiqueta, conEtiqueta := plazos.EtiquetaDeAviso(tipos, codigo); conEtiqueta {
 			etiquetas[codigo] = etiqueta
 		}
 	}
@@ -198,31 +221,38 @@ func ExtraerPlazoSinCalcular(respuesta string) []string {
 	return normas
 }
 
-// ExtraerAvisosDelPlazo devuelve los códigos de plazos.CodigosDeAviso cuya forma
-// fija —la marca, la etiqueta de plazos.EtiquetaDeAviso y los dos puntos, con
-// las tolerancias de la gramática— lleva el texto, en el orden de
-// CodigosDeAviso y sin repetir, o nil si no lleva ninguna. No lee lo que sigue a
-// la forma (contracts/evals-legal-core.md §2 de H9; FR-048).
+// ExtraerAvisosDelPlazo devuelve los códigos de plazos.CodigosDeAviso de los
+// tipos del binario cuya forma fija —la marca, la etiqueta de
+// plazos.EtiquetaDeAviso y los dos puntos, con las tolerancias de la gramática—
+// lleva el texto, en el orden de CodigosDeAviso y sin repetir, o nil si no lleva
+// ninguna. No lee lo que sigue a la forma (contracts/evals-legal-core.md §2 de
+// H9; FR-048 de H9; FR-009 de H36).
 func ExtraerAvisosDelPlazo(texto string) []string {
-	return extraerFormas(texto, plazos.CodigosDeAviso(), formasDeAvisoDelPlazo())
+	return extraerFormas(texto, plazos.CodigosDeAviso(tiposLeidos()), formasDeAvisoDelPlazo())
 }
 
 // ComprobarCodigosDeAvisoDelPlazo comprueba que los códigos que el esquema de
 // eval compilado admite en plazo.avisos —los del enumerado al que llegan sus
-// items y cada $ref— son exactamente los de plazos.CodigosDeAviso, como
-// ComprobarCodigosDeAviso los de avisos: devuelve un error por código de plazos
-// que el esquema no enumera, en el orden de CodigosDeAviso, y otro por código
-// que enumera sin ser de plazos, en el orden del esquema, unidos con
-// errors.Join; o nil si coinciden. Un esquema sin la propiedad plazo, sin la de
-// sus avisos o sin enumerado no enumera ninguno (contracts/evals-legal-core.md
-// §1 de H9; research D18 de H9).
+// items y cada $ref— son exactamente los de plazos.CodigosDeAviso de los tipos
+// del binario, como ComprobarCodigosDeAviso los de avisos: devuelve un error por
+// código de plazos que el esquema no enumera, en el orden de CodigosDeAviso, y
+// otro por código que enumera sin ser de plazos, en el orden del esquema, unidos
+// con errors.Join; o nil si coinciden. Un esquema sin la propiedad plazo, sin la
+// de sus avisos o sin enumerado no enumera ninguno (contracts/evals-legal-core.md
+// §1 de H9; research D18 de H9). Con un data/plazos.yaml que no carga, devuelve
+// el error de su lectura (FR-009 de H36; research D4 de H36).
 func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
+	tipos, err := tiposDeLosPlazos()
+	if err != nil {
+		return err
+	}
+
 	var enumerados []any
 	if plazo, conPlazo := esquema.Properties[propiedadDelPlazo]; conPlazo {
 		enumerados = enumeradoDeLaLista(plazo, propiedadDeAvisos)
 	}
 
-	codigos := plazos.CodigosDeAviso()
+	codigos := plazos.CodigosDeAviso(tipos)
 
 	var defectos []error
 

@@ -139,7 +139,7 @@ func (r rejilla) inhabilParaLosDos(dia time.Time, uno, otro MunicipioResuelto) b
 // calcular da la fecha de un plazo genérico de la rejilla.
 func (r rejilla) calcular(inicio time.Time, duracion int, unidad Unidad, uno, otro MunicipioResuelto) (time.Time, error) {
 	plazo, err := Calcular(r.calendario, r.tipos, Peticion{
-		Tipo: TipoGenerico, Inicio: inicio.Format(time.DateOnly), Duracion: strconv.Itoa(duracion),
+		Tipo: "generico", Inicio: inicio.Format(time.DateOnly), Duracion: strconv.Itoa(duracion),
 		Unidad: string(unidad), Municipios: los(uno, otro),
 	})
 	if err != nil {

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/jmorenobl/kitlegal/data"
 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
@@ -1710,7 +1711,8 @@ func probarLasLecturasDeEval(t *testing.T, casos []casoDeLecturaDeEval) {
 }
 
 // probarElEnumeradoDeLosAvisosDelPlazo fija ComprobarCodigosDeAvisoDelPlazo: el
-// esquema publicado enumera en plazo.avisos exactamente plazos.CodigosDeAviso; y
+// esquema publicado enumera en plazo.avisos exactamente plazos.CodigosDeAviso de
+// los tipos de data/plazos.yaml (FR-009 de H36); y
 // sobre esquemas sintéticos compilados con skills.CompilarEsquema, con el
 // enumerado de los cuatro detrás de un $ref no hay error; sin
 // festivo-de-una-parte, el error lo nombra; con derogada de más, el error la
@@ -1798,10 +1800,12 @@ func probarElEnumeradoDeLosAvisosDelPlazo(t *testing.T) {
 		})
 	}
 
+	tipos, err := plazos.LeerTipos(data.Plazos)
+	require.NoError(t, err)
 	assert.Equal(t, []string{
 		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
 		"festivo-de-una-parte",
-	}, plazos.CodigosDeAviso(), "premisa: los cuatro c\xc3\xb3digos de los esquemas sint\xc3\xa9ticos son los de plazos")
+	}, plazos.CodigosDeAviso(tipos), "premisa: los cuatro c\xc3\xb3digos de los esquemas sint\xc3\xa9ticos son los de plazos")
 }
 
 // Trozos de las evals sintéticas de TestFormatoDeLasRedaccionesFechadas, cada

@@ -134,15 +134,11 @@ func TestLeerTipos(t *testing.T) {
 	t.Run("los vocabularios", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, []string{
-			"alzada", "reposicion", "contencioso", "acceso-resolver", "acceso-reclamar", "silencio", "generico",
-		}, CodigosDeTipo())
-		assert.Equal(t, []Computo{"lpac", "contencioso"}, Computos())
 		assert.Equal(t, []Unidad{"meses", "dias-habiles", "dias-naturales"}, Unidades())
 
-		codigos := CodigosDeTipo()
-		codigos[0] = "otro"
-		assert.Equal(t, "alzada", CodigosDeTipo()[0], "cada llamada da una lista nueva")
+		unidades := Unidades()
+		unidades[0] = "otra"
+		assert.Equal(t, UnidadMeses, Unidades()[0], "cada llamada da una lista nueva")
 	})
 
 	t.Run("las reglas 1 y 10 a la vez", func(t *testing.T) {
