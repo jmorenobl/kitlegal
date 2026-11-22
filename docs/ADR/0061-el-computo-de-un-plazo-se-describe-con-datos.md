@@ -1,6 +1,6 @@
 # 0061 · El cómputo de un plazo se describe con datos, con los ejes que piden sus preceptos y ninguno más
 
-- **Estado**: propuesta (2026-11-22); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+- **Estado**: aceptada (2026-11-22)
 - **Fecha**: 2026-11-22
 - **Hito**: H36. Se escribe con su entrada, antes del run y fuera de él, en una sesión interactiva. Es el «ADR del
   motor» que piden la entrada de H36 y el ADR 0059 (punto 1). Cambia el contrato de H9
