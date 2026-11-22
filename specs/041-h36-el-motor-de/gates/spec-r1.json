@@ -1,0 +1,81 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada entrega del hito tiene su requisito: forma de data/plazos.yaml (FR-001, FR-002, §C.1); lpac y contencioso como datos, contencioso solo en meses y el 128.2 en el tipo (FR-003); el motor con lo fijo del ADR 0061 punto 4 (FR-004, FR-005); municipios compuestos al ejecutar (FR-006, §C.6); el error nuevo detrás de los de la unidad (FR-007, §C.6); avisos de periodo y CodigosDeAviso/EtiquetaDeAviso con los tipos leídos (FR-008, FR-009, §C.5); ningún código en Go (FR-010); esquema sin datos (FR-012, §C.7, §C.8); LeerTipos con las siete reglas del hito (FR-013, §C.2 reglas 1 a 7); el civil y sus vigente_desde (FR-014, FR-015); la tarea [datos] (FR-016); tests y contratos que cambian (FR-017, FR-018, §C); CHANGELOG (FR-019); referencias iguales (FR-020); controles (FR-021 a FR-025). Las reglas 8 a 10 de §C.2 y las restricciones de §C.1 (etiqueta sin «:», una línea, no el 02-29, da obligatoria) son la forma de las claves que el hito deja al spec («Los nombres de las claves los fija el spec») y lo que exige el pattern de §C.8; con los datos de hoy no añaden comportamiento. Lo que llega manipulado remite a la regla genérica (Edge Cases, último punto)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«## Fuera de alcance» recoge entera la lista cerrada del hito (cómputos y unidades que no entran, lo que no es cómputo, lo de H9.1, lo de H42, lo que no cambia, incluido lo decidido del art. 183 LOPJ en research S4) y añade lo que el ADR 0061 rechaza, ningún ADR nuevo ni fichero de specs/023-h9-internal-core-plazos/, un esquema JSON de data/plazos.yaml (research D17 de H9) y el aviso de periodo nuevo en schemas/eval.yaml.json. No encuentro nada sin especificar en el hito, CLAUDE.md, refs/ o la constitución que falte en la lista."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "gates/clarify-preguntas.json da «preguntas: []», gates/clarify-respuestas.json da «respuestas: []» y gates/clarify-rondas vale 1; «## Clarifications» dice «Ninguna en esta sesión». No hay ninguna respuesta que reflejar ni lectura conservadora que comprobar."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "Los cuatro puntos de «Aceptación» del hito están literales en «Criterios del hito (literales)» y como Dado/Cuando/Entonces (US1.1, US1.2, US2.3, US3.1, US3.6, US4.1), medidos por SC-001, SC-002, SC-003 y SC-005. Cada control del hito tiene su escenario y su comprobación en rojo: el data byte a byte, con los tres mutantes (US1.2 a US1.6, FR-021); el esquema sin datos (US4.1 a US4.4); ningún código en Go (US3.6, FR-010); las propiedades con su mutante (FR-024, SC-004); los goldens civiles con sus cinco mutantes (US2.4, §C.9); el ensayo con un mutante por eje (US3.2 a US3.5, §C.10); LeerTipos con una copia rota por regla (US5.2 a US5.4); los preceptos grabados con los dos mutantes (US6.2); referencias (SC-007) y evals (FR-025, SC-008). El registro en mutantes.md está en «Criterios del hito»."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "Se mantienen el contrato de códigos (el error nuevo es 2, argumentos, como pide el hito; §C.6 «Nunca 4, 5 ni 6»), el sobre y su hash (FR-011), --help y --describe sin cargar datos (FR-012), skills, protocolo, referencias y evals sin cambios (FR-020), la grabación solo del BOE consolidado con fila revisada y sin modelo (FR-016, Assumptions) y el principio X: lo que varía por materia va en data/ (FR-001 a FR-003, FR-010). No se reabre ningún ADR (Fuera de alcance)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Las marcas [x] de checklists/requirements.md se sostienen: no hay [NEEDS CLARIFICATION]; cada FR acaba en «Comprobable:» (FR-001 a FR-025); SC-001 a SC-009 nombran la comprobación de make ci o del cierre; los casos límite están en Edge Cases, el alcance en Fuera de alcance y los supuestos en Assumptions. La nota de «Quién consume» coincide con lo medido en esta sesión: los cinco textos de §C.7 suman 603 bytes y los de internal/app/plazos.go:133-137, 567 (printf | wc -c). La contradicción del motivo [h] es entre FR-017 y §C.1, no una ambigüedad de un requisito, y no hace falsa por sí sola ninguna marca."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "Las claves de data/plazos.yaml (§C.1) las fija porque el hito se lo pide; LeerTipos, plazos.Calcular, CodigosDeAviso, EtiquetaDeAviso, go/ast y los ficheros de test los nombra el hito como contrato o como control. No fija tipos de Go, firmas, paquetes ni cómo se juntan el cómputo real y los tipos de prueba, que deja al plan."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": false,
+      "evidencia": "Hay una contradicción: FR-017 («en grabaciones_test.go solo lo que pide FR-015 de TestPreceptosDeLosPlazos») y la frase de §C.1 «así los fragmentos de texto del fichero que usan los tests de H9 siguen casando sin cambiar» chocan con §C.1, donde el periodo no-corre de contencioso lleva precepto {norma: BOE-A-1998-16718, bloque: a128, apartado: «128.2»}, y con la regla 4 de §C.2. Con eso, el subtest bloque-sin-grabar de TestPreceptosDeLosPlazos (H9, internal/evals/grabaciones_test.go:968) deja de pasar si no se cambia (detalle en motivos). Lo demás se puede derivar: los mensajes nuevos van byte a byte (§C.6) y la ayuda también (§C.7); los efectos de cada periodo y los festivos saltados están en §C.3, y el orden de los avisos en FR-008 y §C.5. He recalculado C1 a C10 y E1 a E13. Los días de la semana, con date en esta sesión. Los festivos, con data/festivos/: 2025-08-15, 2026-12-25, 2027-01-01 y 2027-01-06 son nacionales en la comunidad 13, y 2026-11-09 es local de 28079 (BOCM-20251212-34). El 2026-11-02 de la 13 es el día de inicio de C10 y no entra en el tramo. Todas las fechas coinciden."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Quién consume cada salida, cuánto y hasta cuándo» lo traza desde quien consume. El data lo pide plazos-y-territorio en su paso 9 (SKILL.md: «el tipo, de la referencia del paquete»), una o dos veces por pregunta, y lo usa entero: la fecha, los preceptos para el paso 10 y los avisos tal cual. Son 0,77 a 0,86 KB, sin caché ni grafo, así que con cientos de normas y miles de bloques consultados cada pregunta cuesta 1 o 2 × ~0,8 KB, hoy y al cabo de un mes (FR-011). El aviso de periodo, unos 250 bytes, sale una vez por plazo y solo si el tramo pasa por el periodo, y deja de darse en la llamada cuyo tramo no lo toca (FR-008). El error de FR-007, unos 120 bytes, sale solo con una unidad que el cómputo no admite y nunca con los datos de hoy. El esquema llega una vez por conexión, con 603 bytes de ayuda (medido), y ya no crece con los datos (FR-012). El civil no lo consume nadie hasta H9.1 (US2.5). CodigosDeAviso crece con un código por aviso de periodo de los datos, no con el uso."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral medido sin persona nombra la comprobación que sale en rojo. SC-001, 100 % de casos y goldens: el test de cada golden y TestCasosDePlazos en make ci. SC-002, 10 casos: el test de FR-023. SC-003, 13 casos y 0 apariciones: el test del ensayo y el de go/ast. SC-004, 100 % de la rejilla: TestPropiedadesDelComputo. SC-005, 3 juegos y una copia rota por regla: el test de describe.json, TestEsquemasPublicados y los subtests de LeerTipos. SC-006, 5 preceptos: TestPreceptosDeLosPlazos. SC-007, 0 diferencias: regiones_test.go. SC-008: el job de evals del cierre. FR-009, los cuatro códigos en su orden: el test de ComprobarCodigosDeAvisoDelPlazo en formato_test.go. Las cifras de tamaño de «Quién consume» se declaran medidas o estimaciones, no umbrales."
+    }
+  ],
+  "motivos": [
+    "[h] Contradicción entre FR-017 (y la frase de §C.1 «así los fragmentos de texto del fichero que usan los tests de H9 siguen casando sin cambiar») y §C.1 con la regla 4 de §C.2 y FR-003. El periodo no-corre de contencioso repite el bloque del precepto del tipo: {norma: BOE-A-1998-16718, bloque: a128, apartado: «128.2»}. Esto rompe el subtest bloque-sin-grabar de TestPreceptosDeLosPlazos (H9, internal/evals/grabaciones_test.go:968), que hace sustituida(t, tipos, «bloque: a128,», «bloque: a129,»). sustituida exige que el fragmento aparezca una sola vez (grabaciones_test.go:815), y con el fichero de §C.1 aparece dos. Si el periodo se escribe de otra forma, el tipo queda con a129 y el periodo con a128: LeerTipos da el defecto de la regla 4 y verificarPreceptos devuelve ese error (grabaciones_test.go:1072-1075) en vez de «contencioso: BOE-A-1998-16718 a129 no está grabado». FR-017 solo deja cambiar en grabaciones_test.go lo que pide FR-015, así que FR-017, SC-009 y §C.1 no pueden cumplirse a la vez. La misma causa rompe TestLoQueLlevaALeerSinGrabar (H26.1, internal/evals/preparar_test.go:1049-1056): pide strings.Count(contenido, «bloque: a128,») == 1 y que LeerTipos lea la copia sustituida sin error. Qué cambiar. La lectura conservadora, que conserva la lista cerrada de tests del hito, es fijar en §C.1 y en la regla 4 de §C.2 un precepto de periodo que no repita el bloque, p. ej. {norma, apartado}, buscado entre los preceptos del cómputo o de cada uno de sus tipos. Hay que ajustar con ello el ejemplo YAML de §C.1 en los dos periodos de contencioso y en los dos del civil, y la definición de «Un periodo». Si se mantiene el bloque, la alternativa es declarar en FR-017 esos dos tests con el cambio exacto de su fragmento, sin cambiar el defecto que esperan, y corregir la frase de §C.1. En los dos casos, la frase de §C.1 tiene que quedar cierta."
+  ],
+  "observaciones": [
+    "probarLosDatosQueNoSeLeen (H32, internal/skills/regiones_test.go:501) usa «tipos: []» como un data/plazos.yaml que no se lee. Con las reglas de §C.2 ese fichero es válido, porque no tiene tipos ni cómputos y ninguna regla falla, así que el test tendrá que usar otra copia (p. ej. «tipos: 7»). No es un test de H9 y FR-017 no lo restringe, pero el plan tiene que declararlo.",
+    "TestGrabarEvals graba solo los conjuntos de conjuntosQueSeGraban (internal/evals/grabacion_test.go:34-36: H5 y H9). Para grabar el manifiesto de H36 de FR-016, el plan tendrá que ampliar ese fichero de test de H5/H9, que FR-017 no nombra, o grabar por otra vía.",
+    "FR-017 repite del hito «plazosDelContrato en calcular_test.go». La constante está en internal/core/plazos/tipos_test.go:18; los dos ficheros están en la lista.",
+    "El Contexto dice que las líneas 39, 42 y 43 de specs/031-h39-c-omo-se/aceptacion/describe.txtar comparan la ayuda de hoy. Son las cinco líneas 38 a 42, y la copia es idéntica a internal/app/testdata/script/h39-describe.txtar (cmp en esta sesión).",
+    "FR-009: CodigosDeAviso «recibe los tipos leídos», pero ordena los avisos de periodo «en el orden de los cómputos … en el fichero», y un cómputo sin tipos no se alcanza desde ellos. Con los datos de hoy ningún cómputo sin tipos tiene un periodo aviso (el civil solo tiene inhabil), así que no hay diferencia observable; lo resolverá quien traiga uno (H9.1).",
+    "Las decisiones que toma el spec (da obligatoria, los textos de municipio del civil y del ensayo, las reglas 8 a 10, la gramática de §C.8) están en Assumptions y no en «## Clarifications» con el prefijo (auto), como pide el punto 3 del Criterio de decisión autónoma.",
+    "§C.6 sustituye a §6 de H9, pero su tabla «En este orden» no lleva el error 3 de los preceptos que no regían el día de inicio (ADR 0042), que el binario da hoy y que usa C6. FR-011 lo conserva byte a byte, así que no hay diferencia observable.",
+    "La ayuda de inicio (§C.7, literal del hito) remite a las referencias del paquete. Fuera del silencio (administrativo.md, «El silencio»), qué fecha es la de inicio lo dice el paso 8 de SKILL.md, no references/: grep «notificaci» en skills/plazos-y-territorio/references/ no da nada.",
+    "Dos casos límite no tienen vía con los datos de hoy: varias pasadas por un periodo aviso (el contencioso dura 2 meses fijos) y un festivo de una parte dentro de un periodo inhabil (el civil no tiene tipos). Solo repiten la regla de hoy.",
+    "ExtraerAvisosDelPlazo(texto) y ComprobarCodigosDeAvisoDelPlazo(esquema) no reciben hoy los tipos. Si el plan cambia su firma, cambia también el test de ExtraerAvisosDelPlazo (internal/evals/plazos_test.go:354), que FR-017 solo cubre como «tests de CodigosDeAviso»."
+  ],
+  "entrada": []
+}

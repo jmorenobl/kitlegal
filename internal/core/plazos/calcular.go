@@ -31,9 +31,11 @@ type Peticion struct {
 	Duracion string
 	// Unidad es la de Duracion, una de Unidades.
 	Unidad string
-	// Municipios son los que cuentan, en el orden dado: en un plazo de la LPAC,
-	// el del interesado y el de la sede del órgano; en el contencioso, el de la
-	// sede del juzgado. Dos veces el mismo código es un municipio que cuenta.
+	// Municipios son los que cuentan, en el orden dado: tantos como textos de
+	// municipios lleva el cómputo del tipo (spec §C.4) —con los datos de hoy,
+	// en un plazo de la LPAC, el del interesado y el de la sede del órgano; en
+	// el contencioso, el de la sede del juzgado—. Dos veces el mismo código es
+	// un municipio que cuenta.
 	Municipios []MunicipioResuelto
 }
 
@@ -45,13 +47,14 @@ type peticionComprobada struct {
 	duracion Duracion
 }
 
-// ComprobarPeticion comprueba, en el orden de research D10, lo que la petición
-// pide y no depende de resolver ningún municipio: el tipo, la fecha de inicio,
-// la duración, la unidad y cuántos municipios son, de los que solo cuenta el
-// número. Es lo que el applet comprueba antes de resolver los municipios con
-// territorio, para que un argumento que no vale salga con 2 aunque algún
-// municipio no exista (FR-012). Devuelve el primer defecto, de clase
-// argumentos, o nada; Calcular hace la misma comprobación.
+// ComprobarPeticion comprueba, en el orden de research D10 de H9 y D13 de H36,
+// lo que la petición pide y no depende de resolver ningún municipio: el tipo,
+// la fecha de inicio, la duración, la unidad, que el cómputo del tipo la admite
+// y cuántos municipios son, de los que solo cuenta el número. Es lo que el
+// applet comprueba antes de resolver los municipios con territorio, para que un
+// argumento que no vale salga con 2 aunque algún municipio no exista (FR-012).
+// Devuelve el primer defecto, de clase argumentos, o nada; Calcular hace la
+// misma comprobación.
 func ComprobarPeticion(tipos []Tipo, peticion Peticion) error {
 	_, err := comprobarPeticion(tipos, peticion)
 
@@ -90,7 +93,7 @@ func Calcular(calendario *Calendario, tipos []Tipo, peticion Peticion) (Plazo, e
 }
 
 // comprobarPeticion lee los argumentos de la petición en el orden de research
-// D10 y se detiene en el primero que no vale.
+// D10 de H9 y D13 de H36 y se detiene en el primero que no vale.
 func comprobarPeticion(tipos []Tipo, peticion Peticion) (peticionComprobada, error) {
 	indice := slices.IndexFunc(tipos, func(tipo Tipo) bool { return tipo.Codigo == peticion.Tipo })
 	if indice < 0 {
@@ -109,7 +112,7 @@ func comprobarPeticion(tipos []Tipo, peticion Peticion) (peticionComprobada, err
 		return peticionComprobada{}, err
 	}
 
-	if len(peticion.Municipios) != municipiosDelComputo(tipo) {
+	if len(peticion.Municipios) != len(tipo.computo.Municipios) {
 		return peticionComprobada{}, municipiosQueNoCuentan(tipo, len(peticion.Municipios))
 	}
 
@@ -130,7 +133,7 @@ func preceptosPosterioresAlInicio(comprobada peticionComprobada) []Precepto {
 		del = append(del, precepto)
 	}
 
-	del = append(del, comprobada.tipo.PreceptosDelComputo...)
+	del = append(del, comprobada.tipo.computo.Preceptos...)
 
 	var posteriores []Precepto
 
@@ -145,17 +148,6 @@ func preceptosPosterioresAlInicio(comprobada peticionComprobada) []Precepto {
 	}
 
 	return posteriores
-}
-
-// municipiosDelComputo es cuántos municipios cuentan en el cómputo de un
-// tipo: uno, la sede del juzgado, en el contencioso (FR-010), y dos en la LPAC
-// (FR-007).
-func municipiosDelComputo(tipo Tipo) int {
-	if tipo.Computo == ComputoContencioso {
-		return 1
-	}
-
-	return 2
 }
 
 // leerInicio lee la fecha de inicio: primero su forma, AAAA-MM-DD con sus
@@ -200,7 +192,8 @@ func escritaAAAAMMDD(texto string) bool {
 
 // leerDuracion da la duración con que se cuenta el plazo: la del tipo, si la
 // fija, que no admite ni duración ni unidad dadas; o la dada, un entero
-// positivo con una unidad del vocabulario (research D3 y D10).
+// positivo con una unidad del vocabulario que su cómputo admite (research D3 y
+// D10 de H9; research D13 de H36).
 func leerDuracion(tipo Tipo, duracion, unidad string) (Duracion, error) {
 	if tipo.Duracion != nil {
 		switch {
@@ -227,6 +220,8 @@ func leerDuracion(tipo Tipo, duracion, unidad string) (Duracion, error) {
 		return Duracion{}, unidadQueFalta(duracion)
 	case !slices.Contains(Unidades(), Unidad(unidad)):
 		return Duracion{}, unidadDesconocida(unidad)
+	case !slices.Contains(tipo.computo.Unidades, Unidad(unidad)):
+		return Duracion{}, unidadQueSuComputoNoAdmite(tipo, Unidad(unidad))
 	}
 
 	return Duracion{Cantidad: cantidad, Unidad: Unidad(unidad)}, nil

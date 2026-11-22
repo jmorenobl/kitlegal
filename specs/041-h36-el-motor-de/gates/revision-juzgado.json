@@ -1,0 +1,56 @@
+{
+  "rondas": [
+    {
+      "ronda": 1,
+      "ciclo": 1,
+      "sha": "424297c1616f809509ce6319c67717c1b2e426bf",
+      "juez_a": "aprobado",
+      "juez_b": "rechazado",
+      "leido": "2026-11-22T07:11:04Z",
+      "modelos": {
+        "a": {
+          "sesion": "f47520a9-b350-4e12-a76c-e9e6fb85dc2a",
+          "pedido": "claude-opus-5-5",
+          "real": {
+            "claude-opus-5-5": 260
+          },
+          "sin_modelo_real": null
+        },
+        "b": {
+          "sesion": "33350efa-ecda-4d07-922f-fb18dd6e6464",
+          "pedido": "claude-fable-5-2",
+          "real": {
+            "claude-fable-5-2": 269
+          },
+          "sin_modelo_real": null
+        }
+      }
+    },
+    {
+      "ronda": 2,
+      "ciclo": 1,
+      "sha": "10172e21da9ee28e2857728bba2238a1cf3ac1e2",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado",
+      "leido": "2026-11-22T07:31:26Z",
+      "modelos": {
+        "a": {
+          "sesion": "472a4a83-661e-4c37-9c97-cd8e5bedba26",
+          "pedido": "claude-opus-5-5",
+          "real": {
+            "claude-opus-5-5": 84
+          },
+          "sin_modelo_real": null
+        },
+        "b": {
+          "sesion": "c4abc718-41eb-40e0-a0fe-0fe871a073f9",
+          "pedido": "claude-fable-5-2",
+          "real": {
+            "claude-fable-5-2": 104
+          },
+          "sin_modelo_real": null
+        }
+      }
+    }
+  ]
+}

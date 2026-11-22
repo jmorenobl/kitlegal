@@ -584,12 +584,14 @@ tabla de normas contra `schemas/normas.yaml.json`,
 que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
 `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, la
 cobertura por materia de `data/cobertura.yaml` contra `schemas/cobertura.yaml.json` (`TestCoberturaDelRepositorio`),
-los preceptos de `data/plazos.yaml` y de `data/cobertura.yaml` contra lo grabado del BOE (`TestPreceptosDeLosPlazos`), y el
+los preceptos de `data/plazos.yaml` —desde H36, también los de un cómputo que ningún tipo nombra, como el civil— y de
+`data/cobertura.yaml` contra lo grabado del BOE (`TestPreceptosDeLosPlazos`), y el
 formato y el conjunto de las evals, que lo que necesitan —y, desde H26.1, lo que las skills llevan a leer de `data/`
 ([Job de evals](#job-de-evals))— está grabado y que el grafo previo que nombran se prepara.
 Una norma nueva, un precepto nuevo de `data/plazos.yaml` o de `data/cobertura.yaml`, o una eval que consulta algo que
-no está grabado, llega con su grabación, que hace una persona con
-`scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
+no está grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh` o, en un hito, el paso
+`grabar_datos` del workflow, sin modelo, con `TestGrabarEvals` y la raíz `evidencias/<hito>/` (así llegaron los bloques
+`a130` y `a133` de la LEC en H36): ningún control graba respuestas.
 
 ### `make install` y los enlaces del anterior
 
@@ -939,7 +941,8 @@ escribe en nada de otra.
 las consultas necesarias de las evals de su skill —los comandos esperados, el índice y los metadatos de las normas de
 sus comandos y citas, el bloque de cada cita y, desde H26.1, el de cada entrada de `lecturas`, cada bloque sin fecha y
 con `--fecha 9999-12-31`, que deja sus versiones y lo sirve así en cualquier fecha—; detrás, desde H26.1, **lo que la
-skill lleva a leer de `data/`**: cada bloque de `data/plazos.yaml` y de `data/cobertura.yaml`, de las dos formas, y el
+skill lleva a leer de `data/`**: cada bloque de los tipos de `data/plazos.yaml` —los suyos y los de su cómputo; un
+cómputo que ningún tipo nombra, como el civil desde H36, no entra— y de `data/cobertura.yaml`, de las dos formas, y el
 índice y los metadatos de cada norma de esos dos ficheros y de `data/normas.yaml` —hoy 17 bloques y 19 normas, 72
 consultas, las mismas en las tres skills—; y menos lo que el `sin_servir` de la eval de la sesión no sirve, aunque lo
 pidan otra eval, `lecturas` o `data/`. Lo que no se prepara, la sesión no lo tiene: su lectura sale con `4` o `5`, y

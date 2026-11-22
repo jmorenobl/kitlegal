@@ -8,31 +8,64 @@ import (
 	"time"
 )
 
-// Los cuatro códigos de aviso (contracts/applet-plazos.md §5; research D6).
+// Los códigos de los tres avisos del motor, que no son de ningún cómputo
+// (contracts/applet-plazos.md §5 de H9; data-model §5 de H36). Los de los avisos
+// de periodo son datos de data/plazos.yaml (spec §C.5 de H36).
 const (
 	AvisoFaltanNacionalesYAutonomicos = "faltan-festivos-nacionales-y-autonomicos"
 	AvisoFaltanLocales                = "faltan-festivos-locales"
-	AvisoDiasDelArt183                = "dias-del-art-183-lopj"
 	AvisoFestivoDeUnaParte            = "festivo-de-una-parte"
 )
 
-// CodigosDeAviso son los cuatro códigos de aviso, en el orden en que van en el
-// plazo. Devuelve una lista nueva en cada llamada.
-func CodigosDeAviso() []string {
-	return []string{AvisoFaltanNacionalesYAutonomicos, AvisoFaltanLocales, AvisoDiasDelArt183, AvisoFestivoDeUnaParte}
+// CodigosDeAviso son los códigos de aviso que pueden dar los tipos, en el orden
+// en que van en el plazo (FR-009 de H36; research D3): los dos de los festivos
+// que faltan; los de los avisos de periodo de los cómputos que nombran tipos, en
+// el orden de esos cómputos en el fichero y, en cada uno, de sus periodos; y el
+// de un festivo de una parte. Con nil, los tres del motor. Devuelve una lista
+// nueva en cada llamada.
+func CodigosDeAviso(tipos []Tipo) []string {
+	codigos := []string{AvisoFaltanNacionalesYAutonomicos, AvisoFaltanLocales}
+
+	for _, computo := range computosDe(tipos) {
+		for _, periodo := range computo.Periodos {
+			if periodo.Aviso != nil {
+				codigos = append(codigos, periodo.Aviso.Codigo)
+			}
+		}
+	}
+
+	return append(codigos, AvisoFestivoDeUnaParte)
 }
 
-// EtiquetaDeAviso es la etiqueta de un código de aviso, la que su texto lleva
-// tras «⚠ » y antes de «:», como la forma fija que comprueban las evals
-// (FR-048); con lo que no es un código, nada.
-func EtiquetaDeAviso(codigo string) (string, bool) {
+// EtiquetaDeAviso es la etiqueta de un código de aviso de CodigosDeAviso(tipos),
+// la que su texto lleva tras «⚠ » y antes de «:», como la forma fija que
+// comprueban las evals (FR-048 de H9; FR-009 de H36): la de un aviso del motor o
+// la del aviso de periodo de un cómputo de tipos que lo lleva; con lo que no es
+// uno de esos códigos, nada.
+func EtiquetaDeAviso(tipos []Tipo, codigo string) (string, bool) {
+	if etiqueta, delMotor := etiquetaDelMotor(codigo); delMotor {
+		return etiqueta, true
+	}
+
+	for _, computo := range computosDe(tipos) {
+		for _, periodo := range computo.Periodos {
+			if periodo.Aviso != nil && periodo.Aviso.Codigo == codigo {
+				return periodo.Aviso.Etiqueta, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+// etiquetaDelMotor es la etiqueta de uno de los tres avisos del motor; con otro
+// código, nada.
+func etiquetaDelMotor(codigo string) (string, bool) {
 	switch codigo {
 	case AvisoFaltanNacionalesYAutonomicos:
 		return "FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS", true
 	case AvisoFaltanLocales:
 		return "FALTAN FESTIVOS LOCALES", true
-	case AvisoDiasDelArt183:
-		return "DÍAS DEL ART. 183 LOPJ", true
 	case AvisoFestivoDeUnaParte:
 		return "FESTIVO DE UNA PARTE", true
 	}
@@ -40,20 +73,47 @@ func EtiquetaDeAviso(codigo string) (string, bool) {
 	return "", false
 }
 
-// Las frases fijas de los textos de los avisos.
-const (
-	sinEllos       = "; la fecha se ha calculado sin ellos y puede ser anterior a la real."
-	textoDelArt183 = "el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara " +
-		"inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque " +
-		"el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."
-)
+// computosDe son los cómputos que nombran los tipos, cada uno una vez y en el
+// orden del fichero, el de la posición que les anota LeerTipos (research D3).
+// Un tipo que no viene de LeerTipos no lleva cómputo descrito y no da ninguno.
+func computosDe(tipos []Tipo) []computoDescrito {
+	var computos []computoDescrito
 
-// avisoCon es un aviso con su código y su texto: una línea que empieza por
-// «⚠ <ETIQUETA>: ».
+	for _, tipo := range tipos {
+		visto := slices.ContainsFunc(computos, func(computo computoDescrito) bool {
+			return computo.Codigo == tipo.computo.Codigo
+		})
+		if tipo.computo.Codigo != "" && !visto {
+			computos = append(computos, tipo.computo)
+		}
+	}
+
+	slices.SortStableFunc(computos, func(a, b computoDescrito) int { return cmp.Compare(a.posicion, b.posicion) })
+
+	return computos
+}
+
+// sinEllos es la frase fija de los avisos de los festivos que faltan.
+const sinEllos = "; la fecha se ha calculado sin ellos y puede ser anterior a la real."
+
+// avisoCon es un aviso del motor con su código y su texto: una línea que
+// empieza por «⚠ <ETIQUETA>: ».
 func avisoCon(codigo, cuerpo string) Aviso {
-	etiqueta, _ := EtiquetaDeAviso(codigo)
+	etiqueta, _ := etiquetaDelMotor(codigo)
 
-	return Aviso{Codigo: codigo, Texto: "⚠ " + etiqueta + ": " + cuerpo}
+	return lineaDeAviso(codigo, etiqueta, cuerpo)
+}
+
+// lineaDeAviso es un aviso con su código, su etiqueta y su texto, como va en
+// data.avisos: «⚠ <etiqueta>: <texto>».
+func lineaDeAviso(codigo, etiqueta, texto string) Aviso {
+	return Aviso{Codigo: codigo, Texto: "⚠ " + etiqueta + ": " + texto}
+}
+
+// avisoDeSuPeriodo es el aviso de un periodo de aviso, con el código, la
+// etiqueta y el texto que le dan los datos (spec §C.5).
+func avisoDeSuPeriodo(aviso avisoDeUnPeriodo) Aviso {
+	return lineaDeAviso(aviso.Codigo, aviso.Etiqueta, aviso.Texto)
 }
 
 // segmento son años seguidos sin festivos de un ámbito, con un mismo motivo.
@@ -154,12 +214,6 @@ func avisoDeLosLocales(municipio MunicipioResuelto, segmentos []segmento, alcanc
 	return avisoCon(AvisoFaltanLocales, cuerpo)
 }
 
-// avisoDelArt183 es el aviso de los días del 24 de diciembre al 6 de enero en
-// el contencioso.
-func avisoDelArt183() Aviso {
-	return avisoCon(AvisoDiasDelArt183, textoDelArt183)
-}
-
 // avisoDeUnaParte es el aviso de un festivo de una parte de la comunidad de un
 // municipio que el cómputo contó como hábil (FR-011).
 func avisoDeUnaParte(dia time.Time, parte FestivoDeUnaParte, municipio MunicipioResuelto) Aviso {
@@ -177,12 +231,13 @@ func alcanceSi(alcance Alcance, cargado bool) *Alcance {
 	return &alcance
 }
 
-// avisos son los del plazo, cada uno solo si el tramo pasa por lo que lo causa,
-// en el orden de CodigosDeAviso y, dentro de un código, de fecha y de municipio
-// (contracts/applet-plazos.md §4 y §5): el de los nacionales y autonómicos que
-// faltan, uno por municipio de los locales que faltan, el del art. 183 LOPJ en
-// el contencioso y uno por festivo de una parte y municipio. Ninguno nace de
-// una entidad menor, que no es un municipio que cuente (FR-024).
+// avisos son los del plazo, cada uno solo si el tramo pasa por lo que lo causa
+// y, dentro de un código, por fecha y municipio (spec §C.5; FR-008): el de los
+// nacionales y autonómicos que faltan, uno por municipio de los locales que
+// faltan, uno por cada periodo de aviso de su cómputo por el que pasa el tramo,
+// en el orden de sus periodos, y uno por festivo de una parte y municipio.
+// Ninguno nace de una entidad menor, que no es un municipio que cuente
+// (FR-024).
 func (c calculo) avisos(cobertura []Tramo) []Aviso {
 	avisos := []Aviso{}
 
@@ -191,12 +246,24 @@ func (c calculo) avisos(cobertura []Tramo) []Aviso {
 	}
 
 	avisos = append(avisos, c.avisosDeLosLocales(cobertura)...)
-
-	if c.tipo.Computo == ComputoContencioso && pasaPor(c.desde, c.hasta, time.December, 24, time.January, 6) {
-		avisos = append(avisos, avisoDelArt183())
-	}
+	avisos = append(avisos, c.avisosDeLosPeriodos()...)
 
 	return append(avisos, c.avisosDeUnaParte()...)
+}
+
+// avisosDeLosPeriodos son los de los periodos de aviso del cómputo del tipo por
+// algún día de los cuales pasa el tramo, uno por periodo y en su orden. Solo un
+// periodo de aviso lleva aviso, y siempre (spec §C.2).
+func (c calculo) avisosDeLosPeriodos() []Aviso {
+	var avisos []Aviso
+
+	for _, periodo := range c.tipo.computo.Periodos {
+		if periodo.Aviso != nil && pasaPor(c.desde, c.hasta, periodo) {
+			avisos = append(avisos, avisoDeSuPeriodo(*periodo.Aviso))
+		}
+	}
+
+	return avisos
 }
 
 // avisosDeLosLocales son los de los festivos locales que faltan, uno por

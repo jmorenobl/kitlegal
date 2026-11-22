@@ -1,0 +1,78 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Sin cambios de alcance en la corrección r1, que solo toca §C.1 (forma del precepto de un periodo, el YAML de los periodos de contencioso y civil, la frase sobre los fragmentos) y la regla 4 de §C.2. Cada entrega del hito sigue con su requisito: forma de data/plazos.yaml (FR-001, FR-002, §C.1); lpac y contencioso como datos, contencioso solo en meses y el 128.2 en el tipo (FR-003; §C.1 lo mantiene en el tipo contencioso: «bloque: a128, apartado: \"128.2\", fija: agosto»); el motor con lo fijo del ADR 0061 punto 4 (FR-004, FR-005, §C.3); municipios compuestos (FR-006, §C.4, §C.6); el error nuevo (FR-007, §C.6); avisos de periodo y CodigosDeAviso/EtiquetaDeAviso (FR-008, FR-009, §C.5); ningún código en Go (FR-010); esquema sin datos (FR-012, §C.7, §C.8); LeerTipos con las siete reglas del hito (FR-013, §C.2 reglas 1 a 7); el civil y sus vigente_desde (FR-014, FR-015); la tarea [datos] (FR-016); tests y contratos que cambian (FR-017, FR-018); CHANGELOG (FR-019); referencias iguales (FR-020); controles (FR-021 a FR-025). Que el precepto de un periodo sea {norma, apartado} es la forma de una clave que el hito deja al spec («Los nombres de las claves los fija el spec») y no añade comportamiento. Lo manipulado remite a la regla genérica (Edge Cases, último punto)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«## Fuera de alcance» (líneas 784-809) recoge entera la lista cerrada del hito: cómputos y unidades que no entran, lo que no es cómputo, lo de H9.1, lo de H42 y lo que no cambia, con lo decidido del art. 183 LOPJ (research S4). Añade lo que rechaza el ADR 0061, que no hay ADR nuevo ni se toca specs/023-h9-internal-core-plazos/, que no hay esquema JSON de data/plazos.yaml (research D17 de H9) y el aviso de periodo nuevo en schemas/eval.yaml.json. La corrección no añade nada que haya que excluir."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "gates/clarify-preguntas.json da {\"preguntas\":[]}, gates/clarify-respuestas.json da {\"respuestas\": []} y gates/clarify-rondas vale 1. «## Clarifications» dice «Ninguna en esta sesión». No hay ninguna respuesta que reflejar. El supuesto del corrector (gates/supuestos.md: el precepto de un periodo es {norma, apartado}, sin bloque) está aplicado en §C.1 y en la regla 4 de §C.2."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "La corrección no toca la aceptación. Los cuatro puntos de «Aceptación» del hito están literales en «Criterios del hito (literales)» (líneas 440-448) y como Dado/Cuando/Entonces: US1.1 y US1.2, US2.3, US3.1 y US3.6, US4.1. Los miden SC-001, SC-002, SC-003 y SC-005. Cada control del hito tiene su escenario y su comprobación en rojo: el data byte a byte (US1.2 a US1.6, FR-021); el esquema sin datos (US4.1 a US4.4); ningún código en Go (US3.6, FR-010); las propiedades (FR-024, SC-004); los goldens civiles con sus cinco mutantes (US2.4, §C.9); el ensayo con un mutante por eje (US3.2 a US3.5, §C.10); LeerTipos con una copia rota por regla (US5.2 a US5.4); los preceptos grabados (US6.2); referencias (SC-007) y evals (FR-025, SC-008). El registro en mutantes.md está en «Criterios del hito»."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "Se mantienen el contrato de códigos (el error nuevo es 2; §C.6 «Nunca 4, 5 ni 6»), el sobre y su hash (FR-011), --help y --describe sin cargar datos (FR-012), skills, protocolo, referencias y evals sin cambios (FR-020), la grabación solo del BOE consolidado con fila revisada y sin modelo (FR-016, Assumptions) y el principio X (FR-001 a FR-003, FR-010). La forma {norma, apartado} del precepto de un periodo no toca la forma de vigente_desde ni la regla del ADR 0042: el bloque, el fija y el vigente_desde son los del precepto nombrado (§C.1, líneas 539-541). No se reabre ningún ADR."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Las marcas [x] de checklists/requirements.md siguen siendo ciertas tras la corrección. No hay [NEEDS CLARIFICATION]. Cada FR acaba en «Comprobable:» (FR-001 a FR-025). SC-001 a SC-009 nombran la comprobación de make ci o del cierre. «la regla 4 de §C.2 precisa el caso de un cómputo sin tipos» sigue cierta con la redacción nueva («del cómputo o, si el cómputo tiene tipos, los de un precepto de cada uno de ellos»). Están en su sitio los casos límite (Edge Cases), el alcance (Fuera de alcance) y los supuestos (Assumptions). spec-precheck.txt está vacío (0 bytes): no hay defectos mecánicos."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "La corrección solo cambia la forma de una clave de datos ({norma, apartado}), que el hito deja al spec. LeerTipos, plazos.Calcular, CodigosDeAviso, EtiquetaDeAviso, go/ast y los ficheros de test los nombra el hito como contrato o como control. El spec no fija tipos de Go, firmas, paquetes ni cómo se resuelve la referencia del periodo al precepto."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 1 está corregido y la contradicción entre FR-017 y §C.1 desaparece. El precepto de un periodo es ahora «{norma, apartado}, sin bloque» (§C.1, líneas 539-541; YAML, líneas 558, 560, 567 y 568), y la regla 4 de §C.2 compara norma y apartado (líneas 594-595). Lo he comprobado contra el código en esta sesión. En data/plazos.yaml de hoy, «bloque: a128,» solo está en el tipo contencioso, así que con el fichero de §C.1 sigue apareciendo una vez. Con a129, el tipo conserva «apartado: \"128.2\"» y el periodo sigue nombrando un precepto suyo, así que LeerTipos lo lee sin defecto. Por eso, el subtest bloque-sin-grabar (internal/evals/grabaciones_test.go:968) llega a verificarPreceptos y da «contencioso: BOE-A-1998-16718 a129 no está grabado». TestLoQueLlevaALeerSinGrabar (internal/evals/preparar_test.go:1042-1056) encuentra el fragmento una vez y lee la copia sin error. Los demás fragmentos de TestPreceptosDeLosPlazos aparecen una sola vez con la forma nueva, porque el periodo no lleva «, fija:» tras el apartado: el bloque de reposicion (línea 948, con da tras duracion), «apartado: \"128.2\", fija: agosto, vigente_desde: \"1998-12-14\"» (983), «apartado: \"182.1\", …» (992) y «apartado: \"124.1\", …» (1001). La frase nueva de §C.1 (líneas 578-579) es cierta. tipos_test.go muta el fixture plazosDelContrato, que FR-017 deja cambiar. Lo demás sigue derivable como en la ronda 1: los mensajes byte a byte (§C.6, C7, C8, E12, E13), la ayuda (§C.7), los efectos (§C.3), el orden de los avisos (FR-008, §C.5) y los casos C1 a C10 y E1 a E13."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "La corrección no cambia ninguna salida. La sección «Quién consume cada salida, cuánto y hasta cuándo» (líneas 383-402) lo traza desde quien consume, y lo he comprobado contra la SKILL.md. El data lo pide plazos-y-territorio en su paso 9 (skills/plazos-y-territorio/SKILL.md:59, «el tipo, de la referencia del paquete»), una o dos veces por pregunta, y lo usa entero: la fecha, data.preceptos para el paso 10 y los avisos. Son 0,77 a 0,86 KB por llamada, sin caché ni grafo (FR-011): con cientos de normas y miles de bloques consultados, cada pregunta cuesta 1 o 2 × ~0,8 KB, hoy y al cabo de un mes. El aviso de periodo, unos 250 bytes, sale una vez por plazo y solo si el tramo toca el periodo, y deja de darse en la llamada cuyo tramo no lo toca (FR-008). El error de FR-007, unos 120 bytes, sale solo con una unidad que el cómputo no admite, y con los datos de hoy no se da. El esquema llega una vez por conexión, con 603 bytes de ayuda, y no crece con los datos (FR-012). El civil no lo consume nadie hasta H9.1 (US2.5). CodigosDeAviso crece con los avisos de periodo de los datos, no con el uso."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "La corrección no añade ni cambia umbrales. Cada umbral que se mide sin persona nombra la comprobación que sale en rojo:\n- SC-001 (100 % de casos y goldens): el test de cada golden y TestCasosDePlazos en make ci, «que salen en rojo ante la primera diferencia».\n- SC-002 (10 casos): el test de FR-023, «que sale en rojo con una fila distinta».\n- SC-003 (13 casos y 0 apariciones): el test del ensayo y el de FR-010.\n- SC-004 (100 % de la rejilla): TestPropiedadesDelComputo.\n- SC-005 (3 juegos y una copia rota por regla): el test de describe.json, TestEsquemasPublicados y los subtests de LeerTipos.\n- SC-006 (5 preceptos): TestPreceptosDeLosPlazos.\n- SC-007 (0 diferencias): regiones_test.go.\n- SC-008: el job de evals del cierre.\nLas cifras de tamaño de «Quién consume» se declaran medidas o estimaciones, no umbrales."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "§C.2 dice tras las reglas «y cada precepto con sus cinco datos». Leído al pie de la letra, abarcaría el `precepto` de un periodo, que §C.1 define con dos ({norma, apartado}); ya antes de r1 llevaba tres. La única lectura compatible con US5.1 es que el periodo nombra un precepto de `preceptos` o de `unidades`, que es el que tiene los cinco datos: así lo dice §C.1, «nombra el precepto con esa norma y ese apartado». Basta con que el plan lo diga.",
+    "La forma {norma, apartado} deja sin decir cuál es «ese precepto» si varios preceptos del cómputo o de sus tipos tienen la misma norma y el mismo apartado con otro bloque, otro fija u otro vigente_desde. Ejemplo: el 30.2 de lpac, con fija habiles en el cómputo y fija computo en las unidades de generico. Con los datos de hoy, el civil y el ensayo ningún periodo cae en ese caso, y no hay diferencia observable; lo resolverá quien traiga un periodo así (H9.1).",
+    "probarLosDatosQueNoSeLeen (H32, internal/skills/regiones_test.go:501) usa «tipos: []» como un data/plazos.yaml que no se lee. Con las reglas de §C.2 ese fichero sería válido, así que el plan tendrá que usar otra copia y declararlo. No es un test de H9.",
+    "TestGrabarEvals graba solo los conjuntos de conjuntosQueSeGraban (internal/evals/grabacion_test.go). Para el manifiesto de H36 de FR-016, el plan tendrá que ampliarlo o grabar por otra vía.",
+    "TestLoQueLlevaALeerSinGrabar (H26.1) y loQueLlevaALeerElRepositorio (grabaciones_test.go:1193) recorren tipo.Preceptos, tipo.Unidades y tipo.PreceptosDelComputo. Si el plan cambia esos campos de la API, tendrá que declarar esos cambios. FR-017 solo restringe los tests de H9.",
+    "FR-017 repite del hito «plazosDelContrato en calcular_test.go», pero la constante está en internal/core/plazos/tipos_test.go:18. Los dos ficheros están en la lista.",
+    "El Input y la consigna sitúan el hito en docs/roadmap/in-progress/, pero el fichero está en docs/roadmap/done/H36-el-motor-de-computo-descrito.md (commit 3c80c3f6). El contenido es el que cita el spec.",
+    "FR-009 ordena los avisos de periodo «en el orden de los cómputos … en el fichero», pero CodigosDeAviso recibe los tipos leídos, desde los que no se alcanza un cómputo sin tipos. Con los datos de hoy, ningún cómputo sin tipos tiene un periodo aviso.",
+    "Las decisiones que toma el spec (da obligatoria, los textos de municipio, las reglas 8 a 10, la gramática de §C.8, y ahora el precepto de un periodo sin bloque) están en Assumptions o en supuestos.md, y no en «## Clarifications» con el prefijo (auto)."
+  ],
+  "entrada": []
+}

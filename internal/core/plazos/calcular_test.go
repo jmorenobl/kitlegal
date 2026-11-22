@@ -228,12 +228,12 @@ func casosDePreceptosPosteriores() []casoDePreceptosPosteriores {
 	return []casoDePreceptosPosteriores{
 		{
 			nombre:   "la reposición antes de la LPAC",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2016-10-01", Municipios: los(villaPrimera, villaPrimera)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2016-10-01", Municipios: los(villaPrimera, villaPrimera)},
 			lineas:   append([]string{lineaDeUnPrecepto(lpac, "a124", "124.1", "2016-10-02")}, computoDeLaLPAC...),
 		},
 		{
 			nombre:   "el contencioso antes de la LO 14/2022",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2022-12-22", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2022-12-22", Municipios: los(villaPrimera)},
 			lineas: []string{
 				lineaDeUnPrecepto(lopj, "acientoochentaydos", "182.1", "2022-12-23"),
 				lineaDeUnPrecepto(lopj, "acientoochentaytres", "183", "2022-12-23"),
@@ -242,14 +242,14 @@ func casosDePreceptosPosteriores() []casoDePreceptosPosteriores {
 		{
 			nombre: "el acceso con la LTAIBG y sin la LPAC",
 			peticion: Peticion{
-				Tipo: TipoAccesoResolver, Inicio: "2015-06-01", Municipios: los(villaPrimera, villaPrimera),
+				Tipo: "acceso-resolver", Inicio: "2015-06-01", Municipios: los(villaPrimera, villaPrimera),
 			},
 			lineas: computoDeLaLPAC,
 		},
 		{
 			nombre: "el genérico, con el precepto de su unidad una vez",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2010-01-15", Duracion: "2", Unidad: "meses",
+				Tipo: "generico", Inicio: "2010-01-15", Duracion: "2", Unidad: "meses",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			lineas: []string{
@@ -297,10 +297,10 @@ func comprobarPreceptosPosteriores(t *testing.T, calendario *Calendario, tipos [
 
 	for nombre, peticion := range map[string]Peticion{
 		"la reposición el día en que entra en vigor la LPAC": {
-			Tipo: TipoReposicion, Inicio: "2016-10-02", Municipios: los(villaPrimera, villaPrimera),
+			Tipo: "reposicion", Inicio: "2016-10-02", Municipios: los(villaPrimera, villaPrimera),
 		},
 		"el contencioso el día de la LO 14/2022": {
-			Tipo: TipoContencioso, Inicio: "2022-12-23", Municipios: los(villaPrimera),
+			Tipo: "contencioso", Inicio: "2022-12-23", Municipios: los(villaPrimera),
 		},
 	} {
 		t.Run(nombre, func(t *testing.T) {
@@ -320,13 +320,13 @@ func comprobarPlazoEntero(t *testing.T, calendario *Calendario, tipos []Tipo) {
 	t.Helper()
 
 	plazo, err := Calcular(calendario, tipos, Peticion{
-		Tipo: TipoReposicion, Inicio: "2031-09-10", Municipios: los(villaPrimera, villaPrimera),
+		Tipo: "reposicion", Inicio: "2031-09-10", Municipios: los(villaPrimera, villaPrimera),
 	})
 	require.NoError(t, err)
 
 	assert.Equal(t, Plazo{
 		Fecha:      "2031-10-14",
-		Tipo:       TipoReposicion,
+		Tipo:       "reposicion",
 		Preceptos:  []PreceptoDelPlazo{precepto124},
 		Municipios: []MunicipioDelPlazo{{CodigoINE: "71001", Nombre: "Villa Primera"}},
 		Festivos: []FestivoSaltado{
@@ -341,7 +341,7 @@ func comprobarPlazoEntero(t *testing.T, calendario *Calendario, tipos []Tipo) {
 	}, plazo)
 
 	otraVez, err := Calcular(calendario, tipos, Peticion{
-		Tipo: TipoReposicion, Inicio: "2031-09-10", Municipios: los(villaPrimera, villaPrimera),
+		Tipo: "reposicion", Inicio: "2031-09-10", Municipios: los(villaPrimera, villaPrimera),
 	})
 	require.NoError(t, err)
 	assert.Equal(t, plazo, otraVez, "la misma petición da el mismo plazo")
@@ -368,20 +368,20 @@ func casosDelComputo() []casoDeComputo {
 	return []casoDeComputo{
 		{
 			nombre:    "art. 30.6: el festivo local del interesado es inhábil para el cómputo",
-			peticion:  Peticion{Tipo: TipoAlzada, Inicio: "2031-09-10", Municipios: los(villaPrimera, villaSegunda)},
+			peticion:  Peticion{Tipo: "alzada", Inicio: "2031-09-10", Municipios: los(villaPrimera, villaSegunda)},
 			fecha:     "2031-10-14",
 			festivos:  octubre,
 			preceptos: []PreceptoDelPlazo{precepto122},
 		},
 		{
 			nombre:   "art. 30.6: el festivo local de la sede es inhábil para el cómputo",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2031-10-10", Municipios: los(villaPrimera, villaSegunda)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2031-10-10", Municipios: los(villaPrimera, villaSegunda)},
 			fecha:    "2031-11-11",
 			festivos: []FestivoSaltado{festivoLocal("2031-11-10", "71002", "PRUEBA-L-2")},
 		},
 		{
 			nombre:    "art. 30.6: el autonómico de la comunidad de la sede es inhábil",
-			peticion:  Peticion{Tipo: TipoAccesoResolver, Inicio: "2031-02-19", Municipios: los(villaPrimera, puertoMarino)},
+			peticion:  Peticion{Tipo: "acceso-resolver", Inicio: "2031-02-19", Municipios: los(villaPrimera, puertoMarino)},
 			fecha:     "2031-03-20",
 			festivos:  []FestivoSaltado{festivoAutonomico("2031-03-19", "PRUEBA-N-2031")},
 			avisos:    []string{AvisoFaltanLocales},
@@ -389,19 +389,19 @@ func casosDelComputo() []casoDeComputo {
 		},
 		{
 			nombre:    "el autonómico de otra comunidad es hábil",
-			peticion:  Peticion{Tipo: TipoAccesoReclamar, Inicio: "2031-02-19", Municipios: los(villaPrimera, villaPrimera)},
+			peticion:  Peticion{Tipo: "acceso-reclamar", Inicio: "2031-02-19", Municipios: los(villaPrimera, villaPrimera)},
 			fecha:     "2031-03-19",
 			preceptos: []PreceptoDelPlazo{precepto24LTAIBG},
 		},
 		{
 			nombre:   "art. 30.5: el último día en sábado se prorroga al lunes",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera)},
 			fecha:    "2031-10-06",
 		},
 		{
 			nombre: "art. 30.4: el mes sin el día equivalente vence el último",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-01-31", Duracion: "1", Unidad: "meses",
+				Tipo: "generico", Inicio: "2031-01-31", Duracion: "1", Unidad: "meses",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:     "2031-02-28",
@@ -410,7 +410,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "art. 30.4 y 30.5: el último día del mes, en domingo, se prorroga",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-10-31", Duracion: "1", Unidad: "meses",
+				Tipo: "generico", Inicio: "2031-10-31", Duracion: "1", Unidad: "meses",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha: "2031-12-01",
@@ -418,7 +418,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "art. 30.2: los días naturales cuentan los inhábiles y el último se prorroga",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-09-25", Duracion: "15", Unidad: "dias-naturales",
+				Tipo: "generico", Inicio: "2031-09-25", Duracion: "15", Unidad: "dias-naturales",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:     "2031-10-14",
@@ -428,7 +428,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "art. 30.2: los días hábiles saltan los festivos del tramo",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-10-08", Duracion: "5", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2031-10-08", Duracion: "5", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:     "2031-10-17",
@@ -438,7 +438,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "FR-002: se cuenta desde el día siguiente al de inicio",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-10-16", Duracion: "1", Unidad: "dias-naturales",
+				Tipo: "generico", Inicio: "2031-10-16", Duracion: "1", Unidad: "dias-naturales",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha: "2031-10-17",
@@ -446,7 +446,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "un festivo en sábado no es un festivo saltado",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2032-12-23", Duracion: "2", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2032-12-23", Duracion: "2", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:  "2032-12-27",
@@ -455,7 +455,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "el silencio en meses: el día siguiente al vencimiento prorrogado",
 			peticion: Peticion{
-				Tipo: TipoSilencio, Inicio: "2031-07-10", Duracion: "3", Unidad: "meses",
+				Tipo: "silencio", Inicio: "2031-07-10", Duracion: "3", Unidad: "meses",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:     "2031-10-15",
@@ -465,7 +465,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "el silencio en días hábiles: el día siguiente, aunque sea sábado",
 			peticion: Peticion{
-				Tipo: TipoSilencio, Inicio: "2031-10-08", Duracion: "5", Unidad: "dias-habiles",
+				Tipo: "silencio", Inicio: "2031-10-08", Duracion: "5", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:     "2031-10-18",
@@ -475,7 +475,7 @@ func casosDelComputo() []casoDeComputo {
 		{
 			nombre: "el silencio en días naturales",
 			peticion: Peticion{
-				Tipo: TipoSilencio, Inicio: "2031-09-25", Duracion: "15", Unidad: "dias-naturales",
+				Tipo: "silencio", Inicio: "2031-09-25", Duracion: "15", Unidad: "dias-naturales",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha:    "2031-10-15",
@@ -491,69 +491,69 @@ func casosDelContencioso() []casoDeComputo {
 	return []casoDeComputo{
 		{
 			nombre:    "agosto no corre: el vencimiento pasa al mismo día del mes siguiente",
-			peticion:  Peticion{Tipo: TipoContencioso, Inicio: "2031-06-16", Municipios: los(villaPrimera)},
+			peticion:  Peticion{Tipo: "contencioso", Inicio: "2031-06-16", Municipios: los(villaPrimera)},
 			fecha:     "2031-09-16",
 			preceptos: []PreceptoDelPlazo{precepto46, precepto128},
 		},
 		{
 			nombre:   "una notificación de agosto cuenta desde el 31 de agosto",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-08-05", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-08-05", Municipios: los(villaPrimera)},
 			fecha:    "2031-10-31",
 		},
 		{
 			nombre:   "si el día siguiente es de agosto, también desde el 31",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-07-31", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-07-31", Municipios: los(villaPrimera)},
 			fecha:    "2031-10-31",
 		},
 		{
 			// El art. 182.1 LOPJ grabado no enumera el 24 ni el 31 de diciembre
 			// entre los inhábiles (research S4 de H9): el plazo acaba en ellos.
 			nombre:   "art. 182.1: el 24 de diciembre no es inhábil",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-24", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-10-24", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-24",
-			avisos:   []string{AvisoDiasDelArt183},
+			avisos:   []string{"dias-del-art-183-lopj"},
 		},
 		{
 			nombre:   "art. 182.1: el 31 de diciembre no es inhábil",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-31", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-10-31", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-31",
-			avisos:   []string{AvisoDiasDelArt183},
+			avisos:   []string{"dias-del-art-183-lopj"},
 		},
 		{
 			nombre:   "art. 185.2: la prórroga salta la Navidad",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-25", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-10-25", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-26",
 			festivos: []FestivoSaltado{festivoNacional("2031-12-25", "PRUEBA-N-2031")},
-			avisos:   []string{AvisoDiasDelArt183},
+			avisos:   []string{"dias-del-art-183-lopj"},
 		},
 		{
 			nombre:   "art. 185.2: la prórroga cambia de año",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-11-01", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-11-01", Municipios: los(villaPrimera)},
 			fecha:    "2032-01-02",
 			festivos: []FestivoSaltado{festivoNacional("2032-01-01", "PRUEBA-N-2032")},
-			avisos:   []string{AvisoFaltanLocales, AvisoDiasDelArt183},
+			avisos:   []string{AvisoFaltanLocales, "dias-del-art-183-lopj"},
 		},
 		{
 			nombre:   "art. 183: los días del 24 de diciembre al 6 de enero se cuentan",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-11-20", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-11-20", Municipios: los(villaPrimera)},
 			fecha:    "2032-01-20",
-			avisos:   []string{AvisoFaltanLocales, AvisoDiasDelArt183},
+			avisos:   []string{AvisoFaltanLocales, "dias-del-art-183-lopj"},
 		},
 		{
 			nombre:   "art. 185.2: el sábado, el domingo y la fiesta nacional",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-06", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-10-06", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-09",
 			festivos: []FestivoSaltado{festivoNacional("2031-12-08", "PRUEBA-N-2031")},
 		},
 		{
 			nombre:   "art. 182.1: el festivo local de la sede",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-03-15", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-03-15", Municipios: los(villaPrimera)},
 			fecha:    "2031-05-16",
 			festivos: []FestivoSaltado{festivoLocal("2031-05-15", "71001", "PRUEBA-L-1")},
 		},
 		{
 			nombre:   "art. 182.1: el autonómico de la comunidad de la sede",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-03-02", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-03-02", Municipios: los(villaPrimera)},
 			fecha:    "2031-05-05",
 			festivos: []FestivoSaltado{festivoAutonomico("2031-05-02", "PRUEBA-N-2031")},
 		},
@@ -642,7 +642,7 @@ func casosDeAvisos() []casoDeAvisos {
 		casoDeAvisos{
 			nombre: "un festivo de una parte de la comunidad cuenta como hábil y avisa",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
 				Municipios: los(puertoMarino, puertoMarino),
 			},
 			fecha: "2031-06-24",
@@ -654,7 +654,7 @@ func casosDeAvisos() []casoDeAvisos {
 		casoDeAvisos{
 			nombre: "el aviso de una parte nombra solo el municipio de esa comunidad",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, puertoMarino),
 			},
 			fecha: "2031-06-24",
@@ -666,7 +666,7 @@ func casosDeAvisos() []casoDeAvisos {
 		casoDeAvisos{
 			nombre: "un festivo de una parte de otra comunidad no avisa",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2031-06-23", Duracion: "1", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha: "2031-06-24",
@@ -674,7 +674,7 @@ func casosDeAvisos() []casoDeAvisos {
 		casoDeAvisos{
 			nombre: "un festivo de una parte en sábado no se ha contado como hábil y no avisa",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-06-26", Duracion: "2", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2031-06-26", Duracion: "2", Unidad: "dias-habiles",
 				Municipios: los(puertoMarino, puertoMarino),
 			},
 			fecha:  "2031-06-30",
@@ -682,9 +682,9 @@ func casosDeAvisos() []casoDeAvisos {
 		},
 		casoDeAvisos{
 			nombre:   "el art. 183 solo avisa en el contencioso",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-24", Municipios: los(villaPrimera)},
+			peticion: Peticion{Tipo: "contencioso", Inicio: "2031-10-24", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-24",
-			avisos: []Aviso{{Codigo: AvisoDiasDelArt183, Texto: "⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días " +
+			avisos: []Aviso{{Codigo: "dias-del-art-183-lopj", Texto: "⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días " +
 				"del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones " +
 				"judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los " +
 				"excluye del plazo para interponer el recurso. La fecha es la más temprana posible."}},
@@ -699,7 +699,7 @@ func casosDeCobertura() []casoDeAvisos {
 		{
 			nombre: "los años anteriores a los cargados, de los dos ámbitos",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2030-12-30", Duracion: "3", Unidad: "dias-habiles",
+				Tipo: "generico", Inicio: "2030-12-30", Duracion: "3", Unidad: "dias-habiles",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha: "2031-01-03",
@@ -721,7 +721,7 @@ func casosDeCobertura() []casoDeAvisos {
 		{
 			nombre: "un tramo de años después de los cargados",
 			peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2032-12-20", Duracion: "14", Unidad: "meses",
+				Tipo: "generico", Inicio: "2032-12-20", Duracion: "14", Unidad: "meses",
 				Municipios: los(villaPrimera, villaPrimera),
 			},
 			fecha: "2034-02-20",
@@ -741,7 +741,7 @@ func casosDeCobertura() []casoDeAvisos {
 		},
 		{
 			nombre:   "un municipio de una comunidad sin festivos locales",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2031-09-10", Municipios: los(puertoMarino, puertoMarino)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2031-09-10", Municipios: los(puertoMarino, puertoMarino)},
 			fecha:    "2031-10-10",
 			avisos:   []Aviso{{Codigo: AvisoFaltanLocales, Texto: textoLocalesDePuerto}},
 			cobertura: []TramoDeCobertura{
@@ -751,7 +751,7 @@ func casosDeCobertura() []casoDeAvisos {
 		},
 		{
 			nombre:   "la línea que no se lee y la que no está, una por municipio",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2031-09-10", Municipios: los(villaCuarta, villaQuinta)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2031-09-10", Municipios: los(villaCuarta, villaQuinta)},
 			fecha:    "2031-10-10",
 			avisos: []Aviso{
 				{Codigo: AvisoFaltanLocales, Texto: "⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de Villa " +
@@ -769,7 +769,7 @@ func casosDeCobertura() []casoDeAvisos {
 		},
 		{
 			nombre:   "no comunicado y sin cargar, en un aviso; los locales por fecha y después por municipio",
-			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2031-12-15", Municipios: los(villaPrimera, villaTercera)},
+			peticion: Peticion{Tipo: "reposicion", Inicio: "2031-12-15", Municipios: los(villaPrimera, villaTercera)},
 			fecha:    "2032-01-15",
 			avisos: []Aviso{
 				{Codigo: AvisoFaltanLocales, Texto: "⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de Villa " +
@@ -812,81 +812,81 @@ func erroresDeArgumentos() []casoDeError {
 			Municipios: dos,
 		}, nombra: []string{`"inventado"`, "alzada", "generico"}},
 		{nombre: "la fecha no es AAAA-MM-DD", peticion: Peticion{
-			Tipo: TipoAlzada, Inicio: "10/09/2031",
+			Tipo: "alzada", Inicio: "10/09/2031",
 			Municipios: dos,
 		}, nombra: []string{`"10/09/2031"`, "AAAA-MM-DD"}},
 		{nombre: "la fecha sin ceros", peticion: Peticion{
-			Tipo: TipoAlzada, Inicio: "2031-9-10",
+			Tipo: "alzada", Inicio: "2031-9-10",
 			Municipios: dos,
 		}, nombra: []string{`"2031-9-10"`, "AAAA-MM-DD"}},
 		{nombre: "la fecha con barras", peticion: Peticion{
-			Tipo: TipoAlzada, Inicio: "2031/09/10",
+			Tipo: "alzada", Inicio: "2031/09/10",
 			Municipios: dos,
 		}, nombra: []string{`"2031/09/10"`, "AAAA-MM-DD"}},
 		{nombre: "la fecha no es un día del calendario", peticion: Peticion{
-			Tipo: TipoAlzada, Inicio: "2031-02-29",
+			Tipo: "alzada", Inicio: "2031-02-29",
 			Municipios: dos,
 		}, nombra: []string{`"2031-02-29"`, "día del calendario"}},
 		{nombre: "falta la duración", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-09-10",
+			Tipo: "generico", Inicio: "2031-09-10",
 			Unidad: "dias-habiles", Municipios: dos,
 		}, nombra: []string{`"generico"`, "duración"}},
 		{nombre: "la duración no es entera", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-09-10",
+			Tipo: "generico", Inicio: "2031-09-10",
 			Duracion: "1.5", Unidad: "dias-habiles", Municipios: dos,
 		}, nombra: []string{`"1.5"`, "entero positivo"}},
 		{nombre: "la duración es cero", peticion: Peticion{
-			Tipo: TipoSilencio, Inicio: "2031-09-10",
+			Tipo: "silencio", Inicio: "2031-09-10",
 			Duracion: "0", Unidad: "meses", Municipios: dos,
 		}, nombra: []string{`"0"`, "entero positivo"}},
 		{nombre: "la duración es negativa", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-09-10",
+			Tipo: "generico", Inicio: "2031-09-10",
 			Duracion: "-3", Unidad: "meses", Municipios: dos,
 		}, nombra: []string{`"-3"`, "entero positivo"}},
 		{
 			nombre: "la duración no cabe en un entero", peticion: Peticion{
-				Tipo: TipoGenerico, Inicio: "2031-09-10",
+				Tipo: "generico", Inicio: "2031-09-10",
 				Duracion: "99999999999999999999", Unidad: "meses", Municipios: dos,
 			},
 			nombra: []string{`"99999999999999999999"`, "entero positivo"},
 		},
 		{nombre: "la duración a un tipo que la fija", peticion: Peticion{
-			Tipo: TipoReposicion, Inicio: "2031-09-10",
+			Tipo: "reposicion", Inicio: "2031-09-10",
 			Duracion: "2", Municipios: dos,
 		}, nombra: []string{`"reposicion"`, `"2"`}},
 		{nombre: "falta la unidad", peticion: Peticion{
-			Tipo: TipoSilencio, Inicio: "2031-09-10",
+			Tipo: "silencio", Inicio: "2031-09-10",
 			Duracion: "3", Municipios: dos,
 		}, nombra: []string{`"3"`, "unidad", "dias-habiles"}},
 		{nombre: "la unidad no es del vocabulario", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-09-10",
+			Tipo: "generico", Inicio: "2031-09-10",
 			Duracion: "3", Unidad: "semanas", Municipios: dos,
 		}, nombra: []string{`"semanas"`, "dias-naturales"}},
 		{nombre: "la unidad a un tipo que la fija", peticion: Peticion{
-			Tipo: TipoReposicion, Inicio: "2031-09-10",
+			Tipo: "reposicion", Inicio: "2031-09-10",
 			Unidad: "meses", Municipios: dos,
 		}, nombra: []string{`"reposicion"`, `"meses"`}},
 		{nombre: "un municipio en un plazo de la LPAC", peticion: Peticion{
-			Tipo:   TipoReposicion,
+			Tipo:   "reposicion",
 			Inicio: "2031-09-10", Municipios: los(villaPrimera),
 		}, nombra: []string{`"reposicion"`, "dos", "1"}},
 		{
 			nombre: "tres municipios en un plazo de la LPAC", peticion: Peticion{
-				Tipo:   TipoAlzada,
+				Tipo:   "alzada",
 				Inicio: "2031-09-10", Municipios: los(villaPrimera, villaSegunda, villaTercera),
 			},
 			nombra: []string{`"alzada"`, "dos", "3"},
 		},
 		{nombre: "ningún municipio en un plazo de la LPAC", peticion: Peticion{
-			Tipo:   TipoGenerico,
+			Tipo:   "generico",
 			Inicio: "2031-09-10", Duracion: "3", Unidad: "meses",
 		}, nombra: []string{`"generico"`, "dos", "0"}},
 		{nombre: "dos municipios en el contencioso", peticion: Peticion{
-			Tipo:   TipoContencioso,
+			Tipo:   "contencioso",
 			Inicio: "2031-09-10", Municipios: dos,
 		}, nombra: []string{`"contencioso"`, "un municipio", "2"}},
 		{nombre: "ningún municipio en el contencioso", peticion: Peticion{
-			Tipo:   TipoContencioso,
+			Tipo:   "contencioso",
 			Inicio: "2031-09-10",
 		}, nombra: []string{`"contencioso"`, "un municipio", "0"}},
 	}
@@ -902,20 +902,20 @@ func ordenDeLosErrores() []casoDeError {
 			Municipios: los(villaPrimera),
 		}, nombra: []string{`"inventado"`}, calla: []string{"2031-02-30"}},
 		{nombre: "la fecha antes que la duración", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-02-30",
+			Tipo: "generico", Inicio: "2031-02-30",
 			Duracion: "x", Unidad: "meses",
 		}, nombra: []string{`"2031-02-30"`}, calla: []string{`"x"`}},
 		{nombre: "la duración antes que la unidad", peticion: Peticion{
-			Tipo: TipoGenerico, Inicio: "2031-09-10",
+			Tipo: "generico", Inicio: "2031-09-10",
 			Duracion: "x", Unidad: "semanas",
 		}, nombra: []string{`"x"`}, calla: []string{"semanas"}},
 		{nombre: "la duración de más antes que la unidad de más", peticion: Peticion{
-			Tipo:   TipoReposicion,
+			Tipo:   "reposicion",
 			Inicio: "2031-09-10", Duracion: "2", Unidad: "meses",
 		}, nombra: []string{`"2"`}, calla: []string{"meses"}},
 		{
 			nombre: "la unidad antes que el número de municipios", peticion: Peticion{
-				Tipo:   TipoGenerico,
+				Tipo:   "generico",
 				Inicio: "2031-09-10", Duracion: "3", Unidad: "semanas", Municipios: los(villaPrimera),
 			},
 			nombra: []string{`"semanas"`}, calla: []string{"dos municipios"},
@@ -974,21 +974,21 @@ func comprobarElUltimoDia(t *testing.T, calendario *Calendario, tipos []Tipo) {
 	dos := los(villaPrimera, villaPrimera)
 
 	plazo, err := Calcular(calendario, tipos, Peticion{
-		Tipo: TipoGenerico, Inicio: "9999-12-30", Duracion: "1",
+		Tipo: "generico", Inicio: "9999-12-30", Duracion: "1",
 		Unidad: "dias-naturales", Municipios: dos,
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "9999-12-31", plazo.Fecha)
 
 	for nombre, peticion := range map[string]Peticion{
-		"días naturales":      {Tipo: TipoGenerico, Inicio: "2031-01-01", Duracion: "999999999", Unidad: "dias-naturales", Municipios: dos},
-		"meses":               {Tipo: TipoGenerico, Inicio: "2031-01-01", Duracion: "100000", Unidad: "meses", Municipios: dos},
-		"días hábiles de más": {Tipo: TipoGenerico, Inicio: "2031-01-01", Duracion: "4000000", Unidad: "dias-habiles", Municipios: dos},
-		"días hábiles que el fin de semana lleva al final": {Tipo: TipoGenerico, Inicio: "9999-12-24", Duracion: "7", Unidad: "dias-habiles", Municipios: dos},
+		"días naturales":      {Tipo: "generico", Inicio: "2031-01-01", Duracion: "999999999", Unidad: "dias-naturales", Municipios: dos},
+		"meses":               {Tipo: "generico", Inicio: "2031-01-01", Duracion: "100000", Unidad: "meses", Municipios: dos},
+		"días hábiles de más": {Tipo: "generico", Inicio: "2031-01-01", Duracion: "4000000", Unidad: "dias-habiles", Municipios: dos},
+		"días hábiles que el fin de semana lleva al final": {Tipo: "generico", Inicio: "9999-12-24", Duracion: "7", Unidad: "dias-habiles", Municipios: dos},
 		"el día siguiente del silencio": {
-			Tipo: TipoSilencio, Inicio: "9999-12-30", Duracion: "1", Unidad: "dias-naturales", Municipios: dos,
+			Tipo: "silencio", Inicio: "9999-12-30", Duracion: "1", Unidad: "dias-naturales", Municipios: dos,
 		},
-		"el contencioso": {Tipo: TipoContencioso, Inicio: "9999-11-15", Municipios: los(villaPrimera)},
+		"el contencioso": {Tipo: "contencioso", Inicio: "9999-11-15", Municipios: los(villaPrimera)},
 	} {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
@@ -1007,7 +1007,7 @@ func comprobarElUltimoDia(t *testing.T, calendario *Calendario, tipos []Tipo) {
 		require.NoError(t, err)
 
 		comprobarQuePasaDelUltimoDia(t, conElUltimoDiaFestivo, tipos,
-			Peticion{Tipo: TipoContencioso, Inicio: "9999-10-31", Municipios: los(villaPrimera)})
+			Peticion{Tipo: "contencioso", Inicio: "9999-10-31", Municipios: los(villaPrimera)})
 	})
 }
 
@@ -1044,13 +1044,13 @@ func TestComprobarPeticion(t *testing.T) {
 	tipos := tiposDelContrato(t)
 
 	require.NoError(t, ComprobarPeticion(tipos, Peticion{
-		Tipo: TipoReposicion, Inicio: "2026-09-09", Municipios: make([]MunicipioResuelto, 2),
+		Tipo: "reposicion", Inicio: "2026-09-09", Municipios: make([]MunicipioResuelto, 2),
 	}))
 	require.NoError(t, ComprobarPeticion(tipos, Peticion{
-		Tipo: TipoContencioso, Inicio: "2026-06-15", Municipios: make([]MunicipioResuelto, 1),
+		Tipo: "contencioso", Inicio: "2026-06-15", Municipios: make([]MunicipioResuelto, 1),
 	}))
 
-	err := ComprobarPeticion(tipos, Peticion{Tipo: TipoContencioso, Inicio: "2026-06-15"})
+	err := ComprobarPeticion(tipos, Peticion{Tipo: "contencioso", Inicio: "2026-06-15"})
 	require.Error(t, err)
 	comprobarClaseArgumentos(t, err)
 	assert.Contains(t, err.Error(), "un municipio")

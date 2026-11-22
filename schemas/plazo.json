@@ -32,12 +32,7 @@
           "additionalProperties": false,
           "properties": {
             "codigo": {
-              "enum": [
-                "faltan-festivos-nacionales-y-autonomicos",
-                "faltan-festivos-locales",
-                "dias-del-art-183-lopj",
-                "festivo-de-una-parte"
-              ],
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
               "type": "string"
             },
             "texto": {
@@ -141,15 +136,7 @@
               "type": "array"
             },
             "tipo": {
-              "enum": [
-                "alzada",
-                "reposicion",
-                "contencioso",
-                "acceso-resolver",
-                "acceso-reclamar",
-                "silencio",
-                "generico"
-              ],
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
               "type": "string"
             }
           },
@@ -246,18 +233,18 @@
               "type": "boolean"
             },
             "duracion": {
-              "description": "Duración, un entero positivo; solo, y siempre, en silencio y generico.",
+              "description": "Duración, un entero positivo; solo, y siempre, en los tipos que la reciben, que dicen las referencias del paquete.",
               "type": "string"
             },
             "inicio": {
-              "description": "Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud.",
+              "description": "Fecha de inicio, AAAA-MM-DD: qué fecha es en cada tipo lo dicen las referencias del paquete.",
               "type": "string"
             },
             "json": {
               "type": "boolean"
             },
             "municipios": {
-              "description": "Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado.",
+              "description": "Municipios que cuentan, por su nombre o su código INE: cuántos y cuáles pide el cómputo de cada tipo lo dicen las referencias del paquete.",
               "items": {
                 "type": "string"
               },
@@ -273,11 +260,11 @@
               "type": "string"
             },
             "tipo": {
-              "description": "Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico.",
+              "description": "Tipo de plazo, por su código: los tipos y el cómputo con que se cuenta cada uno están en las referencias del paquete.",
               "type": "string"
             },
             "unidad": {
-              "description": "Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico.",
+              "description": "Unidad de la duración: meses, dias-habiles o dias-naturales, una que admita el cómputo del tipo; solo, y siempre, con la duración.",
               "type": "string"
             },
             "verbose": {

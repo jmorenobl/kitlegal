@@ -36,11 +36,11 @@ stdout '^        "verbose": \{\n          "type": "boolean"\n        \}\n      \
 
 # --- plazos calcular: tipo, inicio, municipios, duracion y unidad ---
 exec $KITLEGAL_BIN plazos calcular x x x --describe
-stdout '^        "tipo": \{\n          "type": "string",\n          "description": "Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico\."\n        \},$'
-stdout '^        "inicio": \{\n          "type": "string",\n          "description": "Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud\."\n        \},$'
-stdout '^        "municipios": \{\n          "items": \{\n            "type": "string"\n          \},\n          "type": "array",\n          "description": "Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado\."\n        \},$'
-stdout '^        "duracion": \{\n          "type": "string",\n          "description": "Duración, un entero positivo; solo, y siempre, en silencio y generico\."\n        \},$'
-stdout '^        "unidad": \{\n          "type": "string",\n          "description": "Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico\."\n        \},$'
+stdout '^        "tipo": \{\n          "type": "string",\n          "description": "Tipo de plazo, por su código: los tipos y el cómputo con que se cuenta cada uno están en las referencias del paquete\."\n        \},$'
+stdout '^        "inicio": \{\n          "type": "string",\n          "description": "Fecha de inicio, AAAA-MM-DD: qué fecha es en cada tipo lo dicen las referencias del paquete\."\n        \},$'
+stdout '^        "municipios": \{\n          "items": \{\n            "type": "string"\n          \},\n          "type": "array",\n          "description": "Municipios que cuentan, por su nombre o su código INE: cuántos y cuáles pide el cómputo de cada tipo lo dicen las referencias del paquete\."\n        \},$'
+stdout '^        "duracion": \{\n          "type": "string",\n          "description": "Duración, un entero positivo; solo, y siempre, en los tipos que la reciben, que dicen las referencias del paquete\."\n        \},$'
+stdout '^        "unidad": \{\n          "type": "string",\n          "description": "Unidad de la duración: meses, dias-habiles o dias-naturales, una que admita el cómputo del tipo; solo, y siempre, con la duración\."\n        \},$'
 
 # --- skills install: la ayuda de --global, con $HOME literal ---
 exec $KITLEGAL_BIN skills install --describe

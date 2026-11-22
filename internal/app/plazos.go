@@ -130,11 +130,11 @@ func (a appletPlazos) Verbos() []Verbo {
 // (research.md D2 y V12 de H9). Ninguna otra bandera propia: el applet hereda
 // las ocho globales.
 type argumentosDeCalcular struct {
-	Tipo       string   `arg:"" name:"tipo" help:"Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico."`
-	Inicio     string   `arg:"" name:"inicio" help:"Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud."`
-	Municipios []string `arg:"" name:"municipios" help:"Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado."`
-	Duracion   string   `placeholder:"<n>" help:"Duración, un entero positivo; solo, y siempre, en silencio y generico."`
-	Unidad     string   `placeholder:"<unidad>" help:"Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico."`
+	Tipo       string   `arg:"" name:"tipo" help:"Tipo de plazo, por su código: los tipos y el cómputo con que se cuenta cada uno están en las referencias del paquete."`
+	Inicio     string   `arg:"" name:"inicio" help:"Fecha de inicio, AAAA-MM-DD: qué fecha es en cada tipo lo dicen las referencias del paquete."`
+	Municipios []string `arg:"" name:"municipios" help:"Municipios que cuentan, por su nombre o su código INE: cuántos y cuáles pide el cómputo de cada tipo lo dicen las referencias del paquete."`
+	Duracion   string   `placeholder:"<n>" help:"Duración, un entero positivo; solo, y siempre, en los tipos que la reciben, que dicen las referencias del paquete."`
+	Unidad     string   `placeholder:"<unidad>" help:"Unidad de la duración: meses, dias-habiles o dias-naturales, una que admita el cómputo del tipo; solo, y siempre, con la duración."`
 
 	cargado func() (*plazosCargados, error)
 }

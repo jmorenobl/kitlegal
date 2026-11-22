@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-22T03:02:49Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2000-323/texto/bloque/a130",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "5850"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 22 Nov 2026 03:02:49 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a130\" tipo=\"precepto\" titulo=\"Artículo 130\">\n      <version id_norma=\"BOE-A-2000-323\" fecha_publicacion=\"20000108\" fecha_vigencia=\"20010108\">\n        <p class=\"articulo\">Artículo 130. Días y horas hábiles.</p>\n        <p class=\"parrafo\">1. Las actuaciones judiciales habrán de practicarse en días y horas hábiles.</p>\n        <p class=\"parrafo\">2. Son días hábiles todos los del año, excepto los domingos, los días de fiesta nacional y los festivos a efectos laborales en la respectiva Comunidad Autónoma o localidad. También serán inhábiles los días del mes de agosto.</p>\n        <p class=\"parrafo\">3. Se entiende por horas hábiles las que median desde las ocho de la mañana a las ocho de la tarde, salvo que la ley, para una actuación concreta, disponga otra cosa.</p>\n        <p class=\"parrafo\">Para los actos de comunicación y ejecución también se considerarán horas hábiles las que transcurren desde las ocho hasta las diez de la noche.</p>\n      </version>\n      <version id_norma=\"BOE-A-2009-17493\" fecha_publicacion=\"20091104\" fecha_vigencia=\"20100504\">\n        <p class=\"articulo\">Artículo 130. Días y horas hábiles.</p>\n        <p class=\"parrafo\">1. Las actuaciones judiciales habrán de practicarse en días y horas hábiles.</p>\n        <p class=\"parrafo\">2. Son días inhábiles a efectos procesales los sábados y domingos, y los días 24 y 31 de diciembre, los días de fiesta nacional y los festivos a efectos laborales en la respectiva Comunidad Autónoma o localidad. También serán inhábiles los días del mes de agosto.</p>\n        <p class=\"parrafo\">3. Se entiende por horas hábiles las que median desde las ocho de la mañana a las ocho de la tarde, salvo que la ley, para una actuación concreta, disponga otra cosa.</p>\n        <p class=\"parrafo\">Para los actos de comunicación y ejecución también se considerarán horas hábiles las que transcurren desde las ocho hasta las diez de la noche.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica el apartado 2 por el art. 15.66 de la Ley 13/2009, de 3 de noviembre. <a class=\"refPost\">Ref. BOE-A-2009-17493</a></p>\n        </blockquote>\n      </version>\n      <version id_norma=\"BOE-A-2015-10727\" fecha_publicacion=\"20151006\" fecha_vigencia=\"20151007\">\n        <p class=\"articulo\">Artículo 130. Días y horas hábiles.</p>\n        <p class=\"parrafo\">1. Las actuaciones judiciales habrán de practicarse en días y horas hábiles.</p>\n        <p class=\"parrafo\">2. Son días inhábiles a efectos procesales los sábados y domingos, y los días 24 y 31 de diciembre, los días de fiesta nacional y los festivos a efectos laborales en la respectiva Comunidad Autónoma o localidad. También serán inhábiles los días del mes de agosto.</p>\n        <p class=\"parrafo\">3. Se entiende por horas hábiles las que median desde las ocho de la mañana a las ocho de la tarde, salvo que la ley, para una actuación concreta, disponga otra cosa.</p>\n        <p class=\"parrafo\">Para los actos de comunicación y ejecución también se considerarán horas hábiles las que transcurren desde las ocho hasta las diez de la noche.</p>\n        <p class=\"parrafo\">4. Lo previsto en los apartados anteriores se entenderá sin perjuicio de lo que pueda establecerse para las actuaciones electrónicas.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se añade el apartado 4 por el art. único.12 de la Ley 42/2015, de 5 de octubre. <a class=\"refPost\">Ref. BOE-A-2015-10727#aunico</a>.</p>\n          <p class=\"nota_pie\">Se modifica el apartado 2 por el art. 15.66 de la Ley 13/2009, de 3 de noviembre. <a class=\"refPost\">Ref. BOE-A-2009-17493</a></p>\n        </blockquote>\n      </version>\n      <version id_norma=\"BOE-A-2022-21800\" fecha_publicacion=\"20221223\" fecha_vigencia=\"20221223\">\n        <p class=\"articulo\">Artículo 130. Días y horas hábiles.</p>\n        <p class=\"parrafo\">1. Las actuaciones judiciales habrán de practicarse en días y horas hábiles.</p>\n        <p class=\"parrafo\">2. Son días inhábiles a efectos procesales los sábados y domingos, y los días que median entre el 24 de diciembre y el 6 de enero del año siguiente, ambos inclusive, los días de fiesta nacional y los festivos a efectos laborales en la respectiva Comunidad Autónoma o localidad. También serán inhábiles los días del mes de agosto.</p>\n        <p class=\"parrafo\">3. Se entiende por horas hábiles las que median desde las ocho de la mañana a las ocho de la tarde, salvo que la ley, para una actuación concreta, disponga otra cosa.</p>\n        <p class=\"parrafo\">Para los actos de comunicación y ejecución también se considerarán horas hábiles las que transcurren desde las ocho hasta las diez de la noche.</p>\n        <p class=\"parrafo\">4. Lo previsto en los apartados anteriores se entenderá sin perjuicio de lo que pueda establecerse para las actuaciones electrónicas.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica el apartado 2 por la disposición final 2 de la Ley Orgánica 14/2022, de 22 de diciembre. <a class=\"refPost\">Ref. BOE-A-2022-21800#df-2</a></p>\n          <p class=\"nota_pie_2\">Téngase en cuenta que esta modificación entra en vigor el día de su publicación, según establece la disposición final sexta de la citada Ley Orgánica.</p>\n          <p class=\"nota_pie\">Se añade el apartado 4 por el art. único.12 de la Ley 42/2015, de 5 de octubre. <a class=\"refPost\">Ref. BOE-A-2015-10727#aunico</a>.</p>\n          <p class=\"nota_pie\">Se modifica el apartado 2 por el art. 15.66 de la Ley 13/2009, de 3 de noviembre. <a class=\"refPost\">Ref. BOE-A-2009-17493</a></p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

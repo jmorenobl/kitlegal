@@ -1,14 +1,48 @@
 package plazos
 
 import (
+	_ "embed"
 	"fmt"
+	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// tiposDePruebaDelCivil es el fichero de los dos tipos de prueba del cómputo
+// civil de FR-023 de H36, sin duración y con da: vencimiento: uno en días
+// hábiles, con el 133.2, y otro en meses, con el 133.3
+// (contracts/datos-de-plazos.md §4 de H36).
+//
+//go:embed testdata/tipos-de-prueba-civil.yaml
+var tiposDePruebaDelCivil []byte
+
+// Lo que las propiedades del civil esperan de él, escrito aquí otra vez y no
+// tomado del código que se prueba: sus dos tipos de prueba y sus periodos
+// inhabil, los de la copia del contrato (contracts/datos-de-plazos.md §1 y §4
+// de H36).
+const (
+	// computoCivil es el código del cómputo civil de la LEC.
+	computoCivil Computo = "civil"
+	// pruebaCivilEnDias es el tipo de prueba del civil en días hábiles.
+	pruebaCivilEnDias = "prueba-civil-dias"
+	// pruebaCivilEnMeses es el tipo de prueba del civil en meses.
+	pruebaCivilEnMeses = "prueba-civil-meses"
+)
+
+// periodoDelOraculo es un periodo inhabil del civil, de un MM-DD a otro, los
+// dos incluidos; si el último va antes que el primero, cruza el año.
+type periodoDelOraculo struct {
+	desde, hasta string
+}
+
+// periodosInhabilesDelCivil son los dos periodos inhabil del art. 130.2 LEC:
+// agosto y del 24 de diciembre al 6 de enero.
+var periodosInhabilesDelCivil = []periodoDelOraculo{{desde: "08-01", hasta: "08-31"}, {desde: "12-24", hasta: "01-06"}}
 
 // La rejilla de las propiedades del cómputo (research D22): cada fecha de
 // inicio de 2025 a 2027, cada duración de 1 a 40 y cada pareja de un juego de
@@ -139,7 +173,7 @@ func (r rejilla) inhabilParaLosDos(dia time.Time, uno, otro MunicipioResuelto) b
 // calcular da la fecha de un plazo genérico de la rejilla.
 func (r rejilla) calcular(inicio time.Time, duracion int, unidad Unidad, uno, otro MunicipioResuelto) (time.Time, error) {
 	plazo, err := Calcular(r.calendario, r.tipos, Peticion{
-		Tipo: TipoGenerico, Inicio: inicio.Format(time.DateOnly), Duracion: strconv.Itoa(duracion),
+		Tipo: "generico", Inicio: inicio.Format(time.DateOnly), Duracion: strconv.Itoa(duracion),
 		Unidad: string(unidad), Municipios: los(uno, otro),
 	})
 	if err != nil {
@@ -155,7 +189,13 @@ func (r rejilla) calcular(inicio time.Time, duracion int, unidad Unidad, uno, ot
 // día siguiente al de inicio y la fecha hay exactamente N días hábiles, y la
 // fecha es hábil; (3) un plazo de N meses acaba el mismo día del mes de
 // vencimiento, o el último si no lo tiene, o el primer hábil siguiente si ese
-// es inhábil.
+// es inhábil. Y, sobre la misma rejilla con un municipio cada vez, la sede, y
+// los dos tipos de prueba del cómputo civil, las tres de FR-024 de H36
+// (SC-004): (4) la fecha nunca es inhábil para la sede ni cae en un periodo
+// inhabil; (5) en días hábiles, entre el día siguiente al de inicio y la fecha
+// hay exactamente N días que no son inhábiles de base ni de un periodo; (6) en
+// meses, la fecha es la de fecha a fecha o, si esa es inhábil, el primer hábil
+// siguiente.
 func TestPropiedadesDelComputo(t *testing.T) {
 	t.Parallel()
 
@@ -174,6 +214,21 @@ func TestPropiedadesDelComputo(t *testing.T) {
 				assert.Empty(t, primeros(r.recorrer(UnidadMeses, uno, otro, r.incumpleLosMeses)))
 			})
 		}
+	}
+
+	civiles := tiposConLosDePruebaDelCivil(t)
+
+	for _, sede := range municipiosDeLaRejilla {
+		t.Run("civil días hábiles "+sede.CodigoINE, func(t *testing.T) {
+			t.Parallel()
+			assert.Empty(t, primeros(r.recorrerElCivil(civiles, pruebaCivilEnDias, UnidadDiasHabiles, sede,
+				r.incumpleLosHabilesDelCivil)))
+		})
+		t.Run("civil meses "+sede.CodigoINE, func(t *testing.T) {
+			t.Parallel()
+			assert.Empty(t, primeros(r.recorrerElCivil(civiles, pruebaCivilEnMeses, UnidadMeses, sede,
+				r.incumpleLosMesesDelCivil)))
+		})
 	}
 }
 
@@ -267,4 +322,153 @@ func (r rejilla) incumpleLosMeses(inicio time.Time, meses int, fecha time.Time, 
 	}
 
 	return ""
+}
+
+// tiposConLosDePruebaDelCivil son los tipos de la copia del contrato con los
+// dos de prueba del civil, combinados como en TestComputoCivil (research D7 de
+// H36): la única línea «tipos:» de la copia, sustituida por el fichero de
+// prueba, que lleva la suya y sus tipos con la misma sangría, leído con
+// LeerTipos.
+func tiposConLosDePruebaDelCivil(t *testing.T) []Tipo {
+	t.Helper()
+
+	base := "\n" + plazosDelContrato
+	require.Equal(t, 1, strings.Count(base, "\ntipos:\n"), "la copia del contrato tiene una sola línea «tipos:»")
+
+	tipos, err := LeerTipos([]byte(strings.Replace(base, "\ntipos:\n", "\n"+string(tiposDePruebaDelCivil), 1)))
+	require.NoError(t, err, "la copia del contrato con los tipos de prueba del civil se lee sin defecto")
+	require.Len(t, tipos, len(tiposDelContrato(t))+2, "la combinación da los dos tipos de prueba más que la copia")
+
+	for _, codigo := range []string{pruebaCivilEnDias, pruebaCivilEnMeses} {
+		indice := slices.IndexFunc(tipos, func(tipo Tipo) bool { return tipo.Codigo == codigo })
+		require.GreaterOrEqual(t, indice, 0, "la combinación lleva el tipo de prueba %q", codigo)
+		require.Equal(t, computoCivil, tipos[indice].Computo, "el tipo de prueba %q cuenta con el civil", codigo)
+	}
+
+	return tipos
+}
+
+// enUnPeriodoDelCivil dice si un día cae en un periodo inhabil del civil.
+func enUnPeriodoDelCivil(dia time.Time) bool {
+	mesYDia := dia.Format("01-02")
+
+	return slices.ContainsFunc(periodosInhabilesDelCivil, func(periodo periodoDelOraculo) bool {
+		if periodo.desde <= periodo.hasta {
+			return periodo.desde <= mesYDia && mesYDia <= periodo.hasta
+		}
+
+		return mesYDia >= periodo.desde || mesYDia <= periodo.hasta
+	})
+}
+
+// inhabilEnElCivil es el oráculo del civil: inhábil de base para la sede o en
+// un periodo inhabil (arts. 130.2 y 133 LEC).
+func (r rejilla) inhabilEnElCivil(dia time.Time, sede MunicipioResuelto) bool {
+	return r.inhabil(dia, sede) || enUnPeriodoDelCivil(dia)
+}
+
+// calcularElCivil da la fecha de un plazo de un tipo de prueba del civil, en
+// su unidad y con una sede.
+func (r rejilla) calcularElCivil(tipos []Tipo, tipo string, inicio time.Time, duracion int, unidad Unidad,
+	sede MunicipioResuelto,
+) (time.Time, error) {
+	plazo, err := Calcular(r.calendario, tipos, Peticion{
+		Tipo: tipo, Inicio: inicio.Format(time.DateOnly), Duracion: strconv.Itoa(duracion),
+		Unidad: string(unidad), Municipios: los(sede),
+	})
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return time.Parse(time.DateOnly, plazo.Fecha)
+}
+
+// recorrerElCivil calcula cada entrada de la rejilla con un tipo de prueba del
+// civil, en su unidad y con una sede, y da sus contraejemplos: las entradas que
+// no dan fecha y las que incumple, que dice por qué una fecha incumple sus
+// propiedades o nada si las cumple.
+func (r rejilla) recorrerElCivil(tipos []Tipo, tipo string, unidad Unidad, sede MunicipioResuelto,
+	incumple func(inicio time.Time, duracion int, fecha time.Time, sede MunicipioResuelto) string,
+) []string {
+	var contraejemplos []string
+
+	for inicio := primerInicioDeLaRejilla; !inicio.After(ultimoInicioDeLaRejilla); inicio = inicio.AddDate(0, 0, 1) {
+		for duracion := 1; duracion <= duracionMaximaRejilla; duracion++ {
+			var motivo string
+
+			if fecha, err := r.calcularElCivil(tipos, tipo, inicio, duracion, unidad, sede); err != nil {
+				motivo = err.Error()
+			} else {
+				motivo = incumple(inicio, duracion, fecha, sede)
+			}
+
+			if motivo != "" {
+				contraejemplos = append(contraejemplos, fmt.Sprintf("%s y %d %s: %s", inicio.Format(time.DateOnly),
+					duracion, unidad, motivo))
+			}
+		}
+	}
+
+	return contraejemplos
+}
+
+// fechaInhabilEnElCivil dice por qué una fecha incumple la propiedad (4) —es
+// inhábil para la sede o cae en un periodo inhabil—, o nada si la cumple.
+func (r rejilla) fechaInhabilEnElCivil(fecha time.Time, sede MunicipioResuelto) string {
+	switch {
+	case r.inhabil(fecha, sede):
+		return "(4) acaba en " + fecha.Format(time.DateOnly) + ", inhábil para la sede"
+	case enUnPeriodoDelCivil(fecha):
+		return "(4) acaba en " + fecha.Format(time.DateOnly) + ", en un periodo inhabil"
+	default:
+		return ""
+	}
+}
+
+// incumpleLosHabilesDelCivil dice qué propiedad de los días hábiles del civil
+// incumple una fecha, (4) o (5), o nada si cumple las dos.
+func (r rejilla) incumpleLosHabilesDelCivil(inicio time.Time, habiles int, fecha time.Time,
+	sede MunicipioResuelto,
+) string {
+	if motivo := r.fechaInhabilEnElCivil(fecha, sede); motivo != "" {
+		return motivo
+	}
+
+	contados := 0
+
+	for dia := inicio.AddDate(0, 0, 1); !dia.After(fecha); dia = dia.AddDate(0, 0, 1) {
+		if !r.inhabilEnElCivil(dia, sede) {
+			contados++
+		}
+	}
+
+	if contados != habiles {
+		return fmt.Sprintf("(5) hasta %s hay %d días que no son inhábiles de base ni de un periodo",
+			fecha.Format(time.DateOnly), contados)
+	}
+
+	return ""
+}
+
+// incumpleLosMesesDelCivil dice qué propiedad de los meses del civil incumple
+// una fecha —(6), que no es la de fecha a fecha (el mismo día del mes de
+// vencimiento, o el último si no lo tiene) ni, si esa es inhábil, el primer
+// hábil siguiente; o (4)—, o nada si cumple las dos.
+func (r rejilla) incumpleLosMesesDelCivil(inicio time.Time, meses int, fecha time.Time, sede MunicipioResuelto) string {
+	primeroDelMes := time.Date(inicio.Year(), inicio.Month()+time.Month(meses), 1, 0, 0, 0, 0, time.UTC)
+	ultimoDelMes := primeroDelMes.AddDate(0, 1, -1)
+	deFechaAFecha := primeroDelMes.AddDate(0, 0, min(inicio.Day(), ultimoDelMes.Day())-1)
+
+	if fecha.Before(deFechaAFecha) {
+		return "(6) acaba en " + fecha.Format(time.DateOnly) + ", antes del " + deFechaAFecha.Format(time.DateOnly)
+	}
+
+	for dia := deFechaAFecha; dia.Before(fecha); dia = dia.AddDate(0, 0, 1) {
+		if !r.inhabilEnElCivil(dia, sede) {
+			return "(6) acaba en " + fecha.Format(time.DateOnly) + ", después del " + dia.Format(time.DateOnly) +
+				", hábil"
+		}
+	}
+
+	return r.fechaInhabilEnElCivil(fecha, sede)
 }

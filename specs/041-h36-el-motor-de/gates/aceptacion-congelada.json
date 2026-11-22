@@ -1,0 +1,10 @@
+{
+  "tarea": "T001",
+  "commit": "8be1cf7008a900e1d72859cdedf08282a647f115",
+  "ficheros": {
+    "specs/041-h36-el-motor-de/aceptacion/describe.txtar": "e1856670fc5452df2524c0af4284b629c8d7229490bd6f88e2994ededcf3ca4e",
+    "specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar": "d1a78828be6f3694667ccdc6a468e5320b9ea6907536297c47f272bd902efa30",
+    "internal/app/testdata/script/h36-describe.txtar": "e1856670fc5452df2524c0af4284b629c8d7229490bd6f88e2994ededcf3ca4e",
+    "internal/app/testdata/script/h36-plazos-de-hoy.txtar": "d1a78828be6f3694667ccdc6a468e5320b9ea6907536297c47f272bd902efa30"
+  }
+}

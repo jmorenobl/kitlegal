@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cache"
@@ -270,8 +271,8 @@ func TestGrabacionesSinSolape(t *testing.T) {
 	t.Parallel()
 
 	conjuntos := UnionDeGrabaciones()
-	require.Equal(t, []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9}, conjuntos,
-		"la unión son los conjuntos de H4, H5 y H9, cada uno encima del anterior")
+	require.Equal(t, []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9, GrabacionesDeH36}, conjuntos,
+		"la unión son los conjuntos de H4, H5, H9 y H36, cada uno encima del anterior")
 
 	for posicion, anterior := range conjuntos {
 		delAnterior := nombresDeLasGrabaciones(t, anterior)
@@ -870,14 +871,16 @@ type palabrasDeUnPrecepto struct {
 // palabrasClaveDeLosPreceptos es la tabla de contracts/datos-de-plazos.md §4.2
 // de H9, con lo que lo grabado corrigió de lo que el plan recordaba (research
 // S4 de H9): el art. 30 LPAC dice de los días que «éstos son hábiles», y el
-// art. 182.1 LOPJ no enumera el 24 y el 31 de diciembre. Devuelve una tabla
-// nueva en cada llamada.
+// art. 182.1 LOPJ no enumera el 24 y el 31 de diciembre. Detrás, los arts. 130
+// y 133 LEC del cómputo civil, con las palabras de FR-015 de H36. Devuelve una
+// tabla nueva en cada llamada.
 func palabrasClaveDeLosPreceptos() []palabrasDeUnPrecepto {
 	const (
 		lpac   = "BOE-A-2015-10565"
 		ljca   = "BOE-A-1998-16718"
 		lopj   = "BOE-A-1985-12666"
 		ltaibg = "BOE-A-2013-12887"
+		lec    = "BOE-A-2000-323"
 	)
 
 	return []palabrasDeUnPrecepto{
@@ -912,6 +915,12 @@ func palabrasClaveDeLosPreceptos() []palabrasDeUnPrecepto {
 		},
 		{precepto: "art. 24 LTAIBG", norma: ltaibg, bloque: "a24", palabras: []string{
 			"un mes", "Consejo de Transparencia y Buen Gobierno",
+		}},
+		{precepto: "art. 130 LEC", norma: lec, bloque: "a130", palabras: []string{
+			"24 de diciembre", "6 de enero", "agosto",
+		}},
+		{precepto: "art. 133 LEC", norma: lec, bloque: "a133", palabras: []string{
+			"día siguiente", "veinticuatro horas", "se excluirán los inhábiles", "de fecha a fecha", "prorrogados",
 		}},
 	}
 }
@@ -1050,7 +1059,10 @@ type lecturaDeUnPrecepto struct {
 // defectos unidos:
 //
 //  1. lee los tipos con plazos.LeerTipos y la cobertura con
-//     skills.LeerCobertura, y devuelve su error tal cual;
+//     skills.LeerCobertura, y devuelve su error tal cual; de los mismos bytes
+//     de los tipos lee, detrás de los preceptos de los tipos y de sus
+//     cómputos, los de cada cómputo que no nombra ningún tipo
+//     (lecturasDeLosComputosSinTipos; research D11 de H36);
 //  2. prepara una caché desde UnionDeGrabaciones con boe articulo de cada
 //     bloque que nombran los dos ficheros y la tabla, y lee de ella el texto de
 //     cada uno (leerLosBloques): cada bloque sin grabar es un defecto por cada
@@ -1069,7 +1081,9 @@ type lecturaDeUnPrecepto struct {
 func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, tabla []palabrasDeUnPrecepto) error {
 	t.Helper()
 
-	tipos, err := plazos.LeerTipos(contenidoDelFichero(t, rutaDeLosTipos))
+	contenidoDeLosTipos := contenidoDelFichero(t, rutaDeLosTipos)
+
+	tipos, err := plazos.LeerTipos(contenidoDeLosTipos)
 	if err != nil {
 		return err
 	}
@@ -1079,7 +1093,8 @@ func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, 
 		return err
 	}
 
-	lecturas := slices.Concat(lecturasDeLosTipos(tipos), lecturasDeLaCobertura(cobertura), lecturasDeLaTabla(tabla))
+	lecturas := slices.Concat(lecturasDeLosTipos(tipos), lecturasDeLosComputosSinTipos(t, contenidoDeLosTipos, tipos),
+		lecturasDeLaCobertura(cobertura), lecturasDeLaTabla(tabla))
 	leidos, defectos := leerLosBloques(t, lecturas)
 
 	for _, lectura := range lecturas {
@@ -1145,6 +1160,39 @@ func lecturasDeLosTipos(tipos []plazos.Tipo) []lecturaDeUnPrecepto {
 	}
 
 	return slices.Concat(lecturas, delComputo)
+}
+
+// lecturasDeLosComputosSinTipos son los preceptos de cada cómputo de contenido
+// que no nombra ninguno de sus tipos, en el orden del fichero y nombrados «el
+// cómputo <código>», como los de lecturasDeLosTipos (FR-015 de H36; research
+// D11 de H36). Un tipo solo lleva los preceptos del cómputo que nombra, así que
+// los lee de los mismos bytes con una estructura propia, que solo saca de cada
+// cómputo su código y sus preceptos; lo demás ya lo ha leído plazos.LeerTipos.
+// Unos bytes que no se decodifican hacen fallar el test.
+func lecturasDeLosComputosSinTipos(t *testing.T, contenido []byte, tipos []plazos.Tipo) []lecturaDeUnPrecepto {
+	t.Helper()
+
+	var fichero struct {
+		Computos []struct {
+			Codigo    plazos.Computo    `yaml:"codigo"`
+			Preceptos []plazos.Precepto `yaml:"preceptos"`
+		} `yaml:"computos"`
+	}
+	require.NoError(t, yaml.Unmarshal(contenido, &fichero), "los cómputos de los tipos de plazo")
+
+	var lecturas []lecturaDeUnPrecepto
+
+	for _, computo := range fichero.Computos {
+		if slices.ContainsFunc(tipos, func(tipo plazos.Tipo) bool { return tipo.Computo == computo.Codigo }) {
+			continue
+		}
+
+		for _, precepto := range computo.Preceptos {
+			lecturas = append(lecturas, lecturaDelPrecepto("el cómputo "+string(computo.Codigo), precepto))
+		}
+	}
+
+	return lecturas
 }
 
 // lecturaDelPrecepto es la lectura de un precepto de data/plazos.yaml, con

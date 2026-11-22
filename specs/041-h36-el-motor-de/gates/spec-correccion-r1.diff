@@ -1,0 +1,58 @@
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-22 01:42:41.870258338 +0100
++++ ahora/spec.md	2026-11-22 01:44:08.749561076 +0100
+@@ -536,8 +536,9 @@
+ 
+ **Un periodo** (`periodos[]`): `desde` y `hasta`, cada uno `MM-DD` de un día que tienen todos los años (no el `02-29`);
+ si `hasta` es anterior a `desde`, el periodo cruza el año. `efecto`: `inhabil`, `no-corre` o `aviso`. `precepto`:
+-`{norma, bloque, apartado}` de un precepto que ya está entre los `preceptos` del cómputo o, si el cómputo tiene tipos,
+-entre los `preceptos` de cada uno de ellos. `aviso`, solo y siempre con `efecto: aviso`: `{codigo, etiqueta, texto}`,
++`{norma, apartado}`, sin `bloque`, que nombra el precepto con esa norma y ese apartado que ya está entre los
++`preceptos` del cómputo o, si el cómputo tiene tipos, entre los `preceptos` de cada uno de ellos; su bloque, su `fija` y
++su `vigente_desde` son los de ese precepto. `aviso`, solo y siempre con `efecto: aviso`: `{codigo, etiqueta, texto}`,
+ con un código (§C.8), una etiqueta y un texto no vacíos y de una línea, sin `:` en la etiqueta.
+ 
+ Lo que el fichero de la rama dice de los dos cómputos de hoy y del civil (los tipos de hoy no cambian, salvo que cada
+@@ -554,17 +555,17 @@
+     unidades: [meses]
+     periodos:
+       - {desde: "08-01", hasta: "08-31", efecto: no-corre,
+-         precepto: {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2"}}
++         precepto: {norma: BOE-A-1998-16718, apartado: "128.2"}}
+       - {desde: "12-24", hasta: "01-06", efecto: aviso,
+-         precepto: {norma: BOE-A-1985-12666, bloque: acientoochentaytres, apartado: "183"},
++         precepto: {norma: BOE-A-1985-12666, apartado: "183"},
+          aviso: {codigo: dias-del-art-183-lopj, etiqueta: DÍAS DEL ART. 183 LOPJ, texto: "<el de §C.5>"}}
+     preceptos: [los cinco de la LOPJ y del Código Civil de hoy]
+   - codigo: civil
+     municipios: [el de la sede del tribunal]
+     unidades: [meses, dias-habiles]
+     periodos:
+-      - {desde: "08-01", hasta: "08-31", efecto: inhabil, precepto: {norma: BOE-A-2000-323, bloque: a130, apartado: "130.2"}}
+-      - {desde: "12-24", hasta: "01-06", efecto: inhabil, precepto: {norma: BOE-A-2000-323, bloque: a130, apartado: "130.2"}}
++      - {desde: "08-01", hasta: "08-31", efecto: inhabil, precepto: {norma: BOE-A-2000-323, apartado: "130.2"}}
++      - {desde: "12-24", hasta: "01-06", efecto: inhabil, precepto: {norma: BOE-A-2000-323, apartado: "130.2"}}
+     preceptos:
+       - {norma: BOE-A-2000-323, bloque: a130, apartado: "130.2", fija: inhabiles, vigente_desde: "2022-12-23"}
+       - {norma: BOE-A-2000-323, bloque: a133, apartado: "133.1", fija: expiracion, vigente_desde: "2001-01-08"}
+@@ -574,7 +575,8 @@
+ ```
+ 
+ En el fichero, cada tipo lleva sus claves de hoy en el orden de hoy, y `da` delante de `preceptos` o de `unidades`:
+-así los fragmentos de texto del fichero que usan los tests de H9 siguen casando sin cambiar.
++así los fragmentos de texto del fichero que usan los tests de H9 y de H26.1 siguen casando sin cambiar, y una sola
++vez, porque el precepto de un periodo no lleva `bloque` (`bloque: a128,` solo está en el tipo `contencioso`).
+ 
+ El `fija` de los preceptos del civil sigue el vocabulario del fichero de hoy (`inhabiles`, `habiles`, `meses`,
+ `prorroga`), con `expiracion` del hito para el 133.1. El de `fija: duracion` sigue exigido en un precepto de cada tipo
+@@ -589,8 +591,8 @@
+ 2. que la unidad de un tipo con duración sea una que admite su cómputo;
+ 3. que las `unidades` de un tipo, si las lleva, sean las de su cómputo, ni una más ni una menos, cada una con su
+    precepto, y que no lleve también `duracion`;
+-4. que el precepto de cada periodo esté entre los del cómputo o, si el cómputo tiene tipos, entre los de cada uno de
+-   ellos;
++4. que la norma y el apartado del precepto de cada periodo sean los de un precepto del cómputo o, si el cómputo tiene
++   tipos, los de un precepto de cada uno de ellos;
+ 5. que un periodo `no-corre` sea un mes entero de 30 o 31 días, del día 1 al último, en un cómputo que admite solo
+    `meses`;
+ 6. que dos periodos de un cómputo no compartan ningún día;

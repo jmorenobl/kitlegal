@@ -42,6 +42,10 @@ sustituyen a este fichero.
   de la caché y lo borra al terminar; con él tomado, las demás dan la línea de siempre. La salida estándar y el código
   de salida de cada orden no cambian, reinstale o no, y nada de esto abre la red. En Windows, sin probar: la CI es solo
   Ubuntu.
+- **Los tipos y los cómputos de plazos son datos, en `data/plazos.yaml`** (H36; ADR 0061). El esquema de `kitlegal
+  plazos calcular` ya no enumera los tipos ni los avisos: `tipo` y `avisos[].codigo` llevan el `pattern`
+  `^[a-z0-9]+(-[a-z0-9]+)*$` y ningún `enum`. El cómputo civil de la LEC (arts. 130.2 y 133 LEC) está en el motor,
+  pero no se pide todavía desde `kitlegal plazos`: ningún tipo de `data/plazos.yaml` cuenta con él.
 
 ### Corregido
 

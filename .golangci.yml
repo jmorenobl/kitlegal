@@ -420,6 +420,12 @@ linters:
         # (data-model de H5, cabecera; control 10 del plan de H5; research.md
         # D20); misspell lo lee como «patrons».
         - patrones
+        # «Periodos», la clave periodos de cada cómputo de data/plazos.yaml —sus
+        # periodos del año, inhabil, no-corre o aviso—, que fija spec §C.1 de H36
+        # y que lee el campo Periodos del cómputo descrito de
+        # internal/core/plazos/tipos.go (FR-002, FR-013; T004); misspell lo lee
+        # como «periods».
+        - periodos
         # «Producto», la variante <skill>-producto de cada familia del laboratorio
         # de H41, la que se instala desde skills/<skill>, y el campo producto de
         # familiaDelLaboratorio que la nombra (FR-022, data-model §1 de H41);

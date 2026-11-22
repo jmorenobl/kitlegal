@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// TestAvisosDePlazos comprueba los cuatro códigos de aviso, en el orden de
-// contracts/applet-plazos.md §5, sus etiquetas y sus textos de forma fija, una
+// TestAvisosDePlazos comprueba los códigos de aviso de los tipos, en el orden de
+// contracts/applet-plazos.md §5 y, desde H36, de los cómputos en el fichero
+// (FR-009 de H36), sus etiquetas y sus textos de forma fija, una
 // línea que empieza por «⚠ <ETIQUETA>:», con los años, el motivo y hasta dónde
 // llegan los datos de su ámbito (FR-026, FR-048; research D6).
 func TestAvisosDePlazos(t *testing.T) {
@@ -16,15 +18,7 @@ func TestAvisosDePlazos(t *testing.T) {
 
 	t.Run("los códigos, en el orden del contrato", func(t *testing.T) {
 		t.Parallel()
-
-		codigos := CodigosDeAviso()
-		assert.Equal(t, []string{
-			"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
-			"festivo-de-una-parte",
-		}, codigos)
-
-		codigos[0] = "cambiado"
-		assert.Equal(t, AvisoFaltanNacionalesYAutonomicos, CodigosDeAviso()[0], "cada llamada da una lista nueva")
+		comprobarCodigos(t)
 	})
 	t.Run("las etiquetas", func(t *testing.T) {
 		t.Parallel()
@@ -48,25 +42,140 @@ func TestAvisosDePlazos(t *testing.T) {
 	})
 }
 
-// comprobarEtiquetas exige la etiqueta de cada código y ninguna de lo que no
-// es un código.
+// TestAvisoDeUnPeriodoQueCruzaElAnio comprueba que el aviso de un periodo que
+// cruza el año sale también cuando el tramo empieza en su parte de enero
+// (FR-008 de H36; contracts/api-del-dominio.md §2): el contencioso de la copia
+// del contrato avisa de los días del 24 de diciembre al 6 de enero si el tramo
+// empieza el 3 o el 6 de enero, y no si empieza el 7.
+func TestAvisoDeUnPeriodoQueCruzaElAnio(t *testing.T) {
+	t.Parallel()
+
+	calendario := calendarioDeLosCalculos(t)
+	tipos := tiposDelContrato(t)
+
+	for _, caso := range []struct {
+		inicio string
+		avisa  bool
+	}{
+		{inicio: "2032-01-02", avisa: true},
+		{inicio: "2032-01-05", avisa: true},
+		{inicio: "2032-01-06", avisa: false},
+	} {
+		t.Run(caso.inicio, func(t *testing.T) {
+			t.Parallel()
+
+			plazo, err := Calcular(calendario, tipos,
+				Peticion{Tipo: "contencioso", Inicio: caso.inicio, Municipios: los(villaPrimera)})
+			require.NoError(t, err)
+
+			if caso.avisa {
+				assert.Contains(t, codigosDe(plazo.Avisos), "dias-del-art-183-lopj")
+			} else {
+				assert.NotContains(t, codigosDe(plazo.Avisos), "dias-del-art-183-lopj")
+			}
+		})
+	}
+}
+
+// periodoDeAvisoDeLaLPAC es un periodo de aviso que la copia del contrato no
+// tiene, el único de lpac, que nombra uno de los preceptos del cómputo: con él,
+// los dos cómputos de los tipos del contrato dan un aviso de periodo.
+const periodoDeAvisoDeLaLPAC = `    periodos:
+      - desde: "03-01"
+        hasta: "03-02"
+        efecto: aviso
+        precepto: {norma: BOE-A-2015-10565, apartado: "30.2"}
+        aviso: {codigo: aviso-de-la-lpac, etiqueta: AVISO DE LA LPAC, texto: "el plazo pasa por el 1 o el 2 de marzo."}
+`
+
+// comprobarCodigos exige los códigos de CodigosDeAviso (FR-009 de H36; research
+// D3): los cuatro de hoy con los tipos del contrato; los tres del motor sin
+// tipos o con tipos cuyo cómputo no tiene avisos de periodo; el del ensayo con
+// los suyos; con dos cómputos que avisan, sus avisos en el orden de los cómputos
+// en el fichero y no en el de los tipos; y una lista nueva en cada llamada.
+func comprobarCodigos(t *testing.T) {
+	t.Helper()
+
+	tipos := tiposDelContrato(t)
+	delMotor := []string{"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "festivo-de-una-parte"}
+
+	codigos := CodigosDeAviso(tipos)
+	assert.Equal(t, []string{
+		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
+		"festivo-de-una-parte",
+	}, codigos)
+
+	codigos[0] = "cambiado"
+	assert.Equal(t, AvisoFaltanNacionalesYAutonomicos, CodigosDeAviso(tipos)[0], "cada llamada da una lista nueva")
+
+	assert.Equal(t, delMotor, CodigosDeAviso(nil), "sin tipos, los tres del motor")
+	assert.Equal(t, delMotor, CodigosDeAviso(tipos[:2]), "alzada y reposicion cuentan con lpac, que no avisa")
+
+	delEnsayo, err := LeerTipos(computoDeEnsayo)
+	require.NoError(t, err)
+	assert.Equal(t, []string{
+		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "periodo-de-ensayo",
+		"festivo-de-una-parte",
+	}, CodigosDeAviso(delEnsayo))
+
+	conDos, err := LeerTipos([]byte((&cambioDeTexto{
+		de: "    unidades: [meses, dias-habiles, dias-naturales]\n",
+		a:  "    unidades: [meses, dias-habiles, dias-naturales]\n" + periodoDeAvisoDeLaLPAC,
+	}).aplicar(t, plazosDelContrato)))
+	require.NoError(t, err)
+	require.Equal(t, []Computo{"contencioso", "lpac"}, []Computo{conDos[2].Computo, conDos[0].Computo},
+		"premisa: el primer tipo cuenta con contencioso, el segundo cómputo del fichero, y el segundo con lpac")
+	assert.Equal(t, []string{
+		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "aviso-de-la-lpac",
+		"dias-del-art-183-lopj", "festivo-de-una-parte",
+	}, CodigosDeAviso([]Tipo{conDos[2], conDos[0]}), "en el orden de los cómputos en el fichero")
+}
+
+// comprobarEtiquetas exige la etiqueta de cada código de los tipos: las de los
+// tres del motor, con tipos o sin ellos, y la de cada aviso de periodo de un
+// cómputo de los tipos; y ninguna de lo que no es uno de sus códigos.
 func comprobarEtiquetas(t *testing.T) {
 	t.Helper()
+
+	tipos := tiposDelContrato(t)
+
+	delEnsayo, err := LeerTipos(computoDeEnsayo)
+	require.NoError(t, err)
 
 	for codigo, etiqueta := range map[string]string{
 		"faltan-festivos-nacionales-y-autonomicos": "FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS",
 		"faltan-festivos-locales":                  "FALTAN FESTIVOS LOCALES",
-		"dias-del-art-183-lopj":                    "DÍAS DEL ART. 183 LOPJ",
 		"festivo-de-una-parte":                     "FESTIVO DE UNA PARTE",
 	} {
-		dada, existe := EtiquetaDeAviso(codigo)
-		assert.True(t, existe, codigo)
-		assert.Equal(t, etiqueta, dada, codigo)
+		for nombre, de := range map[string][]Tipo{"contrato": tipos, "ensayo": delEnsayo, "ninguno": nil} {
+			dada, existe := EtiquetaDeAviso(de, codigo)
+			assert.True(t, existe, "%s con los tipos %s", codigo, nombre)
+			assert.Equal(t, etiqueta, dada, "%s con los tipos %s", codigo, nombre)
+		}
 	}
 
-	dada, existe := EtiquetaDeAviso("plazo")
-	assert.False(t, existe)
-	assert.Empty(t, dada)
+	dada, existe := EtiquetaDeAviso(tipos, "dias-del-art-183-lopj")
+	assert.True(t, existe)
+	assert.Equal(t, "DÍAS DEL ART. 183 LOPJ", dada)
+
+	dada, existe = EtiquetaDeAviso(delEnsayo, "periodo-de-ensayo")
+	assert.True(t, existe)
+	assert.Equal(t, "PERIODO DE ENSAYO", dada)
+
+	for _, caso := range []struct {
+		tipos  []Tipo
+		codigo string
+	}{
+		{tipos: tipos, codigo: "plazo"},
+		{tipos: tipos, codigo: "periodo-de-ensayo"},
+		{tipos: tipos[:2], codigo: "dias-del-art-183-lopj"},
+		{tipos: nil, codigo: "dias-del-art-183-lopj"},
+		{tipos: delEnsayo, codigo: "dias-del-art-183-lopj"},
+	} {
+		dada, existe := EtiquetaDeAviso(caso.tipos, caso.codigo)
+		assert.False(t, existe, "%s con %d tipos", caso.codigo, len(caso.tipos))
+		assert.Empty(t, dada, caso.codigo)
+	}
 }
 
 // comprobarAnios exige las tres formas de los años de un aviso: un año, un
@@ -146,6 +255,9 @@ func comprobarTextos(t *testing.T) {
 	sintetica := resuelto("71001", "Villa Primera", "71", "Comunidad Sintética")
 	nacionales := &Alcance{Desde: 2041, Hasta: 2043, Disposicion: "PRUEBA-N-3"}
 	locales := &Alcance{Desde: 2041, Hasta: 2042, Disposicion: "PRUEBA-L-9"}
+	// El aviso del art. 183 LOPJ es el del periodo de aviso del contencioso, el
+	// que LeerTipos lee del contrato (TestLeerTipos).
+	_, contencioso := computosDelContrato()
 
 	for _, caso := range []struct {
 		aviso Aviso
@@ -182,7 +294,7 @@ func comprobarTextos(t *testing.T) {
 				"Los de Comunidad Sintética llegan a 2042 (PRUEBA-L-9).",
 		},
 		{
-			avisoDelArt183(),
+			avisoDeSuPeriodo(*contencioso.Periodos[1].Aviso),
 			"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ " +
 				"declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 " +
 				"LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más " +
@@ -198,7 +310,7 @@ func comprobarTextos(t *testing.T) {
 	} {
 		assert.Equal(t, caso.texto, caso.aviso.Texto, caso.aviso.Codigo)
 
-		etiqueta, existe := EtiquetaDeAviso(caso.aviso.Codigo)
+		etiqueta, existe := EtiquetaDeAviso(tiposDelContrato(t), caso.aviso.Codigo)
 		assert.True(t, existe, caso.aviso.Codigo)
 		assert.True(t, strings.HasPrefix(caso.aviso.Texto, "⚠ "+etiqueta+": "), caso.aviso.Texto)
 		assert.NotContains(t, caso.aviso.Texto, "\n")

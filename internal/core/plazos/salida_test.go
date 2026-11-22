@@ -38,9 +38,7 @@ func TestSalidaDePlazos(t *testing.T) {
 	t.Run("los enumerados", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, CodigosDeTipo(), enumeradoDelCampo(t, reflect.TypeFor[Plazo](), "Tipo"))
 		assert.Equal(t, cadenas(Ambitos()), enumeradoDelCampo(t, reflect.TypeFor[FestivoSaltado](), "Ambito"))
-		assert.Equal(t, CodigosDeAviso(), enumeradoDelCampo(t, reflect.TypeFor[Aviso](), "Codigo"))
 		assert.Equal(t, cadenas(AmbitosDeCobertura()),
 			enumeradoDelCampo(t, reflect.TypeFor[TramoDeCobertura](), "Ambito"))
 		assert.Equal(t, cadenas(FaltasDeCobertura()),
@@ -50,7 +48,7 @@ func TestSalidaDePlazos(t *testing.T) {
 		t.Parallel()
 
 		plazo, err := Calcular(calendarioDeLosCalculos(t), tiposDelContrato(t), Peticion{
-			Tipo: TipoReposicion, Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera),
+			Tipo: "reposicion", Inicio: "2031-09-04", Municipios: los(villaPrimera, villaPrimera),
 		})
 		require.NoError(t, err)
 
