@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza corregida (08:22:32, la hora del commit 10172e21): línea 1 «guardián de diff ok ((global), 15 ficheros)», línea 5 lint «0 issues.», línea 23 internal/core/plazos en ok con 99.1 %, línea 88 «no leaks found», línea 102 «ci: todos los controles en verde» y línea 104 `kitlegal-verificacion exit=0`. Reproducido en esta ronda en un clon de 10172e21 fuera del repositorio (/tmp/claude/juezB-r2/rama): `go test -count=1` de internal/core/plazos, internal/app (sin TestMedidasDeTiempo ni TestCosteDelGrafo), internal/evals, internal/skills, internal, internal/mcp/... y cmd/..., todos en ok. Árbol: `git status` solo da ficheros de gates/ que escribe este paso de revisión (base-global-pendiente, modelos.jsonl, revision-cambios.md y revision-cambios-r2.diff); nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Mi motivo [b] está corregido: `TestAvisoDeUnPeriodoQueCruzaElAnio` (internal/core/plazos/avisos_test.go:50-78) calcula el `contencioso` de la copia del contrato con inicio 2032-01-02, 2032-01-05 y 2032-01-06 y exige el código `dias-del-art-183-lopj` en los dos primeros (línea 72) y que no esté en el tercero (línea 74); es una función nueva y no toca ningún caso de H9. Con el mutante de mi veredicto (`for anio := desde.Year(); …` en computo.go:273, aplicado en una copia) caen `/2032-01-02` y `/2032-01-05` con «[]string{\"faltan-festivos-locales\"} does not contain \"dias-del-art-183-lopj\"», lo que anota mutantes.md (M34, línea 92). Un segundo mutante mío, `primero.comparar(acaba) < 0` en computo.go:277, pone en rojo `/2032-01-05` y E8 de `TestComputoDeEnsayo`. Suite congelada intacta y activada: las cuatro huellas de gates/aceptacion-congelada.json coinciden con `sha256sum` de specs/041-h36-el-motor-de/aceptacion/*.txtar y de internal/app/testdata/script/h36-*.txtar; `TestEntregaDelHito/h36-describe` y `/h36-plazos-de-hoy` en PASS y 0 `--- SKIP` en internal/app e internal/core/plazos (ejecutado en el clon)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de `git diff main...HEAD -- '*.go'` (5065 líneas de diff) no hay `net/http`, `http.`, `os.Exit`, `fmt.Print*` ni `panic(` (grep ejecutado en esta ronda). La corrección no añade ningún import: toca computo.go, tipos.go y avisos_test.go dentro de internal/core/plazos. `TestArquitectura` (paquete internal) en ok en el clon y lint con «0 issues.» en ci.log:5."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Diferencial repetido en esta ronda con los binarios de main (82d4ccdd) y de la cabeza corregida (10172e21), compilados en /tmp/claude/juezB-r2/bin: 2659 órdenes `plazos calcular … --json --no-graph` (902 de contencioso, 1694 de alzada, reposicion, acceso-*, silencio y generico, y 63 de errores y bordes, entre ellos `contencioso 9999-07-31`, `9999-08-01`, `9999-08-15`, `9999-08-31`, `9999-12-30` y `9999-12-31`, los que tocaba la guarda retirada) dan el mismo stdout salvo `fecha_consulta`, el mismo `hash`, la misma salida de error y el mismo código: 0 diferencias; 4 órdenes sin `--json`, la misma salida legible. El esquema publicado es el que emite `--describe` (`TestEsquemasPublicados` y `TestDescribeDePlazosSinDatos`, en ok en el clon)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Los 63 errores y bordes del diferencial dan el mismo código y el mismo mensaje que main; el error del tipo desconocido sale con 2 y clase `argumentos` en los dos binarios (medido). Sin la guarda de `ultimoDiaDesde` no hay bucle sin fin ni panic en ninguna ruta de usuario: solo se llama con un periodo `no-corre` (computo.go:82-86), que la regla 5 de `LeerTipos` obliga a ser un mes entero (tipos.go:606-610), así que acaba en 31 pasos como mucho; debilitada esa regla en una copia caen los tres subtests «regla 5» de `TestLeerTipos`. Con los datos del binario, los seis inicios de 9999 del contencioso dan lo mismo que main."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:45-48, en `## [Unreleased]` (línea 13) › `### Cambiado` (línea 15), sigue diciendo lo que hace el producto, y la corrección no cambia ninguna salida (0 diferencias en el diferencial). La sección nueva de specs/041-h36-el-motor-de/mutantes.md (líneas 81-92) dice lo que he reproducido: la línea 273, la orden, los dos subtests en rojo con su mensaje y `/2032-01-06` en verde. Ningún artefacto afirma ya lo retirado: grep de `ultimoDiaDesde`, «día siguiente al 31 de diciembre de 9999» y la unidad repetida en spec.md, plan.md, research.md, tasks.md, data-model.md, contracts/ y gates/supuestos.md, sin resultados. Ningún ADR ni fuente nuevos en el rango."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango 424297c..HEAD solo toca internal/core/plazos/{avisos_test.go,computo.go,tipos.go}, mutantes.md y gates/ (`git diff --stat`): ninguna llamada de red, ningún dato externo nuevo, ningún secreto ni dato personal. `git diff --stat main...HEAD` sigue vacío en internal/httpx, y lo grabado sigue comprobando los datos: con el `vigente_desde` del 133.1 cambiado a 2010-05-04 en una copia de data/plazos.yaml, `TestPreceptosDeLosPlazos` cae con «las redacciones grabadas dicen el apartado así desde el 2001-01-08»."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ninguna línea añadida del diff de Go con `nolint`, `t.Skip`, `TODO`, `FIXME` ni `_ =`; los dos `, _ :=` (internal/core/plazos/avisos.go:102 y tipos.go:656) descartan un booleano, no un error (grep ejecutado). El test nuevo no cambia ningún fixture, golden ni fecha esperada: el rango solo añade su función a avisos_test.go, y las huellas de la suite congelada no cambian."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "`git diff --stat main...HEAD` sigue vacío en skills/, evals/, data/festivos, data/cobertura.yaml, data/normas.yaml, schemas/eval.yaml.json, go.mod, go.sum, Makefile, .github, scripts e internal/httpx (ejecutado). La corrección hace exactamente lo que pedían mis dos motivos y nada más: un test, dos ramas retiradas y su anotación en mutantes.md; gates/supuestos.md no cambia."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en esta ronda con los dos binarios: `plazos calcular x x x --describe`, 8317 bytes en main y 8034 en la rama; `--help`, 2049 y 2112; el sobre de un plazo, igual en los dos: 685 (contencioso 2026-06-15, sin aviso de periodo), 840 (silencio), 917 (alzada), 925 (contencioso 2027-01-06), 1065 (contencioso 2026-10-27), 1306 (contencioso 2027-01-02, con el aviso del art. 183) y 1673 bytes (generico de diez días hábiles en Navidad); el error del tipo desconocido, 365. `plazos` no depende de lo acumulado: las 2659 órdenes seguidas del diferencial, con el mismo HOME, dan lo mismo que main de la primera a la última. El aviso de periodo sale una vez por plazo y solo si el tramo pasa por el periodo: está con inicio 2027-01-02 y no con 2027-01-06 ni 2026-06-15. skills/ no cambia: una invocación por plazo, como antes."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Mi motivo [k] está corregido: `ultimoDiaDesde` es `for !p.contiene(dia) || p.contiene(dia.AddDate(0, 0, 1))` sin la guarda de 9999 ni su frase (internal/core/plazos/computo.go:250-259) y `unidadesDelComputo` ya no tiene `if vistas[unidad] { continue }` (tipos.go:378-398; `vistas[unidad] = true` se queda para el segundo bucle). Con las dos fuera el binario da lo mismo que main (ver d) y la cobertura de internal/core/plazos sube a 99.1 % (medida en el clon y en ci.log:23). El test nuevo se traza a FR-008 (spec.md:269) sobre una entrada a la que el binario llega hoy, el contencioso con inicio en enero. Lo único de tipos.go sin cubrir es 366-370, que se traza a «el error los dice todos» de §C.2 (observación de la ronda 1)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las filas `ci:` de «Controles de umbral» (plan.md:306-320) tienen su control y sale en rojo, repetido en esta ronda con mutantes en una copia, cada uno deshecho (`diff -rq` de internal/ y de data/plazos.yaml contra el clon, sin diferencias): `contiene` sin la parte de enero de un periodo que cruza el año (computo.go:244) pone en rojo `TestComputoCivil` y `TestPropiedadesDelComputo` (SC-002, SC-004); `c.tipo.Codigo != \"silencio\"` en computo.go:42, `TestComputoDeEnsayo` y `TestNingunCodigoDePlazosEnGo` con «computo.go:42: el literal es el código de plazos \"silencio\"» (SC-003, FR-010); la regla 5 debilitada, sus tres subtests de `TestLeerTipos` (FR-013); el `vigente_desde` del 133.1, `TestPreceptosDeLosPlazos` (SC-006). La corrección no toca ningún control ni ningún umbral. Los umbrales de las evals (SC-008) viven en `.github/workflows/evals.yml`, que el hito no toca, y los mide el cierre, que todavía no ha corrido (no hay gates/cierre.json)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Siguen sin cambio las observaciones de la ronda 1 (gates/revision-b-r1.json): dos cláusulas de FR-007 sin test sobre una entrada a la que el binario no llega hoy; «un festivo de una parte dentro de un periodo inhabil no avisa» sin test, con `civil` sin ningún tipo; los días de un `no-corre` tratados además como inhábiles son equivalentes con los datos de hoy; y la cláusula «o el día siguiente» de computo.go:84 no cambia ningún resultado con un `no-corre` de mes entero.",
+    "internal/core/plazos/tipos.go:366-370 (los preceptos de las unidades de un tipo cuyo cómputo no existe) sigue con cobertura 0 en el perfil de esta ronda; solo se ve con un data/plazos.yaml roto dos veces, que es código 1.",
+    "Sin el `continue` de tipos.go, un cómputo que repite una unidad y un tipo suyo que no la lleva darían el mismo defecto dos veces; es un data/plazos.yaml roto (ya defecto de la regla 9, código 1) y el binario no puede llevarlo empotrado.",
+    "Sin la guarda de `ultimoDiaDesde`, que el bucle termine depende de la regla 5 de `LeerTipos` (un `no-corre` es un mes entero); sus subtests caen si se debilita, así que un cambio futuro de esa regla tendría que volver a mirar ese bucle.",
+    "El sobre de un error lleva `fecha_consulta` con nanosegundos y sin ceros finales, así que su tamaño baila un byte entre ejecuciones (364 y 365 bytes del tipo desconocido, con el mismo `hash`); pasa igual en main y no lo trae el hito.",
+    "El error del tipo desconocido enumera todos los tipos de data/plazos.yaml (365 bytes con los siete de hoy) y crecerá unos 15 a 20 bytes por tipo con cada paquete de materia; la ayuda remite a «las referencias del paquete» (ADR 0061, punto 7).",
+    "specs/031-h39-c-omo-se/gates/aceptacion-congelada.json sigue con la huella anterior de su guion `describe.txtar`, que este hito cambia por FR-017; research.md D12 decide no actualizarla.",
+    "El ADR 0061 sigue con «Estado: propuesta» en docs/ADR aunque su propuesta de cambio está fusionada en main."
+  ]
+}
