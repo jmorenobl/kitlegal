@@ -100,9 +100,13 @@ export const enLlano: Record<string, { titulo: string; frase: string }> = {
     titulo: "Plazos de cualquier materia",
     frase: "Cada forma de contar un plazo se describe con sus preceptos, empezando por los dos de hoy, y se prueba con el cómputo civil de la LEC, con agosto y del 24 de diciembre al 6 de enero inhábiles.",
   },
+  H45: {
+    titulo: "Materias nuevas sin tocar el programa",
+    frase: "Una materia entra con sus normas, sus plazos y lo que la ley regula aparte, y cada cosa aparece en la referencia de su materia. Se prueba con lo administrativo y con una materia de ensayo, antes de la tributaria.",
+  },
   H42: {
     titulo: "Lo tributario, como segunda materia",
-    frase: "Las normas tributarias y los plazos del recurso de reposición y de la reclamación económico-administrativa. Fuera quedan las sanciones, las aduanas, las haciendas forales, los modelos y los escritos.",
+    frase: "Los plazos del recurso de reposición y de la reclamación económico-administrativa contra los tributos del Estado. Fuera quedan las sanciones, los tributos locales y autonómicos propios, las aduanas, las haciendas forales, los modelos y los escritos.",
   },
   H34: {
     titulo: "Normativa europea",
