@@ -327,7 +327,7 @@ miraba nadie.
 
 - **FR-017**: Los tests de H9 que cambian MUST ser solo estos, y en ninguno cambian las entradas ni lo esperado de un
   caso de cálculo; cambian las constantes que desaparecen, los fixtures con la forma vieja de `data/plazos.yaml`
-  (`plazosDelContrato` en `calcular_test.go`) y las pruebas de las reglas que se quitan:
+  (`plazosDelContrato`, definida en `tipos_test.go` y leída en `calcular_test.go`) y las pruebas de las reglas que se quitan:
   - `internal/core/plazos`: `calcular_test.go`, `propiedades_test.go`, `tipos_test.go`, `salida_test.go` y
     `avisos_test.go`;
   - `internal/app/plazos_test.go`: los enumerados en las etiquetas;

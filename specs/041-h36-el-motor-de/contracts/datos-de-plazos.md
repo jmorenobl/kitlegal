@@ -122,7 +122,7 @@ computos:
 
 El texto del aviso es, byte a byte, el de `textoDelArt183` de hoy (`internal/core/plazos/avisos.go:46-48`; spec §C.5);
 lo fija el golden del caso 15 (contracts/aceptacion.md §2). La copia del contrato de `internal/core/plazos`
-(`plazosDelContrato`, `calcular_test.go`) pasa a ser este fichero sin la cabecera (FR-017).
+(`plazosDelContrato`, definida en `tipos_test.go` y leída en `calcular_test.go`) pasa a ser este fichero sin la cabecera (FR-017).
 
 **El civil entra cuando hay con qué comprobarlo.** `TestPreceptosDeLosPlazos` lee los cómputos sin tipos (FR-015) y
 necesita grabados `a130` y `a133`, así que el cómputo `civil` entra en `data/plazos.yaml` en la tarea que añade la raíz

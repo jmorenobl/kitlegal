@@ -50,8 +50,8 @@ obliga FR-016 y la entrada de `probarLosDatosQueNoSeLeen` («Desviaciones declar
 
 **Scale/Scope**: 3 cómputos (uno sin tipos) y 7 tipos en `data/plazos.yaml`; 1 campo exportado nuevo (`Tipo.Da`), 2
 firmas que cambian, 10 constantes, 2 funciones y 1 tipo exportados que desaparecen; 1 error de argumentos nuevo; 6
-ficheros de producción que cambian (`tipos.go`, `computo.go`, `calcular.go`, `avisos.go`, `errores.go`, `salida.go`) más
-`internal/app/plazos.go`, `internal/evals/plazos.go`, `internal/evals/grabaciones.go` y `data/plazos.yaml`; 2 ficheros
+ficheros de producción que cambian (`tipos.go`, `computo.go`, `calcular.go`, `avisos.go`, `errores.go`, `salida.go`), el comentario
+de paquete de `doc.go`, `internal/app/plazos.go`, `internal/evals/plazos.go`, `internal/evals/grabaciones.go` y `data/plazos.yaml`; 2 ficheros
 de prueba y 4 ficheros de test nuevos; 2 guiones de aceptación.
 
 ## Constitution Check
@@ -249,8 +249,10 @@ Según «Gates» de la constitución, capa 1:
 
 - **`make ci`**, sin objetivos nuevos: `make test` ejecuta los tests nuevos (`TestComputoDeEnsayo`, `TestComputoCivil`,
   `TestDescribeDePlazosSinDatos`, `TestNingunCodigoDePlazosEnGo`) y los que cambian, y `TestEntregaDelHito` con los dos
-  guiones de H36 activados; `make lint` pasa con la configuración de hoy, que no cambia (`depguard` R1 vigila también
-  los tests del dominio, que no usan `os`); ningún `//nolint` ni `t.Skip`.
+  guiones de H36 activados; `make lint` pasa con la configuración de hoy y una sola entrada más, `periodos` en
+  `ignore-rules` de `misspell` (T004: la clave de spec §C.1, que `misspell` lee como «periods»; gates/supuestos.md, T013),
+  sin tocar ninguna regla (`depguard` R1 vigila también los tests del dominio, que no usan `os`); ningún `//nolint` ni
+  `t.Skip`.
 - **`make schema-check`** (`TestEsquemasPublicados`): `schemas/plazo.json` igual a lo que emite `--describe`, con el
   `pattern` en lugar de los dos `enum`. Los tests de contrato de la salida contra `schemas/plazo.json` no cambian.
 - **`make skills-check`** y `TestRegiones`: las referencias generadas desde `data/plazos.yaml` salen iguales (FR-020).
