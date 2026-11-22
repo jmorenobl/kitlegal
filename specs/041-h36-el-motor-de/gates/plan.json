@@ -1,0 +1,107 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt está vacío. Lo que dicen las filas I a X, R1 a R7 y la garantía sin red sigue siendo cierto tras la corrección r1, que no toca ninguna fila. La frase de después de la tabla ya cuenta dos desviaciones declaradas, TestGrabacionesSinSolape y la raíz de TestGrabarEvals, como D10 y «Decisiones». Ninguna dependencia nueva: verificarPreceptos usa go.yaml.in/yaml/v3, que internal/evals ya importa en sus tests (D11). No falta ninguna regla de dependencia."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Las mismas de la ronda 1: kong, invopop/jsonschema, go.yaml.in/yaml/v3, testify, go-internal y la biblioteca estándar. La corrección no añade ninguna. Complexity Tracking está vacío y no hace falta."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Lo que cambia la corrección es de tests de internal/evals (verificarPreceptos) y de la captura de la tarea [aceptacion], que no es código del producto. El dominio sigue recibiendo bytes. Nada nuevo importa net/http ni SQLite, llama a os.Exit ni escribe en stdout."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 1. El error de FR-007 es un errorDeArgumentos con código 2, y los defectos de LeerTipos son defectoDeDatos, que el kernel da como inesperado, código 1. En esta sesión, ./bin/kitlegal da 3 en error-inexistente y 2 en error-fuera-del-calendario, los códigos de las tablas de contracts/aceptacion.md §2."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Siguen nombrados los dos guiones congelados, plazos-de-hoy.txtar y describe.txtar, que fallan hoy por una aserción. También los unitarios nuevos y los que cambian, los fixtures nuevos y regenerados, los controles de make ci y mutantes.md. La captura de §1 es ahora ejecutable (criterio h)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Los dos motivos de la ronda 1 están corregidos. (1) lecturasDeLosTipos, loQueLlevaALeerElRepositorio y consultas.go no cambian. Solo verificarPreceptos añade los cómputos sin tipos (D11, grabacion.md §3 y §4, «Trazabilidad»), así que el civil no entra en lo que la skill lleva a leer (FR-014). Lo he comprobado: verificarPreceptos solo lo llama TestPreceptosDeLosPlazos (grabaciones_test.go:937 y :1030), que es lo que FR-017 deja tocar en ese fichero. (2) TestGrabarEvals queda declarado como desviación por FR-016 en «Desviaciones declaradas», D10 y grabacion.md §1, acotado a la raíz del cliente. He comprobado las cadenas de sustituida (count == 1, grabaciones_test.go:815) que usan los subtests de TestPreceptosDeLosPlazos contra el data/plazos.yaml de contracts/datos-de-plazos.md §1: «reposicion+\"1,\"» (da va detrás de duracion), «bloque: a128,» (los periodos no llevan bloque), 128.2, 182.1 y 124.1 aparecen una sola vez también con el civil. Ningún test fuera de FR-017 y de D10 cambia."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No prevé ningún //nolint, t.Skip ni TODO. Los defectos se acumulan con errors.Join. La corrección no añade ningún atajo."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda 1 corregido. La captura de contracts/aceptacion.md §1 construye con make build y usa ./bin/kitlegal … --json | sed -E -e 's/…/' -e '1i -- <golden> --' >> specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar. Research S2 documenta las alternativas rechazadas, con su evidencia: el binario en $TMPDIR, go run, que sale con 1, y la copia a mano. En esta sesión, make build termina, bin/kitlegal es nuevo y git status no cambia. La tubería con sed da la cabecera y el sobre del caso 11. La misma orden con >> a una ruta fija del repositorio escribió el sobre del caso 15 tal cual: cabecera, fecha_consulta vaciado y el aviso del art. 183. La salida de error (el aviso de las skills instaladas) no entró. Lo probé sobre este mismo fichero de veredicto, que después se sobrescribe."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda 1 corregido. He comprobado V23 en esta sesión: lecturasDeLosTipos la llaman verificarPreceptos (grabaciones_test.go:1082), loQueLlevaALeerElRepositorio (:1214) y TestLecturasDeLosDatos (consultas_test.go:586). loQueLlevaALeerElRepositorio la llaman consultas_test.go:569 y probarLoQueLlevaALeer (conjunto_test.go:3304). bloquesDeLosTipos (consultas.go:340-362) solo lee los preceptos de los tipos y de su cómputo. BOE-A-2000-323 aparece 1 vez en data/normas.yaml y 0 en plazos.yaml y cobertura.yaml. palabrasClaveDeLosPreceptos es la tabla, y palabrasDeUnPrecepto su tipo (:859, :875). plazos.Precepto lleva las etiquetas yaml de norma, bloque, apartado, fija y vigente_desde (tipos.go:106-118). También V24: make build deja bin/kitlegal (Makefile:64-65, bin/ en .gitignore:2), los códigos 3 y 2 de dos errores, go run sale con 1 donde el binario sale con 3, y .claude/settings.json permite ./bin/kitlegal, make, sed y git. La sesión del run se abre con acceptEdits (paso.sh:139) y con autoAllowBashIfSandboxed: false (claude-modelo.sh:239)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "quickstart.md no cambia en la corrección r1. Lo he ejecutado en esta sesión. Escenario 0: git diff --name-only cd3ad148 HEAD solo nombra docs/. TestEntregaDelHito/^h9-plazos da 6. TestCasosDePlazos, TestAppletPlazos y TestEsquemasPublicados dan 58. TestCalcular, TestComprobarPeticion, TestPropiedadesDelComputo y TestLeerTipos dan 130. TestPreceptosDeLosPlazos, TestGrabacionesSinSolape y TestManifiestoDeGrabaciones dan 25. TestRegiones da 21. Todos en verde, y después git status no muestra cambios en internal, data, schemas, skills ni specs/023. Los escenarios marcados H36 son de la rama."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Sin cambios de fondo. Una sola fuente, boe.legislacion-consolidada, con fila revisada en main. El manifiesto es internal/evals/testdata/grabaciones.json, y la grabación la hace TestGrabarEvals con internal/httpx en $KITLEGAL_EVIDENCIAS = evidencias/h36/, ahora declarado como desviación por FR-016. data/plazos.yaml no deriva de lo grabado: lo fija el spec y lo comprueba TestPreceptosDeLosPlazos (D14). La captura de la tarea [aceptacion] no es un dato externo: es la salida del binario de main, sin red."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica o mide en la plataforma. La captura corre con las órdenes que permite la sesión del run, lo he comprobado en esta sesión (criterio h). La grabación la hace grabar_datos, y el cierre, el workflow."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "He rehecho el cálculo con lo medido en esta sesión. El sobre del caso 11 sale en una línea de unos 800 B con fecha_consulta vaciado, y el del caso 15, con el aviso del art. 183, en unos 1030 B. Encaja con V19. plazos-y-territorio hace 1 o 2 llamadas por pregunta, y plazos no lee la caché ni el grafo, así que son 1-2 KB por pregunta y no crecen con meses de uso. El aviso de periodo sale como mucho una vez por plazo y se apaga cuando el tramo no toca el periodo. El esquema, unos 8,2 KB, lo recibe el agente una vez por conexión y ya no crece con los datos. Con la corrección, el civil no entra en lo que la skill lleva a leer en las evals: ni una orden más por sesión."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo sigue con su fila en «Trazabilidad». La lectura de los cómputos sin tipos en verificarPreceptos se traza a FR-015 con FR-014. La raíz $KITLEGAL_EVIDENCIAS de TestGrabarEvals, a FR-016 y D10. La corrección quita un mecanismo, el cambio de lecturasDeLosTipos, y no añade ninguno que no se trace."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 1, que lo comprobó. Hay una fila por SC-001 a SC-009 y FR-009, con ci:<ruta>:<Test>, y he visto existir y pasar en esta sesión TestCasosDePlazos, TestAppletPlazos, TestCalcular, TestComprobarPeticion, TestPropiedadesDelComputo, TestLeerTipos, TestEsquemasPublicados, TestPreceptosDeLosPlazos y TestRegiones. SC-008 lleva los umbrales de clase de las cuatro skills con decide: true, en los dos modos. Con la corrección, SC-006 sigue en ci:internal/evals/grabaciones_test.go:TestPreceptosDeLosPlazos, que ahora lee los cinco preceptos del civil por verificarPreceptos."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "plazosDelContrato está en internal/core/plazos/tipos_test.go, no en calcular_test.go, como dicen FR-017 y contracts/datos-de-plazos.md:125. Los dos ficheros están en la lista de FR-017.",
+    "plan.md:317 y research S6 dicen que los nombres de los umbrales de las evals los publicó el cierre de H33 (specs/039-h33-cobertura-en-positivo/plan.md). Los umbrales con decide: true comprobados en la ronda 1 están en specs/040-h38-las-skills-instaladas/gates/evals/. Los nombres coinciden, y no cambia ningún control.",
+    "contracts/aceptacion.md §1 paso 3: para que la primera cabecera `-- caso-11.json --` quede en su línea, el guion que escribe la sesión antes de los >> tiene que terminar en salto de línea. Si no, se ve en el rojo primero de aceptacion.sh.",
+    "El `1i texto` de una línea es de GNU sed. El run y make ci corren en Linux, y la captura solo la hace la tarea [aceptacion], no make ci.",
+    "La bandera -actualizar-golden-de-plazos, que contracts/applet-calcular.md §2 usa para describe.json, reescribe también caso-a, caso-b y caso-e. Que no cambien lo garantizan las rutas declaradas de la tarea [datos], no TestAppletPlazos.",
+    "Con la variable KITLEGAL_EVIDENCIAS, TestGrabarEvals grabará bajo evidencias/<hito>/ también en los hitos siguientes que cambien el manifiesto de internal/evals. Cada uno tendrá que añadir su raíz a la unión.",
+    "D3: CodigosDeAviso(tipos) solo ve los cómputos que nombra algún tipo. Hoy no hay ningún cómputo sin tipos con un periodo aviso: no hay emisor.",
+    "La regla general de no-corre (contracts/api-del-dominio.md §2) no dice qué pasa con dos periodos no-corre en un mismo tramo. Con los datos no se da.",
+    "Para probar la captura con >> en esta sesión añadí el sobre del caso 15 al final de este fichero, y este veredicto lo sobrescribe entero. make build reescribió bin/kitlegal, que git ignora."
+  ]
+}

@@ -1,0 +1,255 @@
+diff antes/contracts/aceptacion.md ahora/contracts/aceptacion.md
+--- antes/contracts/aceptacion.md	2026-11-22 02:43:24.554868265 +0100
++++ ahora/contracts/aceptacion.md	2026-11-22 02:50:53.179155060 +0100
+@@ -13,14 +13,22 @@
+ (`git diff --name-only cd3ad148 HEAD` solo nombra `docs/` y `specs/`; research V2). La tarea:
+ 
+ 1. comprueba esa condición con la misma orden, y no captura si nombra algo más;
+-2. construye el binario en el directorio temporal: `CGO_ENABLED=0 go build -trimpath -o "$TMPDIR/kitlegal-main"
+-   ./cmd/kitlegal`;
+-3. con `KITLEGAL_CACHE_DIR="$TMPDIR/h36-cache"`, ejecuta cada orden de §2 con `--json` y guarda su salida estándar con
+-   `fecha_consulta` vaciado: `sed -E 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'`, y su código de salida;
+-4. escribe cada salida, tal cual, como fichero del guion (`-- caso-11.json --`, …).
+-
+-Nada de eso escribe fuera del directorio temporal y de `aceptacion/` (S2 de research: que el sandbox del run deje
+-ejecutar ese binario no se ha podido comprobar en la sesión del plan).
++2. construye el binario con `make build`, que lo deja en `./bin/kitlegal` (`bin/` está en `.gitignore`);
++3. escribe el guion de §2 en `aceptacion/plazos-de-hoy.txtar`, sin sus ficheros, y detrás añade el sobre de cada
++   orden de §2 con una sola orden por golden, que lo lleva del binario al guion sin pasar por el contexto de la sesión:
++
++   ```sh
++   ./bin/kitlegal plazos calcular <orden> --json \
++     | sed -E -e 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' -e '1i -- <golden> --' \
++     >> specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar
++   ```
++
++   El `1i` de `sed` pone la cabecera del fichero de txtar; la salida de error del binario, con líneas que no son del
++   sobre, no entra en el guion.
++
++El código de cada orden es el de su tabla de §2 y §3, el que da el binario de `main` (research V24). Nada de eso
++escribe fuera de `bin/`, que git ignora, y de `aceptacion/`. Por qué `make build` y no un binario en `$TMPDIR` ni
++`go run`, research S2.
+ 
+ ## 2. `aceptacion/plazos-de-hoy.txtar` (US1; FR-005, FR-006, FR-008, FR-011, FR-012, FR-021; SC-001)
+ 
+@@ -30,7 +38,8 @@
+ 1. **La aserción que falla hoy**: `exec kitlegal plazos calcular x x x --describe` y `! stdout 'alzada'` y
+    `! stdout 'reposicion'` (hoy los nombran la ayuda del tipo y el enumerado de la salida; ni la descripción del verbo
+    ni nada de §C.7 y §C.8 los nombra).
+-2. **Los tres casos** (US1.2): cada orden, `exec sh -c` con la salida estándar por el mismo `sed` de §1 y
++2. **Los tres casos** (US1.2): cada orden, `exec sh -c` con la salida estándar por la misma sustitución de
++   `fecha_consulta` de §1 (`sed -E 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'`, sin el `1i`) y
+    `test $? -eq 0` sobre el código de `kitlegal` (no el de la tubería), y `cmp stdout <golden>`:
+ 
+    | Golden | Orden (con `kitlegal plazos calcular` delante y `--json` detrás) |
+diff antes/contracts/grabacion.md ahora/contracts/grabacion.md
+--- antes/contracts/grabacion.md	2026-11-22 02:43:24.554882120 +0100
++++ ahora/contracts/grabacion.md	2026-11-22 02:51:17.009302463 +0100
+@@ -18,7 +18,8 @@
+ En la misma tarea, `TestGrabarEvals` (`internal/evals/grabacion_test.go`, `//go:build grabacion`) construye el cliente
+ que graba con `httpx.ConRaizDeGrabacion(os.Getenv("KITLEGAL_EVIDENCIAS"))` cuando la variable no está vacía, y con la
+ raíz de su conjunto si lo está, como hoy. Nada más de la grabación cambia: lee los dos manifiestos, siembra cada
+-consulta desde `UnionDeGrabaciones` con `Preparar` y solo pide a la fuente lo que falta (V7, V8 de research).
++consulta desde `UnionDeGrabaciones` con `Preparar` y solo pide a la fuente lo que falta (V7, V8 de research). FR-017
++no nombra `grabacion_test.go`: es una desviación declarada, por FR-016 (research D10).
+ 
+ ## 2. Lo que graba `grabar_datos`
+ 
+@@ -36,10 +37,13 @@
+ - `internal/evals/grabaciones.go`: `GrabacionesDeH36 = "../../evidencias/h36/" + boe.NombreDeLaFuente`, y
+   `UnionDeGrabaciones()` devuelve H4, H5, H9 y H36, en ese orden.
+ - `internal/evals/grabaciones_test.go`: la lista esperada de `TestGrabacionesSinSolape` gana `GrabacionesDeH36`
+-  (research D10); `lecturasDeLosTipos` lee los preceptos de todos los cómputos, también los que no tienen tipos
+-  (research D11); la tabla `palabrasDeUnPrecepto` gana, en `a130`, «24 de diciembre», «6 de enero» y «agosto», y en
+-  `a133`, «día siguiente», «veinticuatro horas», «se excluirán los inhábiles», «de fecha a fecha» y «prorrogados»
+-  (FR-015).
++  (desviación declarada, research D10); `verificarPreceptos` añade, detrás de las de los tipos, las lecturas de los
++  preceptos de los cómputos que no nombra ningún tipo, con una estructura YAML propia del test (research D11); la
++  tabla `palabrasClaveDeLosPreceptos` gana, en `a130`, «24 de diciembre», «6 de enero» y «agosto», y en `a133`, «día
++  siguiente», «veinticuatro horas», «se excluirán los inhábiles», «de fecha a fecha» y «prorrogados» (FR-015).
++  `lecturasDeLosTipos` y `loQueLlevaALeerElRepositorio` no cambian: el civil no entra en lo que la skill lleva a leer
++  ni en el oráculo de `TestLecturasDeLosDatos` y de `TestEvalsDelRepositorio/lo-que-lleva-a-leer` (FR-014; research
++  V23).
+ - `data/plazos.yaml`: el cómputo `civil` de contracts/datos-de-plazos.md §1.
+ 
+ Con eso, `TestPreceptosDeLosPlazos` comprueba que los dos bloques están grabados, que llevan sus palabras y que cada
+@@ -48,6 +52,7 @@
+ 
+ ## 4. Lo que no cambia
+ 
++`internal/evals/consultas.go`, `TestLecturasDeLosDatos`, el subtest `lo-que-lleva-a-leer` de `TestEvalsDelRepositorio`,
+ `TestManifiestoDeGrabaciones` (los dos manifiestos reales, con su mínimo de entradas), `TestDirectorioDeLosGrafosPrevios`
+ (la raíz de H36 está fuera de `testdata/evals/grafo-previo`), `TestIdentificadoresDeLasNormas`, `docs/SOURCES.md` y
+ ningún fichero de `data/festivos/`. `GrafosPrevios` sigue fuera de la unión.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-22 02:43:24.554910942 +0100
++++ ahora/plan.md	2026-11-22 02:51:34.942248046 +0100
+@@ -78,8 +78,9 @@
+ | R7 · solo el paquete del servidor importa el SDK de MCP | Nada nuevo lo importa; la herramienta `plazos_calcular` sale de `--describe`, como hoy |
+ | Garantía sin red de `TestArquitectura` (`paquetesSinRed`, `ficherosSinRed`, `internal/arch_test.go:700-721`) | `internal/core/plazos` y `internal/app/plazos.go` siguen en las listas y no ganan ninguna importación que llegue a `net`, `net/http` ni `internal/httpx`; lo nuevo que importa `data` es `internal/evals/plazos.go`, que no está en ellas |
+ 
+-Re-evaluado tras la fase 1: sin violaciones; Complexity Tracking, vacío. Una desviación declarada en «Decisiones»: FR-016
+-obliga a tocar `TestGrabacionesSinSolape`, que FR-017 no nombra (research D10).
++Re-evaluado tras la fase 1: sin violaciones; Complexity Tracking, vacío. Dos desviaciones declaradas en «Decisiones»:
++FR-016 obliga a tocar `TestGrabacionesSinSolape` y la raíz del cliente de `TestGrabarEvals`, que FR-017 no nombra
++(research D10).
+ 
+ ## Project Structure
+ 
+@@ -89,7 +90,7 @@
+ specs/041-h36-el-motor-de/
+ ├── spec.md
+ ├── plan.md                         # este fichero
+-├── research.md                     # D1-D15, V1-V21, S1-S6, datos externos
++├── research.md                     # D1-D15, V1-V24, S2-S6, datos externos
+ ├── data-model.md                   # cómputo, periodo, aviso de periodo, tipo, ficheros de prueba, grabaciones
+ ├── quickstart.md                   # escenarios de comprobación
+ ├── contracts/
+@@ -162,9 +163,9 @@
+    vez (D4).
+ 6. **La grabación y el civil** (contracts/grabacion.md; FR-014 a FR-016). La entrada de la Ley 1/2000 y el destino de la
+    grabación; tras `grabar_datos`, la raíz de H36 en la unión, el civil en `data/plazos.yaml` y `TestPreceptosDeLosPlazos`
+-   sobre todos los cómputos (D9 a D11).
+-7. **Los tests** (FR-017, FR-021 a FR-024): los que cambian, solo los de FR-017 (más el de D10); los nuevos, los de
+-   «Trazabilidad».
++   también sobre los cómputos sin tipos, sin cambiar lo que la skill lleva a leer (D9 a D11).
++7. **Los tests** (FR-017, FR-021 a FR-024): los que cambian, solo los de FR-017 (más los dos de D10); los nuevos, los
++   de «Trazabilidad».
+ 8. **La documentación** (FR-019): `CHANGELOG.md`, en *Unreleased* > «Cambiado», las tres frases de FR-019.
+ 
+ **Orden y piezas indivisibles** (para `tasks.md`): la tarea `[aceptacion]` va antes de cualquier cambio de producto,
+@@ -221,9 +222,9 @@
+ | La ayuda de §C.7 y el `pattern` de §C.8 en las etiquetas | FR-012 |
+ | `describe.json`, `schemas/plazo.json`, `h39-describe.txtar` y su copia, regenerados | FR-012, FR-017 |
+ | Las diez reglas de `LeerTipos` y sus defectos | FR-013 |
+-| La entrada de la Ley 1/2000 en el manifiesto y el destino `$KITLEGAL_EVIDENCIAS` de `TestGrabarEvals` | FR-016 |
++| La entrada de la Ley 1/2000 en el manifiesto y el destino `$KITLEGAL_EVIDENCIAS` de `TestGrabarEvals` | FR-016; research D10 |
+ | `GrabacionesDeH36` en `UnionDeGrabaciones` y su lugar en `TestGrabacionesSinSolape` | FR-016; research D10 |
+-| `lecturasDeLosTipos` sobre todos los cómputos y las palabras de `a130` y `a133` | FR-015 |
++| Las lecturas de los cómputos sin tipos en `verificarPreceptos` y las palabras de `a130` y `a133` | FR-015 (con FR-014: `lecturasDeLosTipos` y el oráculo no cambian; research D11) |
+ | `testdata/computo-de-ensayo.yaml` y `TestComputoDeEnsayo` | FR-022; US3.1 a US3.5 |
+ | `testdata/tipos-de-prueba-civil.yaml` y la combinación con su base | FR-023, FR-024 |
+ | `TestComputoCivil` | FR-023; US2.5 (FR-014), US5.1 (FR-013) |
+@@ -328,6 +329,12 @@
+ obliga a tocar), D11 (los cómputos sin tipos en `TestPreceptosDeLosPlazos`), D12 (las copias de H39 sin su huella), D13
+ (el error nuevo y su orden), D14 (`data/plazos.yaml` desde el spec) y D15 (skills de Go).
+ 
+-**Desviación declarada** (research D10): `TestGrabacionesSinSolape` (`internal/evals/grabaciones_test.go`) fija hoy que la
+-unión son H4, H5 y H9; FR-016 obliga a añadir la raíz de H36, y su lista esperada gana ese elemento y nada más, aunque
+-FR-017 solo nombra, en ese fichero, lo de `TestPreceptosDeLosPlazos`. Sin ese cambio `make ci` sale en rojo.
++**Desviaciones declaradas** (research D10), las dos por FR-016 y fuera de la lista cerrada de FR-017:
++
++- `TestGrabacionesSinSolape` (`internal/evals/grabaciones_test.go`) fija hoy que la unión son H4, H5 y H9; FR-016 obliga
++  a añadir la raíz de H36, y su lista esperada gana ese elemento y nada más, aunque FR-017 solo nombra, en ese fichero,
++  lo de `TestPreceptosDeLosPlazos`. Sin ese cambio `make ci` sale en rojo.
++- `TestGrabarEvals` (`internal/evals/grabacion_test.go`, `//go:build grabacion`), que FR-017 no nombra, construye hoy el
++  cliente de cada raíz con la de su conjunto (`httpx.ConRaizDeGrabacion(raiz)`, línea 94); FR-016 pide lo grabado bajo
++  `evidencias/h36/`, así que cambia solo esa raíz, que es `$KITLEGAL_EVIDENCIAS` cuando la variable no está vacía, y
++  la de su conjunto si lo está, como hoy. Sin ese cambio la grabación no queda donde la pide FR-016.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-22 02:43:24.554749972 +0100
++++ ahora/research.md	2026-11-22 02:50:24.233462611 +0100
+@@ -142,26 +142,50 @@
+ - **Por qué**: es la única forma de cumplir FR-016 con el paso `grabar_datos` tal como está, sin que ninguna tarea
+   escriba en `evidencias/` ni toque la red.
+ 
+-### D10 · Los tests que FR-016 y FR-015 obligan a tocar
++### D10 · Los tests que FR-016 obliga a tocar fuera de FR-017, y lo que cambia por FR-015
+ 
+-- **Decisión**: `TestGrabacionesSinSolape` (`grabaciones_test.go:269-298`) exige hoy que la unión sean exactamente H4,
+-  H5 y H9; con FR-016 su lista esperada gana `GrabacionesDeH36` y nada más: su comprobación de que dos conjuntos solo
+-  comparten la grabación de `robots.txt` cubre el de H36 sin cambios, porque el cliente que graba pide `robots.txt` y lo
+-  graba en su raíz (V22). `lecturasDeLosTipos` y la tabla de palabras clave cambian por FR-015. Es lo único de
+-  `grabaciones_test.go` que cambia.
+-- **Alternativas**: no añadir la raíz a la unión: incumple FR-016.
+-- **Por qué**: FR-017 limita lo que cambia en ese fichero a lo de `TestPreceptosDeLosPlazos`; la lista de la unión es
+-  consecuencia directa de FR-016 y sin ella `make ci` sale en rojo. Se registra aquí y en «Decisiones» del plan.
++- **Decisión**: dos desviaciones de la lista cerrada de FR-017, las dos por FR-016 y acotadas a lo que exige:
++  1. `TestGrabacionesSinSolape` (`grabaciones_test.go:269-298`) exige hoy que la unión sean exactamente H4, H5 y H9;
++     su lista esperada gana `GrabacionesDeH36` y nada más: su comprobación de que dos conjuntos solo comparten la
++     grabación de `robots.txt` cubre el de H36 sin cambios, porque el cliente que graba pide `robots.txt` y lo graba en
++     su raíz (V22).
++  2. `TestGrabarEvals` (`internal/evals/grabacion_test.go`, `//go:build grabacion`) construye hoy el cliente de cada
++     raíz con `httpx.ConRaizDeGrabacion(raiz)`, la de su conjunto (línea 94); cambia solo esa raíz, que es
++     `$KITLEGAL_EVIDENCIAS` cuando la variable no está vacía, como la da el paso `grabar_datos` (D9), y la de su
++     conjunto si lo está, como hoy, para `scripts/grabar-evals.sh`. Nada más del test cambia.
++
++  Por FR-015, en `grabaciones_test.go` cambian solo `verificarPreceptos`, que gana las lecturas de los cómputos sin
++  tipos (D11), y la tabla `palabrasClaveDeLosPreceptos`. `lecturasDeLosTipos` y `loQueLlevaALeerElRepositorio` no
++  cambian (V23).
++- **Alternativas**: no añadir la raíz a la unión, o grabar en la raíz del conjunto de H9: incumplen FR-016 (D9 (b)).
++- **Por qué**: FR-017 limita lo que cambia en `grabaciones_test.go` a lo de `TestPreceptosDeLosPlazos` y no nombra
++  `grabacion_test.go`; la lista de la unión y la raíz del cliente son consecuencia directa de FR-016: sin la primera,
++  `make ci` sale en rojo; sin la segunda, lo grabado no queda en `evidencias/h36/`. Se registran aquí y en
++  «Decisiones» del plan.
+ 
+ ### D11 · `TestPreceptosDeLosPlazos` lee los cómputos sin tipos (FR-015)
+ 
+-- **Decisión**: `lecturasDeLosTipos` deja de sacar los preceptos de los cómputos de los tipos y los saca de todos los
+-  cómputos del fichero, en su orden, con una estructura YAML propia del test (`computos[].codigo` y
+-  `computos[].preceptos`, en `plazos.Precepto`). Las lecturas de los tipos no cambian. La tabla `palabrasDeUnPrecepto`
+-  gana las palabras de FR-015 en `a130` y `a133`.
+-- **Alternativas**: exportar del dominio un lector de cómputos: API de producción que solo usa un test.
+-- **Por qué**: hoy el orden de los cómputos del fichero (`lpac`, `contencioso`) es el de su primer tipo, así que los
+-  defectos de hoy salen igual, y el civil entra al final.
++- **Decisión**: `verificarPreceptos` añade, detrás de `lecturasDeLosTipos(tipos)`, las lecturas de los preceptos de
++  cada cómputo que no nombra ningún tipo, en el orden del fichero y nombradas «el cómputo `<código>`», como las de hoy.
++  Las saca de los mismos bytes que ya lee, con una estructura YAML propia del test (`computos[].codigo` y
++  `computos[].preceptos`, en `plazos.Precepto`; `go.yaml.in/yaml/v3`, que los tests de `internal/evals` ya importan en
++  `formato_test.go` y `medida_test.go`). Con los datos de H36 son los cinco preceptos del civil. `lecturasDeLosTipos` y
++  `loQueLlevaALeerElRepositorio` no cambian. La tabla `palabrasClaveDeLosPreceptos` gana las palabras de FR-015 en
++  `a130` y `a133`, que solo lee `verificarPreceptos` (por `lecturasDeLaTabla`), no el oráculo.
++- **Alternativas**: (a) que `lecturasDeLosTipos` lea todos los cómputos: es también la fuente de
++  `loQueLlevaALeerElRepositorio` (`grabaciones_test.go:1214`) y de lo nombrado por los tipos en `TestLecturasDeLosDatos`
++  (`consultas_test.go:586`), y ese oráculo lo comparan `TestLecturasDeLosDatos` (`consultas_test.go:569-573`, con
++  `ElementsMatch` contra lo que prepara `consultas.go` desde `bloquesDeLosTipos`, que solo lee los cómputos de los
++  tipos: `consultas.go:287`, `:340-359`) y `TestEvalsDelRepositorio/lo-que-lleva-a-leer` (`conjunto_test.go:3299-3304`).
++  El civil entraría en el oráculo con cuatro órdenes de más (`boe articulo BOE-A-2000-323 a130` y `a133`, con y sin
++  `--fecha 9999-12-31`; el índice y los metadatos de la LEC ya están, porque la LEC está en `data/normas.yaml`) y los
++  dos tests saldrían en rojo. Ponerlos en verde exigiría cambiar `consultas.go`, con lo que el civil entraría en lo que
++  la skill lleva a leer, contra FR-014, o tocar `consultas_test.go` y `conjunto_test.go`, que FR-017 no nombra.
++  (b) Leer en `verificarPreceptos` todos los cómputos sin repetir los de los tipos: el mismo resultado con una
++  comparación más. (c) Exportar del dominio un lector de cómputos: API de producción que solo usa un test.
++- **Por qué**: FR-015 pide leer «también los cómputos sin tipos», y FR-014, que el civil no entre en lo que la skill
++  lleva a leer en las evals, que sigue saliendo de los tipos. Las lecturas y los defectos de hoy salen iguales, y las
++  del civil, detrás de las de los tipos.
+ 
+ ### D12 · Las copias congeladas de H39 y su huella
+ 
+@@ -228,19 +252,29 @@
+ | V16 | La LEC está en el manifiesto de H5 sin bloques (`"busqueda": "enjuiciamiento civil"`, `"titulo_empieza_por": "Ley 1/2000,"`), y sus metadatos y su índice están grabados en `testdata/evals/boe.legislacion-consolidada/`; el índice grabado lleva los ids `a130` y `a133`; ningún bloque de `BOE-A-2000-323` está grabado; la LEC no está en `data/cobertura.yaml`, y el manifiesto de H9 ya repite una norma del de H5 (el Código Civil) | `grep -n 'Ley 1/2000' testdata/evals/grabaciones.json`; `ls` de los tres conjuntos; `grep -o` sobre el índice grabado; `grep -c` en `data/cobertura.yaml` (0); `jq` del manifiesto de H9 |
+ | V17 | La fila de `boe.legislacion-consolidada` en `docs/SOURCES.md` de `main` tiene «Revisado» 2026-09-13 | `git show main:docs/SOURCES.md` (línea 42) |
+ | V18 | Las órdenes de los escenarios: `TestAppletPlazos` (19 en verde), `TestPropiedadesDelComputo` y `TestLeerTipos` (48), `TestRegiones` (21), `TestEntregaDelHito/^h9-plazos` (6), `TestCasosDePlazos` (22), `TestPreceptosDeLosPlazos`, `TestGrabacionesSinSolape` y `TestManifiestoDeGrabaciones` (25), `TestEsquemasPublicados` (17), sin cambios en el árbol | `go test -count=1 -run …`, esta sesión; `git status --porcelain` después |
+-| V19 | Tamaños: `caso-a.json` 767 B, `caso-b.json` 853 B (con un aviso de 196 B de texto), `caso-e.json` 670 B, `describe.json` 8317 B (353 líneas), `schemas/plazo.json` 10 093 B; en `describe.json`, la propiedad `tipo` mide 121 B y `codigo` del aviso 143 B, compactas; el texto del aviso del art. 183 con su prefijo, 335 B, y su objeto JSON entero, 380 B; el mensaje de C7, 115 B; el aviso del ensayo, 113 B | `wc -c`, `jq -c … | wc -c` y `printf … | wc -c`, esta sesión |
++| V19 | Tamaños: `caso-a.json` 767 B, `caso-b.json` 853 B (con un aviso de 196 B de texto), `caso-e.json` 670 B, `describe.json` 8317 B (353 líneas), `schemas/plazo.json` 10 093 B; en `describe.json`, la propiedad `tipo` mide 121 B y `codigo` del aviso 143 B, compactas; el texto del aviso del art. 183 con su prefijo, 335 B, y su objeto JSON entero, 380 B; el mensaje de C7, 115 B; el aviso del ensayo, 113 B; con el binario de `main` (V24), el sobre del caso 11, 840 B, y los de los casos 15 y 16, 1065 B cada uno (805 y 1030 B con `fecha_consulta` vaciado) | `wc -c`, `jq -c … \| wc -c` y `printf … \| wc -c`; `./bin/kitlegal plazos calcular … --json \| wc -c`, esta sesión |
+ | V20 | El paso 9 de `plazos-y-territorio` pide `plazos_calcular` o `kitlegal plazos calcular`; la tabla de comandos (línea 143) lleva la descripción del verbo | `grep -n` en `skills/plazos-y-territorio/SKILL.md` |
+ | V22 | El cliente que graba graba también las peticiones que origina él mismo, como la de `robots.txt`, y la raíz de H9 lleva la suya | `internal/httpx/nombre.go:34-39`, `internal/httpx/robots.go:180`; `ls internal/evals/testdata/boe.legislacion-consolidada/` (1 fichero de `robots`) |
+ | V21 | La activación copia cada guion de `aceptacion/` a `internal/app/testdata/script/h36-<nombre>`; el rojo primero exige que cada guion falle hoy por una aserción | `scripts/workflow/aceptacion.sh:1-40`, `:74-84` |
++| V23 | Llaman a `lecturasDeLosTipos` `verificarPreceptos` (`grabaciones_test.go:1082`), `loQueLlevaALeerElRepositorio` (`:1214`) y `TestLecturasDeLosDatos` (`consultas_test.go:586`); a `loQueLlevaALeerElRepositorio`, `TestLecturasDeLosDatos` (`consultas_test.go:569`) y `probarLoQueLlevaALeer`, el subtest `lo-que-lleva-a-leer` de `TestEvalsDelRepositorio` (`conjunto_test.go:3301-3304`); `bloquesDeLosTipos` (`consultas.go:340-359`) solo lee los cómputos de los tipos; la LEC está en `data/normas.yaml` y no en `data/plazos.yaml` ni en `data/cobertura.yaml` | `grep -rn lecturasDeLosTipos\|loQueLlevaALeerElRepositorio\|bloquesDeLosTipos internal`, lectura de esas líneas y `grep -c BOE-A-2000-323` sobre los tres ficheros, esta sesión |
++| V24 | Con el árbol de hoy (`git diff --name-only cd3ad148 HEAD` solo nombra `docs/`), `make build` deja `bin/kitlegal` (`Makefile:63-65`; `bin/` en `.gitignore:2`) y `git status` no cambia; `./bin/kitlegal plazos calcular <orden> --json \| sed -E …` corre y las doce órdenes de contracts/aceptacion.md §2 y §3 salen con el código de sus tablas (0 los casos; 2 los errores, salvo `error-inexistente`, 3), sin `KITLEGAL_CACHE_DIR` y con `~/.cache/kitlegal` fuera de lo que el sandbox deja escribir; la cabecera de txtar con `sed -e '1i -- <golden> --'` y `>>` a una ruta fija del repositorio escribe el sobre tal cual; la salida de error del binario lleva líneas que no son del sobre (el aviso de las skills instaladas y la traza de `slog`), que la herramienta muestra mezcladas con la salida estándar; `go run ./cmd/kitlegal` sale con 1 donde el binario sale con 2; una redirección a `"$TMPDIR/…"` se deniega («path is runtime-determined»). La sesión del run se abre con `--permission-mode acceptEdits` (`scripts/paso.sh:139`) y `autoAllowBashIfSandboxed: false` (`scripts/claude-modelo.sh:239`), y `.claude/settings.json` permite `./bin/kitlegal`, `make`, `sed`, `git` y `go`, no `sh`, `echo` ni `env`; el juez vio denegada la ejecución de `"$TMPDIR/kitlegal-main"` («Command name is runtime-determined», `gates/plan.json`) | las órdenes, esta sesión; `grep -n` en esos ficheros |
+ 
+ ## Supuestos no verificados
+ 
+-- **S1 · Los sobres de los casos 11, 15 y 16 no se han medido en esta sesión**: el permiso de la sesión pide aprobación
+-  para ejecutar un binario construido (`go build` sí terminó), así que el tamaño sale de los goldens del repositorio
+-  (V19), en el rango de 0,77 a 0,86 KB de un plazo de un mes, más 335 B del aviso del art. 183 en el caso 15.
+-- **S2 · La captura de la tarea `[aceptacion]`** (contracts/aceptacion.md §1) ejecuta el binario construido en
+-  `$TMPDIR` desde el árbol antes de cualquier cambio de producto, que es el código de `cd3ad148` (V2). Que el sandbox
+-  del run lo permita no se ha podido comprobar aquí; si no, la tarea entra en cuarentena y el informe lo dice.
++S1, los tamaños de los sobres de los casos 11, 15 y 16, ya no es un supuesto: están medidos con el binario de `main`
++(V19, V24).
++
++- **S2 · La captura de la tarea `[aceptacion]`** (contracts/aceptacion.md §1) construye con `make build` y ejecuta
++  `./bin/kitlegal … --json | sed … >> <guion>` desde el árbol antes de cualquier cambio de producto, que es el código de
++  `cd3ad148` (V2). En esta sesión corre de principio a fin y da los códigos de las tablas (V24); las órdenes que usa
++  (`make`, `./bin/kitlegal`, `sed`, `git`) son las que `.claude/settings.json` permite y la sesión del run lee. No se ha
++  ejecutado dentro de `scripts/claude-modelo.sh`. Alternativas rechazadas: (a) construir y ejecutar
++  `"$TMPDIR/kitlegal-main"`: el nombre de la orden se decide al ejecutarla, y la sesión del juez del plan, que se abre
++  como las del run, lo denegó (V24);
++  (b) `go run ./cmd/kitlegal`: corre, pero sale con 1 donde el binario sale con 2, así que no deja ver el código del
++  binario de `main` (V24); (c) copiar cada sobre a mano desde lo que muestra la herramienta: la salida de error del
++  binario sale mezclada con la estándar (V24), y un byte de más en un sobre congelado deja `cmp stdout` en rojo para
++  siempre en la rama.
+ - **S3 · El BOE responde a `a130` y `a133`** en el paso `grabar_datos`; si no, es una dependencia externa inaccesible,
+   causa mayor con su dossier.
+ - **S4 · Las redacciones grabadas dan los `vigente_desde` de FR-015** (2022-12-23, 2010-05-04 y 2001-01-08): lo dice el
