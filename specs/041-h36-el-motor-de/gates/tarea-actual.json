@@ -1,13 +1,13 @@
 {
-  "id": "T011",
-  "texto": "T011 [US2] Las propiedades del cómputo civil en `TestPropiedadesDelComputo`, internal/core/plazos/propiedades_test.go (FR-024; SC-004; research D8). Sin cambiar la rejilla ni las propiedades de H9, gana las del civil sobre la misma rejilla con un municipio cada vez y los dos tipos de prueba de FR-023: la copia del contrato (`plazosDelContrato`, con el civil desde T004) combinada, como en T010, con el fichero de tipos de prueba de T006 empotrado con `//go:embed`; para cada inicio, duración y municipio de la rejilla, la fecha nunca es inhábil para la sede ni cae en un periodo `inhabil`; en días hábiles, entre el día siguiente al inicio y la fecha hay exactamente N días que no son inhábiles de base ni de un periodo; en meses, la fecha es la de fecha a fecha o, si esa es inhábil, el primer hábil siguiente. Sin código de producto. **Verificación**: `go test -count=1 -run '^TestPropiedadesDelComputo$' ./internal/core/plazos/` y `make ci` en verde; en una copia bajo `$TMPDIR`, el motor que cuenta como hábiles los días de un periodo `inhabil` lo pone en rojo (mutante de SC-004).",
+  "id": "T012",
+  "texto": "T012 La entrada de *Unreleased* > «Cambiado» de CHANGELOG.md con las tres frases de FR-019: que los tipos y los cómputos de plazos son datos (`data/plazos.yaml`, ADR 0061); que el esquema de `plazos calcular` ya no enumera los tipos ni los avisos (lleva un `pattern`); y que el cómputo civil de la LEC está en el motor, pero no se pide todavía desde `kitlegal plazos` (FR-019; DoD 6). Nada más del fichero cambia. **Verificación**: `git diff -- CHANGELOG.md` solo añade esas líneas bajo *Unreleased*; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "73dceb8d5f73f0a8fede3f4958e677edc829787d",
+  "base": "51cc0576b443647d7c61b547797144353ff896b2",
   "rutas": [
-    "internal/core/plazos/",
-    "internal/core/plazos/propiedades_test.go"
+    "CHANGELOG.md",
+    "data/plazos.yaml"
   ],
   "cierre": false,
   "converger": false,
