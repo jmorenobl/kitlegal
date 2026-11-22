@@ -25,12 +25,19 @@ import (
 // de H5).
 const valorQueGraba = "1"
 
+// variableDeEvidencias es la variable de entorno con la raíz de evidencias del
+// hito, evidencias/<hito>/, que pone scripts/workflow/grabar-datos.sh: cuando
+// no está vacía, lo grabado va bajo ella y no junto al manifiesto (FR-016 de
+// H36; research D9 y D10 de H36).
+const variableDeEvidencias = "KITLEGAL_EVIDENCIAS"
+
 // conjuntosQueSeGraban son los conjuntos que llena TestGrabarEvals, en el orden
-// en que los graba: el de H5 y el de H9 (research D15 de H9). La raíz de
-// grabación de cada uno es el directorio que lo contiene, donde está también su
-// manifiesto: httpx escribe bajo ella <fuente>/, así que lo grabado queda
-// exactamente donde lo leen Preparar y los tests del paquete (research.md V46
-// de H5).
+// en que los graba: el de H5 y el de H9 (research D15 de H9). Sin la variable
+// de evidencias, la raíz de grabación de cada uno es el directorio que lo
+// contiene, donde está también su manifiesto: httpx escribe bajo ella
+// <fuente>/, así que lo grabado queda exactamente donde lo leen Preparar y los
+// tests del paquete (research.md V46 de H5). Con ella, como la da el paso
+// grabar_datos, la raíz es la suya (research D10 de H36).
 func conjuntosQueSeGraban() []string {
 	return []string{GrabacionesDeH5, GrabacionesDeH9}
 }
@@ -46,7 +53,8 @@ func conjuntosQueSeGraban() []string {
 //     grabaciones de H4 y de H5 con Preparar, y solo lo que da una falta se
 //     graba: solo se pide a la fuente lo que no está grabado en ninguno de los
 //     dos conjuntos. Lo de H5 ya está grabado, así que solo escribe en la raíz
-//     de H9;
+//     de H9 o, si la variable de evidencias no está vacía, en la suya
+//     (research D10 de H36);
 //  2. por cada entrada del manifiesto, boe buscar con su búsqueda y la elección
 //     del único resultado cuyo título empieza por su prefijo; después, de esa
 //     norma, boe metadatos, boe indice y boe articulo por cada bloque, todas con
@@ -79,8 +87,14 @@ func TestGrabarEvals(t *testing.T) {
 
 	pendientes := make([]raizQueSeGraba, 0, len(conjuntosQueSeGraban()))
 
+	evidencias := os.Getenv(variableDeEvidencias)
+
 	for _, conjunto := range conjuntosQueSeGraban() {
 		raiz := filepath.Dir(conjunto)
+		if evidencias != "" {
+			raiz = evidencias
+		}
+
 		rutaDelManifiesto := rutaDelManifiestoJuntoA(conjunto)
 
 		contenido, err := leerFichero(rutaDelManifiesto)
