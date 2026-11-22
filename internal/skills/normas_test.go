@@ -627,19 +627,23 @@ const (
 // los resultados de las búsquedas grabadas en los conjuntos. Lee con el
 // decodificador JSON genérico, sin el código de lectura de la fuente, el cuerpo
 // que httpx.Replay sirve para la dirección de cada búsqueda de cada conjunto;
-// cada conjunto tiene al menos una búsqueda, y cada resultado, un rango con su
-// texto: nada que no se entienda se salta.
+// entre todos los conjuntos hay al menos una búsqueda, aunque un conjunto puede
+// no tener ninguna (el de H36 solo guarda bloques, porque la búsqueda que los
+// resuelve la sirve el de H5; research D10 de H36), y cada resultado lleva un
+// rango con su texto: nada que no se entienda se salta.
 func rangosDeLasBusquedasGrabadas(t *testing.T, conjuntos []string) []string {
 	t.Helper()
 
 	rangos := map[string]struct{}{}
+
+	var busquedasDeLaUnion []string
 
 	for _, conjunto := range conjuntos {
 		cliente, err := httpx.Replay(conjunto, httpx.ConFuente(boe.NombreDeLaFuente))
 		require.NoError(t, err)
 
 		busquedas := direccionesDeLasBusquedas(t, conjunto)
-		require.NotEmpty(t, busquedas, "el conjunto de grabaciones %s tiene alguna búsqueda", conjunto)
+		busquedasDeLaUnion = append(busquedasDeLaUnion, busquedas...)
 
 		for _, direccion := range busquedas {
 			for _, rango := range rangosDeLaBusqueda(t, cliente, direccion) {
@@ -647,6 +651,9 @@ func rangosDeLasBusquedasGrabadas(t *testing.T, conjuntos []string) []string {
 			}
 		}
 	}
+
+	require.NotEmpty(t, busquedasDeLaUnion, "los conjuntos de grabaciones %q tienen entre todos alguna búsqueda",
+		conjuntos)
 
 	return slices.Sorted(maps.Keys(rangos))
 }

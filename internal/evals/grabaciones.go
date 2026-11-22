@@ -33,6 +33,15 @@ const (
 	// escribe: solo graba manifiestos <paquete>/testdata/grabaciones.json, y el
 	// de H5, en testdata/evals/, no lo es (research V2 y V3 de H9).
 	GrabacionesDeH9 = "../../internal/evals/testdata/" + boe.NombreDeLaFuente
+
+	// GrabacionesDeH36 son las que graba el paso grabar_datos con
+	// TestGrabarEvals, desde el manifiesto de testdata/ de este paquete, en la
+	// raíz que le da por KITLEGAL_EVIDENCIAS, evidencias/h36/, junto al
+	// manifiesto de sus huellas: los bloques a130 y a133 de la LEC con que
+	// TestPreceptosDeLosPlazos comprueba el cómputo civil de data/plazos.yaml
+	// (contracts/grabacion.md §2 y §3 de H36; research D9 de H36). No guarda
+	// ninguna búsqueda: la de la LEC la sirve el conjunto de H5.
+	GrabacionesDeH36 = "../../evidencias/h36/" + boe.NombreDeLaFuente
 )
 
 // GrafosPrevios es el directorio de los conjuntos de grabaciones derivadas con
@@ -56,13 +65,14 @@ const EvalsRetiradas = "../../testdata/evals/retiradas"
 // retiradas, del que hace de GrafosPrevios para esas evals.
 const grafosPreviosDeLasRetiradas = "grafo-previo"
 
-// UnionDeGrabaciones son los tres conjuntos en el orden en que Preparar los
-// copia a un mismo directorio para reproducir: H4, encima H5 y encima H9. Dos a
-// dos, solo comparten el nombre de GET_https_www.boe.es_robots.txt.json, que la
-// reproducción no usa (data-model §7.3; contrato evals-y-grabaciones §3.4 y
-// §5.1; research D15 de H9). Cada llamada devuelve una lista nueva.
+// UnionDeGrabaciones son los cuatro conjuntos en el orden en que Preparar los
+// copia a un mismo directorio para reproducir: H4, encima H5, encima H9 y
+// encima H36. Dos a dos, solo comparten el nombre de
+// GET_https_www.boe.es_robots.txt.json, que la reproducción no usa (data-model
+// §7.3; contrato evals-y-grabaciones §3.4 y §5.1; research D15 de H9;
+// contracts/grabacion.md §3 de H36). Cada llamada devuelve una lista nueva.
 func UnionDeGrabaciones() []string {
-	return []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9}
+	return []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9, GrabacionesDeH36}
 }
 
 // Manifiesto es un manifiesto de grabación de normas consolidadas del BOE
