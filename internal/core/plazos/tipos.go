@@ -379,10 +379,6 @@ func (c *comprobacionDeTipos) unidadesDelComputo(tipo Tipo, computo computoDescr
 	vistas := make(map[Unidad]bool, len(computo.Unidades))
 
 	for _, unidad := range computo.Unidades {
-		if vistas[unidad] {
-			continue
-		}
-
 		vistas[unidad] = true
 
 		precepto, esta := tipo.Unidades[unidad]

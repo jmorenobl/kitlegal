@@ -249,10 +249,9 @@ func (p periodo) contiene(dia time.Time) bool {
 
 // ultimoDiaDesde es el primer día, desde uno dado, que es del periodo y cuyo
 // siguiente no lo es: desde un día del periodo o desde el anterior a su primer
-// día, su último día. No pasa del día siguiente al 31 de diciembre de 9999, que
-// ya no da fecha.
+// día, su último día.
 func (p periodo) ultimoDiaDesde(dia time.Time) time.Time {
-	for !dia.After(ultimoDia) && (!p.contiene(dia) || p.contiene(dia.AddDate(0, 0, 1))) {
+	for !p.contiene(dia) || p.contiene(dia.AddDate(0, 0, 1)) {
 		dia = dia.AddDate(0, 0, 1)
 	}
 

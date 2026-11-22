@@ -42,6 +42,41 @@ func TestAvisosDePlazos(t *testing.T) {
 	})
 }
 
+// TestAvisoDeUnPeriodoQueCruzaElAnio comprueba que el aviso de un periodo que
+// cruza el año sale también cuando el tramo empieza en su parte de enero
+// (FR-008 de H36; contracts/api-del-dominio.md §2): el contencioso de la copia
+// del contrato avisa de los días del 24 de diciembre al 6 de enero si el tramo
+// empieza el 3 o el 6 de enero, y no si empieza el 7.
+func TestAvisoDeUnPeriodoQueCruzaElAnio(t *testing.T) {
+	t.Parallel()
+
+	calendario := calendarioDeLosCalculos(t)
+	tipos := tiposDelContrato(t)
+
+	for _, caso := range []struct {
+		inicio string
+		avisa  bool
+	}{
+		{inicio: "2032-01-02", avisa: true},
+		{inicio: "2032-01-05", avisa: true},
+		{inicio: "2032-01-06", avisa: false},
+	} {
+		t.Run(caso.inicio, func(t *testing.T) {
+			t.Parallel()
+
+			plazo, err := Calcular(calendario, tipos,
+				Peticion{Tipo: "contencioso", Inicio: caso.inicio, Municipios: los(villaPrimera)})
+			require.NoError(t, err)
+
+			if caso.avisa {
+				assert.Contains(t, codigosDe(plazo.Avisos), "dias-del-art-183-lopj")
+			} else {
+				assert.NotContains(t, codigosDe(plazo.Avisos), "dias-del-art-183-lopj")
+			}
+		})
+	}
+}
+
 // periodoDeAvisoDeLaLPAC es un periodo de aviso que la copia del contrato no
 // tiene, el único de lpac, que nombra uno de los preceptos del cómputo: con él,
 // los dos cómputos de los tipos del contrato dan un aviso de periodo.

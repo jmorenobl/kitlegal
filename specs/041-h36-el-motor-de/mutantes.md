@@ -78,6 +78,19 @@ Cada fila `ci:` de «Controles de umbral» tiene así su mutante: SC-001 (M01 a 
 (M27, M28), FR-009 (M31), SC-007 (M32) y SC-009 (M33). Ningún mutante dejó su control en verde: ningún control tiene un
 defecto que arreglar.
 
+## El mutante de la revisión final
+
+Lo trajo el juez B de la revisión final (motivo [b]): con él, todos los tests de T013 seguían en verde y el binario
+perdía el aviso del art. 183 LOPJ en `contencioso 2027-01-02 Madrid`. El control es un test nuevo,
+`TestAvisoDeUnPeriodoQueCruzaElAnio` (`internal/core/plazos/avisos_test.go`), que calcula el `contencioso` de la copia
+del contrato con inicio el 2, el 5 y el 6 de enero de 2032. Se aplicó en el árbol de trabajo del corrector con `sed -i`
+sobre una copia guardada de `computo.go`, se ejecutó la orden y se restauró la copia; `git diff --stat` de `computo.go`
+dio después solo los cambios del corrector.
+
+| # | Control | Mutante | Orden | En rojo |
+|---|---|---|---|---|
+| M34 | FR-008: el aviso de un periodo que cruza el año, con el tramo empezando en su parte de enero | `pasaPor` sin el periodo del año anterior: `for anio := desde.Year(); …` en `internal/core/plazos/computo.go:273`, sin `- saltoDeAnio` | `-run '^TestAvisoDeUnPeriodoQueCruzaElAnio$' ./internal/core/plazos/` | `TestAvisoDeUnPeriodoQueCruzaElAnio/2032-01-02` y `/2032-01-05`: «[]string{"faltan-festivos-locales"} does not contain "dias-del-art-183-lopj"»; `/2032-01-06` en verde, como debe |
+
 ## La comprobación del diff
 
 En el árbol versionado, con la rama en `8bb44dbc` y `main` en `82d4ccdd`, que es también la base de la rama.
