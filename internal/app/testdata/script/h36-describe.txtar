@@ -1,0 +1,43 @@
+# describe.txtar
+# El esquema de plazos calcular no depende de los datos: la ayuda de cada
+# argumento es la de spec §C.7, que remite a las referencias del paquete en lugar
+# de nombrar los tipos; tipo y avisos[].codigo de la salida llevan el pattern de
+# la gramática de un código (§C.8) y ningún enum, de modo que ni alzada ni el
+# código del aviso del art. 183 LOPJ salen en el documento; los enumerados de
+# festivos[].ambito, cobertura[].ambito y cobertura[].falta siguen; la
+# descripción del verbo no cambia, y --help sigue saliendo con 0.
+#
+# Cubre: US4.1 (datos de hoy), US4.2, US4.3 · FR-012 · SC-005
+#
+# Describir el verbo exige darle sus argumentos obligatorios (research V5 de
+# H39); con --describe no se ejecuta nada. Cada ayuda va en el patrón con los
+# metacaracteres de la expresión regular escapados, y cada propiedad se compara
+# entera, de su nombre a la llave que la cierra, con la sangría y la forma del
+# documento de hoy (h39-describe.txtar). Que el documento salga igual con otro
+# data/plazos.yaml no se puede dar al binario de e2e, que lleva sus datos
+# empotrados: lo comprueba TestDescribeDePlazosSinDatos. De la ayuda de --help
+# no se mira el texto (research S5).
+
+# --- La ayuda de los argumentos, byte a byte (§C.7) ---
+exec kitlegal plazos calcular x x x --describe
+stdout '^        "tipo": \{\n          "type": "string",\n          "description": "Tipo de plazo, por su código: los tipos y el cómputo con que se cuenta cada uno están en las referencias del paquete\."\n        \},$'
+stdout '^        "inicio": \{\n          "type": "string",\n          "description": "Fecha de inicio, AAAA-MM-DD: qué fecha es en cada tipo lo dicen las referencias del paquete\."\n        \},$'
+stdout '^        "municipios": \{\n          "items": \{\n            "type": "string"\n          \},\n          "type": "array",\n          "description": "Municipios que cuentan, por su nombre o su código INE: cuántos y cuáles pide el cómputo de cada tipo lo dicen las referencias del paquete\."\n        \},$'
+stdout '^        "duracion": \{\n          "type": "string",\n          "description": "Duración, un entero positivo; solo, y siempre, en los tipos que la reciben, que dicen las referencias del paquete\."\n        \},$'
+stdout '^        "unidad": \{\n          "type": "string",\n          "description": "Unidad de la duración: meses, dias-habiles o dias-naturales, una que admita el cómputo del tipo; solo, y siempre, con la duración\."\n        \},$'
+
+# --- tipo y avisos[].codigo de la salida: el pattern y ningún enum (§C.8) ---
+stdout -count=2 '"pattern": "\^\[a-z0-9\]\+\(-\[a-z0-9\]\+\)\*\$"'
+! stdout '"dias-del-art-183-lopj"'
+! stdout '"alzada"'
+
+# --- Los enumerados que siguen (§C.8) ---
+stdout '"nacional-y-autonomico"'
+stdout '"sin-festivos-locales"'
+stdout '"autonomico"'
+
+# --- La descripción del verbo no cambia ---
+stdout 'Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico—'
+
+# --- --help sigue saliendo con 0 ---
+exec kitlegal plazos calcular --help
