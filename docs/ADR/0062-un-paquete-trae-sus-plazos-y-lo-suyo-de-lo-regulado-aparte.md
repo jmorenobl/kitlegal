@@ -2,7 +2,8 @@
 
 - **Estado**: propuesta (2026-11-22); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
 - **Fecha**: 2026-11-22
-- **Hito**: H42. Se escribe con su entrada, antes del run y fuera de él, en una sesión interactiva. Precisa el molde
+- **Hito**: H45 (puntos 1 a 5, 7 y 8) y H42 (punto 6). Se escribe con sus entradas, antes de los runs y fuera de
+  ellos, en una sesión interactiva. Precisa el orden del ADR 0059 (punto 1): H45 va entre H36 y H42. Precisa el molde
   del paquete de materia de H32 (`specs/030-h32-arquitectura-de-skills/contracts/paquetes.md`, §1 y §3) y de H33
   (`contracts/datos-y-regiones.md`), el ADR 0044 (punto 5) y el ADR 0058 (punto 4) en qué referencia lleva cada tipo
   de plazo y cada fila de lo regulado aparte. Cambia la concurrencia de `plazos-y-territorio` en el trabajo de evals
@@ -35,7 +36,7 @@ de `cubierto` y dos filas de `regulados_aparte` estrechadas en `data/cobertura.y
    `UnionDeGrabaciones` (`internal/evals/grabaciones.go`) enumera las raíces de H4, H5, H9 y H36 en una constante por
    hito: H36 tuvo que añadir la suya.
 5. **Una veintena de tests fijan con una lista literal lo que hoy hay en `data/` o en `evals/`** (la lista, en la
-   entrada de H42): las filas de `cubierto` y de `regulados_aparte`, la tabla de tipos, el texto de una fila, el
+   entrada de H45): las filas de `cubierto` y de `regulados_aparte`, la tabla de tipos, el texto de una fila, el
    mensaje de un tipo desconocido, el peor caso del trabajo de evals, el plan de sesiones por eval y las evals de
    cobertura. Y el conjunto de `normativa` está cerrado en Go: como mucho 23 evals y exactamente 10 positivas
    (`internal/evals/conjunto.go`).
@@ -61,7 +62,7 @@ grabado.
 
 Para el sitio del cuerpo había dos caminos:
 
-- **Una referencia generada con la lista de paquetes**, y en el cuerpo una sola orden de leerla. Rechazada para H42:
+- **Una referencia generada con la lista de paquetes**, y en el cuerpo una sola orden de leerla. Rechazada por ahora:
   añade un salto de lectura a toda pregunta de plazos y de normativa, en las órdenes que H41 y H41.1 midieron (ADR 0051
   a 0053), para un problema que hoy solo tiene `normativa`.
 - **Dejar la línea por paquete como está y hacer sitio en `normativa`.** Elegida, con el límite escrito en
@@ -88,7 +89,7 @@ Para el sitio del cuerpo había dos caminos:
 3. **Lo que un paquete añade a un `SKILL.md` cabe en su tope**, con la línea por paquete que genera la sincronía, sin
    cambiar su forma. El cuerpo de cada skill de capacidad, con sus paquetes y con la vertical de ensayo, queda bajo
    las 11 000 del ADR 0046: es lo que comprueba `TestVerticalDeEnsayo`. Con unos 70 caracteres por paquete y al menos
-   100 de margen, `normativa` admite un paquete real más. En H42, `normativa` hace sitio moviendo a una de
+   100 de margen, `normativa` admite un paquete real más. En H45, `normativa` hace sitio moviendo a una de
    sus referencias texto que no es una orden ni una línea `⚠`, y lo dice su declaración en el laboratorio de H41.
 
 4. **Las grabaciones de un hito se suman solas.** `UnionDeGrabaciones` junta las de H4, H5 y H9 y, sin una constante
@@ -120,6 +121,11 @@ Para el sitio del cuerpo había dos caminos:
    de nombrar la LPAC y el contencioso y de decir que no cuenta plazos de otras materias: cuenta los plazos que cubren
    sus paquetes, y lo demás lo declara. Se escribe con el criterio fijado antes de medir del ADR 0055, bajo su tope de
    900, y la mide su juez de descripciones.
+
+9. **El molde se arregla en su propio hito, H45, antes que el paquete.** H45 hace los puntos 1 a 5, 7 y 8, con lo
+   administrativo y la vertical de ensayo como sus dos implementaciones, y H42 entra después solo con datos: sin un
+   fichero `.go`, de `.github/` ni un `SKILL.md` escrito a mano. Así, si un cierre cae, se sabe si es del molde o del
+   paquete, y H42 prueba lo que promete el principio X en lugar de suponerlo.
 
 ## Consecuencias
 
