@@ -173,6 +173,20 @@ func TestDescripcionesDelProducto(t *testing.T) {
 		compararLasLineasDeLosDefectos(t, nil, defectos)
 	})
 
+	// hoy es lo que suman las descripciones de la variante: las sumas de los
+	// mutantes salen de ella, no de una cifra escrita aquí, para que cambiar una
+	// descripción no cambie el test (ADR 0062, punto 5; prototipo de H45).
+	hoy := sumaDeLasDescripcionesCortas(t)
+	// Con hoy en (máximo-20, máximo), un carácter de más no pasa el máximo y la
+	// quinta skill, de 20, sí.
+	require.Less(t, hoy, maximoDeLasDescripcionesCortas, "las descripciones de hoy dejan sitio a un carácter")
+	require.Greater(t, hoy, maximoDeLasDescripcionesCortas-20, "la quinta skill pasa el máximo")
+
+	suman := func(suma int) string {
+		return fmt.Sprintf("skills: las descripciones suman %d caracteres (máximo %d)", suma,
+			maximoDeLasDescripcionesCortas)
+	}
+
 	casos := []struct {
 		nombre    string
 		mutante   func(t *testing.T, raiz string)
@@ -263,7 +277,7 @@ func TestDescripcionesDelProducto(t *testing.T) {
 				"skills/normativa/SKILL.md: la description no es la de " +
 					"laboratorio/producto-descripciones-cortas/normativa.txt",
 				"skills/normativa/SKILL.md: la description tiene 451 caracteres (máximo 450)",
-				"skills: las descripciones suman 1715 caracteres (máximo 1700)",
+				suman(hoy + 25),
 			},
 		},
 		{
@@ -272,12 +286,12 @@ func TestDescripcionesDelProducto(t *testing.T) {
 				t.Helper()
 
 				cambiarElSkill(t, raiz, "plazos-y-territorio", "tiene un municipio.",
-					"tiene un municipio."+strings.Repeat("é", 11))
+					"tiene un municipio."+strings.Repeat("é", maximoDeLasDescripcionesCortas+1-hoy))
 			},
 			esperadas: []string{
 				"skills/plazos-y-territorio/SKILL.md: la description no es la de " +
 					"laboratorio/producto-descripciones-cortas/plazos-y-territorio.txt",
-				"skills: las descripciones suman 1701 caracteres (máximo 1700)",
+				suman(maximoDeLasDescripcionesCortas + 1),
 			},
 		},
 		{
@@ -291,7 +305,7 @@ func TestDescripcionesDelProducto(t *testing.T) {
 			},
 			esperadas: []string{
 				"skills/quinta: no tiene descripción en laboratorio/producto-descripciones-cortas",
-				"skills: las descripciones suman 1710 caracteres (máximo 1700)",
+				suman(hoy + 20),
 			},
 		},
 	}
@@ -526,4 +540,20 @@ func textoDeLaSkillEnLaVariante(t *testing.T, raiz, skill string) string {
 	require.NoError(t, err)
 
 	return texto
+}
+
+// sumaDeLasDescripcionesCortas es lo que suman, en caracteres, las descripciones
+// de la variante producto-descripciones-cortas del repositorio.
+func sumaDeLasDescripcionesCortas(t *testing.T) int {
+	t.Helper()
+
+	textos, _, err := descripcionesCortas(raizDelRepositorio)
+	require.NoError(t, err)
+
+	suma := 0
+	for _, texto := range textos {
+		suma += utf8.RuneCountInString(texto)
+	}
+
+	return suma
 }

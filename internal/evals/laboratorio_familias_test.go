@@ -8,6 +8,7 @@ import (
 	"maps"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -354,6 +355,15 @@ const nadaDeOtraConversacion = "- **Nada de otra conversación**, ni para afirma
 	"solo va la línea\n" +
 	"  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.\n"
 
+// enPowerShell es la forma para PowerShell 5.1 de la orden de lectura del paso
+// 2 del SKILL.md de control de normativa, que sale del cuerpo a
+// con_herramientas.md (prototipo de H45; ADR 0062, punto 3).
+const enPowerShell = "  En PowerShell 5.1:\n" +
+	"  ```powershell\n" +
+	"  kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check " +
+	"BOE-A-1978-31229 a140 --json }\n" +
+	"  ```\n"
+
 // siUnaLecturaFalla es la frase de la regla 2 del SKILL.md de control de
 // normativa que sale del cuerpo a lecturas_que_fallan.md (M-b;
 // contracts/remisiones.md §3).
@@ -463,6 +473,7 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 					"  bloque: cómo se lee. Sin fecha, lee cada bloque una vez, con su comprobación detrás, en la " +
 					"misma orden:\n",
 			},
+			{antes: enPowerShell},
 			{
 				antes: "  fecha van siempre.\n" +
 					"- Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no " +
@@ -511,6 +522,16 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				texto:          siUnaLecturaFalla,
 				referencia:     "lecturas_que_fallan.md",
 				enLaReferencia: "\nSi una lectura falla, di qué bloques faltan y por qué.\n",
+			},
+			{
+				texto:      enPowerShell,
+				referencia: "con_herramientas.md",
+				enLaReferencia: "\n" +
+					"En PowerShell 5.1:\n" +
+					"```powershell\n" +
+					"kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph " +
+					"check BOE-A-1978-31229 a140 --json }\n" +
+					"```\n",
 			},
 		},
 		enLasReferencias: []cambioEnUnaReferencia{
@@ -703,7 +724,7 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 		esperados, err := conLaDeclaracion(baseSinLoGenerado, declarada)
 		require.NoError(t, err, "la declaración de %s", skill)
 
-		obtenidos, err := sinLoGenerado(delProducto)
+		obtenidos, err := sinLoGenerado(sinLasReferenciasDeUnPaqueteNuevo(t, delProducto, deLaBase))
 		require.NoError(t, err, "%s", producto)
 
 		compararLosFicheros(t, sinLasLineasDeLaDescripcion(esperados), sinLasLineasDeLaDescripcion(obtenidos), producto,
@@ -748,6 +769,37 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 			"el frontmatter de %s/%s es el de su control", producto, ficheroDeLaSkill)
 		exigirLaDescripcionDeLaVariante(t, delProducto, skill, deLaVariante)
 	})
+}
+
+// sinLasReferenciasDeUnPaqueteNuevo son los ficheros de una skill del producto
+// sin las referencias de los paquetes de materia que su base no tiene:
+// references/<paquete>.md, con el paquete un valor de vertical de
+// data/normas.yaml. Un paquete entra con datos y con su referencia, sin Go (ADR
+// 0044 y 0062): su referencia no es un cambio del protocolo que la declaración
+// tenga que decir. La de un paquete que la base ya tiene se sigue comparando.
+func sinLasReferenciasDeUnPaqueteNuevo(t *testing.T, delProducto, deLaBase map[string][]byte) map[string][]byte {
+	t.Helper()
+
+	contenido, err := os.ReadFile(filepath.Join(raizDelRepositorio, "data", "normas.yaml"))
+	require.NoError(t, err)
+
+	normas, err := skills.LeerNormas(contenido)
+	require.NoError(t, err)
+
+	sinEllas := maps.Clone(delProducto)
+
+	for _, norma := range normas {
+		if norma.Vertical == "" {
+			continue
+		}
+
+		relativa := path.Join(directorioDeLasReferencias, norma.Vertical+".md")
+		if _, enLaBase := deLaBase[relativa]; !enLaBase {
+			delete(sinEllas, relativa)
+		}
+	}
+
+	return sinEllas
 }
 
 // sinLasLineasDeLaDescripcion son los ficheros de una skill con su SKILL.md sin
