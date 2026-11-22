@@ -155,8 +155,7 @@ depende_de: [H45]
   7. **Lo que regenera `make skills-sync`**: la línea del paquete en los `SKILL.md` de `normativa` y de
      `plazos-y-territorio`, la fila de lo cubierto y la de los paquetes de la base en `consulta-juridica`, y las
      regiones. Ningún `SKILL.md` se escribe a mano.
-  8. **El laboratorio de H41**: su declaración gana las dos `fiscal.md`, en una tarea `[datos]`.
-  9. **Las evals** de «Evals», y **`CHANGELOG.md`**: en «Añadido», el paquete tributario con los dos plazos; en
+  8. **Las evals** de «Evals», y **`CHANGELOG.md`**: en «Añadido», el paquete tributario con los dos plazos; en
      «Cambiado», la eval 07 de `plazos-y-territorio`.
 - **Alcance**. El riesgo es crecer hacia la vertical fiscal. Fuera, en una lista cerrada:
   - el calendario del contribuyente y los plazos de fecha fija (ADR 0061, punto 5), los modelos y las
