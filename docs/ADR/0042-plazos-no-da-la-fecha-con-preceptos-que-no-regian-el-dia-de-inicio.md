@@ -1,6 +1,6 @@
 # 0042 · `plazos` no da la fecha de un plazo con preceptos que no regían el día en que empieza
 
-- **Estado**: aceptada (2026-10-20)
+- **Estado**: aceptada (2026-10-20); precisada por el ADR 0061 en lo que exige `LeerTipos` (punto 3): ya no exige los dos cómputos, y cada precepto sigue llevando su `vigente_desde`.
 - **Fecha**: 2026-10-20
 - **Hito**: sin hito; un cambio puntual de `plazos`, de `data/plazos.yaml` y de `legal-core`, tras el ADR 0041.
   Sustituye, del punto 3 del ADR 0041, la frase de la respuesta «la fecha de `plazos` cuenta con la duración de la
