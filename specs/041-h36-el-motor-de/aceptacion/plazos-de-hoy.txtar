@@ -1,0 +1,85 @@
+# plazos-de-hoy.txtar
+# Con los datos de hoy, lo único que ve quien usa el binario es que la
+# herramienta ya no nombra los tipos: ni la ayuda del tipo ni el esquema de la
+# salida de --describe dicen alzada ni reposicion (spec §C.7 y §C.8). Todo lo
+# demás sale como en main: el sobre de los casos 11, 15 y 16 y el de cada error
+# de §C.6, incluidos los dos de municipios que no cuentan, es byte a byte el que
+# da el binario de main, salvo fecha_consulta, con su mismo código.
+#
+# Cubre: US1 · FR-005, FR-006, FR-008, FR-011, FR-012, FR-021 · SC-001
+#
+# Los ficheros de detrás del guion son los sobres capturados con el binario de
+# main (cd3ad148) antes de cualquier cambio de producto, con fecha_consulta
+# vaciado (contracts/aceptacion.md §1). Cada orden escribe su sobre en
+# sobre.json, lo pasa por la misma sustitución de la captura y comprueba con
+# test, dentro de sh, el código de kitlegal y no el de sed. La salida de error
+# del binario no entra en la comparación. La fila «no cargan» de §C.6 y la nueva
+# de FR-007 no se capturan: main no puede darlas (§2.3).
+
+# --- Lo que falla hoy: la herramienta ya no nombra los tipos (§C.7, §C.8) ---
+exec kitlegal plazos calcular x x x --describe
+! stdout 'alzada'
+! stdout 'reposicion'
+
+# --- Los tres casos, como en main (US1.2) ---
+exec sh -c 'kitlegal plazos calcular silencio 2026-07-09 Leganés Leganés --duracion 3 --unidad meses --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 0'
+cmp stdout caso-11.json
+
+exec sh -c 'kitlegal plazos calcular contencioso 2026-10-27 Madrid --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 0'
+cmp stdout caso-15.json
+
+exec sh -c 'kitlegal plazos calcular contencioso 2026-10-31 Madrid --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 0'
+cmp stdout caso-16.json
+
+# --- Los errores de §C.6, como en main, con su código (US1.3) ---
+exec sh -c 'kitlegal plazos calcular inventado 2026-09-09 Leganés Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-tipo.json
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-02-30 Leganés Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-inicio.json
+
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --unidad dias-habiles --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-duracion.json
+
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --duracion 3 --unidad semanas --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-unidad.json
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-municipios-lpac.json
+
+exec sh -c 'kitlegal plazos calcular contencioso 2026-06-15 Madrid Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-municipios-contencioso.json
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Arroyomolinos Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-ambiguo.json
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Inexistente Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 3'
+cmp stdout error-inexistente.json
+
+exec sh -c 'kitlegal plazos calcular generico 9999-12-31 Leganés Leganés --duracion 1 --unidad dias-naturales --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
+cmp stdout error-fuera-del-calendario.json
+
+-- caso-11.json --
+{"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:0355dc49be4cc4401c502d9567cb773670f1590ce5c2369b06dacb2526e9c91f","data":{"fecha":"2026-10-14","tipo":"silencio","preceptos":[{"norma":"BOE-A-2015-10565","bloque":"a21","apartado":"21.3"},{"norma":"BOE-A-2015-10565","bloque":"a24","apartado":"24.4"}],"municipios":[{"codigo_ine":"28074","nombre":"Leganés"}],"festivos":[{"fecha":"2026-10-09","ambito":"local","municipio":"28074","source":"BOCM-20251212-34"},{"fecha":"2026-10-12","ambito":"nacional","source":"BOE-A-2025-21667"}],"avisos":[],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28074","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
+-- caso-15.json --
+{"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:0ca085f69cede16fece961d273e4a1c9bf57339fed6eb47371b8cbdee9309d35","data":{"fecha":"2026-12-28","tipo":"contencioso","preceptos":[{"norma":"BOE-A-1998-16718","bloque":"a46","apartado":"46.1"},{"norma":"BOE-A-1998-16718","bloque":"a128","apartado":"128.2"}],"municipios":[{"codigo_ine":"28079","nombre":"Madrid"}],"festivos":[],"avisos":[{"codigo":"dias-del-art-183-lopj","texto":"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."}],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28079","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
+-- caso-16.json --
+{"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:d6c8304ef3963568f5d93fe8c94dfde3ee0d5d8b95294afad5c4ba3774b53c3e","data":{"fecha":"2026-12-31","tipo":"contencioso","preceptos":[{"norma":"BOE-A-1998-16718","bloque":"a46","apartado":"46.1"},{"norma":"BOE-A-1998-16718","bloque":"a128","apartado":"128.2"}],"municipios":[{"codigo_ine":"28079","nombre":"Madrid"}],"festivos":[],"avisos":[{"codigo":"dias-del-art-183-lopj","texto":"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."}],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28079","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
+-- error-tipo.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:5b1823e61c551ef34e58a03dd07fa76a55181eb7600854625de62bd7b53cf546","data":{"clase":"argumentos","mensaje":"el tipo \"inventado\" no es alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio ni generico"}}
+-- error-inicio.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:9f87ccb54825ca66b48dfb7957a82e4883e6cac829e4a17a8256edadf16345e1","data":{"clase":"argumentos","mensaje":"la fecha de inicio \"2026-02-30\" no es un día del calendario"}}
+-- error-duracion.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:48648789cb32783d272df4f8a1c0fb423ebad6ff6755e911c4843aed8aea7aca","data":{"clase":"argumentos","mensaje":"el tipo \"generico\" no fija su duración y no se ha dado: pide una duración, un entero positivo, con su unidad"}}
+-- error-unidad.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:20a1f625a628c35e03fe8e06b028e2ac297edb1753d50b6e02e98fe598f62ec3","data":{"clase":"argumentos","mensaje":"la unidad \"semanas\" no es meses, dias-habiles ni dias-naturales"}}
+-- error-municipios-lpac.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:0fd9bb7b4bfc670573c25d55a3b90629e282b305f243f7a712be1cc6252f2190","data":{"clase":"argumentos","mensaje":"el tipo \"reposicion\" se cuenta con dos municipios, el del interesado y el de la sede del órgano, que pueden ser el mismo, y se han dado 1"}}
+-- error-municipios-contencioso.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:da6a910dc985be7b87ef73ee9da20a487fbc15acbe85dbe68946d58279ce65fa","data":{"clase":"argumentos","mensaje":"el tipo \"contencioso\" se cuenta con un municipio, el de la sede del juzgado, y se han dado 2"}}
+-- error-ambiguo.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:24fff55b71d0f3939a7fa5de484fe033c353e0bac4021945def991d300c6e383","data":{"clase":"argumentos","mensaje":"municipio «Arroyomolinos»: el nombre \"Arroyomolinos\" es el de 2 municipios de la relación; consulta uno por su código INE: 10023 Arroyomolinos (Cáceres); 28015 Arroyomolinos (Madrid)"}}
+-- error-inexistente.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:6578f6d67a5613afdae5e11ce32fd91aa6066ff2a5c044c85f0b18acd3fe9657","data":{"clase":"no-encontrado","mensaje":"municipio «Inexistente»: ningún municipio de la relación se llama \"Inexistente\""}}
+-- error-fuera-del-calendario.json --
+{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:67df6a196aaf1bff8cd5e4fa1b989cac20f8e5493ab6d5dad47e630a62381102","data":{"clase":"argumentos","mensaje":"el plazo de tipo \"generico\" que empieza el \"9999-12-31\" con la duración \"1\" dias-naturales acaba después del 9999-12-31, el último día que se escribe AAAA-MM-DD"}}
