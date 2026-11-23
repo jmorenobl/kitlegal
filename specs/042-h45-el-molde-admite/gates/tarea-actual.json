@@ -1,13 +1,12 @@
 {
-  "id": "T013",
-  "texto": "T013 [P] [US4] La matriz de las propuestas sin lista (FR-016; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, fila `TestMatrizDeLasPropuestas`): en `internal/evals/eleccion_test.go`, la parte de los ficheros de `goldenDeLaMatriz` sale de `repositorio.evals[skill]` y la forma de cada sección se queda literal. Ver en rojo el formato de `matrizDeLaEjecucion` cambiado y la regla de elección cambiada, y en la copia con un paquete más, en verde; `make ci` en verde.",
+  "id": "T014",
+  "texto": "T014 [P] [US4] El caso de los tributos de `TestCasosDePlazos` sin el texto de su fila (FR-016, FR-026; US1.3, US4.1-US4.3; SC-004): en `internal/app/plazos_casos_test.go`, `19-eval-c-tributos` busca la única fila con precepto DA 1ª.2.a de la LPAC y `norma` la LGT en lugar de su procedimiento, y los demás casos no cambian. Ver en rojo la fila sin `norma`, con otro `aplicable` u otro precepto, o repetida; en la copia con un paquete más, en verde; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "f95c7f8879bd115b84f3b481efa0ec6fd8859a76",
+  "base": "31ceee03415b43bb996601614e2b5fc6d6a19447",
   "rutas": [
-    "contracts/tests-sin-listas.md",
-    "internal/evals/eleccion_test.go"
+    "internal/app/plazos_casos_test.go"
   ],
   "cierre": false,
   "converger": false,

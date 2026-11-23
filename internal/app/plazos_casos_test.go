@@ -202,33 +202,58 @@ func casosDePlazos() []casoDePlazo {
 }
 
 // casoDeCobertura es una fila de cobertura de la tabla: el procedimiento que la
-// ley regula aparte, por lo que nombra; el precepto de la LPAC que lo dice y la
-// norma que lo rige, con el precepto que la hace aplicable.
+// ley regula aparte, buscado como dice buscada; el precepto de la LPAC que lo
+// dice y la norma que lo rige, con el precepto que la hace aplicable.
 type casoDeCobertura struct {
-	nombre        string
-	procedimiento string
-	precepto      skills.PreceptoDeLaCobertura
-	norma         string
-	aplicable     skills.PreceptoAplicable
+	nombre string
+	// buscada dice, para el mensaje del test, cómo se busca la fila.
+	buscada string
+	// es dice si una fila de lo regulado aparte es la del caso.
+	es        func(skills.ReguladoAparte) bool
+	precepto  skills.PreceptoDeLaCobertura
+	norma     string
+	aplicable skills.PreceptoAplicable
 }
 
-// casosDeCobertura son los casos 19 y 20, las evals (c) y (d).
+// casosDeCobertura son los casos 19 y 20, las evals (c) y (d). El 19 busca su
+// fila por su precepto y la norma que la rige, no por el texto de su
+// procedimiento, que la tabla no fija (FR-016 de H45); el 20, por su texto.
 func casosDeCobertura() []casoDeCobertura {
+	tributos := skills.PreceptoDeLaCobertura{Norma: lpacDeLaTabla, Bloque: "daprimera", Apartado: "DA 1ª.2.a"}
+	trafico := "procedimientos sancionadores en materia de tráfico y seguridad vial"
+
 	return []casoDeCobertura{
 		{
-			nombre:        "19-eval-c-tributos",
-			procedimiento: "aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa",
-			precepto:      skills.PreceptoDeLaCobertura{Norma: lpacDeLaTabla, Bloque: "daprimera", Apartado: "DA 1ª.2.a"},
-			norma:         lgtDeLaTabla,
-			aplicable:     skills.PreceptoAplicable{Bloque: "a97", Apartado: "97"},
+			nombre:    "19-eval-c-tributos",
+			buscada:   "la del precepto " + tributos.Apartado + " de " + tributos.Norma + " regida por " + lgtDeLaTabla,
+			es:        conSuPreceptoYSuNorma(tributos, lgtDeLaTabla),
+			precepto:  tributos,
+			norma:     lgtDeLaTabla,
+			aplicable: skills.PreceptoAplicable{Bloque: "a97", Apartado: "97"},
 		},
 		{
-			nombre:        "20-eval-d-trafico",
-			procedimiento: "procedimientos sancionadores en materia de tráfico y seguridad vial",
-			precepto:      skills.PreceptoDeLaCobertura{Norma: lpacDeLaTabla, Bloque: "daprimera", Apartado: "DA 1ª.2.c"},
-			norma:         traficoDeLaTabla,
-			aplicable:     skills.PreceptoAplicable{Bloque: "a1", Apartado: "1"},
+			nombre:    "20-eval-d-trafico",
+			buscada:   "la de «" + trafico + "»",
+			es:        conSuProcedimiento(trafico),
+			precepto:  skills.PreceptoDeLaCobertura{Norma: lpacDeLaTabla, Bloque: "daprimera", Apartado: "DA 1ª.2.c"},
+			norma:     traficoDeLaTabla,
+			aplicable: skills.PreceptoAplicable{Bloque: "a1", Apartado: "1"},
 		},
+	}
+}
+
+// conSuPreceptoYSuNorma dice si una fila lleva el precepto de la LPAC y la norma
+// que la rige por su identificador.
+func conSuPreceptoYSuNorma(precepto skills.PreceptoDeLaCobertura, norma string) func(skills.ReguladoAparte) bool {
+	return func(fila skills.ReguladoAparte) bool {
+		return fila.Precepto == precepto && fila.Norma != nil && fila.Norma.Identificador == norma
+	}
+}
+
+// conSuProcedimiento dice si una fila describe el procedimiento con el texto.
+func conSuProcedimiento(procedimiento string) func(skills.ReguladoAparte) bool {
+	return func(fila skills.ReguladoAparte) bool {
+		return fila.Procedimiento == procedimiento
 	}
 }
 
@@ -238,7 +263,8 @@ func casosDeCobertura() []casoDeCobertura {
 // ficheros del binario, y comparan la fecha y los códigos de aviso; el 8 lo
 // compone con los festivos locales que deriva internal/source/bocm de la
 // resolución principal de 2026 sola (research.md D23 y D30 de H9); el 19 y el
-// 20 buscan su entrada en data/cobertura.yaml, leído con skills.LeerCobertura.
+// 20 buscan su entrada en data/cobertura.yaml, leído con skills.LeerCobertura,
+// el 19 por su precepto y su norma y el 20 por su procedimiento.
 func TestCasosDePlazos(t *testing.T) {
 	t.Parallel()
 
@@ -273,19 +299,19 @@ func TestCasosDePlazos(t *testing.T) {
 }
 
 // compruebaCasoDeCobertura exige que data/cobertura.yaml lleve una sola entrada
-// del procedimiento, con su precepto de la LPAC y la norma que lo rige.
+// del caso, con su precepto de la LPAC y la norma que lo rige.
 func compruebaCasoDeCobertura(t *testing.T, cobertura skills.Cobertura, caso casoDeCobertura) {
 	t.Helper()
 
 	var entradas []skills.ReguladoAparte
 
 	for _, entrada := range cobertura.ReguladosAparte {
-		if entrada.Procedimiento == caso.procedimiento {
+		if caso.es(entrada) {
 			entradas = append(entradas, entrada)
 		}
 	}
 
-	require.Len(t, entradas, 1, "data/cobertura.yaml lleva una entrada de «%s»", caso.procedimiento)
+	require.Len(t, entradas, 1, "data/cobertura.yaml lleva una entrada, %s", caso.buscada)
 
 	entrada := entradas[0]
 	assert.Equal(t, caso.precepto, entrada.Precepto, "el precepto de la LPAC que la regula aparte")
