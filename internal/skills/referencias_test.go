@@ -2,6 +2,7 @@ package skills_test
 
 import (
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -453,14 +454,43 @@ func TestRenderizarRecursosYPlazos(t *testing.T) {
 		normas, err := skills.LeerNormas(leerDatosDelRepositorio(t, "normas.yaml"))
 		require.NoError(t, err)
 
-		tabla, err := skills.RenderizarRecursosYPlazos(tipos, normas)
+		delPaquete := tiposDeLoAdministrativo(tipos, normas)
+
+		tabla, err := skills.RenderizarRecursosYPlazos(delPaquete, normas)
 		require.NoError(t, err)
+
+		filas := 0
+
+		for _, tipo := range delPaquete {
+			filas += max(1, len(tipo.Unidades))
+		}
 
 		region := regionDeLaReferenciaDelRepositorio(t, "recursos_y_plazos")
 		assert.Equal(t, string(tabla), region)
-		assert.Equal(t, 2+9, strings.Count(region, "\n"),
-			"los encabezados y nueve filas: seis tipos y las tres unidades del genérico")
+		assert.Equal(t, 2+filas, strings.Count(region, "\n"),
+			"los encabezados, una fila por tipo de lo administrativo y una por unidad de cada tipo con unidades")
 	})
+}
+
+// tiposDeLoAdministrativo son los tipos, en su orden, de lo administrativo
+// (FR-016 de H45; contracts/tests-sin-listas.md): los que tienen algún precepto
+// propio —de Preceptos o de Unidades, no de su cómputo— de una norma de normas
+// con ese vertical.
+func tiposDeLoAdministrativo(tipos []plazos.Tipo, normas []skills.Norma) []plazos.Tipo {
+	var delPaquete []plazos.Tipo
+
+	for _, tipo := range tipos {
+		if slices.ContainsFunc(slices.Concat(tipo.Preceptos, slices.Collect(maps.Values(tipo.Unidades))),
+			func(precepto plazos.Precepto) bool {
+				return slices.ContainsFunc(normas, func(norma skills.Norma) bool {
+					return norma.Identificador == precepto.Norma && norma.Vertical == paqueteDeLoAdministrativo
+				})
+			}) {
+			delPaquete = append(delPaquete, tipo)
+		}
+	}
+
+	return delPaquete
 }
 
 // celdaDeLaDuracion es la celda de la duración de la única fila de la tabla de
@@ -501,30 +531,103 @@ func regionDeLaReferenciaDelRepositorio(t *testing.T, generador string) string {
 	return region
 }
 
-// filaDeLosTributos es la fila de la aplicación de los tributos en la región de
-// la cobertura, byte a byte la del spec de H33 (historia 3, escenario 1): la
-// plantilla con el motivo de la fila con norma.
-const filaDeLosTributos = "| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
-	"administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
-	"administrativa: se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común " +
-	"(DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |\n"
+// finDeLaPlantillaEnLaFila es el final de cada fila de la región de la
+// cobertura (SC-002 de H33): lo que sigue a <motivo> en la plantilla ⚠ NO
+// CUBIERTO: del cuerpo de plazos-y-territorio, «. kitlegal no da sus plazos,
+// órganos, vías ni escritos.», y el cierre de la celda.
+const finDeLaPlantillaEnLaFila = ". kitlegal no da sus plazos, órganos, vías ni escritos. |"
 
-// Las filas de la región de la cobertura del paquete de lo administrativo (SC-002
-// de H33): nueve, cada una «| <procedimiento> | ⚠ NO CUBIERTO: <procedimiento>:
-// <motivo>. kitlegal no da sus plazos, órganos, vías ni escritos. |».
-const (
-	filasDeLaCoberturaDelPaquete = 9
-	finDeLaPlantillaEnLaFila     = ". kitlegal no da sus plazos, órganos, vías ni escritos. |"
-)
+// entradasDeLoAdministrativo son las entradas de lo regulado aparte, en su
+// orden, de lo administrativo (FR-016 de H45; contracts/tests-sin-listas.md): las
+// que llevan la norma que las rige con ese vertical en normas o, si no la llevan
+// o la suya no tiene vertical, la de su precepto con él.
+func entradasDeLoAdministrativo(entradas []skills.ReguladoAparte, normas []skills.Norma) []skills.ReguladoAparte {
+	vertical := func(identificador string) string {
+		for _, norma := range normas {
+			if norma.Identificador == identificador {
+				return norma.Vertical
+			}
+		}
+
+		return ""
+	}
+
+	var delPaquete []skills.ReguladoAparte
+
+	for _, entrada := range entradas {
+		paquete := ""
+		if entrada.Norma != nil {
+			paquete = vertical(entrada.Norma.Identificador)
+		}
+
+		if paquete == "" {
+			paquete = vertical(entrada.Precepto.Norma)
+		}
+
+		if paquete == paqueteDeLoAdministrativo {
+			delPaquete = append(delPaquete, entrada)
+		}
+	}
+
+	return delPaquete
+}
+
+// filaDeLaCoberturaEsperada es la fila de una entrada de lo regulado aparte en
+// la región de la cobertura, con la línea que da la plantilla (data-model §2 de
+// H33; FR-007 de H45), como la de los tributos del spec de H33 (historia 3,
+// escenario 1): «| <procedimiento> | ⚠ NO CUBIERTO: <procedimiento>: <motivo>.
+// kitlegal no da sus plazos, órganos, vías ni escritos. |» y su salto, con la
+// barra de cada celda escapada y el motivo de la referencia de lo administrativo
+// de la entrada que lleva la norma que la rige —su nombre y su identificador—, o
+// el de la que no, con su precepto en la forma única de citaDelPreceptoEsperada.
+func filaDeLaCoberturaEsperada(entrada skills.ReguladoAparte, normas []skills.Norma) string {
+	cita := citaDelPreceptoEsperada(entrada.Precepto, normas)
+
+	motivo := "lo regula aparte la ley, no el procedimiento común (" + cita + ")"
+	if entrada.Norma != nil {
+		motivo = "se rige por " + entrada.Norma.Nombre + " (" + entrada.Norma.Identificador + "), no por el " +
+			"procedimiento común (" + cita + ")"
+	}
+
+	celda := strings.NewReplacer("|", `\|`)
+
+	return "| " + celda.Replace(entrada.Procedimiento) + " | " +
+		celda.Replace("⚠ NO CUBIERTO: "+entrada.Procedimiento+": "+motivo) + finDeLaPlantillaEnLaFila + "\n"
+}
+
+// citaDelPreceptoEsperada es la forma única de un precepto de la cobertura
+// (contracts/paquetes.md §3 de H32): «<apartado> <norma> [<identificador>,
+// bloque <id>]», con «art. » delante del apartado que empieza por una cifra y la
+// norma por su abreviatura o, sin ella, por su título hasta la primera coma.
+func citaDelPreceptoEsperada(precepto skills.PreceptoDeLaCobertura, normas []skills.Norma) string {
+	apartado := precepto.Apartado
+	if strings.IndexAny(apartado, "0123456789") == 0 {
+		apartado = "art. " + apartado
+	}
+
+	nombre := ""
+
+	for _, norma := range normas {
+		if norma.Identificador == precepto.Norma {
+			nombre = norma.Abreviatura
+			if nombre == "" {
+				nombre, _, _ = strings.Cut(norma.Titulo, ",")
+			}
+		}
+	}
+
+	return apartado + " " + nombre + " [" + precepto.Norma + ", bloque " + precepto.Bloque + "]"
+}
 
 // TestRegionDeLaCobertura fija la región cobertura_por_materia de la referencia
 // de lo administrativo del repositorio (contracts/paquetes.md §3; research D6;
 // FR-012 de H32; FR-006, SC-002 de H33), sobre una copia de plazos-y-territorio y
-// de data/: la sincronía da una fila por entrada de data/cobertura.yaml, las
-// nueve del paquete, cada una la plantilla con el motivo de su caso y la de los
-// tributos byte a byte la del spec, y la referencia del repositorio es la que
-// genera; y su mutante, la plantilla del cuerpo cambiada sin regenerar, da la
-// deriva de la referencia.
+// de data/: la sincronía da una fila por entrada de lo administrativo de
+// data/cobertura.yaml (entradasDeLoAdministrativo; FR-016 de H45), cada una la
+// plantilla con el motivo de su caso, la de la entrada con norma con su nombre y
+// su identificador, y la referencia del repositorio es la que genera; y su
+// mutante, la plantilla del cuerpo cambiada sin regenerar, da la deriva de cada
+// referencia con la región.
 func TestRegionDeLaCobertura(t *testing.T) {
 	t.Parallel()
 
@@ -542,17 +645,25 @@ func TestRegionDeLaCobertura(t *testing.T) {
 		}
 	}
 
-	assert.Contains(t, administrativo, "\n"+filaDeLosTributos)
-
 	cobertura, err := skills.LeerCobertura(leerDatosDelRepositorio(t, "cobertura.yaml"))
 	require.NoError(t, err)
 
+	normas, err := skills.LeerNormas(leerDatosDelRepositorio(t, "normas.yaml"))
+	require.NoError(t, err)
+
+	delPaquete := entradasDeLoAdministrativo(cobertura.ReguladosAparte, normas)
+
+	for _, entrada := range delPaquete {
+		assert.Contains(t, administrativo, "\n"+filaDeLaCoberturaEsperada(entrada, normas),
+			"la fila de %q es la de la plantilla con su motivo", entrada.Procedimiento)
+	}
+
 	region := regionDeLaReferenciaDelRepositorio(t, "cobertura_por_materia")
-	assert.Equal(t, 2+len(cobertura.ReguladosAparte), strings.Count(region, "\n"),
-		"los encabezados y una fila por entrada de data/cobertura.yaml")
+	assert.Equal(t, 2+len(delPaquete), strings.Count(region, "\n"),
+		"los encabezados y una fila por entrada de lo administrativo de data/cobertura.yaml")
 
 	filas := strings.Split(strings.TrimSuffix(region, "\n"), "\n")[2:]
-	assert.Len(t, filas, filasDeLaCoberturaDelPaquete, "las filas del paquete")
+	assert.Len(t, filas, len(delPaquete), "las filas del paquete")
 
 	for _, fila := range filas {
 		procedimiento, _, _ := strings.Cut(strings.TrimPrefix(fila, "| "), " | ")
@@ -567,9 +678,22 @@ func TestRegionDeLaCobertura(t *testing.T) {
 	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"),
 		"kitlegal no da sus plazos, órganos, vías ni escritos.", "kitlegal no da sus plazos.")
 
-	assert.Equal(t, []*skills.Deriva{
-		{Skill: "plazos-y-territorio", Ruta: "references/administrativo.md", Clase: skills.DerivaContenidoDistinto},
-	}, compararSinDefectos(t, raiz, nil))
+	referencias, err := filepath.Glob(rutaDeSkill(raiz, "plazos-y-territorio", "references", "*.md"))
+	require.NoError(t, err)
+
+	var esperadas []*skills.Deriva
+
+	for _, referencia := range referencias {
+		if strings.Contains(leerFicheroDePrueba(t, referencia), "\n"+marcaDeLaCobertura) {
+			esperadas = append(esperadas, &skills.Deriva{
+				Skill: "plazos-y-territorio", Ruta: "references/" + filepath.Base(referencia),
+				Clase: skills.DerivaContenidoDistinto,
+			})
+		}
+	}
+
+	assert.Equal(t, esperadas, compararSinDefectos(t, raiz, nil),
+		"una deriva por referencia de plazos-y-territorio con la región de la cobertura")
 }
 
 // copiaDePlazosYTerritorio es un repositorio temporal con una copia de la skill

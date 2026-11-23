@@ -1,15 +1,20 @@
 {
-  "id": "T009",
-  "texto": "T009 [P] [US6] El laboratorio sin las referencias de un paquete (FR-014, FR-016, FR-008; US6.1-US6.3; SC-001, SC-009; contracts/skills-y-laboratorio.md §3; research D7): en `internal/evals/laboratorio_familias_test.go`, la comparación pasa a `diferenciasDeLosFicheros`, que devuelve las diferencias y que `compararLosFicheros` pasa a `assert`, y no da «sobra» para la referencia `<v>.md` de una skill del producto si `<v>` es un `vertical` de la tabla de normas del repositorio (leída con `skills.LeerNormas` de `tablaDeNormasDelRepositorio`) y la base (la variante `desde` o el control) no tiene ese fichero; si la base lo tiene, se compara como hoy. Subtest nuevo `referencias-de-un-paquete` sobre los ficheros leídos del producto con un fichero añadido o cambiado en memoria: la `administrativo.md` de las referencias de `normativa` → 0 diferencias; la misma como `materia-inventada.md` → 1, «sobra»; un byte cambiado fuera de las regiones de la `administrativo.md` de las referencias de `plazos-y-territorio` → 1. Comprobar en la copia con un paquete más que `TestSkillsDelProductoDesdeControl` sigue en verde; ver en rojo los dos mutantes de US6.2 y US6.3 y un byte no declarado en una skill del producto (SC-001); `make ci` en verde.",
+  "id": "T010",
+  "texto": "T010 [P] [US4] Los tests del paquete Go de las skills sin listas (FR-016; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección del paquete de las skills, la primera): en `internal/skills/cobertura_test.go`, `TestLeerCobertura/repositorio` compara las filas de la base (sin `materia` o de `administrativo`) en su orden y exige que las demás tengan por `materia` un `vertical` de la tabla de normas del repositorio, y `TestCoberturaDelRepositorio` fija sus 9 tuplas sobre las filas del paquete (por su norma si la lleva con `vertical`, o por su precepto); en `internal/skills/cubierto_test.go`, `TestRegionDeLoCubierto/repositorio` espera una línea por fila de `cubierto` con la forma de `lineasDeLoCubierto` y su copia lleva cada skill que tiene una referencia de un paquete, y `/sin-data-cobertura` espera un defecto por `references/*.md` de la copia con la marca de `cobertura_por_materia`, en orden de nombre, tras el de la plantilla; en `internal/skills/referencias_test.go`, `TestRenderizarRecursosYPlazos/desde-data` pinta los tipos del paquete y espera `2 +` una fila por tipo y una por unidad de cada tipo con unidades, y `TestRegionDeLaCobertura` espera la fila de cada fila del paquete en `administrativo.md` con la línea de la plantilla, `2 + n` y `n` con `n` las del paquete y una deriva por referencia con la marca. Ver en rojo cada test con su mutante de la columna «Rojo con» y, en la copia con un paquete más, todos en verde; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "24b9cf8c6e49531cc8d51ba05ce2b0faaa904a6e",
+  "base": "bcaaea2577944813f4de93351a7f77b392ed41da",
   "rutas": [
+    "TestLeerCobertura/repositorio",
+    "TestRegionDeLoCubierto/repositorio",
+    "TestRenderizarRecursosYPlazos/desde-data",
     "administrativo.md",
-    "contracts/skills-y-laboratorio.md",
-    "internal/evals/laboratorio_familias_test.go",
-    "materia-inventada.md"
+    "contracts/tests-sin-listas.md",
+    "internal/skills/cobertura_test.go",
+    "internal/skills/cubierto_test.go",
+    "internal/skills/referencias_test.go",
+    "references/*.md"
   ],
   "cierre": false,
   "converger": false,
