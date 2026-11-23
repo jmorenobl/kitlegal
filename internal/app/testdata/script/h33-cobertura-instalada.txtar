@@ -2,15 +2,19 @@
 # Lo que instala `kitlegal skills install` de la cobertura en positivo (contracts/aceptacion.md de H33):
 # consulta-juridica y plazos-y-territorio llevan la plantilla única ⚠ NO CUBIERTO:, la misma línea en las dos, y
 # solo consulta-juridica la marca ⚠ NO VERIFICADO:, en la línea siguiente del mismo bloque text; ninguna línea de
-# la plantilla dice «procedimiento común»; la región de lo cubierto de consulta-juridica tiene una línea por cada
-# una de las cuatro filas de cubierto de data/cobertura.yaml; cada fila de la tabla cobertura_por_materia de
-# administrativo.md es la plantilla con su procedimiento y uno de los dos motivos, y la de los tributos es la del
-# spec byte a byte; y el cuerpo de plazos-y-territorio, lo que sigue al --- que cierra el frontmatter, tiene como
-# mucho 10 860 caracteres. El tope lo mide una expresión regular de Go, que cuenta runas: diez (?s:.){1000} y un
-# (?s:.){861} seguidos son 10 861 caracteres, y el guion exige que no los haya. filas.awk compara bytes y sale
-# siempre con 0: el veredicto es el de stdout.
+# la plantilla dice «procedimiento común»; la región de lo cubierto de consulta-juridica empieza por una línea por
+# cada una de las cuatro filas de la base en cubierto de data/cobertura.yaml, en su orden; cada fila de la tabla
+# cobertura_por_materia de las referencias instaladas es la plantilla con su procedimiento y uno de los dos
+# motivos, hay tantas como filas de lo regulado aparte en el data/cobertura.yaml del repositorio —sus líneas
+# «- procedimiento:»— y llevan el motivo de la fila con norma tantas como sus líneas «norma:»; la de los
+# tributos es la del spec byte a byte; y el cuerpo de plazos-y-territorio, lo que sigue al --- que cierra el
+# frontmatter, tiene como mucho 10 860 caracteres. El tope lo mide una expresión regular de Go, que cuenta runas:
+# diez (?s:.){1000} y un (?s:.){861} seguidos son 10 861 caracteres, y el guion exige que no los haya. filas.awk
+# compara bytes y sale siempre con 0: el veredicto es el de stdout.
 #
-# Cubre: US5 · FR-004, FR-007, FR-010, FR-025 · SC-001, SC-002, SC-003, SC-005
+# Cubre: US5 · FR-004, FR-007, FR-010, FR-025 · SC-001, SC-002, SC-003, SC-005. Desde H45, FR-016 y FR-017 ·
+# SC-004: un paquete más añade sus líneas detrás de las de la base y sus filas en la referencia de su paquete, y
+# las cuentas salen del data/cobertura.yaml que está junto a $KITLEGAL_SKILLS, que el guion solo lee.
 #
 # Que lo regenerado sea lo que da make skills-sync, el texto escrito a mano de cada skill y los defectos de la
 # sincronía lo comprueban TestSkillsDelRepositorio, TestRegionDeLoCubierto, TestRegionDeLaCobertura,
@@ -31,27 +35,36 @@ grep -count=1 '^⚠ NO CUBIERTO: ' destino/consulta-juridica/SKILL.md
 ! grep '^⚠ NO CUBIERTO: .*procedimiento común' destino/consulta-juridica/SKILL.md
 ! grep '^⚠ NO CUBIERTO: .*procedimiento común' destino/plazos-y-territorio/SKILL.md
 
-# --- La región de lo cubierto, una línea por fila de cubierto (US5, 2) ---
-grep '\n<!-- lo que cubre la base: lo genera make skills-sync -->\n- \*\*Normativa\*\*: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha\.\n- \*\*Jurisprudencia\*\*: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae\. No consulta ningún buscador ni dice si una sentencia existe\.\n- \*\*Plazos\*\*: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan\. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea\.\n- \*\*Territorio\*\*: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio\.\n<!-- fin de lo que cubre la base -->\n' destino/consulta-juridica/SKILL.md
+# --- La región de lo cubierto, que empieza por una línea por fila de la base (US5, 2) ---
+grep '\n<!-- lo que cubre la base: lo genera make skills-sync -->\n- \*\*Normativa\*\*: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y en cualquier fecha\.\n- \*\*Jurisprudencia\*\*: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae\. No consulta ningún buscador ni dice si una sentencia existe\.\n- \*\*Plazos\*\*: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan\. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea\.\n- \*\*Territorio\*\*: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio\.\n(?:[^\n]*\n)*?<!-- fin de lo que cubre la base -->\n' destino/consulta-juridica/SKILL.md
 
-# --- Cada fila de la tabla, la plantilla con su motivo; la de los tributos, byte a byte (US5, 3) ---
-exec awk -f filas.awk destino/plazos-y-territorio/references/administrativo.md
-stdout '^filas: 9 de 9, 2 con norma$'
+# --- Cada fila de la tabla, la plantilla con su motivo, una por fila de data/cobertura.yaml; la de los tributos, byte a byte (US5, 3) ---
+exec sh -c 'awk -f filas.awk "$1" destino/*/references/*.md' sh $KITLEGAL_SKILLS/../data/cobertura.yaml
+stdout '^cuadran: sí$'
 grep '^\| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa \| ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa: se rige por Ley 58/2003, General Tributaria \(BOE-A-2003-23186\), no por el procedimiento común \(DA 1ª\.2\.a LPAC \[BOE-A-2015-10565, bloque daprimera\]\)\. kitlegal no da sus plazos, órganos, vías ni escritos\. \|$' destino/plazos-y-territorio/references/administrativo.md
 
 # --- El cuerpo de plazos-y-territorio, como mucho 10 860 caracteres (FR-010) ---
 ! grep '\A---\n(?s:.*?)\n---\n(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){1000}(?s:.){861}' destino/plazos-y-territorio/SKILL.md
 
 -- filas.awk --
-# filas.awk <administrativo.md>: de las filas de la región cobertura_por_materia,
-# sin su encabezado, cuántas son la plantilla con el procedimiento de su primera
-# celda y uno de los dos motivos, de cuántas, y cuántas llevan el de la fila con
-# norma. Solo compara cadenas: el mismo resultado con bytes o con caracteres.
+# filas.awk <data/cobertura.yaml> <referencia>...: de data/cobertura.yaml, cuántas
+# filas de lo regulado aparte tiene —sus líneas «- procedimiento:»— y cuántas con
+# norma —sus líneas «norma:»—; de las filas de la región cobertura_por_materia de
+# las referencias, sin su encabezado, cuántas son la plantilla con el
+# procedimiento de su primera celda y uno de los dos motivos, de cuántas, y
+# cuántas llevan el de la fila con norma; y si las dos cuentas cuadran. Solo
+# compara cadenas: el mismo resultado con bytes o con caracteres.
 BEGIN {
 	cola = ". kitlegal no da sus plazos, órganos, vías ni escritos."
 	cita = "\\(.+ \\[BOE-A-[0-9]+-[0-9]+, bloque [A-Za-z0-9.-]+\\]\\)$"
 	conNorma = "^se rige por .+ \\(BOE-A-[0-9]+-[0-9]+\\), no por el procedimiento común " cita
 	sinNorma = "^lo regula aparte la ley, no el procedimiento común " cita
+}
+FNR == 1 { fichero++; dentro = 0 }
+fichero == 1 {
+	if ($0 ~ /^[ \t]*- procedimiento:/) procedimientos++
+	if ($0 ~ /^[ \t]*norma:/) normas++
+	next
 }
 index($0, "<!-- inicio de cobertura_por_materia:") == 1 { dentro = 1; next }
 $0 == "<!-- fin de cobertura_por_materia -->" { dentro = 0; next }
@@ -67,4 +80,9 @@ dentro && /^\| / && $0 != "| Procedimiento | Línea que da la respuesta |" {
 	motivo = substr(linea, length(principio) + 1, length(linea) - length(principio) - length(cola))
 	if (motivo ~ conNorma) { bien++; deNorma++ } else if (motivo ~ sinNorma) bien++
 }
-END { printf "filas: %d de %d, %d con norma\n", bien, filas, deNorma }
+END {
+	printf "filas: %d de %d, %d con norma\n", bien, filas, deNorma
+	printf "data/cobertura.yaml: %d filas, %d con norma\n", procedimientos, normas
+	cuadran = (procedimientos > 0 && bien == filas && filas == procedimientos && deNorma == normas)
+	print "cuadran: " (cuadran ? "sí" : "no")
+}

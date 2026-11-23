@@ -4,9 +4,15 @@
 # salida de --describe dicen alzada ni reposicion (spec §C.7 y §C.8). Todo lo
 # demás sale como en main: el sobre de los casos 11, 15 y 16 y el de cada error
 # de §C.6, incluidos los dos de municipios que no cuentan, es byte a byte el que
-# da el binario de main, salvo fecha_consulta, con su mismo código.
+# da el binario de main, salvo fecha_consulta, con su mismo código. El del tipo
+# que no existe, no: su mensaje enumera los tipos de data/plazos.yaml, y su
+# sobre se comprueba por su código, 2, su clase, argumentos, y la forma de su
+# mensaje, el tipo pedido y los códigos separados por «, » con « ni » delante
+# del último, cada uno con la forma de un código.
 #
-# Cubre: US1 · FR-005, FR-006, FR-008, FR-011, FR-012, FR-021 · SC-001
+# Cubre: US1 · FR-005, FR-006, FR-008, FR-011, FR-012, FR-021 · SC-001. Desde
+# H45, FR-016, FR-017 y FR-026 · US1.3 · SC-004: un paquete más trae sus tipos y
+# el error del tipo que no existe los nombra.
 #
 # Los ficheros de detrás del guion son los sobres capturados con el binario de
 # main (cd3ad148) antes de cualquier cambio de producto, con fecha_consulta
@@ -33,7 +39,7 @@ cmp stdout caso-16.json
 
 # --- Los errores de §C.6, como en main, con su código (US1.3) ---
 exec sh -c 'kitlegal plazos calcular inventado 2026-09-09 Leganés Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
-cmp stdout error-tipo.json
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"el tipo \\"inventado\\" no es [a-z0-9]+(-[a-z0-9]+)*(, [a-z0-9]+(-[a-z0-9]+)*)* ni [a-z0-9]+(-[a-z0-9]+)*"\}\}$'
 
 exec sh -c 'kitlegal plazos calcular reposicion 2026-02-30 Leganés Leganés --json >sobre.json; c=$?; sed -E ''s/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'' sobre.json; test $c -eq 2'
 cmp stdout error-inicio.json
@@ -65,8 +71,6 @@ cmp stdout error-fuera-del-calendario.json
 {"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:0ca085f69cede16fece961d273e4a1c9bf57339fed6eb47371b8cbdee9309d35","data":{"fecha":"2026-12-28","tipo":"contencioso","preceptos":[{"norma":"BOE-A-1998-16718","bloque":"a46","apartado":"46.1"},{"norma":"BOE-A-1998-16718","bloque":"a128","apartado":"128.2"}],"municipios":[{"codigo_ine":"28079","nombre":"Madrid"}],"festivos":[],"avisos":[{"codigo":"dias-del-art-183-lopj","texto":"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."}],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28079","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
 -- caso-16.json --
 {"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:d6c8304ef3963568f5d93fe8c94dfde3ee0d5d8b95294afad5c4ba3774b53c3e","data":{"fecha":"2026-12-31","tipo":"contencioso","preceptos":[{"norma":"BOE-A-1998-16718","bloque":"a46","apartado":"46.1"},{"norma":"BOE-A-1998-16718","bloque":"a128","apartado":"128.2"}],"municipios":[{"codigo_ine":"28079","nombre":"Madrid"}],"festivos":[],"avisos":[{"codigo":"dias-del-art-183-lopj","texto":"⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible."}],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28079","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
--- error-tipo.json --
-{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:5b1823e61c551ef34e58a03dd07fa76a55181eb7600854625de62bd7b53cf546","data":{"clase":"argumentos","mensaje":"el tipo \"inventado\" no es alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio ni generico"}}
 -- error-inicio.json --
 {"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"","hash":"sha256:9f87ccb54825ca66b48dfb7957a82e4883e6cac829e4a17a8256edadf16345e1","data":{"clase":"argumentos","mensaje":"la fecha de inicio \"2026-02-30\" no es un día del calendario"}}
 -- error-duracion.json --

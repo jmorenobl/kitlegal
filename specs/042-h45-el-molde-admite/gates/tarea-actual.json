@@ -1,12 +1,20 @@
 {
-  "id": "T014",
-  "texto": "T014 [P] [US4] El caso de los tributos de `TestCasosDePlazos` sin el texto de su fila (FR-016, FR-026; US1.3, US4.1-US4.3; SC-004): en `internal/app/plazos_casos_test.go`, `19-eval-c-tributos` busca la única fila con precepto DA 1ª.2.a de la LPAC y `norma` la LGT en lugar de su procedimiento, y los demás casos no cambian. Ver en rojo la fila sin `norma`, con otro `aplicable` u otro precepto, o repetida; en la copia con un paquete más, en verde; `make ci` en verde.",
+  "id": "T015",
+  "texto": "T015 [datos] [US4] Los guiones de la app sin listas, con sus copias congeladas (FR-016, FR-017, FR-026; US1.3, US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección de la app, la segunda): `internal/app/testdata/script/h32-paquetes.txtar` y `specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar` buscan las filas del generador y la de tributos dentro de alguna referencia de un paquete de `plazos-y-territorio` (`references/*.md` con una región); `internal/app/testdata/script/h33-cobertura-instalada.txtar` y `specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar` exigen las 4 líneas de la base al principio de la región de lo cubierto y, en todas las referencias de paquetes instaladas, tantas filas como `- procedimiento:` y con norma tantas como `norma:` del `cobertura.yaml` del directorio de datos que está junto a `$KITLEGAL_SKILLS`, como dice el contrato (que el guion solo lee); `internal/app/testdata/script/h36-plazos-de-hoy.txtar` y `specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar` cambian `error-tipo` a código 2, `clase` `argumentos` y el mensaje con su forma (`el tipo \\\"inventado\\\" no es ` seguido de códigos separados por «, » y « ni » el último), con `stdout` y expresiones, sin el `hash` literal. Cada guion igual a su copia congelada. Ver en rojo cada guion con su mutante de la columna «Rojo con» (en una copia en `$TMPDIR`) y, en la copia con un paquete más, `h32-paquetes`, `h33-cobertura-instalada` y `h36-plazos-de-hoy` en verde; `make ci` en verde.",
   "intento": 1,
-  "datos": false,
+  "datos": true,
   "aceptacion": false,
-  "base": "31ceee03415b43bb996601614e2b5fc6d6a19447",
+  "base": "3a9dfa0636c47e54aebb0b5bc9b216c9f9e90c88",
   "rutas": [
-    "internal/app/plazos_casos_test.go"
+    "cobertura.yaml",
+    "contracts/tests-sin-listas.md",
+    "internal/app/testdata/script/h32-paquetes.txtar",
+    "internal/app/testdata/script/h33-cobertura-instalada.txtar",
+    "internal/app/testdata/script/h36-plazos-de-hoy.txtar",
+    "references/*.md",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar",
+    "specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar",
+    "specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar"
   ],
   "cierre": false,
   "converger": false,
