@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -44,9 +45,32 @@ const lineaDelEnsayoEnLaEntrada = "- lo ensayo: `jurisprudencia`, `normativa`, `
 
 // lineaDeLoCubiertoDelEnsayo es la de la fila de lo cubierto de la vertical en la
 // región de lo que cubre la base de la skill de entrada: la segunda de los
-// plazos, detrás de las cuatro del repositorio (contracts/datos-y-regiones.md
-// §6 de H33).
+// plazos, detrás de las del repositorio (contracts/datos-y-regiones.md §6 de
+// H33).
 const lineaDeLoCubiertoDelEnsayo = "- **Plazos**: los de ensayo del molde de los paquetes."
+
+// skillsConLaVertical son las skills de capacidad que tienen la referencia de la
+// vertical, ensayo.md, y que enlazan su línea entre las marcas de los paquetes.
+var skillsConLaVertical = []string{"jurisprudencia", "normativa", "plazos-y-territorio"}
+
+// referenciaDeLosPlazosDelEnsayo es la referencia de la vertical en
+// plazos-y-territorio, relativa a la raíz: la que lleva las regiones de sus tipos
+// y de su cobertura.
+var referenciaDeLosPlazosDelEnsayo = path.Join("skills", "plazos-y-territorio", "references", "ensayo.md")
+
+// Las dos filas de la vertical que la sincronía da a su paquete aunque algo suyo
+// sea de lo administrativo (contracts/sincronia-de-los-paquetes.md §3 y §5 de
+// H45): el principio de la fila de su tipo, que se cuenta con el cómputo de la
+// LPAC, en la tabla de los recursos y plazos; y el procedimiento de su fila de lo
+// regulado aparte con su precepto en la LPAC y la norma que la rige, la segunda de
+// la vertical, con el motivo de su línea, que nombra esa norma y el precepto que
+// la deja aparte, como hoy (FR-007).
+const (
+	filaDelTipoDelEnsayo   = "| plazo de ensayo del molde de los paquetes | `ensayo` | "
+	procedimientoConNorma  = "procedimientos de ensayo que la ley común deja aparte"
+	motivoDeLaFilaConNorma = "se rige por Ley 2/1900, de ensayo del molde de los paquetes de materia (BOE-A-1900-2), " +
+		"no por el procedimiento común (DA 1ª.2.c LPAC [BOE-A-2015-10565, bloque daprimera])"
+)
 
 // filaDelEnsayo es el principio de la fila de la cobertura de la vertical en la
 // tabla generada de su referencia de plazos-y-territorio, y citaDelEnsayo, la
@@ -60,20 +84,26 @@ const (
 )
 
 // TestVerticalDeEnsayo prueba el molde de los paquetes de materia (FR-024,
-// SC-005; contracts/paquetes.md §5 de H32): la vertical de ensayo, instalada en
-// una copia de skills/, data/ y evals/normativa/ del repositorio, pasa la
-// sincronía y la comprobación de make skills-sync y make skills-check sin
-// defectos ni derivas, su eval se carga, y para entrar el diff de la copia no
-// tiene ningún .go ni cambia ningún SKILL.md fuera de las marcas que genera la
-// sincronía; las huellas de lo copiado del repositorio —skills/ y data/ entre
-// ello— no cambian. Su mutante, la línea del enlace a ensayo.md escrita a mano en
-// el cuerpo de normativa, como la escribiría un paquete sin sincronía, pone en
-// rojo la comparación fuera de las marcas.
+// SC-005; contracts/paquetes.md §5 de H32; contracts/sincronia-de-los-paquetes.md
+// §5 de H45): la vertical de ensayo, instalada en una copia de skills/, data/ y
+// evals/normativa/ del repositorio, pasa la sincronía y la comprobación de make
+// skills-sync y make skills-check sin defectos ni derivas, su eval se carga, y
+// para entrar el diff de la copia no tiene ningún .go ni cambia ningún SKILL.md
+// fuera de las marcas que genera la sincronía; las huellas de lo copiado del
+// repositorio —skills/ y data/ entre ello— no cambian. Su tipo y su fila con
+// norma salen solo en su referencia de plazos-y-territorio (FR-002, FR-005,
+// SC-002), y cada cuerpo de skill de capacidad, con su línea, tiene sitio para la
+// de otro paquete (FR-020). Su mutante, la línea del enlace a ensayo.md escrita a
+// mano en el cuerpo de normativa, como la escribiría un paquete sin sincronía,
+// pone en rojo la comparación fuera de las marcas; y sin-la-region, la referencia
+// de la vertical sin la región de la cobertura, da el defecto de su fila con
+// norma (FR-006).
 func TestVerticalDeEnsayo(t *testing.T) {
 	t.Parallel()
 
 	delRepositorio := huellasDe(t, arbolDelRepositorio)
 	raiz := copiaDelRepositorio(t)
+	ultimaDeLoCubierto := ultimaLineaDeLoCubierto(t, raiz)
 
 	instalarLaVertical(t, raiz)
 
@@ -92,7 +122,8 @@ func TestVerticalDeEnsayo(t *testing.T) {
 	assert.Empty(t, textosDeLosFallos(regenerado.Defectos()), "la comprobación no da defectos")
 	assert.Empty(t, textosDeLosFallos(derivas), "la comprobación no da derivas")
 
-	comprobarLoSincronizado(t, raiz)
+	comprobarLoSincronizado(t, raiz, ultimaDeLoCubierto)
+	comprobarElReparto(t, raiz)
 
 	eval, err := evals.LeerEval(evalDelEnsayo,
 		[]byte(leerFicheroDePrueba(t, filepath.Join(raiz, "evals", "normativa", evalDelEnsayo))))
@@ -108,6 +139,8 @@ func TestVerticalDeEnsayo(t *testing.T) {
 	assert.Equal(t, delRepositorio, huellasDe(t, arbolDelRepositorio),
 		"skills/, data/ y evals/normativa/ del repositorio no cambian")
 
+	comprobarElSitioDeOtroPaquete(t, raiz, descripciones)
+
 	t.Run("mutante", func(t *testing.T) {
 		t.Parallel()
 
@@ -121,21 +154,50 @@ func TestVerticalDeEnsayo(t *testing.T) {
 
 		assert.Equal(t, []string{"skills/normativa/SKILL.md"}, skillsCambiadasFueraDeLasMarcas(t, mutada))
 	})
+
+	t.Run("sin-la-region", func(t *testing.T) {
+		t.Parallel()
+
+		sinLaRegion := copiaDelRepositorio(t)
+		instalarLaVertical(t, sinLaRegion)
+
+		// La referencia de la vertical de plazos-y-territorio, sin las marcas de la
+		// región de la cobertura: su paquete deja de tenerla, y la fila con norma, que
+		// es de él aunque su precepto sea de lo administrativo, no la genera ninguna.
+		cambiarFicheroDePrueba(t, filepath.Join(sinLaRegion, filepath.FromSlash(referenciaDeLosPlazosDelEnsayo)),
+			inicioDeLaCobertura+finDeLaCobertura, "")
+
+		regenerado, err := skills.Regenerar(sinLaRegion, descripcionesDeProduccion(t, sinLaRegion))
+		require.NoError(t, err)
+		assert.Contains(t, textosDeLosFallos(regenerado.Defectos()), "plazos-y-territorio: data/cobertura.yaml: la fila "+
+			"de «"+procedimientoConNorma+"» no la genera ninguna región cobertura_por_materia")
+	})
+}
+
+// ultimaLineaDeLoCubierto es la última línea de la región de lo que cubre la base
+// de la skill de entrada de la copia de raíz, que la lleva con alguna línea.
+func ultimaLineaDeLoCubierto(t *testing.T, raiz string) string {
+	t.Helper()
+
+	cubierto := lineasEntreLasMarcasDeLoCubierto(t,
+		leerFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md")))
+	require.NotEmpty(t, cubierto, "la región de lo cubierto de la skill de entrada de la copia")
+
+	return cubierto[len(cubierto)-1]
 }
 
 // comprobarLoSincronizado comprueba que la sincronía ha enlazado la vertical en
 // la copia de raíz: la línea de su enlace entre las marcas de cada skill de
 // capacidad, la suya en la lista de la skill de entrada, la de su fila de lo
 // cubierto como última de la región de lo que cubre la base de la skill de
-// entrada, detrás de la del territorio —dos filas de una capacidad dan dos
-// líneas (FR-007 de H33)—, y la fila de su cobertura en la región, vacía en la
-// vertical, de su referencia de plazos-y-territorio. Sin ellas, lo demás del test
-// pasaría en vacío. Que cada cuerpo siga en sus 11 000 caracteres con la
-// vertical (10 756 el de plazos-y-territorio) lo exige la sincronía sin defectos.
-func comprobarLoSincronizado(t *testing.T, raiz string) {
+// entrada, detrás de la que era la última de la copia antes de instalarla —dos
+// filas de una capacidad dan dos líneas (FR-007 de H33)—, y la fila de su
+// cobertura sin norma en la región, vacía en la vertical, de su referencia de
+// plazos-y-territorio. Sin ellas, lo demás del test pasaría en vacío.
+func comprobarLoSincronizado(t *testing.T, raiz, ultimaDeAntes string) {
 	t.Helper()
 
-	for _, skill := range []string{"jurisprudencia", "normativa", "plazos-y-territorio"} {
+	for _, skill := range skillsConLaVertical {
 		_, dentro := partirPorLasMarcas(leerFicheroDePrueba(t, rutaDeSkill(raiz, skill, "SKILL.md")))
 		assert.Contains(t, strings.Split(dentro, "\n"), strings.TrimSuffix(lineaDelEnsayo, "\n"),
 			"%s enlaza la referencia de la vertical entre sus marcas", skill)
@@ -150,13 +212,101 @@ func comprobarLoSincronizado(t *testing.T, raiz string) {
 	require.GreaterOrEqual(t, len(cubierto), 2, "la región de lo cubierto de la skill de entrada")
 	assert.Equal(t, lineaDeLoCubiertoDelEnsayo, cubierto[len(cubierto)-1],
 		"la fila de lo cubierto de la vertical es la última línea de la región")
-	assert.True(t, strings.HasPrefix(cubierto[len(cubierto)-2], "- **Territorio**: "),
-		"la fila de la vertical va detrás de la del territorio: %s", cubierto[len(cubierto)-2])
+	assert.Equal(t, ultimaDeAntes, cubierto[len(cubierto)-2],
+		"la fila de la vertical va detrás de la que era la última de la región")
 
-	referencia := leerFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "references", "ensayo.md"))
+	referencia := leerFicheroDePrueba(t, filepath.Join(raiz, filepath.FromSlash(referenciaDeLosPlazosDelEnsayo)))
 	fila, hay := filaQueEmpiezaPor(referencia, filaDelEnsayo)
 	require.True(t, hay, "la región de la referencia de plazos-y-territorio genera la fila de la vertical")
 	assert.Contains(t, fila, citaDelEnsayo, "la fila cita el precepto en la forma legible")
+}
+
+// comprobarElReparto comprueba que la sincronía ha dado a la vertical, en la
+// copia de raíz, lo suyo que se apoya en lo administrativo (contracts/
+// sincronia-de-los-paquetes.md §5 de H45; FR-002, FR-005, FR-007, SC-002): la
+// fila de su tipo, que se cuenta con el cómputo de la LPAC, en la región
+// recursos_y_plazos de su referencia de plazos-y-territorio y en ninguna otra
+// referencia de la copia; y su fila de lo regulado aparte con su precepto en la
+// LPAC, en la región de la cobertura de esa misma referencia, con la línea de hoy,
+// y en ninguna otra, tampoco en ninguna línea de administrativo.md, la del
+// paquete de su precepto.
+func comprobarElReparto(t *testing.T, raiz string) {
+	t.Helper()
+
+	referencia := leerFicheroDePrueba(t, filepath.Join(raiz, filepath.FromSlash(referenciaDeLosPlazosDelEnsayo)))
+
+	_, hay := filaQueEmpiezaPor(entreLasMarcas(t, referencia, inicioDeLosPlazos, finDeLosPlazos), filaDelTipoDelEnsayo)
+	assert.True(t, hay, "la región recursos_y_plazos de la referencia de la vertical genera la fila de su tipo")
+	assert.Equal(t, []string{referenciaDeLosPlazosDelEnsayo}, referenciasQueContienen(t, raiz, filaDelTipoDelEnsayo),
+		"la fila del tipo de ensayo sale en la referencia de la vertical y en ninguna otra")
+
+	fila, hay := filaQueEmpiezaPor(entreLasMarcas(t, referencia, inicioDeLaCobertura, finDeLaCobertura),
+		"| "+procedimientoConNorma+" | ")
+	if assert.True(t, hay, "la región de la cobertura de la referencia de la vertical genera la fila con norma") {
+		assert.Contains(t, fila, motivoDeLaFilaConNorma,
+			"la línea nombra la norma que rige la fila y el precepto que la deja aparte")
+	}
+
+	assert.Equal(t, []string{referenciaDeLosPlazosDelEnsayo}, referenciasQueContienen(t, raiz, procedimientoConNorma),
+		"la fila con norma sale en la referencia de la vertical y en ninguna otra, tampoco en administrativo.md")
+}
+
+// comprobarElSitioDeOtroPaquete comprueba que el cuerpo de cada skill de
+// capacidad con la referencia de la vertical tiene, con la línea de su enlace,
+// sitio para la de otro paquete de su misma longitud (FR-020, SC-002; research
+// D11 de H45): con una línea de 69 caracteres y su salto añadida al final de cada
+// cuerpo de la copia sincronizada de raíz, la sincronía no da ningún defecto, ni
+// el de un cuerpo de más de 11 000 caracteres. Cambia la copia fuera de las
+// marcas: va detrás de todo lo que la compara con el repositorio.
+func comprobarElSitioDeOtroPaquete(t *testing.T, raiz string, descripciones []skills.DescripcionDeVerbo) {
+	t.Helper()
+
+	deOtroPaquete := strings.Repeat("x", utf8.RuneCountInString(strings.TrimSuffix(lineaDelEnsayo, "\n"))) + "\n"
+
+	for _, skill := range skillsConLaVertical {
+		ruta := rutaDeSkill(raiz, skill, "SKILL.md")
+		escribirFicheroDePrueba(t, ruta, leerFicheroDePrueba(t, ruta)+deOtroPaquete)
+	}
+
+	regenerado, err := skills.Regenerar(raiz, descripciones)
+	require.NoError(t, err)
+	assert.Empty(t, textosDeLosFallos(regenerado.Defectos()),
+		"cada cuerpo con la línea de la vertical tiene sitio para otra de su misma longitud")
+}
+
+// entreLasMarcas es lo que hay en el contenido entre la línea de la marca de
+// inicio y la de fin de una región, cada una con su salto y una vez cada una.
+func entreLasMarcas(t *testing.T, contenido, inicio, fin string) string {
+	t.Helper()
+
+	require.Equal(t, 1, strings.Count(contenido, inicio), "una marca %q", inicio)
+	require.Equal(t, 1, strings.Count(contenido, fin), "una marca %q", fin)
+
+	_, tras, _ := strings.Cut(contenido, inicio)
+	entre, _, conFin := strings.Cut(tras, fin)
+	require.True(t, conFin, "la marca %q detrás de la de inicio", fin)
+
+	return entre
+}
+
+// referenciasQueContienen son las rutas, relativas a la raíz y en orden, de las
+// referencias de las skills de la copia de raíz con alguna línea que contiene el
+// texto dado, que es de una sola línea.
+func referenciasQueContienen(t *testing.T, raiz, texto string) []string {
+	t.Helper()
+
+	rutas, err := fs.Glob(os.DirFS(raiz), "skills/*/references/*.md")
+	require.NoError(t, err)
+
+	var con []string
+
+	for _, ruta := range rutas {
+		if strings.Contains(leerFicheroDePrueba(t, filepath.Join(raiz, filepath.FromSlash(ruta))), texto) {
+			con = append(con, ruta)
+		}
+	}
+
+	return con
 }
 
 // filaQueEmpiezaPor es la primera línea del texto que empieza por el principio
@@ -198,14 +348,15 @@ func copiaDelRepositorio(t *testing.T) string {
 }
 
 // instalarLaVertical instala la vertical de ensayo en la copia de raíz como lo
-// haría quien escribe un paquete: añade sus normas a data/normas.yaml y sus filas
-// de lo cubierto y de lo regulado aparte a data/cobertura.yaml, y copia sus
-// ficheros de skills/ y de evals/, que no pueden pisar ninguno de la copia
-// (os.CopyFS no sobrescribe).
+// haría quien escribe un paquete: añade sus normas a data/normas.yaml, sus tipos
+// de plazo a data/plazos.yaml y sus filas de lo cubierto y de lo regulado aparte a
+// data/cobertura.yaml, y copia sus ficheros de skills/ y de evals/, que no pueden
+// pisar ninguno de la copia (os.CopyFS no sobrescribe).
 func instalarLaVertical(t *testing.T, raiz string) {
 	t.Helper()
 
 	anadirEntradas(t, raiz, "normas.yaml", "normas")
+	anadirEntradas(t, raiz, "plazos.yaml", "tipos")
 	anadirEntradas(t, raiz, "cobertura.yaml", "cubierto", "regulados_aparte")
 
 	for _, carpeta := range []string{"skills", "evals"} {

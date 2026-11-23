@@ -1,21 +1,20 @@
 {
-  "id": "T005",
-  "texto": "T005 [datos] [US2] La vertical de ensayo crece (FR-019; data-model §7; research D11): nuevo `internal/skills/testdata/vertical-de-ensayo/data/plazos.yaml` con `tipos:` y el tipo `ensayo` (cómputo `lpac`, 10 días hábiles, `da: vencimiento`, precepto `BOE-A-1900-1` `a2` `\"2\"` `fija: duracion`); una fila más de `regulados_aparte` en `internal/skills/testdata/vertical-de-ensayo/data/cobertura.yaml` con su precepto en la DA 1ª.2.c de la LPAC y `norma` `BOE-A-1900-2`, y su cabecera al día; y la sección y las marcas vacías de `recursos_y_plazos` en `internal/skills/testdata/vertical-de-ensayo/skills/plazos-y-territorio/references/ensayo.md`. `instalarLaVertical` todavía no lee los tipos, así que con el molde de T003 la región nueva sale vacía. Con la regla de hoy (la fila es del paquete de la norma de su precepto) la fila nueva sale en la `administrativo.md` de la copia de `TestVerticalDeEnsayo`, que pasa de 100 a 101 líneas sin índice y la pone en rojo (intento 1, `gates/tarea-T005.md`): por eso la tarea trae también, en `internal/skills/regiones.go`, `paqueteDeLaFila(entrada, normas)` (contracts/sincronia-de-los-paquetes.md §3): el `vertical` de la `norma` de la fila si está en la tabla de normas con `vertical` y si no el de la norma de su precepto, y la usan `filasDeLaCobertura` y `filasSinRegion` (defecto con el texto de hoy si su paquete es vacío o no está entre los cubiertos); la línea de cada fila no cambia; el test primero, en `internal/skills/regiones_test.go`, y `TestVerticalDeEnsayo`, hoy en rojo por esta causa, en verde sin tocarlo. `make skills-check` sin diferencias y `make ci` en verde.",
-  "intento": 2,
-  "datos": true,
+  "id": "T006",
+  "texto": "T006 [US2] El paquete de una fila y `TestVerticalDeEnsayo` crecida (FR-002, FR-005, FR-006, FR-007, FR-016, FR-020; US1.4, US2.1-US2.4; SC-002; contracts/sincronia-de-los-paquetes.md §3, §5; research D2, D11): en `internal/skills/regiones.go`, `paqueteDeLaFila(entrada, normas)` da el `vertical` de la `norma` de la fila si está en la tabla de normas del repositorio con `vertical` y si no el de la norma de su precepto, y la usan `filasDeLaCobertura` y `filasSinRegion` (defecto con el texto de hoy si su paquete es vacío o no tiene la región); la línea de cada fila no cambia. En `internal/skills/vertical_de_ensayo_test.go`, `instalarLaVertical` añade también las entradas de `tipos` del `plazos.yaml` de la vertical de T005, y el test exige: la fila del tipo `ensayo` en `recursos_y_plazos` de `plazos-y-territorio/references/ensayo.md` y en ninguna otra referencia de la copia; la fila con norma de ensayo en `ensayo.md` y en ninguna línea de `administrativo.md`; un subtest `sin-la-region` en el que, con la `ensayo.md` de `plazos-y-territorio` sin la región de la cobertura, `skills.Regenerar` da el defecto de FR-006 para esa fila; tras sincronizar, con una línea de 69 caracteres y su salto añadida al final del cuerpo de `jurisprudencia`, `normativa` y `plazos-y-territorio`, `skills.Regenerar` sin defectos (sin exportar nada); y la fila de lo cubierto de la vertical como última de la región y detrás de la que era la última en la copia antes de instalar, en lugar de «detrás de la del territorio». Ver en rojo los cuatro mutantes de US2.4 (un tipo asignado a todas las referencias, que es también la regla de hoy de US1.4; una fila asignada por su precepto; `filasSinRegion` con la regla vieja; el cuerpo de `normativa` sin el movimiento de T004); `make skills-sync` sin diferencias en las referencias de las skills (`make skills-check` en verde) y `make ci` en verde.",
+  "intento": 1,
+  "datos": false,
   "aceptacion": false,
-  "base": "e1201683722612901cc47a0f09fd47eb35f05bfa",
+  "base": "d0d4c7b3165c8313b6a31efc93f3a6c2c229c2f9",
   "rutas": [
     "administrativo.md",
     "contracts/sincronia-de-los-paquetes.md",
-    "gates/tarea-T005.md",
+    "ensayo.md",
     "internal/skills/regiones.go",
-    "internal/skills/regiones_test.go",
-    "internal/skills/testdata/vertical-de-ensayo/data/cobertura.yaml",
-    "internal/skills/testdata/vertical-de-ensayo/data/plazos.yaml",
-    "internal/skills/testdata/vertical-de-ensayo/skills/plazos-y-territorio/references/ensayo.md"
+    "internal/skills/vertical_de_ensayo_test.go",
+    "plazos-y-territorio/references/ensayo.md",
+    "plazos.yaml"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "fc627306e746cbcf1ba1fe0ad58761107717576139c863eb1a32b582985da74c"
+  "nota": "-"
 }
