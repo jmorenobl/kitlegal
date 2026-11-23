@@ -2468,13 +2468,6 @@ const (
 	// directorio de este paquete: las evals de la skill de entrada, a las que se
 	// aplican las reglas de su juego.
 	evalsDeConsultaJuridica = "../../evals/consulta-juridica"
-
-	// evalsDePlazosYTerritorioConLaDeVigencia son las de
-	// evals/plazos-y-territorio/: desde H9, las cuatro de antes, las tres de
-	// plazo y las dos de cobertura (contracts/evals-legal-core.md §5 de H9;
-	// FR-050), desde el ADR 0042, la de vigencia, y desde H26.1, la de plazo y la
-	// de cobertura con una lectura sin servir (FR-017, FR-018 de H26.1).
-	evalsDePlazosYTerritorioConLaDeVigencia = 12
 )
 
 // evalsDeConsultaJuridicaDelRepositorio son los ficheros de
@@ -2576,7 +2569,12 @@ var evalsDeConsultaJuridicaDelRepositorio = []string{
 // data-model §8 de H32; research D16 de H32; FR-014); y cada nombre de
 // se_activan y de no_se_activan de cada eval de cada carpeta es una skill de
 // skills/, y un nombre retirado da el defecto (contracts/evals.md §4 de H32;
-// data-model §8 de H32; FR-037). Lee las carpetas enteras.
+// data-model §8 de H32; FR-037). Desde H45, lo que se espera de
+// plazos-y-territorio sale de su carpeta, sin listas: tantas evals como *.yaml
+// tiene, y las que llevan no_cubierto, al menos una, con el precepto de una
+// fila de data/cobertura.yaml (contracts/tests-sin-listas.md de H45; FR-016);
+// las reglas del conjunto de normativa no cambian (FR-018). Lee las carpetas
+// enteras.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2657,18 +2655,26 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.Empty(t, defectosDePlazosYTerritorio, "defectos del conjunto de %s:\n%s",
 			evalsDePlazosYTerritorio, presentarDefectos(defectosDePlazosYTerritorio))
 
-		// Las doce de plazos-y-territorio, bien formadas (FR-050 de H9; ADR 0042;
-		// FR-017 y FR-018 de H26.1), y lo que leen del BOE sus sesiones, servido
-		// sin red por la unión de grabaciones (FR-052 de H9).
+		// Cada *.yaml de plazos-y-territorio, una eval bien formada (FR-050 de H9;
+		// desde H45, contado en el directorio y no escrito aquí: FR-016), y lo que
+		// leen del BOE sus sesiones, servido sin red por la unión de grabaciones
+		// (FR-052 de H9).
 		assert.Empty(t, dePlazosYTerritorio.MalFormados, "cada fichero de %s es una eval bien formada", evalsDePlazosYTerritorio)
+
+		rutasYAML, err := filepath.Glob(filepath.Join(evalsDePlazosYTerritorio, "*.yaml"))
+		require.NoError(t, err)
+
+		ficherosYAML := make([]string, 0, len(rutasYAML))
+		for _, ruta := range rutasYAML {
+			ficherosYAML = append(ficherosYAML, filepath.Base(ruta))
+		}
 
 		ficheros := make([]string, 0, len(dePlazosYTerritorio.Evals))
 		for _, eval := range dePlazosYTerritorio.Evals {
 			ficheros = append(ficheros, eval.Fichero)
 		}
 
-		assert.Len(t, ficheros, evalsDePlazosYTerritorioConLaDeVigencia, "%s tiene las doce evals de plazos-y-territorio",
-			evalsDePlazosYTerritorio)
+		assert.Equal(t, ficherosYAML, ficheros, "%s tiene una eval por cada uno de sus *.yaml", evalsDePlazosYTerritorio)
 
 		consultas := ConsultasNecesarias(dePlazosYTerritorio.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDePlazosYTerritorio)
@@ -2903,12 +2909,13 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 // probarLosPreceptosDeLaCobertura es el subtest precepto-de-la-cobertura de
 // TestEvalsDelRepositorio (contracts/forma-de-cita.md §4 de H32; data-model §8
-// de H32; research D16 de H32; FR-014): las evals de cobertura de
-// plazos-y-territorio son la 07, la de los tributos, la 08, la del tráfico, y la
-// 12, la de la Seguridad Social, cada una con el precepto de su fila, escrito
-// aquí a mano —en las tres, la DA 1ª de la LPAC—; ese precepto es el de una fila
-// de data/cobertura.yaml; y su mutante, la 12 con un bloque que ninguna fila
-// tiene, da el defecto con su fichero y su precepto.
+// de H32; research D16 de H32; FR-014): las evals de plazos-y-territorio que
+// llevan no_cubierto, al menos una, tienen cada una por precepto el de una fila
+// de data/cobertura.yaml; y su mutante, cada una de ellas con un bloque que
+// ninguna fila tiene —la 12 entre ellas—, da el defecto con su fichero y su
+// precepto. Desde H45, cuáles son y su precepto salen de las evals que lee
+// LeerConjunto, no de una lista escrita aquí (contracts/tests-sin-listas.md de
+// H45; FR-016).
 func probarLosPreceptosDeLaCobertura(t *testing.T) {
 	t.Parallel()
 
@@ -2918,20 +2925,10 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 	cobertura, err := skills.LeerCobertura(contenidoDelFichero(t, coberturaDelRepositorio))
 	require.NoError(t, err, "la cobertura por materia %s", coberturaDelRepositorio)
 
-	daPrimera := CitaEsperada{Norma: "BOE-A-2015-10565", Bloque: "daprimera"}
-	preceptos := map[string]CitaEsperada{}
-
-	for _, eval := range dePlazosYTerritorio.Evals {
-		if eval.esDeCobertura() {
-			preceptos[eval.Fichero] = eval.NoCubierto.Precepto
-		}
-	}
-
-	assert.Equal(t, map[string]CitaEsperada{
-		evalDeLaLiquidacion: daPrimera,
-		evalDeLaMulta:       daPrimera,
-		ficheroDeLaEval12:   daPrimera,
-	}, preceptos, "las evals de cobertura de %s, con el precepto de su fila", evalsDePlazosYTerritorio)
+	conNoCubierto := slices.DeleteFunc(slices.Clone(dePlazosYTerritorio.Evals), func(eval Eval) bool {
+		return !llevaNoCubierto(eval)
+	})
+	require.NotEmpty(t, conNoCubierto, "%s tiene al menos una eval con no_cubierto", evalsDePlazosYTerritorio)
 
 	assert.Empty(t, preceptosFueraDeLaCobertura(dePlazosYTerritorio.Evals, cobertura),
 		"cada no_cubierto.precepto de %s es el de una fila de %s", evalsDePlazosYTerritorio, coberturaDelRepositorio)
@@ -2942,16 +2939,24 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 		return fila.Precepto.Bloque == bloqueDeNingunaFila
 	}), "premisa: ninguna fila de %s tiene el bloque %s", coberturaDelRepositorio, bloqueDeNingunaFila)
 
-	mutadas := slices.Clone(dePlazosYTerritorio.Evals)
-	posicion := slices.IndexFunc(mutadas, func(eval Eval) bool { return eval.Fichero == ficheroDeLaEval12 })
-	require.NotEqual(t, -1, posicion, "%s está en %s", ficheroDeLaEval12, evalsDePlazosYTerritorio)
+	for _, mutada := range conNoCubierto {
+		mutadas := slices.Clone(dePlazosYTerritorio.Evals)
+		posicion := slices.IndexFunc(mutadas, func(eval Eval) bool { return eval.Fichero == mutada.Fichero })
+		mutadas[posicion].NoCubierto.Precepto.Bloque = bloqueDeNingunaFila
 
-	mutadas[posicion].NoCubierto.Precepto.Bloque = bloqueDeNingunaFila
+		assert.Equal(t, []string{
+			mutada.Fichero + ": no_cubierto.precepto " + mutada.NoCubierto.Precepto.Norma + ", bloque a999 no es el " +
+				"precepto de ninguna fila de data/cobertura.yaml",
+		}, preceptosFueraDeLaCobertura(mutadas, cobertura), "%s con el bloque %s", mutada.Fichero, bloqueDeNingunaFila)
+	}
+}
 
-	assert.Equal(t, []string{
-		ficheroDeLaEval12 + ": no_cubierto.precepto BOE-A-2015-10565, bloque a999 no es el precepto de ninguna fila " +
-			"de data/cobertura.yaml",
-	}, preceptosFueraDeLaCobertura(mutadas, cobertura))
+// llevaNoCubierto dice si la eval lleva no_cubierto: el filtro de
+// precepto-de-la-cobertura, escrito aquí y no con la regla de producción, para
+// que un mutante de esa regla no lo arrastre (contracts/tests-sin-listas.md de
+// H45).
+func llevaNoCubierto(eval Eval) bool {
+	return eval.NoCubierto != NoCubiertoEsperado{}
 }
 
 // probarLasSkillsNombradas es el subtest skills-nombradas de
@@ -3186,16 +3191,16 @@ func capacidadesDelRepositorio(t *testing.T) []string {
 	return capacidades
 }
 
-// preceptosFueraDeLaCobertura son los defectos de las evals de cobertura cuyo
-// no_cubierto.precepto no es el precepto —su norma y su bloque— de ninguna fila
-// de la cobertura por materia, uno por eval, en su orden, con su fichero y su
-// precepto (data-model §8 de H32; FR-014). Las demás evals no lo llevan y no se
-// miran.
+// preceptosFueraDeLaCobertura son los defectos de las evals que llevan
+// no_cubierto cuyo no_cubierto.precepto no es el precepto —su norma y su
+// bloque— de ninguna fila de la cobertura por materia, uno por eval, en su
+// orden, con su fichero y su precepto (data-model §8 de H32; FR-014). Las demás
+// evals no lo llevan y no se miran.
 func preceptosFueraDeLaCobertura(evals []Eval, cobertura skills.Cobertura) []string {
 	var defectos []string
 
 	for _, eval := range evals {
-		if !eval.esDeCobertura() {
+		if !llevaNoCubierto(eval) {
 			continue
 		}
 

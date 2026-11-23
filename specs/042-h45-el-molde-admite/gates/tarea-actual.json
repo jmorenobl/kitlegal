@@ -1,20 +1,13 @@
 {
-  "id": "T010",
-  "texto": "T010 [P] [US4] Los tests del paquete Go de las skills sin listas (FR-016; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección del paquete de las skills, la primera): en `internal/skills/cobertura_test.go`, `TestLeerCobertura/repositorio` compara las filas de la base (sin `materia` o de `administrativo`) en su orden y exige que las demás tengan por `materia` un `vertical` de la tabla de normas del repositorio, y `TestCoberturaDelRepositorio` fija sus 9 tuplas sobre las filas del paquete (por su norma si la lleva con `vertical`, o por su precepto); en `internal/skills/cubierto_test.go`, `TestRegionDeLoCubierto/repositorio` espera una línea por fila de `cubierto` con la forma de `lineasDeLoCubierto` y su copia lleva cada skill que tiene una referencia de un paquete, y `/sin-data-cobertura` espera un defecto por `references/*.md` de la copia con la marca de `cobertura_por_materia`, en orden de nombre, tras el de la plantilla; en `internal/skills/referencias_test.go`, `TestRenderizarRecursosYPlazos/desde-data` pinta los tipos del paquete y espera `2 +` una fila por tipo y una por unidad de cada tipo con unidades, y `TestRegionDeLaCobertura` espera la fila de cada fila del paquete en `administrativo.md` con la línea de la plantilla, `2 + n` y `n` con `n` las del paquete y una deriva por referencia con la marca. Ver en rojo cada test con su mutante de la columna «Rojo con» y, en la copia con un paquete más, todos en verde; `make ci` en verde.",
+  "id": "T011",
+  "texto": "T011 [P] [US4] Los subtests de `TestEvalsDelRepositorio` sin listas (FR-016, FR-018; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección del paquete de las evals, la tercera): en `internal/evals/conjunto_test.go`, `precepto-de-la-cobertura` (`probarLosPreceptosDeLaCobertura`) toma las evals con `no_cubierto` de `LeerConjunto`, exige al menos una y que el precepto de cada una sea el de una fila de la cobertura del repositorio (`preceptosFueraDeLaCobertura`), y `conjunto-plazos-y-territorio` espera tantas evals como `*.yaml` del directorio y ninguna mal formada, sin «las doce». Las reglas del conjunto de `normativa`, en el código de producción del conjunto de evals, no se tocan. Ver en rojo su mutante de hoy (la 12 con el bloque `a999`) y `LeerConjunto` que pierde un fichero; en la copia con un paquete más, en verde; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "bcaaea2577944813f4de93351a7f77b392ed41da",
+  "base": "8b803ecc75390e604997e15caf0bbf06f7c1a740",
   "rutas": [
-    "TestLeerCobertura/repositorio",
-    "TestRegionDeLoCubierto/repositorio",
-    "TestRenderizarRecursosYPlazos/desde-data",
-    "administrativo.md",
     "contracts/tests-sin-listas.md",
-    "internal/skills/cobertura_test.go",
-    "internal/skills/cubierto_test.go",
-    "internal/skills/referencias_test.go",
-    "references/*.md"
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false,
   "converger": false,
