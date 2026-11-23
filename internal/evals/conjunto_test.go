@@ -4025,6 +4025,25 @@ const (
 		"verbo, la misma norma y los mismos bloques"
 )
 
+// La orden de lectura y comprobación del paso 2 del SKILL.md de normativa, en
+// sus dos formas, y su forma para PowerShell 5.1 con la frase que la presenta,
+// sin la sangría que lleva en el cuerpo de su control: desde H45 es lo último
+// de references/con_herramientas.md, tras una línea en blanco, y el SKILL.md
+// solo lleva la de Bash (§C.2 de H45; FR-009 de H45). La leen los mutantes de
+// TestControlesSobreLasReferenciasAMano y la declaración de normativa de
+// TestSkillsDelProductoDesdeControl.
+const (
+	bashDelPasoDos = "kitlegal boe articulo BOE-A-1978-31229 a140 --json && " +
+		"kitlegal graph check BOE-A-1978-31229 a140 --json"
+	powershellDelPasoDos = "kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { " +
+		"kitlegal graph check BOE-A-1978-31229 a140 --json }"
+
+	formaDelPasoDosParaPowerShell = "En PowerShell 5.1:\n```powershell\n" + powershellDelPasoDos + "\n```\n"
+
+	// conHerramientas es la referencia a mano de normativa que la lleva.
+	conHerramientas = "con_herramientas.md"
+)
+
 // ordenDeLectura es una orden de lectura y comprobación escrita en el código de
 // un SKILL.md, en cualquiera de sus dos formas (contracts/skill-boe-legislacion.md
 // §4 de H7.4).
@@ -4289,7 +4308,7 @@ func palabrasHastaElSeparador(palabras []string) []string {
 func defectosDeLasOrdenesParaPowerShell(markdown string) []string {
 	ordenes := ordenesDeLectura(markdown)
 
-	return slices.Concat(verbosSinOrdenDeBash(ordenes), defectosDeLasOrdenes(ordenes))
+	return slices.Concat(verbosSinOrdenDeBash(ordenes), defectosDeLasOrdenes(ordenes, nil))
 }
 
 // verbosSinOrdenDeBash da una línea por cada verbo de lectura, en su orden, que
@@ -4310,14 +4329,22 @@ func verbosSinOrdenDeBash(ordenes []ordenDeLectura) []string {
 }
 
 // defectosDeLasOrdenes da, en su orden, una línea por cada orden de Bash de las
-// órdenes de un fichero a la que no sigue su forma para PowerShell y otra por
-// cada orden cuya comprobación no lleva la norma y los bloques de su lectura, o
-// nil si no hay ninguna.
-func defectosDeLasOrdenes(ordenes []ordenDeLectura) []string {
+// órdenes de un fichero a la que no sigue su forma para PowerShell y que no la
+// tiene entre las órdenes de fuera del fichero que la pueden llevar, deFuera, y
+// otra por cada orden cuya comprobación no lleva la norma y los bloques de su
+// lectura, o nil si no hay ninguna. Las de una referencia no tienen deFuera: su
+// forma va detrás, en su fichero; las del SKILL.md, las de las referencias a
+// mano de la skill (FR-011 de H45).
+func defectosDeLasOrdenes(ordenes, deFuera []ordenDeLectura) []string {
 	var defectos []string
 
 	for posicion, orden := range ordenes {
-		if !orden.powershell && (posicion+1 == len(ordenes) || !esSuFormaParaPowerShell(orden, ordenes[posicion+1])) {
+		conSuFormaDetras := posicion+1 < len(ordenes) && esSuFormaParaPowerShell(orden, ordenes[posicion+1])
+		conSuFormaFuera := slices.ContainsFunc(deFuera, func(otra ordenDeLectura) bool {
+			return esSuFormaParaPowerShell(orden, otra)
+		})
+
+		if !orden.powershell && !conSuFormaDetras && !conSuFormaFuera {
 			defectos = append(defectos, orden.nombre()+": no la sigue su forma para PowerShell, «…; if "+
 				"($LASTEXITCODE -eq 0) { … }», con el mismo verbo, la misma norma y los mismos bloques")
 		}
@@ -4728,28 +4755,37 @@ func controlDeLaProsa(lista ExpresionesProhibidas) controlDeContenido {
 
 // controlDeLasOrdenes es el control 3, el de la subprueba
 // ordenes-para-powershell (contracts/skill-boe-legislacion.md §4 de H7.4;
-// FR-024, FR-095, SC-005 de H7.4): cada orden de lectura y comprobación de un
-// fichero lleva detrás, en ese mismo fichero, su forma para PowerShell —una orden
-// de un fichero no se empareja con la de otro—, y hay una orden de Bash de cada
-// verbo de lectura en la skill entera (FR-018 de H31). Los defectos de los
-// verbos, que son de la skill entera, van delante.
+// FR-024, FR-095, SC-005 de H7.4): cada orden de lectura y comprobación de una
+// referencia a mano lleva detrás, en ese mismo fichero, su forma para PowerShell
+// —una orden de una referencia no se empareja con la de otro fichero—; la de una
+// orden de Bash del SKILL.md va detrás de ella o en cualquier referencia a mano
+// de la skill, en cualquier línea y se lea esa referencia siempre o solo en
+// algunos casos (FR-011 de H45; contracts/skills-y-laboratorio.md §2 de H45); y
+// hay una orden de Bash de cada verbo de lectura en la skill entera (FR-018 de
+// H31). Los defectos de los verbos, que son de la skill entera, van delante, y
+// detrás, los del SKILL.md y los de cada referencia, en su orden.
 var controlDeLasOrdenes = controlDeContenido{
 	exige: "cada orden de lectura y comprobación lleva detrás, en su fichero, su forma para PowerShell, y la skill " +
 		"tiene una orden de Bash de cada verbo de lectura",
 	skills: []string{skillNormativa},
 	defectos: func(skill skillEntera) []string {
 		var (
-			todas         []ordenDeLectura
-			deLosFicheros []string
+			deLasReferencias         []ordenDeLectura
+			defectosDeLasReferencias []string
 		)
 
-		for _, fichero := range skill.ficheros() {
-			ordenes := ordenesDeLectura(fichero.texto)
-			todas = append(todas, ordenes...)
-			deLosFicheros = append(deLosFicheros, skill.defectosDe(fichero, defectosDeLasOrdenes(ordenes))...)
+		for _, referencia := range skill.referencias {
+			ordenes := ordenesDeLectura(referencia.texto)
+			deLasReferencias = append(deLasReferencias, ordenes...)
+			defectosDeLasReferencias = append(defectosDeLasReferencias,
+				skill.defectosDe(referencia, defectosDeLasOrdenes(ordenes, nil))...)
 		}
 
-		return append(skill.defectosDeLaSkill(verbosSinOrdenDeBash(todas)), deLosFicheros...)
+		delSkillMd := ordenesDeLectura(skill.skillMd.texto)
+
+		return slices.Concat(skill.defectosDeLaSkill(verbosSinOrdenDeBash(slices.Concat(delSkillMd, deLasReferencias))),
+			skill.defectosDe(skill.skillMd, defectosDeLasOrdenes(delSkillMd, deLasReferencias)),
+			defectosDeLasReferencias)
 	},
 }
 
@@ -5014,9 +5050,12 @@ type mutanteDeUnControl struct {
 // la escribe en ella, y el control da su defecto, con la skill y el fichero.
 // Las de ausencia, en la referencia, como en SKILL.md: una expresión prohibida y
 // una fecha AAAAMMDD con cifras en su prosa, y una orden de lectura sin su forma
-// para PowerShell, también cuando esa forma está en otro fichero; la orden de
-// Bash de un verbo se busca en la skill entera, así que llevar las de articulos a
-// una referencia no es un defecto y quitarlas sí. Las formas fijas, en SKILL.md:
+// para PowerShell, también cuando esa forma está en otro fichero o solo en el
+// SKILL.md; la de una orden del SKILL.md vale en una referencia a mano, con el
+// mismo verbo, la misma norma y los mismos bloques, y con otros bloques o en
+// ninguna es un defecto (§C.3 de H45); la orden de Bash de un verbo se busca en
+// la skill entera, así que llevar las de articulos a una referencia no es un
+// defecto y quitarlas sí. Las formas fijas, en SKILL.md:
 // llevar a una referencia la línea sin consulta, cada forma de aviso, cada una
 // de hallazgo o cada una de la redacción fechada da el defecto de su control.
 // Y una línea ⚠ de una referencia que no es, sin los blancos de los extremos,
@@ -5189,6 +5228,42 @@ func conLasLineasLlevadasAlSkillMd(fichero string, casa func(linea string) bool)
 	}
 }
 
+// conElTextoCambiado es el mutante que cambia en el fichero de la skill, su ruta
+// dentro de ella, el texto antes, que tiene que estar en él una sola vez, por
+// despues.
+func conElTextoCambiado(fichero, antes, despues string) func(t *testing.T, dir string) {
+	return func(t *testing.T, dir string) {
+		t.Helper()
+
+		ruta := filepath.Join(dir, fichero)
+		contenido := string(contenidoDelFichero(t, ruta))
+
+		require.Equal(t, 1, strings.Count(contenido, antes), "%s lleva una vez lo que el mutante cambia: %q", ruta,
+			antes)
+		require.NoError(t, os.WriteFile(ruta, []byte(strings.Replace(contenido, antes, despues, 1)), 0o600))
+	}
+}
+
+// conLaFormaDelPasoDosEnSuReferencia no cambia la copia de normativa: exige que
+// esté como la deja H45, con la orden de Bash del paso 2 en el SKILL.md sin su
+// forma para PowerShell, en ninguna línea, y esa forma al final de
+// references/con_herramientas.md, tras una línea en blanco (§C.2 y §C.3 de H45),
+// para que el caso que no da defecto no pase por otra cosa.
+func conLaFormaDelPasoDosEnSuReferencia(t *testing.T, dir string) {
+	t.Helper()
+
+	skillMd := string(contenidoDelFichero(t, filepath.Join(dir, ficheroDeLaSkill)))
+	require.Contains(t, skillMd, bashDelPasoDos, "el %s de normativa lleva la orden de Bash del paso 2",
+		ficheroDeLaSkill)
+	require.NotContains(t, skillMd, powershellDelPasoDos, "el %s de normativa no lleva su forma para PowerShell",
+		ficheroDeLaSkill)
+
+	referencia := path.Join(directorioDeLasReferencias, conHerramientas)
+	require.True(t, strings.HasSuffix(string(contenidoDelFichero(t, filepath.Join(dir, referencia))),
+		"\n\n"+formaDelPasoDosParaPowerShell), "%s de normativa acaba, tras una línea en blanco, con %q", referencia,
+		formaDelPasoDosParaPowerShell)
+}
+
 // mutantesDeLaProsa son los del control 1: una expresión de la lista, la
 // primera de la maquinaria, y una fecha AAAAMMDD con cifras en la prosa de una
 // referencia a mano, cada una con el defecto de defectosDeLaProsa y la ruta.
@@ -5218,9 +5293,12 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 
 // mutantesDeLasOrdenes son los del control 3: en una referencia a mano, la
 // orden de Bash de articulo sin su forma para PowerShell, con ella en otra
-// referencia y con ella detrás; y las órdenes de articulos, que desde H31 están
-// en references/varios_bloques.md (contracts/skills-reescritas.md de H31,
-// «normativa»), llevadas de ahí a SKILL.md, o quitadas.
+// referencia, con ella solo en el SKILL.md y con ella detrás; la orden del paso
+// 2 del SKILL.md, cuya forma está desde H45 en references/con_herramientas.md,
+// tal como está, con otros bloques en esa forma y sin ella (§C.3 de H45); y las
+// órdenes de articulos, que desde H31 están en references/varios_bloques.md
+// (contracts/skills-reescritas.md de H31, «normativa»), llevadas de ahí a
+// SKILL.md, o quitadas.
 func mutantesDeLasOrdenes() []mutanteDeUnControl {
 	const (
 		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
@@ -5229,12 +5307,43 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 
 	sinSuFormaEnLaReferencia := []string{"normativa: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
 		sinSuForma}
+	sinSuFormaEnElSkillMd := []string{"normativa: SKILL.md: línea 36, «" + bashDelPasoDos + "»" + sinSuForma}
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
 	}
 	referenciaDeArticulos := path.Join(directorioDeLasReferencias, "varios_bloques.md")
+	referenciaConHerramientas := path.Join(directorioDeLasReferencias, conHerramientas)
 
 	return []mutanteDeUnControl{
+		{
+			nombre: "orden-del-skill-md-con-su-forma-en-una-referencia", control: controlDeLasOrdenes,
+			skill: skillNormativa, mutar: conLaFormaDelPasoDosEnSuReferencia,
+		},
+		{
+			nombre: "forma-en-una-referencia-con-otros-bloques", control: controlDeLasOrdenes, skill: skillNormativa,
+			mutar: conElTextoCambiado(referenciaConHerramientas, powershellDelPasoDos,
+				strings.ReplaceAll(powershellDelPasoDos, "a140", "a141")),
+			defectos: sinSuFormaEnElSkillMd, exactos: true,
+		},
+		{
+			nombre: "forma-en-ninguna-referencia", control: controlDeLasOrdenes, skill: skillNormativa,
+			mutar:    conElTextoCambiado(referenciaConHerramientas, "\n"+formaDelPasoDosParaPowerShell, ""),
+			defectos: sinSuFormaEnElSkillMd, exactos: true,
+		},
+		{
+			nombre: "orden-de-una-referencia-con-su-forma-en-el-skill-md", control: controlDeLasOrdenes,
+			skill: skillNormativa,
+			mutar: func(t *testing.T, dir string) {
+				t.Helper()
+
+				conLasReferencias(map[string]string{referenciaAMano: enBash})(t, dir)
+
+				ruta := filepath.Join(dir, ficheroDeLaSkill)
+				require.NoError(t, os.WriteFile(ruta, []byte(string(contenidoDelFichero(t, ruta))+
+					"\n```powershell\n"+powershellDeArticulo+"\n```\n"), 0o600))
+			},
+			defectos: sinSuFormaEnLaReferencia, exactos: true,
+		},
 		{
 			nombre: "orden-sin-su-forma-para-powershell", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar:    conLasReferencias(map[string]string{referenciaAMano: enBash}),

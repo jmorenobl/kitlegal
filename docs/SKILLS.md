@@ -212,7 +212,7 @@ referencias generadas solo las leen `sin-instrucciones-de-evals` y `forma-de-cit
 | Control (subtest) | Skills | Lo que exige |
 |---|---|---|
 | `prosa-de-la-skill` | `normativa`, la que tiene `evals/<skill>/expresiones-prohibidas.yaml` | Ninguna expresión de la lista fuera del código y ninguna fecha AAAAMMDD con cifras, en ningún fichero |
-| `ordenes-para-powershell` | `normativa` | Cada orden de lectura o de comprobación lleva detrás, en el mismo fichero, su forma para PowerShell |
+| `ordenes-para-powershell` | `normativa` | Cada orden de lectura o de comprobación de una referencia lleva detrás, en el mismo fichero, su forma para PowerShell; la de una orden del `SKILL.md` va detrás de ella o en cualquier referencia a mano de la skill, con el mismo verbo, la misma norma y los mismos bloques, se lea esa referencia siempre o solo en algunos casos |
 | `linea-sin-consulta` | `normativa`, `plazos-y-territorio` | La línea `⚠ SIN CONSULTA AL BOE:`, sola en un bloque `text` del `SKILL.md` |
 | `formas-de-la-redaccion-fechada`, `avisos-de-la-skill`, `hallazgos-de-la-skill` | `normativa` | Cada forma, en el `SKILL.md` |
 | `lineas-de-aviso-de-las-referencias` | `normativa`, `plazos-y-territorio` | Cada línea `⚠` de una referencia a mano es, sin los blancos de los extremos, una línea del `SKILL.md` |

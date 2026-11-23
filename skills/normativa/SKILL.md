@@ -35,10 +35,6 @@ Lee [normas](references/normas.md) y toma el `BOE-A-…` de su tabla; si no est�
   ```bash
   kitlegal boe articulo BOE-A-1978-31229 a140 --json && kitlegal graph check BOE-A-1978-31229 a140 --json
   ```
-  En PowerShell 5.1:
-  ```powershell
-  kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-1978-31229 a140 --json }
-  ```
   La comprobación, nunca sin argumentos, ni antes, ni con fecha; sin fecha, si faltó, pídela ya. Habla de otras
   conversaciones, que quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni
   una línea, ni una frase junto a los avisos o a la fecha de vigencia. Ni «no consta otra redacción». Las líneas de una

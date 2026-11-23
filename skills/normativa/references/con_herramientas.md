@@ -36,3 +36,8 @@ no falló. Donde dice que una orden termina con un código, la herramienta da un
 `limite-o-tos` para el `5`, `identidad-humana` para el `6` e `inesperado` para el `1`. Lo que el protocolo hace con un
 código, se hace igual con su clase. Un error de `boe_articulo` con un `bloque` que no salió de `boe_indice` se
 resuelve con `boe_indice`, sea cual sea su `data.clase`: lo primero que puede fallar es el id.
+
+En PowerShell 5.1:
+```powershell
+kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-1978-31229 a140 --json }
+```

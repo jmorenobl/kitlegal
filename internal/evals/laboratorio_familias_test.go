@@ -434,8 +434,11 @@ const anteQuienSeReclama = "Ante quién se reclama varía por comunidad y esta r
 // H38 (research «Reparaciones del cierre», R1, de H38).
 var declaracionesDelProducto = map[string]declaracionDelProducto{
 	// Las siete remisiones de R1 a R6, con la «o» de R4 (research D1), y la
-	// salida de M-a y M-b (contracts/remisiones.md §2 y §3); y el párrafo de
-	// lecturas_que_fallan.md de la reparación del cierre de H38.
+	// salida de M-a y M-b (contracts/remisiones.md §2 y §3); el párrafo de
+	// lecturas_que_fallan.md de la reparación del cierre de H38; y la forma para
+	// PowerShell 5.1 de la orden del paso 2, que sale del cuerpo, con su sangría,
+	// al final de con_herramientas.md, sin ella (FR-009 y FR-010 de H45; §C.2 de
+	// H45; research D7 de H45).
 	skillDeNormativa: {
 		cambios: []cambioDelCuerpo{
 			{
@@ -462,6 +465,12 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 					"[redaccion_en_una_fecha](references/redaccion_en_una_fecha.md) antes de leer el\n" +
 					"  bloque: cómo se lee. Sin fecha, lee cada bloque una vez, con su comprobación detrás, en la " +
 					"misma orden:\n",
+			},
+			{
+				antes: "  En PowerShell 5.1:\n" +
+					"  ```powershell\n" +
+					"  " + powershellDelPasoDos + "\n" +
+					"  ```\n",
 			},
 			{
 				antes: "  fecha van siempre.\n" +
@@ -499,6 +508,11 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 			},
 		},
 		movimientos: []movimientoALaReferencia{
+			{
+				texto:          formaDelPasoDosParaPowerShell,
+				referencia:     conHerramientas,
+				enLaReferencia: "\n" + formaDelPasoDosParaPowerShell,
+			},
 			{
 				texto:      nadaDeOtraConversacion,
 				referencia: "redaccion_modificada.md",
