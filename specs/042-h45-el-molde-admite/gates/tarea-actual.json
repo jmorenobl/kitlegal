@@ -1,21 +1,21 @@
 {
-  "id": "T004",
-  "texto": "T004 [US5] El movimiento de `normativa` con el control y la declaración que lo admiten, en una sola tarea porque en cuanto el bloque sale del cuerpo `ordenes-para-powershell` y `TestSkillsDelProductoDesdeControl` lo ven a la vez (FR-009, FR-010, FR-011, FR-012, FR-013; US5.1-US5.4; SC-008; contracts/skills-y-laboratorio.md §1-§3; research D6, D7): quitar de `skills/normativa/SKILL.md` sus líneas 38 a 41 («En PowerShell 5.1:», las dos vallas y la orden, con su sangría) sin tocar nada más del cuerpo; añadir al final de `skills/normativa/references/con_herramientas.md`, tras una línea en blanco, esas cuatro líneas sin la sangría, byte a byte como §C.2; en `internal/evals/conjunto_test.go`, `controlDeLasOrdenes` da por cubierta una orden de Bash del `SKILL.md` sin su forma detrás si alguna referencia de `skills.ReferenciasAMano` de la misma skill lleva una orden PowerShell con el mismo verbo, la misma norma y los mismos bloques (`esSuFormaParaPowerShell`, sin cambiar), sin ninguna condición sobre cuándo se lee la referencia, y las órdenes de una referencia siguen exigiendo la suya detrás en su fichero, sin cambiar ningún mensaje; `mutantesDeLasOrdenes` de `TestControlesSobreLasReferenciasAMano` gana los casos 1 a 4 de §C.3 (`orden-del-skill-md-con-su-forma-en-una-referencia` sin defecto; `forma-en-una-referencia-con-otros-bloques`, `forma-en-ninguna-referencia` y `orden-de-una-referencia-con-su-forma-en-el-skill-md` con su defecto), conserva `orden-con-su-forma-en-otra-referencia` y `sin-las-ordenes-de-articulos` y no gana ninguno más; en `internal/evals/laboratorio_familias_test.go`, la declaración de `normativa` gana el `cambio` (las cuatro líneas con sangría → vacío) y el `movimiento` a `con_herramientas.md` (`\"\\n\"` + las cuatro líneas sin sangría + `\"\\n\"`); y la fila de `ordenes-para-powershell` de `docs/SKILLS.md` dice el texto de contracts/skills-y-laboratorio.md §2. Ver en rojo los cinco mutantes de §C.3 y el subtest `movimientos` con el texto movido de vuelta al cuerpo; `make ci` en verde.",
-  "intento": 1,
-  "datos": false,
+  "id": "T005",
+  "texto": "T005 [datos] [US2] La vertical de ensayo crece (FR-019; data-model §7; research D11): nuevo `internal/skills/testdata/vertical-de-ensayo/data/plazos.yaml` con `tipos:` y el tipo `ensayo` (cómputo `lpac`, 10 días hábiles, `da: vencimiento`, precepto `BOE-A-1900-1` `a2` `\"2\"` `fija: duracion`); una fila más de `regulados_aparte` en `internal/skills/testdata/vertical-de-ensayo/data/cobertura.yaml` con su precepto en la DA 1ª.2.c de la LPAC y `norma` `BOE-A-1900-2`, y su cabecera al día; y la sección y las marcas vacías de `recursos_y_plazos` en `internal/skills/testdata/vertical-de-ensayo/skills/plazos-y-territorio/references/ensayo.md`. `instalarLaVertical` todavía no lee los tipos, así que con el molde de T003 la región nueva sale vacía. Con la regla de hoy (la fila es del paquete de la norma de su precepto) la fila nueva sale en la `administrativo.md` de la copia de `TestVerticalDeEnsayo`, que pasa de 100 a 101 líneas sin índice y la pone en rojo (intento 1, `gates/tarea-T005.md`): por eso la tarea trae también, en `internal/skills/regiones.go`, `paqueteDeLaFila(entrada, normas)` (contracts/sincronia-de-los-paquetes.md §3): el `vertical` de la `norma` de la fila si está en la tabla de normas con `vertical` y si no el de la norma de su precepto, y la usan `filasDeLaCobertura` y `filasSinRegion` (defecto con el texto de hoy si su paquete es vacío o no está entre los cubiertos); la línea de cada fila no cambia; el test primero, en `internal/skills/regiones_test.go`, y `TestVerticalDeEnsayo`, hoy en rojo por esta causa, en verde sin tocarlo. `make skills-check` sin diferencias y `make ci` en verde.",
+  "intento": 2,
+  "datos": true,
   "aceptacion": false,
-  "base": "4da76c958144e3638c5c8c978616de2e32a181d5",
+  "base": "e1201683722612901cc47a0f09fd47eb35f05bfa",
   "rutas": [
-    "SKILL.md",
-    "con_herramientas.md",
-    "contracts/skills-y-laboratorio.md",
-    "docs/SKILLS.md",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/laboratorio_familias_test.go",
-    "skills/normativa/SKILL.md",
-    "skills/normativa/references/con_herramientas.md"
+    "administrativo.md",
+    "contracts/sincronia-de-los-paquetes.md",
+    "gates/tarea-T005.md",
+    "internal/skills/regiones.go",
+    "internal/skills/regiones_test.go",
+    "internal/skills/testdata/vertical-de-ensayo/data/cobertura.yaml",
+    "internal/skills/testdata/vertical-de-ensayo/data/plazos.yaml",
+    "internal/skills/testdata/vertical-de-ensayo/skills/plazos-y-territorio/references/ensayo.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "fc627306e746cbcf1ba1fe0ad58761107717576139c863eb1a32b582985da74c"
 }

@@ -1,0 +1,14 @@
+# Los tipos de plazo de la vertical de ensayo de TestVerticalDeEnsayo (contracts/sincronia-de-los-paquetes.md §5 de
+# H45): el test añade sus entradas al final del bloque de la misma clave en data/plazos.yaml de una copia del
+# repositorio. El tipo de ensayo, con su precepto en la primera de sus dos normas y el cómputo de la LPAC, que es de lo
+# administrativo, es del paquete de ensayo: la región recursos_y_plazos de
+# skills/plazos-y-territorio/references/ensayo.md lo genera, y la de administrativo.md no. Es un dato de un test: ningún
+# tipo de plazos calcular.
+tipos:
+  - codigo: ensayo
+    nombre: plazo de ensayo del molde de los paquetes
+    computo: lpac
+    duracion: {cantidad: 10, unidad: dias-habiles}
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-1900-1, bloque: a2, apartado: "2", fija: duracion, vigente_desde: "1900-01-01"}
