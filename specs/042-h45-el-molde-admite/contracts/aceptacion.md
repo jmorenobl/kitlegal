@@ -32,8 +32,10 @@ Lo que hace, en este orden:
      e imprime `tests enteros: <código>`;
    - en `repo`, `go test -count=1 -run '^(TestEvalsDelRepositorio|TestCasosDePlazos|TestEntregaDelHito)$/^(precepto-de-la-cobertura|ordenes-para-powershell|conjunto-plazos-y-territorio|19-eval-c-tributos|h32-paquetes|h33-cobertura-instalada|h36-plazos-de-hoy|h41-4-skills-instaladas)$' ./internal/evals/ ./internal/app/`,
      e imprime `subtests: <código>`;
-   - si una orden sale con otro código que 0, escribe su salida en la salida de errores (testscript la enseña al
-     fallar) y sigue; sale con 0 salvo que no pueda copiar o instalar.
+   - si una orden sale con otro código que 0, escribe el principio de su salida, hasta 1200 bytes y con los que quedan
+     fuera, en la salida de errores (testscript la enseña al fallar) y sigue; sale con 0 salvo que no pueda copiar o
+     instalar. Entera, la salida de las tres órdenes pasa hoy de 400 kB, y con ella `rojo-primero` toma el guion por
+     ilegible (gates/supuestos.md, T001).
 3. Afirma, con `stdout`: `^copia: hecha$`, `^sincronía: 0$`, `^tests enteros: 0$` y `^subtests: 0$`.
 4. Afirma, con `grep` sobre la copia sincronizada, que `prueba.md` lleva la fila del tipo
    `prueba-de-un-paquete-mas`, la de «procedimientos del paquete de prueba de un paquete más» y la de «procedimientos

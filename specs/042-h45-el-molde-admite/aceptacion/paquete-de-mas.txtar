@@ -1,0 +1,407 @@
+# paquete-de-mas.txtar
+# Un paquete más no pone en rojo ningún test ajeno (contracts/aceptacion.md §1 y
+# research D3 de H45). El programa paquete-de-mas.go, de solo biblioteca
+# estándar, copia el módulo bajo prueba (la raíz de $KITLEGAL_SKILLS/..) en
+# repo, sin las carpetas de primer nivel .git, web, dist, bin, .codegraph,
+# specs, .specify, .agents y .claude y sin enlaces simbólicos; le instala el
+# paquete prueba de data-model §6 —las entradas de paquete/*.yaml al final del
+# bloque de su clave en repo/data/, paquete/prueba.md en las referencias de
+# plazos-y-territorio y una eval más, la copia de la primera de
+# evals/plazos-y-territorio/ con el prefijo 99-—; la sincroniza como
+# make skills-sync; y corre en ella la lista de FR-016 con dos órdenes go test,
+# los tests enteros y los subtests. De cada paso imprime una línea con su código
+# y, de cada orden que no sale con 0, escribe el principio de su salida, hasta
+# 1200 bytes, en la de errores.
+#
+# El paquete solo añade: la norma de tráfico BOE-A-2015-11722, grabada y fuera de
+# data/normas.yaml, con vertical: prueba; un tipo suyo; una fila de lo regulado
+# aparte con ella por norma; su fila de lo cubierto; y su referencia, con las dos
+# regiones vacías. Tras sincronizar, el tipo, la fila nueva y la de tráfico de
+# hoy, que lleva la misma norma, son de prueba.md, y ninguno de
+# administrativo.md (US2.1, US2.2 sobre datos reales).
+#
+# El entorno de Go: GOCACHE y GOMODCACHE los da el arnés (research D4); el guion
+# fija un HOME y un GOPATH suyos, sin proxy de módulos, sin el fichero de go env
+# y sin tocar go.mod.
+#
+# Cubre: US4, US2.1-US2.2 · FR-001, FR-002, FR-005, FR-006, FR-016, FR-017 · SC-004
+
+mkdir casa
+env HOME=$WORK/casa
+env GOPATH=$WORK/go
+env GOPROXY=off
+env GOENV=off
+env GOFLAGS=-mod=readonly
+
+exec go run paquete-de-mas.go $KITLEGAL_SKILLS/.. repo
+
+# --- la copia, la sincronía y la lista (US4 · FR-016, FR-017 · SC-004) ---
+stdout '^copia: hecha$'
+stdout '^sincronía: 0$'
+stdout '^tests enteros: 0$'
+stdout '^subtests: 0$'
+
+# --- el tipo y las filas, en la referencia de su paquete (US2.1, US2.2 · FR-001, FR-002, FR-005, FR-006) ---
+grep '^\|.*`prueba-de-un-paquete-mas`' repo/skills/plazos-y-territorio/references/prueba.md
+grep '^\| procedimientos del paquete de prueba de un paquete más \|' repo/skills/plazos-y-territorio/references/prueba.md
+grep '^\| procedimientos sancionadores en materia de tráfico y seguridad vial \|' repo/skills/plazos-y-territorio/references/prueba.md
+! grep 'BOE-A-2015-11722' repo/skills/plazos-y-territorio/references/administrativo.md
+! grep 'prueba-de-un-paquete-mas' repo/skills/plazos-y-territorio/references/administrativo.md
+
+-- paquete-de-mas.go --
+// paquete-de-mas copia el módulo bajo prueba, instala en la copia el paquete
+// prueba del archivo del guion, la sincroniza y corre en ella la lista de
+// FR-016 de H45 (contracts/aceptacion.md §1). Imprime una línea por paso y, de
+// cada orden que no sale con 0, escribe el principio de su salida en la de
+// errores. Sale con 0 salvo que no pueda copiar o instalar.
+//
+//	go run paquete-de-mas.go <raíz del módulo> <carpeta de la copia>
+package main
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"unicode/utf8"
+)
+
+// excluidas son las carpetas de primer nivel del módulo que no se copian.
+var excluidas = map[string]bool{
+	".git": true, "web": true, "dist": true, "bin": true, ".codegraph": true,
+	"specs": true, ".specify": true, ".agents": true, ".claude": true,
+}
+
+// Los filtros de las dos órdenes de la lista: los tests enteros de
+// internal/skills e internal/evals, y los subtests de internal/evals e
+// internal/app.
+const (
+	filtroDeLosTestsEnteros = `^(TestLeerCobertura|TestCoberturaDelRepositorio|TestRegionDeLoCubierto|` +
+		`TestRenderizarRecursosYPlazos|TestRegionDeLaCobertura|TestRegiones|TestVerticalDeEnsayo|` +
+		`TestDefinicionDelJob|TestPlanEnDosModos|TestUmbralesDePlazosYTerritorio|TestUmbralesDeNormativa|` +
+		`TestUmbralesDeLasSkills|TestInformeEnDosModos|TestMatrizDeLasPropuestas|` +
+		`TestSkillsDelProductoDesdeControl|TestDescripcionesDelProducto|TestDescripcionesCortas)$`
+	filtroDeLosSubtests = `^(TestEvalsDelRepositorio|TestCasosDePlazos|TestEntregaDelHito)$/` +
+		`^(precepto-de-la-cobertura|ordenes-para-powershell|conjunto-plazos-y-territorio|19-eval-c-tributos|` +
+		`h32-paquetes|h33-cobertura-instalada|h36-plazos-de-hoy|h41-4-skills-instaladas)$`
+)
+
+// maxSalida son los bytes que se escriben de la salida de una orden que no sale
+// con 0: su principio, donde go test nombra el primer test que cae y da su
+// mensaje. Entera pasa de 400 kB con el código de main, y el log del guion
+// tiene que caber en una tubería: quien lo lee con grep -q la cierra en la
+// primera línea que casa y toma por ilegible el guion que aún está escribiendo.
+const maxSalida = 1200
+
+func main() {
+	if len(os.Args) != 3 {
+		terminar(errors.New("hacen falta dos argumentos: la raíz del módulo y la carpeta de la copia"))
+	}
+
+	copia, err := filepath.Abs(os.Args[2])
+	if err != nil {
+		terminar(fmt.Errorf("copia: %w", err))
+	}
+
+	if err := copiarCarpeta(filepath.Clean(os.Args[1]), copia, excluidas); err != nil {
+		terminar(fmt.Errorf("copia: %w", err))
+	}
+
+	fmt.Println("copia: hecha")
+
+	if err := instalar(copia); err != nil {
+		terminar(fmt.Errorf("instalación: %w", err))
+	}
+
+	ejecutar(copia, "sincronía",
+		"test", "-count=1", "-run", "^TestSkillsDelRepositorio$", "./internal/app/", "-args", "-regenerar-skills")
+	ejecutar(copia, "tests enteros",
+		"test", "-count=1", "-run", filtroDeLosTestsEnteros, "./internal/skills/", "./internal/evals/")
+	ejecutar(copia, "subtests",
+		"test", "-count=1", "-run", filtroDeLosSubtests, "./internal/evals/", "./internal/app/")
+}
+
+// terminar escribe el error en la salida de errores y sale con 1.
+func terminar(err error) {
+	fmt.Fprintln(os.Stderr, "paquete-de-mas:", err)
+	os.Exit(1)
+}
+
+// copiarCarpeta copia la carpeta de origen en destino, que no existe, sin las
+// entradas de su primer nivel que nombra fuera, sin enlaces simbólicos y sin lo
+// que no es una carpeta ni un fichero. Qué es cada entrada lo dice lstat, no el tipo
+// que da el listado de la carpeta: sobre un punto de montaje, el listado da el
+// del fichero que hay debajo.
+func copiarCarpeta(origen, destino string, fuera map[string]bool) error {
+	if err := os.Mkdir(destino, 0o755); err != nil {
+		return err
+	}
+
+	entradas, err := os.ReadDir(origen)
+	if err != nil {
+		return err
+	}
+
+	for _, entrada := range entradas {
+		if fuera[entrada.Name()] {
+			continue
+		}
+
+		info, err := os.Lstat(filepath.Join(origen, entrada.Name()))
+		if err != nil {
+			return err
+		}
+
+		desde, hasta := filepath.Join(origen, entrada.Name()), filepath.Join(destino, entrada.Name())
+
+		switch {
+		case info.IsDir():
+			err = copiarCarpeta(desde, hasta, nil)
+		case info.Mode().IsRegular():
+			err = copiarFichero(desde, hasta)
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// copiarFichero copia el fichero de origen en destino, que no existe, con sus
+// permisos.
+func copiarFichero(origen, destino string) (err error) {
+	entrada, err := os.Open(origen)
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, entrada.Close()) }()
+
+	info, err := entrada.Stat()
+	if err != nil {
+		return err
+	}
+
+	salida, err := os.OpenFile(destino, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+	if err != nil {
+		return err
+	}
+	defer func() { err = errors.Join(err, salida.Close()) }()
+
+	_, err = io.Copy(salida, entrada)
+
+	return err
+}
+
+// instalar añade a la copia el paquete prueba del archivo del guion
+// (data-model §6 de H45).
+func instalar(copia string) error {
+	datos := filepath.Join(copia, "data")
+
+	for _, fichero := range []struct {
+		nombre string
+		claves []string
+	}{
+		{"normas.yaml", []string{"normas"}},
+		{"plazos.yaml", []string{"tipos"}},
+		{"cobertura.yaml", []string{"cubierto", "regulados_aparte"}},
+	} {
+		if err := anadirEntradas(filepath.Join(datos, fichero.nombre), filepath.Join("paquete", fichero.nombre),
+			fichero.claves...); err != nil {
+			return err
+		}
+	}
+
+	referencias := filepath.Join(copia, "skills", "plazos-y-territorio", "references")
+	if err := copiarFichero(filepath.Join("paquete", "prueba.md"), filepath.Join(referencias, "prueba.md")); err != nil {
+		return err
+	}
+
+	evals := filepath.Join(copia, "evals", "plazos-y-territorio")
+
+	primera, err := primerFichero(evals)
+	if err != nil {
+		return err
+	}
+
+	return copiarFichero(filepath.Join(evals, primera), filepath.Join(evals, "99-"+primera))
+}
+
+// primerFichero es el nombre del primer fichero de la carpeta en orden de
+// nombre.
+func primerFichero(carpeta string) (string, error) {
+	entradas, err := os.ReadDir(carpeta)
+	if err != nil {
+		return "", err
+	}
+
+	for _, entrada := range entradas {
+		if entrada.Type().IsRegular() {
+			return entrada.Name(), nil
+		}
+	}
+
+	return "", fmt.Errorf("%s no tiene ningún fichero", carpeta)
+}
+
+// anadirEntradas añade a destino, en su orden, las entradas de cada clave de
+// delPaquete al final del bloque de esa misma clave en destino. Las entradas de
+// una clave son las líneas sangradas que siguen a la suya, de primer nivel; su
+// bloque acaba en la primera línea que no lo es.
+func anadirEntradas(destino, delPaquete string, claves ...string) error {
+	paquete, err := os.ReadFile(delPaquete)
+	if err != nil {
+		return err
+	}
+
+	copiado, err := os.ReadFile(destino)
+	if err != nil {
+		return err
+	}
+
+	texto := string(copiado)
+	if !strings.HasSuffix(texto, "\n") {
+		return fmt.Errorf("%s no termina en un salto de línea", destino)
+	}
+
+	for _, clave := range claves {
+		_, entradas, err := bloqueDeLaClave(string(paquete), clave)
+		if err != nil {
+			return fmt.Errorf("%s: %w", delPaquete, err)
+		}
+
+		if entradas == "" {
+			return fmt.Errorf("%s no lleva entradas bajo %s:", delPaquete, clave)
+		}
+
+		fin, _, err := bloqueDeLaClave(texto, clave)
+		if err != nil {
+			return fmt.Errorf("%s: %w", destino, err)
+		}
+
+		texto = texto[:fin] + entradas + texto[fin:]
+	}
+
+	return os.WriteFile(destino, []byte(texto), 0o644)
+}
+
+// bloqueDeLaClave es, en el texto YAML, el byte en que acaba el bloque de la
+// clave de primer nivel y las líneas sangradas de ese bloque, cada una con su
+// salto. La clave tiene que estar una vez, sola en su línea.
+func bloqueDeLaClave(texto, clave string) (int, string, error) {
+	linea := clave + ":\n"
+	if strings.Count("\n"+texto, "\n"+linea) != 1 {
+		return 0, "", fmt.Errorf("la clave %s no está una sola vez en su línea", clave)
+	}
+
+	comienzo := strings.Index("\n"+texto, "\n"+linea) + len(linea)
+	fin := comienzo
+
+	for resto := range strings.Lines(texto[comienzo:]) {
+		if !strings.HasPrefix(resto, " ") {
+			break
+		}
+
+		fin += len(resto)
+	}
+
+	return fin, texto[comienzo:fin], nil
+}
+
+// ejecutar corre en la copia la orden de go con sus argumentos e imprime el
+// paso con su código; si no es 0, escribe antes el principio de su salida en
+// la de errores.
+func ejecutar(copia, paso string, argumentos ...string) {
+	orden := exec.Command("go", argumentos...)
+	orden.Dir = copia
+
+	salida, err := orden.CombinedOutput()
+
+	codigo := 0
+	if err != nil {
+		codigo = -1
+
+		var terminada *exec.ExitError
+		if errors.As(err, &terminada) {
+			codigo = terminada.ExitCode()
+		}
+
+		fmt.Fprintf(os.Stderr, "%s: go %s: %v\n%s\n", paso, strings.Join(argumentos, " "), err, principio(salida))
+	}
+
+	fmt.Printf("%s: %d\n", paso, codigo)
+}
+
+// principio devuelve los primeros maxSalida bytes de la salida de una orden,
+// sin partir un carácter, y una línea con los que deja fuera.
+func principio(salida []byte) string {
+	if len(salida) <= maxSalida {
+		return string(salida)
+	}
+
+	corte := maxSalida
+	for corte > 0 && !utf8.RuneStart(salida[corte]) {
+		corte--
+	}
+
+	return fmt.Sprintf("%s\n[... quedan fuera %d de %d bytes]", salida[:corte], len(salida)-corte, len(salida))
+}
+-- paquete/normas.yaml --
+# La norma del paquete prueba: el texto refundido de tráfico, grabado y fuera de data/normas.yaml, con un vertical que
+# no lleva ninguna norma del repositorio.
+normas:
+  BOE-A-2015-11722:
+    titulo: "Real Decreto Legislativo 6/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial."
+    rango: Real Decreto Legislativo
+    materias:
+      - tráfico y seguridad vial
+    vertical: prueba
+-- paquete/plazos.yaml --
+# El tipo del paquete prueba: un mes, con su precepto en el art. 1 de su norma.
+tipos:
+  - codigo: prueba-de-un-paquete-mas
+    nombre: plazo de prueba de un paquete más
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-2015-11722, bloque: a1, apartado: "1", fija: duracion, vigente_desde: "2022-03-21"}
+-- paquete/cobertura.yaml --
+# Las filas del paquete prueba: la de lo cubierto, de los plazos y con su materia, y la de lo regulado aparte, con su
+# precepto en la DA 1ª.2.c de la LPAC y su norma por la que la rige.
+cubierto:
+  - capacidad: plazos
+    alcance: los del paquete de prueba de un paquete más.
+    materia: prueba
+regulados_aparte:
+  - procedimiento: procedimientos del paquete de prueba de un paquete más
+    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.c"}
+    norma: {identificador: BOE-A-2015-11722, nombre: "texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial", aplicable: {bloque: a1, apartado: "1"}}
+-- paquete/prueba.md --
+# Lo prueba
+
+El paquete prueba en `plazos-y-territorio`: el de `h45-paquete-de-mas.txtar`, que prueba que un paquete más no pone en
+rojo ningún test ajeno. No es una materia: su norma, el texto refundido de tráfico (`BOE-A-2015-11722`), lleva su
+`vertical` solo en la copia del módulo del guion. Las tablas las genera `make skills-sync` desde `data/`, y en el
+archivo del guion van vacías.
+
+## Lo que la ley regula aparte
+
+Los motivos de la línea; el primero es el de la fila con norma:
+
+```text
+se rige por <norma> (<identificador de la norma>), no por el procedimiento común (<precepto> [<identificador>, bloque <id>])
+lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>, bloque <id>])
+```
+
+<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y data/normas.yaml con make skills-sync, no editar -->
+<!-- fin de cobertura_por_materia -->
+
+## Recursos y plazos
+
+<!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->
+<!-- fin de recursos_y_plazos -->

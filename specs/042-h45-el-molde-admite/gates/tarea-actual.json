@@ -1,0 +1,31 @@
+{
+  "id": "T001",
+  "texto": "T001 [aceptacion] Escribir, a partir del spec y sin código de producto, los dos guiones testscript de la entrega en `specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar` y `specs/042-h45-el-molde-admite/aceptacion/skills-instaladas.txtar`, cada uno con un comentario que nombra lo que cubre, y dar a los guiones del arnés `GOCACHE` y `GOMODCACHE` en `internal/app/e2e_test.go` (research D4: la preparación del arnés lee una vez `go env -json GOCACHE GOMODCACHE` y el `Setup` de `ejecutarGuiones` pasa las dos variables a cada guion, como `prepararInstalacion` de los tests de instalación del paquete Go de las skills, que no se tocan; ninguna orden ni variable más). `paquete-de-mas.txtar` (US4, US2.1-US2.2 · FR-001, FR-002, FR-005, FR-006, FR-016, FR-017 · SC-004): exactamente los pasos 1-4 de contracts/aceptacion.md §1 —el `env` de Go (`HOME=$WORK/casa`, `GOPATH`, `GOPROXY=off`, `GOENV=off`, `GOFLAGS=-mod=readonly`); `exec go run paquete-de-mas.go $KITLEGAL_SKILLS/.. repo`, con el programa de solo biblioteca estándar dentro del archivo, que copia el módulo sin `.git`, `web`, `dist`, `bin`, `.codegraph`, `specs`, `.specify`, `.agents`, `.claude` ni enlaces simbólicos, instala el paquete `prueba` de data-model §6 (entradas al final del bloque de `normas`, `tipos`, `cubierto` y `regulados_aparte`; `prueba.md` en `plazos-y-territorio`; el primer fichero del directorio de evals de `plazos-y-territorio` copiado como `99-<nombre>`), sincroniza con `TestSkillsDelRepositorio -args -regenerar-skills` y corre las dos órdenes `go test -count=1` con los filtros literales del contrato, imprime `copia: hecha`, `sincronía: <código>`, `tests enteros: <código>` y `subtests: <código>`, escribe la salida de una orden que falle en la salida de errores y sale con 0 salvo que no pueda copiar o instalar; las aserciones `stdout` de las cuatro líneas con código 0; y los `grep` de `prueba.md` (el tipo `prueba-de-un-paquete-mas`, la fila «procedimientos del paquete de prueba de un paquete más» y la de «procedimientos sancionadores en materia de tráfico y seguridad vial») y los `! grep` de `administrativo.md` (ni `BOE-A-2015-11722` ni el tipo)—, con los ficheros `paquete-de-mas.go`, `paquete/normas.yaml`, `paquete/plazos.yaml`, `paquete/cobertura.yaml` y `paquete/prueba.md` dentro del archivo. `skills-instaladas.txtar` (US5.1, US9.1 · FR-009, FR-023 · SC-007): contracts/aceptacion.md §2 —`kitlegal skills install --dir destino --json`; `! grep 'En PowerShell 5\\.1:'` en `destino/normativa/SKILL.md`; las cuatro líneas de §C.2 al final de `destino/normativa/references/con_herramientas.md`, tras una línea en blanco y ancladas con `\\z`; y la `description` de FR-023 en el frontmatter instalado de `plazos-y-territorio` con `( |\\n  )` entre palabras, como `h41-4-skills-instaladas.txtar`—. Los guiones afirman solo lo que fija el spec. Comprobar que cada uno falla hoy por una aserción (`paquete-de-mas`: `sincronía: 1`; `skills-instaladas`: la frase de PowerShell en el cuerpo y la descripción que nombra la LPAC) y que `make ci` sigue en verde con el cambio del arnés.",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": true,
+  "base": "e994f7d185fa668ab44961997444c00ea1f7e9f3",
+  "rutas": [
+    "KITLEGAL_SKILLS/..",
+    "WORK/casa",
+    "administrativo.md",
+    "contracts/aceptacion.md",
+    "destino/normativa/SKILL.md",
+    "destino/normativa/references/con_herramientas.md",
+    "h41-4-skills-instaladas.txtar",
+    "internal/app/e2e_test.go",
+    "paquete-de-mas.go",
+    "paquete-de-mas.txtar",
+    "paquete/cobertura.yaml",
+    "paquete/normas.yaml",
+    "paquete/plazos.yaml",
+    "paquete/prueba.md",
+    "prueba.md",
+    "skills-instaladas.txtar",
+    "specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar",
+    "specs/042-h45-el-molde-admite/aceptacion/skills-instaladas.txtar"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
