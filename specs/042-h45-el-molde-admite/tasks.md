@@ -40,7 +40,7 @@ más» es la de data-model §6 (la que monta `paquete-de-mas.txtar`), en `$TMPDI
 
 ## Phase 2: Foundational — el `plazos.yaml` de prueba de `TestRegiones`
 
-- [ ] T002 [datos] Crear `internal/skills/testdata/regiones/plazos.yaml`, copia de los tipos y cómputos de hoy del `plazos.yaml` del repositorio, que no se toca (contracts/tests-sin-listas.md, fila `TestRegiones`; research D10; FR-016, SC-003), con una cabecera que dice que es un dato de prueba de las reglas de las regiones y no el repositorio. Ningún test lo lee todavía: `make ci` sigue en verde.
+- [X] T002 [datos] Crear `internal/skills/testdata/regiones/plazos.yaml`, copia de los tipos y cómputos de hoy del `plazos.yaml` del repositorio, que no se toca (contracts/tests-sin-listas.md, fila `TestRegiones`; research D10; FR-016, SC-003), con una cabecera que dice que es un dato de prueba de las reglas de las regiones y no el repositorio. Ningún test lo lee todavía: `make ci` sigue en verde.
 
 **Checkpoint**: T003 puede pasar `TestRegiones` a datos de prueba.
 
