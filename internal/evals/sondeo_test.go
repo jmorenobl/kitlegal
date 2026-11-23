@@ -1113,9 +1113,10 @@ func lineasDeLaSalida(lineas ...string) string {
 // tests del sondeo: basta con que no esté vacío, y ninguna sesión lo usa.
 const valorDeLaSuscripcion = "de-la-base"
 
-// Las skills del repositorio que los tests del sondeo piden: las dos de la
-// matriz del job, con 5, desde antes de H20, y 2, desde antes de H9, sesiones a
-// la vez (contracts/ejecucion-del-job.md §7 de H7.3).
+// Las skills del repositorio que los tests del sondeo piden: dos de la matriz
+// del job, cada una con las sesiones a la vez que le da ajustesDelTrabajo, que
+// es lo que esperan los casos de la concurrencia del job, sin la cifra escrita
+// (contracts/ejecucion-del-job.md §7 de H7.3; FR-021 de H45).
 const (
 	skillQueSondea     = "normativa"
 	otraSkillQueSondea = "plazos-y-territorio"
@@ -1139,15 +1140,15 @@ type casoDeComprobarElSondeo struct {
 // evals del repositorio y la definición real del job, o sobre carpetas de evals
 // escritas en t.TempDir(): cada error de §3.1, nombrando su argumento de make,
 // con los de varios argumentos a la vez, uno por línea y en el orden de la
-// orden; la concurrencia por omisión, la del job para la skill, 4 y 1; la
-// pedida, si la hay; y las evals pedidas en el orden en que se piden. Sin
-// CLAUDE_CODE_OAUTH_TOKEN, o con la variable vacía, el error de §3.2, que no
-// llega si un argumento no vale. Los errores de los argumentos y el de la
-// credencial son errores de uso (errorDeUso); el de una definición del job que
-// no se puede leer, que llega antes, no lo es (contracts/sondeo.md §1 y §4 de
-// H7.4; FR-080, FR-081 de H7.4). Desde H21, una eval sin binario ni servidor
-// pedida en EVALS es otro error de uso, con su línea donde iría la del número
-// que no es de ninguna eval (casosDeLasEvalsSinBinarioNiServidor; FR-050,
+// orden; la concurrencia por omisión, la del job para la skill, que es la de
+// ajustesDelTrabajo; la pedida, si la hay; y las evals pedidas en el orden en
+// que se piden. Sin CLAUDE_CODE_OAUTH_TOKEN, o con la variable vacía, el error
+// de §3.2, que no llega si un argumento no vale. Los errores de los argumentos y
+// el de la credencial son errores de uso (errorDeUso); el de una definición del
+// job que no se puede leer, que llega antes, no lo es (contracts/sondeo.md §1 y
+// §4 de H7.4; FR-080, FR-081 de H7.4). Desde H21, una eval sin binario ni
+// servidor pedida en EVALS es otro error de uso, con su línea donde iría la del
+// número que no es de ninguna eval (casosDeLasEvalsSinBinarioNiServidor; FR-050,
 // FR-084 de H21).
 func TestComprobarElSondeo(t *testing.T) {
 	t.Parallel()
@@ -1245,7 +1246,7 @@ func casosDeLosArgumentos() []casoDeComprobarElSondeo {
 			nombre:       "concurrencia-del-job-en-" + skillQueSondea,
 			ajustar:      func(*testing.T, *SondeoAEjecutar) {},
 			pedidas:      []string{"14-trlrhl-impuestos-por-materia.yaml", "03-lrbrl-atribuciones-del-pleno.yaml"},
-			concurrencia: 5,
+			concurrencia: ajustesDelTrabajo[skillQueSondea].Concurrencia,
 		},
 		{
 			nombre: "concurrencia-del-job-en-" + otraSkillQueSondea,
@@ -1253,7 +1254,7 @@ func casosDeLosArgumentos() []casoDeComprobarElSondeo {
 				s.Argumentos.Skill, s.Argumentos.Evals = otraSkillQueSondea, "03,01"
 			},
 			pedidas:      []string{"03-no-activa-receta-de-cocina.yaml", "01-territorio-municipio-cubierto.yaml"},
-			concurrencia: 2,
+			concurrencia: ajustesDelTrabajo[otraSkillQueSondea].Concurrencia,
 		},
 		{
 			nombre:       "concurrencia-pedida",

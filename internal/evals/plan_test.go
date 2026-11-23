@@ -291,35 +291,20 @@ func probarLaPruebaDeRedEnDosModos(t *testing.T) {
 // (contracts/evals-legal-core.md §5 de H9; FR-050), con la de vigencia del ADR
 // 0042, 54, 54 y 6 y, desde H26.1, con la 11 y la 12, de modo, 22, 22 y 2
 // series y 66, 66 y 6 sesiones (research V10 de H26.1; FR-017, FR-018), y una
-// más en el modo orden con la prueba de red.
+// más en el modo orden con la prueba de red. Desde H45 (contracts/evals.md §2;
+// research D9; FR-022), lo esperado sale de las evals leídas con LeerConjunto
+// (seriesPorModoDe y gruposDe), sin series ni sesiones escritas.
 func probarElPlanDelRepositorio(t *testing.T) {
 	t.Parallel()
 
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
 
-	casos := []struct {
-		skill    string
-		series   map[Modo]int
-		sesiones map[Modo]int
-	}{
-		{
-			skill:    "normativa",
-			series:   map[Modo]int{ModoOrden: 36, ModoHerramienta: 36, "": 2},
-			sesiones: map[Modo]int{ModoOrden: 108, ModoHerramienta: 108, "": 6},
-		},
-		{
-			skill:    "plazos-y-territorio",
-			series:   map[Modo]int{ModoOrden: 22, ModoHerramienta: 22, "": 2},
-			sesiones: map[Modo]int{ModoOrden: 66, ModoHerramienta: 66, "": 6},
-		},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.skill, func(t *testing.T) {
+	for _, skill := range []string{"normativa", "plazos-y-territorio"} {
+		t.Run(skill, func(t *testing.T) {
 			t.Parallel()
 
-			conjunto, err := LeerConjunto(filepath.Join(directorioDeEvals, caso.skill))
+			conjunto, err := LeerConjunto(filepath.Join(directorioDeEvals, skill))
 			require.NoError(t, err)
 			require.Empty(t, conjunto.MalFormados)
 
@@ -332,24 +317,75 @@ func probarElPlanDelRepositorio(t *testing.T) {
 			}
 			require.NoError(t, plan.Comprobar())
 
+			esperadas := seriesPorModoDe(conjunto.Evals, len(delJob.ModelosInformativos))
+
+			sesiones := make(map[Modo]int, len(esperadas))
+			for modo, series := range esperadas {
+				sesiones[modo] = series * delJob.Repeticiones
+			}
+
 			series := map[Modo]int{}
 			for _, serie := range plan.Series() {
 				series[serie.Modo]++
 			}
 
-			assert.Equal(t, caso.series, series, "series por modo")
-			assert.Equal(t, caso.sesiones, sesionesPorModo(plan.Sesiones()), "sesiones por modo")
+			assert.Equal(t, esperadas, series, "series por modo")
+			assert.Equal(t, sesiones, sesionesPorModo(plan.Sesiones()), "sesiones por modo")
 
 			plan.PruebaDeRed = true
 
-			conLaDeRed := maps.Clone(caso.sesiones)
+			conLaDeRed := maps.Clone(sesiones)
 			conLaDeRed[ModoOrden]++
 
 			assert.Equal(t, conLaDeRed, sesionesPorModo(plan.Sesiones()), "sesiones por modo con la prueba de red")
-			assert.Equal(t, []Modo{ModoOrden, ModoHerramienta, ""}, slices.Compact(modosDe(plan.Sesiones())),
-				"tres tandas, en su orden")
+			assert.Equal(t, gruposDe(esperadas), slices.Compact(modosDe(plan.Sesiones())),
+				"una tanda por grupo, en su orden")
 		})
 	}
+}
+
+// seriesPorModoDe son las series que se esperan, por modo, del plan de esas
+// evals en los dos modos con tantos modelos informativos, calculadas sin el
+// plan para que una cuenta distinta en él salga en rojo
+// (contracts/evals-en-dos-modos.md §2.1 de H21; contracts/evals.md §2): en cada
+// modo de modosDeLaEval, una con el modelo que decide y, si la eval no es
+// informativa, una con cada modelo informativo. Un modo sin ninguna serie no
+// está.
+func seriesPorModoDe(evals []Eval, informativos int) map[Modo]int {
+	series := map[Modo]int{}
+
+	for _, eval := range evals {
+		porModo := 1
+		if !eval.Informativa {
+			porModo += informativos
+		}
+
+		for _, modo := range modosDeLaEval(eval) {
+			series[modo] += porModo
+		}
+	}
+
+	return series
+}
+
+// modosDeLaEval son los modos en los que el plan de los dos modos abre la eval:
+// el modo orden y el modo herramienta si es de modo, y ninguno si es sin
+// binario ni servidor.
+func modosDeLaEval(eval Eval) []Modo {
+	if eval.SinBinarioNiServidor {
+		return []Modo{""}
+	}
+
+	return []Modo{ModoOrden, ModoHerramienta}
+}
+
+// gruposDe son los grupos de sesiones que se esperan del plan de los dos modos,
+// en el orden en que se abren —el modo orden, el modo herramienta y las evals
+// sin binario ni servidor—, con solo los que tienen alguna serie.
+func gruposDe(seriesPorModo map[Modo]int) []Modo {
+	return slices.DeleteFunc([]Modo{ModoOrden, ModoHerramienta, ""}, func(modo Modo) bool {
+		return seriesPorModo[modo] == 0
+	})
 }
 
 // probarElPlanDelSondeo fija que un plan sin modos, el del sondeo, es el de hoy:

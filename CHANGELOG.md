@@ -46,6 +46,11 @@ sustituyen a este fichero.
   plazos calcular` ya no enumera los tipos ni los avisos: `tipo` y `avisos[].codigo` llevan el `pattern`
   `^[a-z0-9]+(-[a-z0-9]+)*$` y ningún `enum`. El cómputo civil de la LEC (arts. 130.2 y 133 LEC) está en el motor,
   pero no se pide todavía desde `kitlegal plazos`: ningún tipo de `data/plazos.yaml` cuenta con él.
+- **El trabajo de evals de `plazos-y-territorio` abre tres sesiones a la vez, y no dos** (H45; ADR 0062). Con cuatro
+  evals de modo más, como las que prepara H42, su peor caso a dos pasaría del tope de 352 minutos del trabajo, y a tres
+  cabe. Entre las cuatro skills son doce sesiones a la vez como mucho, y no once; el tope, los modelos y los demás
+  ajustes del trabajo no cambian. Doce a la vez pueden topar con el límite de la suscripción, que el cierre enseña como
+  fallo de la fuente.
 
 ### Corregido
 
