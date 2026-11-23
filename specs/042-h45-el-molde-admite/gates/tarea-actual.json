@@ -1,13 +1,14 @@
 {
-  "id": "T011",
-  "texto": "T011 [P] [US4] Los subtests de `TestEvalsDelRepositorio` sin listas (FR-016, FR-018; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección del paquete de las evals, la tercera): en `internal/evals/conjunto_test.go`, `precepto-de-la-cobertura` (`probarLosPreceptosDeLaCobertura`) toma las evals con `no_cubierto` de `LeerConjunto`, exige al menos una y que el precepto de cada una sea el de una fila de la cobertura del repositorio (`preceptosFueraDeLaCobertura`), y `conjunto-plazos-y-territorio` espera tantas evals como `*.yaml` del directorio y ninguna mal formada, sin «las doce». Las reglas del conjunto de `normativa`, en el código de producción del conjunto de evals, no se tocan. Ver en rojo su mutante de hoy (la 12 con el bloque `a999`) y `LeerConjunto` que pierde un fichero; en la copia con un paquete más, en verde; `make ci` en verde.",
+  "id": "T012",
+  "texto": "T012 [P] [US4] Los umbrales y el informe sin listas (FR-016; US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección del paquete de las evals, la tercera): en `internal/evals/informe_test.go`, `TestUmbralesDePlazosYTerritorio` deriva totales, nombres de eval y modelos de `LeerConjunto` sobre las evals de `plazos-y-territorio` por 3 repeticiones con los predicados de producción de cada clase (`esDePlazo`, `esDeCobertura`, `esDeVigencia`, `esperaUnaRedaccionFechada`, `comandosSinServir`) y los modelos por eval de modo; `TestUmbralesDeNormativa`, de `LeerConjunto` sobre las evals de `normativa` y el `ObjetivoDeDuracion` de la definición leída; `TestUmbralesDeLasSkills`, del conjunto de cada skill; y `TestInformeEnDosModos/plazos-y-territorio`, de las evals de `LeerConjunto` sin `SinBinarioNiServidor`, en su orden. Ver en rojo los mutantes de la tabla (`if r.conVigencia` quitado; `lectura_sin_intentar` que decide para todo modelo; `esperaUnaRedaccionFechada` cambiada; el umbral de duración fuera; `umbralesDelInforme` en otro orden; `fuera_de_lo_grabado` que decide; una serie en otro orden) y, en la copia con un paquete más, todos en verde; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "8b803ecc75390e604997e15caf0bbf06f7c1a740",
+  "base": "352265cad5c70544c53e41e68efdf205f0bb4575",
   "rutas": [
+    "TestInformeEnDosModos/plazos-y-territorio",
     "contracts/tests-sin-listas.md",
-    "internal/evals/conjunto_test.go"
+    "internal/evals/informe_test.go"
   ],
   "cierre": false,
   "converger": false,
