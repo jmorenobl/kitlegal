@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -659,7 +660,12 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 // referencia; y el frontmatter es el de su control con la description de la
 // variante producto-descripciones-cortas: fuera de las líneas de la clave, byte a
 // byte, y la description que lee skills.LeerFrontmatter, el texto de la variante,
-// que el test lee una vez (research D3 de H41.4).
+// que el test lee una vez (research D3 de H41.4). Una references/<v>.md del
+// producto que su base no tiene, con <v> un vertical de la tabla de normas del
+// repositorio, es la de un paquete y no se declara; la que su base tiene se
+// compara (FR-014 de H45; contracts/skills-y-laboratorio.md §3 de H45). El
+// subtest referencias-de-un-paquete lo pide sobre los ficheros leídos del
+// producto con uno añadido o cambiado en memoria (SC-009 de H45).
 func TestSkillsDelProductoDesdeControl(t *testing.T) {
 	t.Parallel()
 
@@ -671,13 +677,150 @@ func TestSkillsDelProductoDesdeControl(t *testing.T) {
 	variante, _, err := descripcionesCortas(raizDelRepositorio)
 	require.NoError(t, err)
 
+	normas, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	require.NoError(t, err, "la tabla de normas %s", tablaDeNormasDelRepositorio)
+
+	verticales := verticalesDeLasNormas(normas)
+
 	for _, skill := range slices.Sorted(maps.Keys(declaracionesDelProducto)) {
 		t.Run(skill, func(t *testing.T) {
 			t.Parallel()
 
-			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill], variante[skill])
+			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill], variante[skill],
+				verticales)
 		})
 	}
+
+	t.Run("referencias-de-un-paquete", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarLasReferenciasDeUnPaquete(t, repositorio, verticales)
+	})
+}
+
+// verticalDeLaBase y materiaInventada son los nombres de las referencias que el
+// subtest referencias-de-un-paquete añade en memoria a las de normativa: el
+// vertical de las normas de la base, que la de plazos-y-territorio ya tiene, y un
+// nombre que no es el de ningún vertical (contracts/skills-y-laboratorio.md §3 de
+// H45).
+const (
+	verticalDeLaBase = "administrativo"
+	materiaInventada = "materia-inventada"
+)
+
+// referenciaAnadidaEnMemoria es el contenido de la referencia, escrita a mano,
+// que el subtest referencias-de-un-paquete añade en memoria a las de normativa.
+const referenciaAnadidaEnMemoria = "# Lo administrativo\n\nEl paquete de lo administrativo en `normativa`, " +
+	"añadido en memoria por el test.\n"
+
+// comprobarLasReferenciasDeUnPaquete pide las diferencias de las skills del
+// producto, leídas de ese árbol, con un fichero añadido o cambiado en memoria
+// (SC-009 de H45; US6.1 a US6.3 de H45): la administrativo.md de las
+// referencias de normativa, que su control no tiene, no da ninguna; la misma como
+// materia-inventada.md, una, «sobra»; y un byte cambiado fuera de las regiones
+// de la administrativo.md de plazos-y-territorio, que su base tiene, una,
+// «difiere».
+func comprobarLasReferenciasDeUnPaquete(t *testing.T, repositorio fs.FS, verticales []string) {
+	t.Helper()
+
+	require.Contains(t, verticales, verticalDeLaBase, "%s es un vertical de %s", verticalDeLaBase,
+		tablaDeNormasDelRepositorio)
+	require.NotContains(t, verticales, materiaInventada, "%s no es un vertical de %s", materiaInventada,
+		tablaDeNormasDelRepositorio)
+
+	t.Run("de-un-vertical-que-la-base-no-tiene", func(t *testing.T) {
+		t.Parallel()
+
+		diferencias := diferenciasConUnaReferenciaAnadida(t, repositorio, skillDeNormativa, verticalDeLaBase,
+			verticales)
+
+		assert.Empty(t, diferencias, "una referencia de un paquete que la base no tiene no se declara")
+	})
+
+	t.Run("de-una-materia-que-no-es-un-vertical", func(t *testing.T) {
+		t.Parallel()
+
+		diferencias := diferenciasConUnaReferenciaAnadida(t, repositorio, skillDeNormativa, materiaInventada,
+			verticales)
+
+		require.Len(t, diferencias, 1, "una referencia que no es de un vertical se declara")
+		assert.Equal(t, sobraElFichero, diferencias[0].motivo)
+		assert.Equal(t, path.Join(directorioDeLasReferencias, materiaInventada+extensionDeUnaReferencia),
+			diferencias[0].relativa)
+	})
+
+	t.Run("un-byte-en-una-de-un-vertical-que-la-base-tiene", func(t *testing.T) {
+		t.Parallel()
+
+		declarada := declaracionesDelProducto[skillDeLaFamiliaDePlazos]
+		leidos := leerLaSkillDelProducto(t, repositorio, skillDeLaFamiliaDePlazos, declarada)
+		relativa := path.Join(directorioDeLasReferencias, verticalDeLaBase+extensionDeUnaReferencia)
+
+		require.Contains(t, leidos.deLaBase, relativa, "la base de %s, %s, tiene %s", skillDeLaFamiliaDePlazos,
+			leidos.laBase, relativa)
+		require.NotEmpty(t, leidos.delProducto[relativa], "%s/%s", skillDeLaFamiliaDePlazos, relativa)
+
+		// El byte cambiado es el primero: su línea no abre una región, y queda
+		// fuera de lo que reduce sinLoGenerado.
+		primeraLinea, _, _ := strings.Cut(string(leidos.delProducto[relativa]), "\n")
+		_, abre := finDeUnaRegionDeUnaReferencia(primeraLinea)
+		require.False(t, abre, "la primera línea de %s/%s no abre una región", skillDeLaFamiliaDePlazos, relativa)
+
+		leidos.delProducto = maps.Clone(leidos.delProducto)
+		leidos.delProducto[relativa] = conOtroPrimerByte(leidos.delProducto[relativa])
+
+		diferencias := diferenciasDelProducto(t, skillDeLaFamiliaDePlazos, leidos, declarada, verticales)
+
+		require.Len(t, diferencias, 1, "una referencia de un paquete que la base tiene se compara")
+		assert.Equal(t, difiereElFichero, diferencias[0].motivo)
+		assert.Equal(t, relativa, diferencias[0].relativa)
+	})
+}
+
+// diferenciasConUnaReferenciaAnadida son las diferencias de skills/<skill>,
+// leída de ese árbol, con references/<nombre>.md añadida en memoria con
+// referenciaAnadidaEnMemoria. Su base no la tiene.
+func diferenciasConUnaReferenciaAnadida(t *testing.T, repositorio fs.FS, skill, nombre string,
+	verticales []string,
+) []diferenciaDeUnFichero {
+	t.Helper()
+
+	declarada := declaracionesDelProducto[skill]
+	leidos := leerLaSkillDelProducto(t, repositorio, skill, declarada)
+	relativa := path.Join(directorioDeLasReferencias, nombre+extensionDeUnaReferencia)
+
+	require.NotContains(t, leidos.deLaBase, relativa, "la base de %s, %s, no tiene %s", skill, leidos.laBase,
+		relativa)
+
+	leidos.delProducto = maps.Clone(leidos.delProducto)
+	leidos.delProducto[relativa] = []byte(referenciaAnadidaEnMemoria)
+
+	return diferenciasDelProducto(t, skill, leidos, declarada, verticales)
+}
+
+// conOtroPrimerByte es una copia del contenido, que no está vacío, con su primer
+// byte cambiado por otro: el mismo con su bit más bajo invertido.
+func conOtroPrimerByte(contenido []byte) []byte {
+	cambiado := slices.Clone(contenido)
+	cambiado[0] ^= 1
+
+	return cambiado
+}
+
+// verticalesDeLasNormas son los valores distintos de vertical de las normas, en
+// orden alfabético: los paquetes de la tabla.
+func verticalesDeLasNormas(normas []skills.Norma) []string {
+	var verticales []string
+
+	for _, norma := range normas {
+		if norma.Vertical != "" {
+			verticales = append(verticales, norma.Vertical)
+		}
+	}
+
+	slices.Sort(verticales)
+
+	return slices.Compact(verticales)
 }
 
 // comprobarElProductoDesdeControl comprueba skills/<skill> contra su base y su
@@ -686,41 +829,22 @@ func TestSkillsDelProductoDesdeControl(t *testing.T) {
 // contracts/controles.md §1.2 de H41.1 y §3.1 de H41.4): el SKILL.md de los dos,
 // sin las líneas de la clave description, y la description de skills/<skill>,
 // el texto de la variante. Los mensajes nombran la base: «su control», o el
-// nombre de la variante desde (research D5 de H41.1).
+// nombre de la variante desde (research D5 de H41.1). Una referencia de un
+// paquete, de uno de los verticales, que la base no tiene no se declara (FR-014
+// de H45).
 func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill string,
-	declarada declaracionDelProducto, deLaVariante string,
+	declarada declaracionDelProducto, deLaVariante string, verticales []string,
 ) {
 	t.Helper()
 
 	producto := path.Join(directorioDeLasSkills, skill)
-
-	deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skill))
-	require.NoError(t, err)
-
-	deLaBase, laBase := deControl, "su control"
-	if declarada.desde != "" {
-		laBase = declarada.desde
-
-		deLaBase, err = leerLosFicheros(repositorio, familiaDelProducto(t, skill).directorioDeLaSkill(laBase))
-		require.NoError(t, err, "la base de %s, %s", skill, laBase)
-	}
-
-	delProducto, err := leerLosFicheros(repositorio, producto)
-	require.NoError(t, err)
+	leidos := leerLaSkillDelProducto(t, repositorio, skill, declarada)
+	deLaBase, delProducto, laBase := leidos.deLaBase, leidos.delProducto, leidos.laBase
 
 	t.Run("desde control", func(t *testing.T) {
 		t.Parallel()
 
-		baseSinLoGenerado, err := sinLoGenerado(deLaBase)
-		require.NoError(t, err, "la base de %s, %s", skill, laBase)
-
-		esperados, err := conLaDeclaracion(baseSinLoGenerado, declarada)
-		require.NoError(t, err, "la declaración de %s", skill)
-
-		obtenidos, err := sinLoGenerado(delProducto)
-		require.NoError(t, err, "%s", producto)
-
-		compararLosFicheros(t, sinLasLineasDeLaDescripcion(esperados), sinLasLineasDeLaDescripcion(obtenidos), producto,
+		compararLosFicheros(t, diferenciasDelProducto(t, skill, leidos, declarada, verticales), producto,
 			"lo que dan "+laBase+" y su declaración")
 		exigirLaDescripcionDeLaVariante(t, delProducto, skill, deLaVariante)
 	})
@@ -749,7 +873,7 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 	t.Run("frontmatter", func(t *testing.T) {
 		t.Parallel()
 
-		deLaSkillDeControl, _, err := frontmatterYCuerpo(string(deControl[ficheroDeLaSkill]))
+		deLaSkillDeControl, _, err := frontmatterYCuerpo(string(leidos.deControl[ficheroDeLaSkill]))
 		require.NoError(t, err, "el SKILL.md de control de %s", skill)
 
 		deLaSkillDelProducto, _, err := frontmatterYCuerpo(string(delProducto[ficheroDeLaSkill]))
@@ -762,6 +886,63 @@ func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill stri
 			"el frontmatter de %s/%s es el de su control", producto, ficheroDeLaSkill)
 		exigirLaDescripcionDeLaVariante(t, delProducto, skill, deLaVariante)
 	})
+}
+
+// ficherosDeUnaSkillDelProducto son los ficheros, por su ruta relativa a la
+// skill, de una skill del producto, de su control y de su base —la variante
+// desde de su declaración, o su control si no la lleva—, y el nombre de la base
+// en los mensajes: «su control», o el de la variante desde (research D5 de
+// H41.1).
+type ficherosDeUnaSkillDelProducto struct {
+	deControl, deLaBase, delProducto map[string][]byte
+	laBase                           string
+}
+
+// leerLaSkillDelProducto lee de ese árbol los ficheros de skills/<skill>, los
+// de su control y los de la base de su declaración.
+func leerLaSkillDelProducto(t *testing.T, repositorio fs.FS, skill string,
+	declarada declaracionDelProducto,
+) ficherosDeUnaSkillDelProducto {
+	t.Helper()
+
+	deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skill))
+	require.NoError(t, err)
+
+	leidos := ficherosDeUnaSkillDelProducto{deControl: deControl, deLaBase: deControl, laBase: "su control"}
+
+	if declarada.desde != "" {
+		leidos.laBase = declarada.desde
+
+		leidos.deLaBase, err = leerLosFicheros(repositorio, familiaDelProducto(t, skill).directorioDeLaSkill(leidos.laBase))
+		require.NoError(t, err, "la base de %s, %s", skill, leidos.laBase)
+	}
+
+	leidos.delProducto, err = leerLosFicheros(repositorio, path.Join(directorioDeLasSkills, skill))
+	require.NoError(t, err)
+
+	return leidos
+}
+
+// diferenciasDelProducto son las diferencias de diferenciasDeLosFicheros entre
+// lo que dan la base de la skill y su declaración, sin lo generado, y los
+// ficheros del producto sin lo generado, con el SKILL.md de los dos sin las
+// líneas de la clave description: las que ve el subtest «desde control».
+func diferenciasDelProducto(t *testing.T, skill string, leidos ficherosDeUnaSkillDelProducto,
+	declarada declaracionDelProducto, verticales []string,
+) []diferenciaDeUnFichero {
+	t.Helper()
+
+	baseSinLoGenerado, err := sinLoGenerado(leidos.deLaBase)
+	require.NoError(t, err, "la base de %s, %s", skill, leidos.laBase)
+
+	esperados, err := conLaDeclaracion(baseSinLoGenerado, declarada)
+	require.NoError(t, err, "la declaración de %s", skill)
+
+	obtenidos, err := sinLoGenerado(leidos.delProducto)
+	require.NoError(t, err, "%s", path.Join(directorioDeLasSkills, skill))
+
+	return diferenciasDeLosFicheros(sinLasLineasDeLaDescripcion(esperados), sinLasLineasDeLaDescripcion(obtenidos),
+		leidos.deLaBase, verticales)
 }
 
 // sinLasLineasDeLaDescripcion son los ficheros de una skill con su SKILL.md sin
@@ -980,31 +1161,100 @@ func conLaDeclaracion(base map[string][]byte, declarada declaracionDelProducto) 
 	return esperados, nil
 }
 
-// compararLosFicheros exige que los ficheros obtenidos de ese directorio sean,
-// ruta a ruta y byte a byte, los esperados, que son lo que dice queEs; falla con
-// la ruta del primero, en orden de ruta, que difiere, falta o sobra.
-func compararLosFicheros(t *testing.T, esperados, obtenidos map[string][]byte, directorio, queEs string) {
-	t.Helper()
+// extensionDeUnaReferencia es la de los ficheros de las referencias de una
+// skill: la referencia de un paquete es references/<vertical>.md.
+const extensionDeUnaReferencia = ".md"
 
+// Los motivos de una diferenciaDeUnFichero.
+const (
+	faltaElFichero   = "falta"
+	sobraElFichero   = "sobra"
+	difiereElFichero = "difiere"
+)
+
+// diferenciaDeUnFichero es una ruta, relativa a la skill, en que los ficheros
+// obtenidos no son los esperados, con su motivo —«falta», si solo está en los
+// esperados; «sobra», si solo está en los obtenidos; «difiere», si los dos la
+// tienen con bytes distintos— y los bytes de los que la tienen.
+type diferenciaDeUnFichero struct {
+	relativa, motivo   string
+	esperado, obtenido []byte
+}
+
+// String es la ruta de la diferencia con su motivo, la forma en que la nombran
+// los mensajes de testify.
+func (d diferenciaDeUnFichero) String() string {
+	return d.relativa + ": " + d.motivo
+}
+
+// diferenciasDeLosFicheros son, en orden de ruta, las rutas en que los ficheros
+// obtenidos no son, ruta a ruta y byte a byte, los esperados. No da «sobra» para
+// la referencia de un paquete que la base no tiene: references/<v>.md, con <v>
+// uno de los verticales, que no está entre los ficheros deLaBase, los de la base
+// leídos enteros, con lo generado (FR-014 de H45;
+// contracts/skills-y-laboratorio.md §3 de H45). La que la base tiene se compara.
+func diferenciasDeLosFicheros(esperados, obtenidos, deLaBase map[string][]byte,
+	verticales []string,
+) []diferenciaDeUnFichero {
 	rutas := slices.Concat(slices.Collect(maps.Keys(esperados)), slices.Collect(maps.Keys(obtenidos)))
 	slices.Sort(rutas)
+
+	var diferencias []diferenciaDeUnFichero
 
 	for _, relativa := range slices.Compact(rutas) {
 		esperado, loEspera := esperados[relativa]
 		obtenido, loTiene := obtenidos[relativa]
-		ruta := path.Join(directorio, relativa)
+		diferencia := diferenciaDeUnFichero{relativa: relativa, esperado: esperado, obtenido: obtenido}
 
 		switch {
 		case !loTiene:
-			assert.Fail(t, "falta", "%s falta: está en %s", ruta, queEs)
-
-			return
+			diferencia.motivo = faltaElFichero
+		case !loEspera && esDeUnPaqueteQueLaBaseNoTiene(relativa, deLaBase, verticales):
+			continue
 		case !loEspera:
-			assert.Fail(t, "sobra", "%s sobra: no está en %s", ruta, queEs)
+			diferencia.motivo = sobraElFichero
+		case !bytes.Equal(esperado, obtenido):
+			diferencia.motivo = difiereElFichero
+		default:
+			continue
+		}
 
-			return
-		case !assert.Equal(t, string(esperado), string(obtenido), "%s difiere de %s", ruta, queEs):
-			return
+		diferencias = append(diferencias, diferencia)
+	}
+
+	return diferencias
+}
+
+// esDeUnPaqueteQueLaBaseNoTiene dice si la ruta, relativa a la skill, es la
+// referencia de un paquete que la base no tiene: references/<v>.md, con <v> uno
+// de los verticales, que no está entre los ficheros deLaBase.
+func esDeUnPaqueteQueLaBaseNoTiene(relativa string, deLaBase map[string][]byte, verticales []string) bool {
+	if _, laTiene := deLaBase[relativa]; laTiene {
+		return false
+	}
+
+	nombre, esUnaReferencia := strings.CutPrefix(relativa, directorioDeLasReferencias+"/")
+	vertical, esMarkdown := strings.CutSuffix(nombre, extensionDeUnaReferencia)
+
+	return esUnaReferencia && esMarkdown && slices.Contains(verticales, vertical)
+}
+
+// compararLosFicheros pasa a assert cada una de las diferencias de los ficheros
+// de ese directorio con los esperados, que son lo que dice queEs: falla con cada
+// ruta, en su orden, que falta, sobra o difiere.
+func compararLosFicheros(t *testing.T, diferencias []diferenciaDeUnFichero, directorio, queEs string) {
+	t.Helper()
+
+	for _, diferencia := range diferencias {
+		ruta := path.Join(directorio, diferencia.relativa)
+
+		switch diferencia.motivo {
+		case faltaElFichero:
+			assert.Fail(t, faltaElFichero, "%s falta: está en %s", ruta, queEs)
+		case sobraElFichero:
+			assert.Fail(t, sobraElFichero, "%s sobra: no está en %s", ruta, queEs)
+		case difiereElFichero:
+			assert.Equal(t, string(diferencia.esperado), string(diferencia.obtenido), "%s difiere de %s", ruta, queEs)
 		}
 	}
 }

@@ -1,20 +1,17 @@
 {
-  "id": "T008",
-  "texto": "T008 [P] [US8] El tope del trabajo de evals (FR-021, FR-022, FR-016, FR-024; US8.1-US8.3; SC-006; contracts/evals.md §2; research D9): en `.github/workflows/evals.yml`, `concurrencia: 3` para `plazos-y-territorio` y su comentario con la cuenta a tres y «doce sesiones entre los cuatro», sin tocar el tope de 352 min, los modelos ni los demás ajustes; en `internal/evals/definicion_test.go`, `sesionesALaVezComoMucho = 12` con su comentario, `ajustesDelTrabajo[\"plazos-y-territorio\"]` con `Concurrencia: 3` y la definición sintética del contrato con la del repositorio, `probarElPeorCasoDelTrabajo` con lo esperado derivado de `LeerConjunto` sobre el directorio de evals de cada skill (series por modo con el modelo que decide y los informativos, por repeticiones, más la sesión de la prueba de red en `orden`, y la concurrencia de la definición leída) y cada trabajo dentro de su tope, sin `[]int{67, 66, 6}`, `20725 * time.Second` ni sus textos; un subtest `cuatro-evals-mas` con el directorio de evals del repositorio copiado a `t.TempDir()` y cuatro copias de más de una eval de modo de `plazos-y-territorio`, que exige que su peor caso quepa en 352 min con la definición del repositorio y no quepa con `plazos-y-territorio` a dos; y `tope-con-las-evals-del-repositorio` con sus líneas calculadas desde el peor caso de la definición que monta; en `internal/evals/plan_test.go`, `probarElPlanDelRepositorio` con las series y sesiones por modo derivadas de `LeerConjunto`; y en `internal/evals/sondeo_test.go`, los casos `concurrencia-del-job-en-normativa` y `concurrencia-del-job-en-plazos-y-territorio` de `TestComprobarElSondeo`, que leen la concurrencia de la definición del repositorio, esperan la de `ajustesDelTrabajo` para su skill en lugar de `5` y `2` escritos (el segundo cae con la concurrencia nueva: intento 1, `gates/tarea-T008.md`). En `CHANGELOG.md`, *Unreleased* «Cambiado», la concurrencia nueva del trabajo de evals de `plazos-y-territorio`. Ver en rojo `plazos-y-territorio` a dos y una sesión más a la vez (13); comprobar en la copia con un paquete más que los dos tests siguen en verde; `make ci` en verde.",
-  "intento": 2,
+  "id": "T009",
+  "texto": "T009 [P] [US6] El laboratorio sin las referencias de un paquete (FR-014, FR-016, FR-008; US6.1-US6.3; SC-001, SC-009; contracts/skills-y-laboratorio.md §3; research D7): en `internal/evals/laboratorio_familias_test.go`, la comparación pasa a `diferenciasDeLosFicheros`, que devuelve las diferencias y que `compararLosFicheros` pasa a `assert`, y no da «sobra» para la referencia `<v>.md` de una skill del producto si `<v>` es un `vertical` de la tabla de normas del repositorio (leída con `skills.LeerNormas` de `tablaDeNormasDelRepositorio`) y la base (la variante `desde` o el control) no tiene ese fichero; si la base lo tiene, se compara como hoy. Subtest nuevo `referencias-de-un-paquete` sobre los ficheros leídos del producto con un fichero añadido o cambiado en memoria: la `administrativo.md` de las referencias de `normativa` → 0 diferencias; la misma como `materia-inventada.md` → 1, «sobra»; un byte cambiado fuera de las regiones de la `administrativo.md` de las referencias de `plazos-y-territorio` → 1. Comprobar en la copia con un paquete más que `TestSkillsDelProductoDesdeControl` sigue en verde; ver en rojo los dos mutantes de US6.2 y US6.3 y un byte no declarado en una skill del producto (SC-001); `make ci` en verde.",
+  "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "fd606554b80382a233123862a7e45d23071e1830",
+  "base": "24b9cf8c6e49531cc8d51ba05ce2b0faaa904a6e",
   "rutas": [
-    ".github/workflows/evals.yml",
-    "CHANGELOG.md",
-    "contracts/evals.md",
-    "gates/tarea-T008.md",
-    "internal/evals/definicion_test.go",
-    "internal/evals/plan_test.go",
-    "internal/evals/sondeo_test.go"
+    "administrativo.md",
+    "contracts/skills-y-laboratorio.md",
+    "internal/evals/laboratorio_familias_test.go",
+    "materia-inventada.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "c509b1a2e6618ff78870da3dee534e1169803f88b0192a21a7b5f31355bc7e83"
+  "nota": "-"
 }
