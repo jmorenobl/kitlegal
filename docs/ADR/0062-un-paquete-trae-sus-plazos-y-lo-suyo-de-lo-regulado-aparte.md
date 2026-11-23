@@ -90,7 +90,12 @@ Para el sitio del cuerpo había dos caminos:
    cambiar su forma. El cuerpo de cada skill de capacidad, con sus paquetes y con la vertical de ensayo, queda bajo
    las 11 000 del ADR 0046: es lo que comprueba `TestVerticalDeEnsayo`. Con unos 70 caracteres por paquete y al menos
    100 de margen, `normativa` admite un paquete real más. En H45, `normativa` hace sitio moviendo a una de
-   sus referencias texto que no es una orden ni una línea `⚠`, y lo dice su declaración en el laboratorio de H41.
+   sus referencias texto que no es una orden de Bash ni una línea `⚠`: la forma para PowerShell 5.1 de la orden de
+   lectura del paso 2, que va a `references/con_herramientas.md`, y lo dice su declaración en el laboratorio de H41.
+   Para eso, el control `ordenes-para-powershell` admite que la forma para PowerShell de una orden del `SKILL.md` esté
+   en una referencia a mano de la skill (las de una referencia la siguen llevando detrás, en su fichero). Y el
+   laboratorio de H41 deja de exigir en su declaración las `references/<vertical>.md` de un paquete que su base no
+   tiene: un paquete entra con datos y su referencia, sin cambiar el laboratorio.
 
 4. **Las grabaciones de un hito se suman solas.** `UnionDeGrabaciones` junta las de H4, H5 y H9 y, sin una constante
    por hito, la carpeta `boe.legislacion-consolidada/` de cada `evidencias/<hito>/` que tiene `manifiesto.json` y esa
