@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -402,7 +403,9 @@ func nombresDeLasElegidas(eleccion eleccionDeLaPropuesta) []string {
 // los corre igual (FR-017); y la suite completa (FR-018). La matriz de cada una,
 // tras una línea con su nombre, dice lo que mide —con su motivo— y lo que
 // reutiliza el trabajo de cada skill; todas juntas, en ese orden, se comparan
-// con goldenDeLaMatriz, y el test sale en rojo con un byte de diferencia.
+// con goldenDeLaMatriz, la forma literal de cada sección con los ficheros de las
+// evals del repositorio (FR-016 de H45), y el test sale en rojo con un byte de
+// diferencia.
 func TestMatrizDeLasPropuestas(t *testing.T) {
 	t.Parallel()
 
@@ -435,7 +438,7 @@ func TestMatrizDeLasPropuestas(t *testing.T) {
 		matrices.WriteString(matrizDeLaEjecucion(repositorio.trabajosDelCaso(t, caso)))
 	}
 
-	assert.Equal(t, goldenDeLaMatriz, matrices.String(), "la matriz de cada ejecución, byte a byte")
+	assert.Equal(t, goldenDeLaMatriz(t, repositorio.evals), matrices.String(), "la matriz de cada ejecución, byte a byte")
 }
 
 // trabajosDelCaso son los trabajos de evals que corre la ejecución del caso,
@@ -805,604 +808,177 @@ func conUnConjuntoIncalculable(calculo calculoDeLaEleccion) calculoDeLaEleccion 
 	return calculo
 }
 
+// reutilizadaDeMain es lo que dice la matriz de una eval reutilizada: la
+// procedencia de la medida de main sintética de TestDecisionDelJob.
+const reutilizadaDeMain = "reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)"
+
+// seccionDeLaMatriz es la forma de una sección de goldenDeLaMatriz: el nombre
+// de su ejecución y la forma de cada trabajo, en orden de skill; sin trabajos,
+// la ejecución no corre ninguno.
+type seccionDeLaMatriz struct {
+	nombre   string
+	trabajos []formaDelTrabajo
+}
+
+// formaDelTrabajo es la forma de la matriz de un trabajo de evals: su skill, lo
+// que dice de cada eval tras el nombre de su fichero —medida con su motivo o
+// reutilizada con su procedencia— y, por fichero, lo de las que dicen otra
+// cosa.
+type formaDelTrabajo struct {
+	skill     string
+	cadaEval  string
+	distintas map[string]string
+}
+
+// porSkill es la forma de los cuatro trabajos de una sección, en orden de
+// skill, con lo que dice de cada eval el de cada una.
+func porSkill(consultaJuridica, jurisprudencia, normativa, plazosYTerritorio string) []formaDelTrabajo {
+	return []formaDelTrabajo{
+		{skill: "consulta-juridica", cadaEval: consultaJuridica},
+		{skill: "jurisprudencia", cadaEval: jurisprudencia},
+		{skill: "normativa", cadaEval: normativa},
+		{skill: "plazos-y-territorio", cadaEval: plazosYTerritorio},
+	}
+}
+
+// enLasCuatro es la forma de los cuatro trabajos de una sección que dicen lo
+// mismo de cada eval.
+func enLasCuatro(cadaEval string) []formaDelTrabajo {
+	return porSkill(cadaEval, cadaEval, cadaEval, cadaEval)
+}
+
+// seccionesDeLaMatriz es la forma de cada sección de goldenDeLaMatriz, en el
+// orden de las ejecuciones de TestMatrizDeLasPropuestas: las rutas de los
+// motivos son las que cambian los mutantes de mutantesDeLaEleccion, y la
+// procedencia de cada reutilizada, reutilizadaDeMain.
+var seccionesDeLaMatriz = []seccionDeLaMatriz{
+	{
+		nombre: "referencia-de-plazos-y-territorio",
+		trabajos: porSkill(
+			"medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)",
+			reutilizadaDeMain,
+			reutilizadaDeMain,
+			"medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)",
+		),
+	},
+	{
+		nombre: "cuerpo-de-normativa",
+		trabajos: porSkill(
+			"medida: rutas de su conjunto (skills/normativa/SKILL.md)",
+			reutilizadaDeMain,
+			"medida: rutas de su conjunto (skills/normativa/SKILL.md)",
+			"medida: rutas de su conjunto (skills/normativa/SKILL.md)",
+		),
+	},
+	{
+		nombre: "cuerpo-de-jurisprudencia",
+		trabajos: porSkill(
+			"medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)",
+			"medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)",
+			reutilizadaDeMain,
+			reutilizadaDeMain,
+		),
+	},
+	{nombre: "internal-cli", trabajos: enLasCuatro("medida: común (internal/cli/describe.go)")},
+	{nombre: "sqlite-en-go-mod", trabajos: enLasCuatro("medida: común (go.mod)")},
+	{
+		nombre:   "descripcion-de-plazos-y-territorio",
+		trabajos: enLasCuatro("medida: descripción (skills/plazos-y-territorio/SKILL.md)"),
+	},
+	{nombre: "paquete-sin-asignar", trabajos: enLasCuatro("medida: sin asignar (internal/sinasignar/sinasignar.go)")},
+	{nombre: "solo-docs"},
+	{
+		nombre: "una-eval",
+		trabajos: []formaDelTrabajo{
+			{skill: "consulta-juridica", cadaEval: reutilizadaDeMain},
+			{
+				skill: "jurisprudencia", cadaEval: reutilizadaDeMain,
+				distintas: map[string]string{
+					"03-por-materia.yaml": "medida: rutas de su conjunto (evals/jurisprudencia/03-por-materia.yaml)",
+				},
+			},
+			{skill: "normativa", cadaEval: reutilizadaDeMain},
+			{skill: "plazos-y-territorio", cadaEval: reutilizadaDeMain},
+		},
+	},
+	{
+		nombre: "referencia-renombrada",
+		trabajos: porSkill(
+			"medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, "+
+				"skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)",
+			reutilizadaDeMain,
+			reutilizadaDeMain,
+			"medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, "+
+				"skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)",
+		),
+	},
+	{nombre: "etiqueta-evals-sin-nada-elegido", trabajos: enLasCuatro(reutilizadaDeMain)},
+	{nombre: "suite-completa", trabajos: enLasCuatro("medida: suite completa")},
+}
+
 // goldenDeLaMatriz es la matriz de cada ejecución de TestMatrizDeLasPropuestas,
-// en su orden, tras una línea con su nombre (FR-019; SC-004): las rutas de los
-// mutantes son las que elige mutantesDeLaEleccion, y la procedencia de cada
-// reutilizada, la de la medida de main sintética de TestDecisionDelJob.
-const goldenDeLaMatriz = `## referencia-de-plazos-y-territorio
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-evals (jurisprudencia): medidas 0, reutilizadas 10
-  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (normativa): medidas 0, reutilizadas 23
-  01-lpac-articulo-21.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-lcsp-contrato-menor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-lrbrl-atribuciones-del-pleno.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-lgt-prescripcion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-trlrhl-impuestos-municipales.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-irpf-rendimientos-del-trabajo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-lrjsp-principio-de-legalidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-ltaibg-plazo-de-resolucion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-constitucion-articulo-140.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-et-vacaciones.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-no-activa-programacion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-no-activa-acuerdo-entre-amigos.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  13-lrbrl-atribuciones-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  14-trlrhl-impuestos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  15-irpf-rendimientos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  16-lrjsp-legalidad-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  17-ltaibg-plazo-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  18-lrjpac-norma-derogada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  21-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
-## cuerpo-de-normativa
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-evals (jurisprudencia): medidas 0, reutilizadas 10
-  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  02-lcsp-contrato-menor.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  04-lgt-prescripcion.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  05-trlrhl-impuestos-municipales.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  06-irpf-rendimientos-del-trabajo.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  07-lrjsp-principio-de-legalidad.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  08-ltaibg-plazo-de-resolucion.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  09-constitucion-articulo-140.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  10-et-vacaciones.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  11-no-activa-programacion.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  13-lrbrl-atribuciones-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  14-trlrhl-impuestos-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  15-irpf-rendimientos-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  16-lrjsp-legalidad-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  17-ltaibg-plazo-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  18-lrjpac-norma-derogada.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  21-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  22-lcsp-contrato-menor-en-2019.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  23-lpac-articulo-21-en-2016.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-## cuerpo-de-jurisprudencia
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  02-resumen-sin-documento.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  03-por-materia.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  04-documento-pegado.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  05-tribunal-constitucional.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  06-documento-que-no-es-el-pedido.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  07-resumen-de-una-conocida.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  08-doctrina-con-el-fallo-delante.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-  10-doctrina-dada-por-hecha.yaml: medida: rutas de su conjunto (skills/jurisprudencia/SKILL.md)
-evals (normativa): medidas 0, reutilizadas 23
-  01-lpac-articulo-21.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-lcsp-contrato-menor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-lrbrl-atribuciones-del-pleno.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-lgt-prescripcion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-trlrhl-impuestos-municipales.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-irpf-rendimientos-del-trabajo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-lrjsp-principio-de-legalidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-ltaibg-plazo-de-resolucion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-constitucion-articulo-140.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-et-vacaciones.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-no-activa-programacion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-no-activa-acuerdo-entre-amigos.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  13-lrbrl-atribuciones-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  14-trlrhl-impuestos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  15-irpf-rendimientos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  16-lrjsp-legalidad-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  17-ltaibg-plazo-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  18-lrjpac-norma-derogada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  21-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (plazos-y-territorio): medidas 0, reutilizadas 12
-  01-territorio-municipio-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-territorio-municipio-no-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-no-activa-receta-de-cocina.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-plazo-reposicion-leganes.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-plazo-reposicion-tordesillas.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-cobertura-liquidacion-tributaria.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-cobertura-multa-de-trafico.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-plazo-contencioso-agosto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-## internal-cli
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: común (internal/cli/describe.go)
-  02-una-sola-capacidad.yaml: medida: común (internal/cli/describe.go)
-  03-seguro-prorroga.yaml: medida: común (internal/cli/describe.go)
-  04-despido-plazo.yaml: medida: común (internal/cli/describe.go)
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: común (internal/cli/describe.go)
-  02-resumen-sin-documento.yaml: medida: común (internal/cli/describe.go)
-  03-por-materia.yaml: medida: común (internal/cli/describe.go)
-  04-documento-pegado.yaml: medida: común (internal/cli/describe.go)
-  05-tribunal-constitucional.yaml: medida: común (internal/cli/describe.go)
-  06-documento-que-no-es-el-pedido.yaml: medida: común (internal/cli/describe.go)
-  07-resumen-de-una-conocida.yaml: medida: común (internal/cli/describe.go)
-  08-doctrina-con-el-fallo-delante.yaml: medida: común (internal/cli/describe.go)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: común (internal/cli/describe.go)
-  10-doctrina-dada-por-hecha.yaml: medida: común (internal/cli/describe.go)
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: común (internal/cli/describe.go)
-  02-lcsp-contrato-menor.yaml: medida: común (internal/cli/describe.go)
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: común (internal/cli/describe.go)
-  04-lgt-prescripcion.yaml: medida: común (internal/cli/describe.go)
-  05-trlrhl-impuestos-municipales.yaml: medida: común (internal/cli/describe.go)
-  06-irpf-rendimientos-del-trabajo.yaml: medida: común (internal/cli/describe.go)
-  07-lrjsp-principio-de-legalidad.yaml: medida: común (internal/cli/describe.go)
-  08-ltaibg-plazo-de-resolucion.yaml: medida: común (internal/cli/describe.go)
-  09-constitucion-articulo-140.yaml: medida: común (internal/cli/describe.go)
-  10-et-vacaciones.yaml: medida: común (internal/cli/describe.go)
-  11-no-activa-programacion.yaml: medida: común (internal/cli/describe.go)
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: común (internal/cli/describe.go)
-  13-lrbrl-atribuciones-por-materia.yaml: medida: común (internal/cli/describe.go)
-  14-trlrhl-impuestos-por-materia.yaml: medida: común (internal/cli/describe.go)
-  15-irpf-rendimientos-por-materia.yaml: medida: común (internal/cli/describe.go)
-  16-lrjsp-legalidad-por-materia.yaml: medida: común (internal/cli/describe.go)
-  17-ltaibg-plazo-por-materia.yaml: medida: común (internal/cli/describe.go)
-  18-lrjpac-norma-derogada.yaml: medida: común (internal/cli/describe.go)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: común (internal/cli/describe.go)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: común (internal/cli/describe.go)
-  21-sin-binario-ni-servidor.yaml: medida: común (internal/cli/describe.go)
-  22-lcsp-contrato-menor-en-2019.yaml: medida: común (internal/cli/describe.go)
-  23-lpac-articulo-21-en-2016.yaml: medida: común (internal/cli/describe.go)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: común (internal/cli/describe.go)
-  02-territorio-municipio-no-cubierto.yaml: medida: común (internal/cli/describe.go)
-  03-no-activa-receta-de-cocina.yaml: medida: común (internal/cli/describe.go)
-  04-sin-binario-ni-servidor.yaml: medida: común (internal/cli/describe.go)
-  05-plazo-reposicion-leganes.yaml: medida: común (internal/cli/describe.go)
-  06-plazo-reposicion-tordesillas.yaml: medida: común (internal/cli/describe.go)
-  07-cobertura-liquidacion-tributaria.yaml: medida: común (internal/cli/describe.go)
-  08-cobertura-multa-de-trafico.yaml: medida: común (internal/cli/describe.go)
-  09-plazo-contencioso-agosto.yaml: medida: común (internal/cli/describe.go)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: común (internal/cli/describe.go)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: común (internal/cli/describe.go)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: común (internal/cli/describe.go)
-## sqlite-en-go-mod
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: común (go.mod)
-  02-una-sola-capacidad.yaml: medida: común (go.mod)
-  03-seguro-prorroga.yaml: medida: común (go.mod)
-  04-despido-plazo.yaml: medida: común (go.mod)
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: común (go.mod)
-  02-resumen-sin-documento.yaml: medida: común (go.mod)
-  03-por-materia.yaml: medida: común (go.mod)
-  04-documento-pegado.yaml: medida: común (go.mod)
-  05-tribunal-constitucional.yaml: medida: común (go.mod)
-  06-documento-que-no-es-el-pedido.yaml: medida: común (go.mod)
-  07-resumen-de-una-conocida.yaml: medida: común (go.mod)
-  08-doctrina-con-el-fallo-delante.yaml: medida: común (go.mod)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: común (go.mod)
-  10-doctrina-dada-por-hecha.yaml: medida: común (go.mod)
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: común (go.mod)
-  02-lcsp-contrato-menor.yaml: medida: común (go.mod)
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: común (go.mod)
-  04-lgt-prescripcion.yaml: medida: común (go.mod)
-  05-trlrhl-impuestos-municipales.yaml: medida: común (go.mod)
-  06-irpf-rendimientos-del-trabajo.yaml: medida: común (go.mod)
-  07-lrjsp-principio-de-legalidad.yaml: medida: común (go.mod)
-  08-ltaibg-plazo-de-resolucion.yaml: medida: común (go.mod)
-  09-constitucion-articulo-140.yaml: medida: común (go.mod)
-  10-et-vacaciones.yaml: medida: común (go.mod)
-  11-no-activa-programacion.yaml: medida: común (go.mod)
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: común (go.mod)
-  13-lrbrl-atribuciones-por-materia.yaml: medida: común (go.mod)
-  14-trlrhl-impuestos-por-materia.yaml: medida: común (go.mod)
-  15-irpf-rendimientos-por-materia.yaml: medida: común (go.mod)
-  16-lrjsp-legalidad-por-materia.yaml: medida: común (go.mod)
-  17-ltaibg-plazo-por-materia.yaml: medida: común (go.mod)
-  18-lrjpac-norma-derogada.yaml: medida: común (go.mod)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: común (go.mod)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: común (go.mod)
-  21-sin-binario-ni-servidor.yaml: medida: común (go.mod)
-  22-lcsp-contrato-menor-en-2019.yaml: medida: común (go.mod)
-  23-lpac-articulo-21-en-2016.yaml: medida: común (go.mod)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: común (go.mod)
-  02-territorio-municipio-no-cubierto.yaml: medida: común (go.mod)
-  03-no-activa-receta-de-cocina.yaml: medida: común (go.mod)
-  04-sin-binario-ni-servidor.yaml: medida: común (go.mod)
-  05-plazo-reposicion-leganes.yaml: medida: común (go.mod)
-  06-plazo-reposicion-tordesillas.yaml: medida: común (go.mod)
-  07-cobertura-liquidacion-tributaria.yaml: medida: común (go.mod)
-  08-cobertura-multa-de-trafico.yaml: medida: común (go.mod)
-  09-plazo-contencioso-agosto.yaml: medida: común (go.mod)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: común (go.mod)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: común (go.mod)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: común (go.mod)
-## descripcion-de-plazos-y-territorio
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  02-una-sola-capacidad.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  03-seguro-prorroga.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  04-despido-plazo.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  02-resumen-sin-documento.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  03-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  04-documento-pegado.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  05-tribunal-constitucional.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  06-documento-que-no-es-el-pedido.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  07-resumen-de-una-conocida.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  08-doctrina-con-el-fallo-delante.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  10-doctrina-dada-por-hecha.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  02-lcsp-contrato-menor.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  04-lgt-prescripcion.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  05-trlrhl-impuestos-municipales.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  06-irpf-rendimientos-del-trabajo.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  07-lrjsp-principio-de-legalidad.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  08-ltaibg-plazo-de-resolucion.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  09-constitucion-articulo-140.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  10-et-vacaciones.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  11-no-activa-programacion.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  13-lrbrl-atribuciones-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  14-trlrhl-impuestos-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  15-irpf-rendimientos-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  16-lrjsp-legalidad-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  17-ltaibg-plazo-por-materia.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  18-lrjpac-norma-derogada.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  21-sin-binario-ni-servidor.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  22-lcsp-contrato-menor-en-2019.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  23-lpac-articulo-21-en-2016.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  03-no-activa-receta-de-cocina.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  04-sin-binario-ni-servidor.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  05-plazo-reposicion-leganes.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  08-cobertura-multa-de-trafico.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  09-plazo-contencioso-agosto.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: descripción (skills/plazos-y-territorio/SKILL.md)
-## paquete-sin-asignar
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  02-una-sola-capacidad.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  03-seguro-prorroga.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  04-despido-plazo.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  02-resumen-sin-documento.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  03-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  04-documento-pegado.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  05-tribunal-constitucional.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  06-documento-que-no-es-el-pedido.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  07-resumen-de-una-conocida.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  08-doctrina-con-el-fallo-delante.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  10-doctrina-dada-por-hecha.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  02-lcsp-contrato-menor.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  04-lgt-prescripcion.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  05-trlrhl-impuestos-municipales.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  06-irpf-rendimientos-del-trabajo.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  07-lrjsp-principio-de-legalidad.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  08-ltaibg-plazo-de-resolucion.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  09-constitucion-articulo-140.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  10-et-vacaciones.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  11-no-activa-programacion.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  13-lrbrl-atribuciones-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  14-trlrhl-impuestos-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  15-irpf-rendimientos-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  16-lrjsp-legalidad-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  17-ltaibg-plazo-por-materia.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  18-lrjpac-norma-derogada.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  21-sin-binario-ni-servidor.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  22-lcsp-contrato-menor-en-2019.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  23-lpac-articulo-21-en-2016.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  02-territorio-municipio-no-cubierto.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  03-no-activa-receta-de-cocina.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  04-sin-binario-ni-servidor.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  05-plazo-reposicion-leganes.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  06-plazo-reposicion-tordesillas.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  07-cobertura-liquidacion-tributaria.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  08-cobertura-multa-de-trafico.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  09-plazo-contencioso-agosto.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: sin asignar (internal/sinasignar/sinasignar.go)
-## solo-docs
-ningún trabajo de evals
-## una-eval
-evals (consulta-juridica): medidas 0, reutilizadas 4
-  01-poliza-tras-el-fallecimiento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-una-sola-capacidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-seguro-prorroga.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-despido-plazo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (jurisprudencia): medidas 1, reutilizadas 9
-  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-por-materia.yaml: medida: rutas de su conjunto (evals/jurisprudencia/03-por-materia.yaml)
-  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (normativa): medidas 0, reutilizadas 23
-  01-lpac-articulo-21.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-lcsp-contrato-menor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-lrbrl-atribuciones-del-pleno.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-lgt-prescripcion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-trlrhl-impuestos-municipales.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-irpf-rendimientos-del-trabajo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-lrjsp-principio-de-legalidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-ltaibg-plazo-de-resolucion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-constitucion-articulo-140.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-et-vacaciones.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-no-activa-programacion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-no-activa-acuerdo-entre-amigos.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  13-lrbrl-atribuciones-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  14-trlrhl-impuestos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  15-irpf-rendimientos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  16-lrjsp-legalidad-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  17-ltaibg-plazo-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  18-lrjpac-norma-derogada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  21-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (plazos-y-territorio): medidas 0, reutilizadas 12
-  01-territorio-municipio-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-territorio-municipio-no-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-no-activa-receta-de-cocina.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-plazo-reposicion-leganes.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-plazo-reposicion-tordesillas.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-cobertura-liquidacion-tributaria.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-cobertura-multa-de-trafico.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-plazo-contencioso-agosto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-## referencia-renombrada
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  02-una-sola-capacidad.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  03-seguro-prorroga.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  04-despido-plazo.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-evals (jurisprudencia): medidas 0, reutilizadas 10
-  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (normativa): medidas 0, reutilizadas 23
-  01-lpac-articulo-21.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-lcsp-contrato-menor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-lrbrl-atribuciones-del-pleno.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-lgt-prescripcion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-trlrhl-impuestos-municipales.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-irpf-rendimientos-del-trabajo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-lrjsp-principio-de-legalidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-ltaibg-plazo-de-resolucion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-constitucion-articulo-140.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-et-vacaciones.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-no-activa-programacion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-no-activa-acuerdo-entre-amigos.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  13-lrbrl-atribuciones-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  14-trlrhl-impuestos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  15-irpf-rendimientos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  16-lrjsp-legalidad-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  17-ltaibg-plazo-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  18-lrjpac-norma-derogada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  21-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
-## etiqueta-evals-sin-nada-elegido
-evals (consulta-juridica): medidas 0, reutilizadas 4
-  01-poliza-tras-el-fallecimiento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-una-sola-capacidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-seguro-prorroga.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-despido-plazo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (jurisprudencia): medidas 0, reutilizadas 10
-  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (normativa): medidas 0, reutilizadas 23
-  01-lpac-articulo-21.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-lcsp-contrato-menor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-lrbrl-atribuciones-del-pleno.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-lgt-prescripcion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-trlrhl-impuestos-municipales.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-irpf-rendimientos-del-trabajo.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-lrjsp-principio-de-legalidad.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-ltaibg-plazo-de-resolucion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-constitucion-articulo-140.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-et-vacaciones.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-no-activa-programacion.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-no-activa-acuerdo-entre-amigos.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  13-lrbrl-atribuciones-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  14-trlrhl-impuestos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  15-irpf-rendimientos-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  16-lrjsp-legalidad-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  17-ltaibg-plazo-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  18-lrjpac-norma-derogada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  21-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-evals (plazos-y-territorio): medidas 0, reutilizadas 12
-  01-territorio-municipio-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  02-territorio-municipio-no-cubierto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  03-no-activa-receta-de-cocina.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  04-sin-binario-ni-servidor.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  05-plazo-reposicion-leganes.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  06-plazo-reposicion-tordesillas.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  07-cobertura-liquidacion-tributaria.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  08-cobertura-multa-de-trafico.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  09-plazo-contencioso-agosto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
-## suite-completa
-evals (consulta-juridica): medidas 4, reutilizadas 0
-  01-poliza-tras-el-fallecimiento.yaml: medida: suite completa
-  02-una-sola-capacidad.yaml: medida: suite completa
-  03-seguro-prorroga.yaml: medida: suite completa
-  04-despido-plazo.yaml: medida: suite completa
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: suite completa
-  02-resumen-sin-documento.yaml: medida: suite completa
-  03-por-materia.yaml: medida: suite completa
-  04-documento-pegado.yaml: medida: suite completa
-  05-tribunal-constitucional.yaml: medida: suite completa
-  06-documento-que-no-es-el-pedido.yaml: medida: suite completa
-  07-resumen-de-una-conocida.yaml: medida: suite completa
-  08-doctrina-con-el-fallo-delante.yaml: medida: suite completa
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: suite completa
-  10-doctrina-dada-por-hecha.yaml: medida: suite completa
-evals (normativa): medidas 23, reutilizadas 0
-  01-lpac-articulo-21.yaml: medida: suite completa
-  02-lcsp-contrato-menor.yaml: medida: suite completa
-  03-lrbrl-atribuciones-del-pleno.yaml: medida: suite completa
-  04-lgt-prescripcion.yaml: medida: suite completa
-  05-trlrhl-impuestos-municipales.yaml: medida: suite completa
-  06-irpf-rendimientos-del-trabajo.yaml: medida: suite completa
-  07-lrjsp-principio-de-legalidad.yaml: medida: suite completa
-  08-ltaibg-plazo-de-resolucion.yaml: medida: suite completa
-  09-constitucion-articulo-140.yaml: medida: suite completa
-  10-et-vacaciones.yaml: medida: suite completa
-  11-no-activa-programacion.yaml: medida: suite completa
-  12-no-activa-acuerdo-entre-amigos.yaml: medida: suite completa
-  13-lrbrl-atribuciones-por-materia.yaml: medida: suite completa
-  14-trlrhl-impuestos-por-materia.yaml: medida: suite completa
-  15-irpf-rendimientos-por-materia.yaml: medida: suite completa
-  16-lrjsp-legalidad-por-materia.yaml: medida: suite completa
-  17-ltaibg-plazo-por-materia.yaml: medida: suite completa
-  18-lrjpac-norma-derogada.yaml: medida: suite completa
-  19-lcsp-contrato-menor-redaccion-cambiada.yaml: medida: suite completa
-  20-lcsp-dos-bloques-redaccion-cambiada.yaml: medida: suite completa
-  21-sin-binario-ni-servidor.yaml: medida: suite completa
-  22-lcsp-contrato-menor-en-2019.yaml: medida: suite completa
-  23-lpac-articulo-21-en-2016.yaml: medida: suite completa
-evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: suite completa
-  02-territorio-municipio-no-cubierto.yaml: medida: suite completa
-  03-no-activa-receta-de-cocina.yaml: medida: suite completa
-  04-sin-binario-ni-servidor.yaml: medida: suite completa
-  05-plazo-reposicion-leganes.yaml: medida: suite completa
-  06-plazo-reposicion-tordesillas.yaml: medida: suite completa
-  07-cobertura-liquidacion-tributaria.yaml: medida: suite completa
-  08-cobertura-multa-de-trafico.yaml: medida: suite completa
-  09-plazo-contencioso-agosto.yaml: medida: suite completa
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: suite completa
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: suite completa
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: suite completa
-`
+// en su orden, tras una línea con su nombre (FR-019 de H30; SC-004; FR-016 de
+// H45): la forma de cada sección, la de seccionesDeLaMatriz, y sus ficheros, los
+// de las evals de cada skill del repositorio, en orden de fichero, con las
+// medidas y las reutilizadas contadas de lo que dice de cada una. Sin trabajos,
+// la línea «ningún trabajo de evals». Es un error que una skill de la forma no
+// tenga evals o que una eval que dice otra cosa no sea de su skill.
+func goldenDeLaMatriz(t *testing.T, evals map[string][]Eval) string {
+	t.Helper()
+
+	var golden strings.Builder
+
+	for _, seccion := range seccionesDeLaMatriz {
+		golden.WriteString("## " + seccion.nombre + "\n")
+
+		if len(seccion.trabajos) == 0 {
+			golden.WriteString("ningún trabajo de evals\n")
+		}
+
+		for _, trabajo := range seccion.trabajos {
+			golden.WriteString(matrizDelTrabajoEsperada(t, seccion.nombre, trabajo, evals[trabajo.skill]))
+		}
+	}
+
+	return golden.String()
+}
+
+// matrizDelTrabajoEsperada es la parte de goldenDeLaMatriz del trabajo de la
+// sección: la línea de la skill, con sus medidas y sus reutilizadas, y la de
+// cada eval, con dos espacios delante, en orden de fichero.
+func matrizDelTrabajoEsperada(t *testing.T, seccion string, trabajo formaDelTrabajo, evals []Eval) string {
+	t.Helper()
+
+	ficheros := make([]string, 0, len(evals))
+	for _, eval := range evals {
+		ficheros = append(ficheros, eval.Fichero)
+	}
+
+	slices.Sort(ficheros)
+	require.NotEmptyf(t, ficheros, "%s: %s tiene evals", seccion, trabajo.skill)
+
+	for _, fichero := range slices.Sorted(maps.Keys(trabajo.distintas)) {
+		require.Containsf(t, ficheros, fichero, "%s: la eval que dice otra cosa es de %s", seccion, trabajo.skill)
+	}
+
+	var (
+		lineas  strings.Builder
+		medidas int
+	)
+
+	for _, fichero := range ficheros {
+		linea, distinta := trabajo.distintas[fichero]
+		if !distinta {
+			linea = trabajo.cadaEval
+		}
+
+		if strings.HasPrefix(linea, "medida: ") {
+			medidas++
+		}
+
+		lineas.WriteString("  " + fichero + ": " + linea + "\n")
+	}
+
+	return "evals (" + trabajo.skill + "): medidas " + strconv.Itoa(medidas) +
+		", reutilizadas " + strconv.Itoa(len(ficheros)-medidas) + "\n" + lineas.String()
+}
