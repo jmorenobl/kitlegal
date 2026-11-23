@@ -243,7 +243,7 @@ func (g grabacionDeEvals) resolver(t *testing.T, nombre string, entrada EntradaD
 func (g grabacionDeEvals) pedir(t *testing.T, nombre string, consulta Consulta) []byte {
 	t.Helper()
 
-	_, err := Preparar(g.dirCache, UnionDeGrabaciones(), []Consulta{consulta})
+	_, err := Preparar(g.dirCache, unionDeGrabaciones(t), []Consulta{consulta})
 	require.NoErrorf(t, err, "%s: «%s» no se puede servir desde las grabaciones de H4 y de H5", nombre,
 		ordenDe(consulta))
 

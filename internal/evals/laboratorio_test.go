@@ -790,10 +790,10 @@ func TestEvalsDelLaboratorio(t *testing.T) {
 
 		dirCache := t.TempDir()
 
-		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		preparadas, err := Preparar(dirCache, unionDeGrabaciones(t), consultas)
 		require.NoError(t, err)
 		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
-			evalsDelLaboratorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+			evalsDelLaboratorio, strings.Join(unionDeGrabaciones(t), " y "), presentarFaltas(preparadas))
 
 		comprobadas, err := ComprobarSinRed(dirCache, consultas)
 		require.NoError(t, err)

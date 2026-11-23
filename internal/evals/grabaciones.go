@@ -1,10 +1,14 @@
 package evals
 
 import (
+	"cmp"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
@@ -33,15 +37,26 @@ const (
 	// escribe: solo graba manifiestos <paquete>/testdata/grabaciones.json, y el
 	// de H5, en testdata/evals/, no lo es (research V2 y V3 de H9).
 	GrabacionesDeH9 = "../../internal/evals/testdata/" + boe.NombreDeLaFuente
+)
 
-	// GrabacionesDeH36 son las que graba el paso grabar_datos con
-	// TestGrabarEvals, desde el manifiesto de testdata/ de este paquete, en la
-	// raíz que le da por KITLEGAL_EVIDENCIAS, evidencias/h36/, junto al
-	// manifiesto de sus huellas: los bloques a130 y a133 de la LEC con que
-	// TestPreceptosDeLosPlazos comprueba el cómputo civil de data/plazos.yaml
-	// (contracts/grabacion.md §2 y §3 de H36; research D9 de H36). No guarda
-	// ninguna búsqueda: la de la LEC la sirve el conjunto de H5.
-	GrabacionesDeH36 = "../../evidencias/h36/" + boe.NombreDeLaFuente
+// Las grabaciones de los hitos que graban el BOE en evidencias/ (FR-015 de
+// H45; research D5 de H45): el paso grabar_datos graba con TestGrabarEvals, en
+// la raíz que le da por KITLEGAL_EVIDENCIAS, evidencias/<hito>/, la carpeta de
+// la fuente boe junto al manifiesto de sus huellas, como la de h36 con los
+// bloques a130 y a133 de la LEC (contracts/grabacion.md §2 y §3 de H36).
+const (
+	// directorioDeLasEvidencias es el directorio de las evidencias de los
+	// hitos, desde la raíz del repositorio.
+	directorioDeLasEvidencias = "evidencias"
+
+	// nombreDelManifiestoDeUnHito es el manifiesto de las huellas de lo que
+	// grabó un hito, en su carpeta de evidencias/.
+	nombreDelManifiestoDeUnHito = "manifiesto.json"
+
+	// prefijoDeUnHito y separadorDelSubhito forman el nombre de la carpeta de un
+	// hito, h<n>, o de un subhito, h<n>-<m>.
+	prefijoDeUnHito     = "h"
+	separadorDelSubhito = "-"
 )
 
 // GrafosPrevios es el directorio de los conjuntos de grabaciones derivadas con
@@ -65,14 +80,130 @@ const EvalsRetiradas = "../../testdata/evals/retiradas"
 // retiradas, del que hace de GrafosPrevios para esas evals.
 const grafosPreviosDeLasRetiradas = "grafo-previo"
 
-// UnionDeGrabaciones son los cuatro conjuntos en el orden en que Preparar los
-// copia a un mismo directorio para reproducir: H4, encima H5, encima H9 y
-// encima H36. Dos a dos, solo comparten el nombre de
-// GET_https_www.boe.es_robots.txt.json, que la reproducción no usa (data-model
-// §7.3; contrato evals-y-grabaciones §3.4 y §5.1; research D15 de H9;
-// contracts/grabacion.md §3 de H36). Cada llamada devuelve una lista nueva.
-func UnionDeGrabaciones() []string {
-	return []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9, GrabacionesDeH36}
+// UnionDeGrabaciones son los conjuntos en el orden en que Preparar los copia a
+// un mismo directorio para reproducir: H4, encima H5, encima H9 y encima la
+// carpeta de la fuente boe de cada hito que la grabó en evidencias/, por su
+// número, la de h36 entre ellas (FR-015 de H45). Dos a dos, solo comparten el
+// nombre de GET_https_www.boe.es_robots.txt.json, que la reproducción no usa
+// (data-model §7.3; contrato evals-y-grabaciones §3.4 y §5.1; research D15 de
+// H9; contracts/grabacion.md §3 de H36). Lee evidencias/ del repositorio, con
+// la ruta relativa a este paquete, como las constantes; cada llamada devuelve
+// una lista nueva.
+func UnionDeGrabaciones() ([]string, error) {
+	return unionDeGrabacionesDe(raizDelRepositorio)
+}
+
+// raizDeLasGrabacionesDeUnHito es la carpeta de las grabaciones de un hito en
+// evidencias/ y el número de su hito y de su subhito, por los que se ordena.
+type raizDeLasGrabacionesDeUnHito struct {
+	ruta          string
+	hito, subhito int
+}
+
+// unionDeGrabacionesDe es la de UnionDeGrabaciones con la raíz del repositorio
+// dada: GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9 y, detrás,
+// raiz/evidencias/<carpeta>/boe.legislacion-consolidada de cada carpeta de un
+// hito que tiene su manifiesto.json y esa carpeta, por número de hito y después
+// de subhito (contracts/evals.md §1 de H45). El error de leer evidencias/, o de
+// mirar lo que hay en la carpeta de un hito, lleva su ruta.
+func unionDeGrabacionesDe(raiz string) ([]string, error) {
+	evidencias := raiz + "/" + directorioDeLasEvidencias
+
+	entradas, err := os.ReadDir(evidencias)
+	if err != nil {
+		return nil, fmt.Errorf("las grabaciones de los hitos: %s no se puede leer: %w", evidencias, err)
+	}
+
+	var deLosHitos []raizDeLasGrabacionesDeUnHito
+
+	for _, entrada := range entradas {
+		hito, subhito, es := carpetaDeUnHito(entrada.Name())
+		if !entrada.IsDir() || !es {
+			continue
+		}
+
+		carpeta := evidencias + "/" + entrada.Name()
+		ruta := carpeta + "/" + boe.NombreDeLaFuente
+
+		grabo, err := tieneLasGrabacionesDelBOE(carpeta, ruta)
+		if err != nil {
+			return nil, fmt.Errorf("las grabaciones de los hitos: %w", err)
+		}
+
+		if grabo {
+			deLosHitos = append(deLosHitos, raizDeLasGrabacionesDeUnHito{ruta: ruta, hito: hito, subhito: subhito})
+		}
+	}
+
+	// os.ReadDir las da por nombre, h100 antes que h36: se ordenan por número.
+	// La ordenación es estable, así que dos nombres con los mismos números, como
+	// h36 y h036, quedan por nombre.
+	slices.SortStableFunc(deLosHitos, func(una, otra raizDeLasGrabacionesDeUnHito) int {
+		return cmp.Or(cmp.Compare(una.hito, otra.hito), cmp.Compare(una.subhito, otra.subhito))
+	})
+
+	union := slices.Grow([]string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9}, len(deLosHitos))
+	for _, deUnHito := range deLosHitos {
+		union = append(union, deUnHito.ruta)
+	}
+
+	return union, nil
+}
+
+// tieneLasGrabacionesDelBOE dice si la carpeta de un hito de evidencias/ tiene
+// su manifiesto.json y la carpeta de la fuente boe, en ruta.
+func tieneLasGrabacionesDelBOE(carpeta, ruta string) (bool, error) {
+	conManifiesto, err := existeComo(carpeta+"/"+nombreDelManifiestoDeUnHito, false)
+	if err != nil || !conManifiesto {
+		return false, err
+	}
+
+	return existeComo(ruta, true)
+}
+
+// existeComo dice si en la ruta hay un directorio, si directorio, o algo que
+// no lo es, si no. Que no haya nada no es un error; cualquier otro error de
+// os.Stat, sí, con la ruta, que os.Stat ya nombra.
+func existeComo(ruta string, directorio bool) (bool, error) {
+	info, err := os.Stat(ruta)
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return false, nil
+	case err != nil:
+		return false, err
+	}
+
+	return info.IsDir() == directorio, nil
+}
+
+// carpetaDeUnHito dice si el nombre es el de la carpeta de un hito en
+// evidencias/, h<n>, o de un subhito, h<n>-<m>, y da sus números; el subhito de
+// un hito es 0. Así h36 es (36, 0) y h9-1 es (9, 1); adr-0036 y
+// sondeos-20261025 no son de un hito.
+func carpetaDeUnHito(nombre string) (hito, subhito int, es bool) {
+	numeros, es := strings.CutPrefix(nombre, prefijoDeUnHito)
+	if !es {
+		return 0, 0, false
+	}
+
+	delHito, delSubhito, conSubhito := strings.Cut(numeros, separadorDelSubhito)
+
+	hito, err := strconv.Atoi(delHito)
+	if err != nil {
+		return 0, 0, false
+	}
+
+	if !conSubhito {
+		return hito, 0, true
+	}
+
+	subhito, err = strconv.Atoi(delSubhito)
+	if err != nil {
+		return 0, 0, false
+	}
+
+	return hito, subhito, true
 }
 
 // Manifiesto es un manifiesto de grabación de normas consolidadas del BOE

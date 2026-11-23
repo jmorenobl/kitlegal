@@ -284,7 +284,7 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 			// data/, que solo sirve la unión de grabaciones (FR-001).
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:       evals,
-				Grabaciones: UnionDeGrabaciones(),
+				Grabaciones: unionDeGrabaciones(t),
 				Fichero:     caso.fichero,
 				Modelo:      cmp.Or(caso.modelo, modeloDeLaSesion),
 				Directorio:  sesion,
@@ -442,7 +442,7 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 			// de grabaciones, que sirve lo que la skill lleva a leer de data/.
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:         evals,
-				Grabaciones:   UnionDeGrabaciones(),
+				Grabaciones:   unionDeGrabaciones(t),
 				GrafosPrevios: grafosPrevios,
 				Fichero:       caso.fichero,
 				Modelo:        modeloDeLaSesion,
@@ -620,7 +620,7 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 
 	faltas, err := PrepararSesion(SesionAPreparar{
 		Evals:       evalsDeNormativa,
-		Grabaciones: UnionDeGrabaciones(),
+		Grabaciones: unionDeGrabaciones(t),
 		Fichero:     ficheroDeLaConsultaRepetida,
 		Modelo:      modeloDeLaSesion,
 		Directorio:  sesion,
@@ -772,7 +772,7 @@ func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
 		require.Equal(t, []LecturaDeLaEval{{Norma: normaDeLaMateriaSinPaquete, Bloque: "acuarto", Motivo: poliza.Lecturas[0].Motivo}},
 			poliza.Lecturas, "la 01 lleva a leer el art. 4 de la Ley 50/1980")
 
-		faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{poliza}))
+		faltas, err := Preparar(t.TempDir(), unionDeGrabaciones(t), ConsultasNecesarias([]Eval{poliza}))
 		require.NoError(t, err)
 		assert.Empty(t, faltas, "lo que necesita la 01, su lectura entre ello, está grabado:\n%s", presentarFaltas(faltas))
 
@@ -790,7 +790,7 @@ func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
 func exigirLasFaltasDeLaLectura(t *testing.T, eval Eval, norma, bloque string) {
 	t.Helper()
 
-	faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{eval}))
+	faltas, err := Preparar(t.TempDir(), unionDeGrabaciones(t), ConsultasNecesarias([]Eval{eval}))
 	require.NoError(t, err, "lo que no está grabado es una falta, nunca el error")
 	require.Len(t, faltas, 2, "una falta por cada lectura del bloque:\n%s", presentarFaltas(faltas))
 
@@ -895,7 +895,7 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 			// data/, que solo sirve la unión de grabaciones (FR-001).
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:       evals,
-				Grabaciones: UnionDeGrabaciones(),
+				Grabaciones: unionDeGrabaciones(t),
 				Datos:       datos,
 				Fichero:     nombreDeEval,
 				Modelo:      modeloDeLaSesion,
@@ -1073,7 +1073,7 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 
 	faltas, err := PrepararSesion(SesionAPreparar{
 		Evals:       crearConjunto(t, []entradaDeConjunto{{nombre: nombreDeEval, contenido: contenidoDelArticulo21}}),
-		Grabaciones: UnionDeGrabaciones(),
+		Grabaciones: unionDeGrabaciones(t),
 		Datos:       datos,
 		Fichero:     nombreDeEval,
 		Modelo:      modeloDeLaSesion,
@@ -1242,7 +1242,7 @@ func cacheDeUnaSesion(t *testing.T, evals, fichero string) string {
 
 	faltas, err := PrepararSesion(SesionAPreparar{
 		Evals:       evals,
-		Grabaciones: UnionDeGrabaciones(),
+		Grabaciones: unionDeGrabaciones(t),
 		Fichero:     fichero,
 		Modelo:      modeloDeLaSesion,
 		Directorio:  sesion,

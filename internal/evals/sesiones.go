@@ -436,9 +436,14 @@ func abrirSesion(interrupcion <-chan struct{}, e SesionesAEjecutar, sesion Sesio
 		return fmt.Errorf("la sesión %s: %w", sesion.Nombre, err)
 	}
 
+	union, err := UnionDeGrabaciones()
+	if err != nil {
+		return fmt.Errorf("la sesión %s no se pudo preparar: %w", sesion.Nombre, err)
+	}
+
 	faltas, err := PrepararSesion(SesionAPreparar{
 		Evals:       e.Evals,
-		Grabaciones: UnionDeGrabaciones(),
+		Grabaciones: union,
 		Fichero:     sesion.Fichero,
 		Modelo:      sesion.Modelo,
 		Directorio:  dir,

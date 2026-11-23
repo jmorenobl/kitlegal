@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/skills"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // TestConjuntoDeCadaEval calcula sobre el árbol del repositorio el conjunto de
@@ -657,7 +658,7 @@ func fixtureDeUnPaquete(t *testing.T, repositorio fs.FS, paquetes []string) stri
 
 	for _, paquete := range paquetes {
 		if ruta := primerFicheroBajo(t, repositorio, paquete+"/testdata", func(ruta string) bool {
-			return !empiezaPorAlguno(ruta, raicesDeGrabaciones())
+			return !esDeUnaRaizDeGrabaciones(ruta)
 		}); ruta != "" {
 			return ruta
 		}
@@ -673,7 +674,8 @@ func fixtureDeUnPaquete(t *testing.T, repositorio fs.FS, paquetes []string) stri
 func grabacionDeUnPaquete(t *testing.T, repositorio fs.FS, paquetes []string) string {
 	t.Helper()
 
-	for _, raiz := range raicesDeGrabaciones() {
+	for _, raiz := range append(unionDeGrabaciones(t), GrafosPrevios) {
+		raiz = desdeLaRaiz(raiz) + "/"
 		enUnPaquete := slices.ContainsFunc(paquetes, func(paquete string) bool {
 			return strings.HasPrefix(raiz, paquete+"/testdata/")
 		})
@@ -691,6 +693,38 @@ func grabacionDeUnPaquete(t *testing.T, repositorio fs.FS, paquetes []string) st
 	require.FailNow(t, "ninguna raíz de grabaciones está entre los fixtures de un paquete de un applet")
 
 	return ""
+}
+
+// TestEsDeUnaRaizDeGrabaciones fija el predicado de las raíces de grabaciones
+// de rutaQueMide, sin leer el disco (FR-015; contracts/evals.md §1): una ruta
+// de una de las tres raíces fijas, de GrafosPrevios o de la carpeta del BOE de
+// una carpeta de un hito de evidencias/, exista o no, es de una raíz; ninguna
+// otra lo es.
+func TestEsDeUnaRaizDeGrabaciones(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		ruta string
+		es   bool
+	}{
+		{ruta: desdeLaRaiz(GrabacionesDeH4) + "/" + grabacionDeRobots, es: true},
+		{ruta: desdeLaRaiz(GrabacionesDeH5) + "/" + grabacionDeRobots, es: true},
+		{ruta: desdeLaRaiz(GrabacionesDeH9) + "/" + grabacionDeRobots, es: true},
+		{ruta: desdeLaRaiz(GrafosPrevios) + "/un-grafo/" + grabacionDeRobots, es: true},
+		{ruta: "evidencias/h36/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
+		{ruta: "evidencias/h99/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
+		{ruta: "evidencias/h9-1/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
+		{ruta: "evidencias/h36/" + nombreDelManifiestoDeUnHito},
+		{ruta: "evidencias/h9/boe.fiestas-laborales/" + grabacionDeRobots},
+		{ruta: "evidencias/adr-0036/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots},
+		{ruta: "evidencias/sondeos-20261025/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots},
+		{ruta: "testdata/evals/" + grabacionDeRobots},
+		{ruta: "internal/evals/grabaciones.go"},
+	}
+
+	for _, caso := range casos {
+		assert.Equalf(t, caso.es, esDeUnaRaizDeGrabaciones(caso.ruta), "%s es de una raíz de grabaciones", caso.ruta)
+	}
 }
 
 // primerFicheroBajo es la ruta del primer fichero bajo el directorio, en el
@@ -1033,7 +1067,7 @@ func grabacionesDeLaEval(t *testing.T, repositorio fs.FS, conjunto dependenciasD
 	t.Helper()
 
 	var grabaciones []string
-	for _, raiz := range UnionDeGrabaciones() {
+	for _, raiz := range unionDeGrabaciones(t) {
 		grabaciones = append(grabaciones, string(entradaDirectorio)+" "+strings.TrimPrefix(raiz, "../../")+"/")
 	}
 

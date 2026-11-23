@@ -2678,10 +2678,10 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		dirCache := t.TempDir()
 
-		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		preparadas, err := Preparar(dirCache, unionDeGrabaciones(t), consultas)
 		require.NoError(t, err)
 		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
-			evalsDePlazosYTerritorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+			evalsDePlazosYTerritorio, strings.Join(unionDeGrabaciones(t), " y "), presentarFaltas(preparadas))
 
 		comprobadas, err := ComprobarSinRed(dirCache, consultas)
 		require.NoError(t, err)
@@ -2804,10 +2804,10 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		dirCache := t.TempDir()
 
-		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		preparadas, err := Preparar(dirCache, unionDeGrabaciones(t), consultas)
 		require.NoError(t, err)
 		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
-			evalsDeNormativa, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+			evalsDeNormativa, strings.Join(unionDeGrabaciones(t), " y "), presentarFaltas(preparadas))
 
 		comprobadas, err := ComprobarSinRed(dirCache, consultas)
 		require.NoError(t, err)
@@ -5633,7 +5633,7 @@ func compruebaElGrafoPrevio(t *testing.T, ruta string, eval Eval) {
 
 	dirCache := t.TempDir()
 
-	faltas, err := prepararGrafoPrevio(dirCache, UnionDeGrabaciones(), GrafosPrevios, eval)
+	faltas, err := prepararGrafoPrevio(dirCache, unionDeGrabaciones(t), GrafosPrevios, eval)
 	require.NoError(t, err, ruta)
 	assert.Empty(t, faltas, "%s: comandos del grafo previo que no se preparan:\n%s", ruta, presentarFaltas(faltas))
 
