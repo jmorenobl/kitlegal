@@ -101,8 +101,9 @@ type contextoDeLaRegion struct {
 
 // generadoresDeRegiones son los tres generadores que admiten región, por su
 // nombre (contracts/paquetes.md §3 de H32): la cobertura por materia, con las
-// filas del paquete de la referencia; los recursos y plazos, con cada precepto en
-// la forma única; y las leyes vertebrales.
+// filas del paquete de la referencia; los recursos y plazos, con los tipos del
+// paquete de la referencia y cada precepto en la forma única; y las leyes
+// vertebrales.
 var generadoresDeRegiones = map[string]generadorDeRegion{
 	generadorDeLaCobertura: {
 		datos:       []string{ficheroDeLaCobertura, ficheroDeLasNormas},
@@ -522,11 +523,14 @@ func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([
 	return filas.Bytes(), nil
 }
 
-// filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos:
-// los tipos de data/plazos.yaml con sus preceptos citados con las normas de
-// data/normas.yaml. Un precepto de una norma que no está es un defecto de
-// data/plazos.yaml.
-func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, _ contextoDeLaRegion) ([]byte, error) {
+// filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos
+// (contracts/sincronia-de-los-paquetes.md §1 y §2 de H45): los tipos de
+// data/plazos.yaml del paquete de la región, en su orden, con sus preceptos
+// citados con las normas de data/normas.yaml. Son defectos de data/plazos.yaml,
+// todos juntos y en el orden de sus tipos, cada tipo que no es de ningún paquete
+// o que es de más de uno (paquetesDelTipo), y sin ellos, un precepto de una norma
+// que no está.
+func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, region contextoDeLaRegion) ([]byte, error) {
 	tipos, err := usar(datos.tipos, ficheroDeLosPlazos)
 	if err != nil {
 		return nil, err
@@ -537,12 +541,57 @@ func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, _ contextoDeLaRegion) 
 		return nil, err
 	}
 
-	filas, err := filasDeLosTipos(tipos, normasPorIdentificador(normas))
+	porIdentificador := normasPorIdentificador(normas)
+
+	var (
+		defectos   []error
+		delPaquete []plazos.Tipo
+	)
+
+	for _, tipo := range tipos {
+		paquetes := paquetesDelTipo(tipo, porIdentificador)
+
+		switch {
+		case len(paquetes) == 0:
+			defectos = append(defectos, fmt.Errorf("el tipo %s no es de ningún paquete: ninguna norma de sus preceptos "+
+				"lleva vertical en %s/%s", tipo.Codigo, carpetaDeLosDatos, ficheroDeLasNormas))
+		case len(paquetes) > 1:
+			defectos = append(defectos, fmt.Errorf("el tipo %s es de más de un paquete: %s", tipo.Codigo,
+				strings.Join(paquetes, ", ")))
+		case paquetes[0] == region.paquete:
+			delPaquete = append(delPaquete, tipo)
+		}
+	}
+
+	if len(defectos) > 0 {
+		return nil, &defectoDeLosDatos{fichero: ficheroDeLosPlazos, causa: errors.Join(defectos...)}
+	}
+
+	filas, err := filasDeLosTipos(delPaquete, porIdentificador)
 	if err != nil {
 		return nil, &defectoDeLosDatos{fichero: ficheroDeLosPlazos, causa: err}
 	}
 
 	return filas, nil
+}
+
+// paquetesDelTipo son los paquetes de un tipo de data/plazos.yaml (FR-001;
+// research D1 de H45): los vertical distintos, en orden alfabético, de las
+// normas de sus preceptos propios —los de Preceptos y los de Unidades— entre las
+// normas por su identificador. Una norma que no está o que no lleva vertical no
+// cuenta, y los preceptos de su cómputo (PreceptosDelComputo) no se miran.
+func paquetesDelTipo(tipo plazos.Tipo, normas map[string]Norma) []string {
+	var paquetes []string
+
+	for _, precepto := range slices.Concat(tipo.Preceptos, slices.Collect(maps.Values(tipo.Unidades))) {
+		if vertical := normas[precepto.Norma].Vertical; vertical != "" {
+			paquetes = append(paquetes, vertical)
+		}
+	}
+
+	slices.Sort(paquetes)
+
+	return slices.Compact(paquetes)
 }
 
 // filasDeLasLeyesVertebrales son las filas de la región de las leyes

@@ -1,13 +1,17 @@
 {
-  "id": "T002",
-  "texto": "T002 [datos] Crear `internal/skills/testdata/regiones/plazos.yaml`, copia de los tipos y cómputos de hoy del `plazos.yaml` del repositorio, que no se toca (contracts/tests-sin-listas.md, fila `TestRegiones`; research D10; FR-016, SC-003), con una cabecera que dice que es un dato de prueba de las reglas de las regiones y no el repositorio. Ningún test lo lee todavía: `make ci` sigue en verde.",
+  "id": "T003",
+  "texto": "T003 [US3] El paquete de un tipo en `internal/skills/regiones.go` y sus tests en `internal/skills/regiones_test.go` (FR-001, FR-002, FR-003, FR-004, FR-008, FR-016; US1.1, US2.1, US3.1-US3.4; SC-001, SC-003; contracts/sincronia-de-los-paquetes.md §1, §2, §6; research D1, D12): `paquetesDelTipo(tipo, normas)` da los `vertical` distintos, en orden alfabético, de las normas de `Preceptos` y de `Unidades` (sin las normas que no están o no llevan `vertical`, y sin mirar `PreceptosDelComputo`); `filasDeLosRecursosYPlazos` usa el contexto de su región: junta en el orden de los tipos del `plazos.yaml` leído un defecto por tipo con 0 paquetes o con 2 o más, con los textos literales de spec §C.1 (FR-003 y FR-004), y con alguno devuelve `&defectoDeLosDatos{fichero: \"plazos.yaml\", causa: errors.Join(…)}`; sin defectos, `filasDeLosTipos` sin cambiar sobre los tipos cuyo paquete es el de la región. `TestRegiones` deja de copiar el `plazos.yaml` real del repositorio (`arbolDeRegiones`) y lee el `plazos.yaml` de prueba de T002; `normasDeLasRegiones` gana una norma de prueba con `vertical: ensayo`; y `TestRegiones/defectos` gana `tipo-sin-paquete` (el defecto con su código y ninguna referencia regenerada), `tipo-de-dos-paquetes` («administrativo, ensayo») y `computo-de-otro-paquete` (0 defectos y el tipo en `administrativo.md`). Ver en rojo cada subtest nuevo con la regla quitada y el tercero contando los preceptos del cómputo, y `TestRegiones/sincronia` con una región distinta de la generada; comprobar que `make skills-sync` no deja diferencias en las referencias de las skills (`make skills-check` en verde) y `make ci` en verde.",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "fcc2236f9e68341d991a7b2fdd92bcbf8228c26e",
+  "base": "db69f56357624c8f32cc89ac6302647deb5f685d",
   "rutas": [
-    "contracts/tests-sin-listas.md",
-    "internal/skills/testdata/regiones/plazos.yaml",
+    "TestRegiones/defectos",
+    "TestRegiones/sincronia",
+    "administrativo.md",
+    "contracts/sincronia-de-los-paquetes.md",
+    "internal/skills/regiones.go",
+    "internal/skills/regiones_test.go",
     "plazos.yaml"
   ],
   "cierre": false,

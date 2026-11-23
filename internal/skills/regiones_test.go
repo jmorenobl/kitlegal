@@ -47,8 +47,9 @@ const prosaDeLasRegiones = "# Lo administrativo\n\nLa prosa del paquete, escrita
 	"\n"
 
 // normasDeLasRegiones es la tabla de normas de los árboles de TestRegiones: tres
-// de lo administrativo, la del contencioso sin abreviatura, y una de otra materia,
-// sin vertical; dos vertebrales.
+// de lo administrativo, la del contencioso sin abreviatura; una de otra materia,
+// sin vertical; y una de prueba de otro paquete, ensayo (contracts/
+// sincronia-de-los-paquetes.md §6 de H45); dos vertebrales.
 const normasDeLasRegiones = "normas:\n" +
 	"  BOE-A-2015-10565:\n" +
 	"    titulo: \"Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común.\"\n" +
@@ -77,7 +78,17 @@ const normasDeLasRegiones = "normas:\n" +
 	"    abreviatura: LGT\n" +
 	"    materias:\n" +
 	"      - tributos\n" +
-	"    vertebral: true\n"
+	"    vertebral: true\n" +
+	"  " + normaDelEnsayo + ":\n" +
+	"    titulo: \"Ley 1/1900, de prueba de otro paquete.\"\n" +
+	"    rango: Ley\n" +
+	"    materias:\n" +
+	"      - ensayo\n" +
+	"    vertical: ensayo\n"
+
+// normaDelEnsayo es el identificador de la norma de prueba de normasDeLasRegiones
+// que trae el paquete de ensayo.
+const normaDelEnsayo = "BOE-A-1900-1"
 
 // coberturaDeLasRegiones es la cobertura de los árboles de TestRegiones: una fila
 // con la norma que la rige, con el apartado de una disposición, y otra sin ella,
@@ -151,17 +162,22 @@ const skillMdConLaPlantilla = "---\n" +
 	plantillaDeNoCubierto + "\n" +
 	"```\n"
 
+// plazosDeLasRegiones es el data/plazos.yaml de prueba de los árboles de
+// TestRegiones: una copia de los tipos y los cómputos del repositorio que no
+// cambia cuando cambia el repositorio (research D10 de H45).
+const plazosDeLasRegiones = "testdata/regiones/plazos.yaml"
+
 // arbolDeRegiones es un repositorio temporal con la skill plazos-y-territorio y su
 // plantilla, su referencia de lo administrativo con los dos motivos y la región de
 // cada tabla vacía, y los datos de las tres: normasDeLasRegiones,
-// coberturaDeLasRegiones y data/plazos.yaml del repositorio.
+// coberturaDeLasRegiones y plazosDeLasRegiones.
 func arbolDeRegiones(t *testing.T) string {
 	t.Helper()
 
 	raiz := t.TempDir()
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"), normasDeLasRegiones)
 	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "cobertura.yaml"), coberturaDeLasRegiones)
-	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), string(leerDatosDelRepositorio(t, "plazos.yaml")))
+	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), leerFicheroDePrueba(t, plazosDeLasRegiones))
 	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"), skillMdConLaPlantilla)
 	escribirFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz), referenciaConRegiones("", "", ""))
 
@@ -186,10 +202,12 @@ var derivaDeLaReferenciaConRegiones = []*skills.Deriva{
 // repositorios temporales: la sincronía escribe entre las marcas de cada región
 // la tabla de su generador desde data/ —la cobertura, con la línea de cada fila
 // del paquete que nombra el fichero, la plantilla del cuerpo con el motivo de su
-// caso; los recursos y plazos, con cada precepto en la forma única; las leyes
-// vertebrales— y no toca nada fuera de ellas; lo que hay entre las marcas y no es
-// lo generado, y la plantilla o un motivo cambiados sin regenerar, son la deriva
-// contenido-distinto de la referencia; y cada defecto del molde, con su fichero.
+// caso; los recursos y plazos, con los tipos del paquete de la referencia y cada
+// precepto en la forma única; las leyes vertebrales— y no toca nada fuera de
+// ellas; lo que hay entre las marcas y no es lo generado, y la plantilla o un
+// motivo cambiados sin regenerar, son la deriva contenido-distinto de la
+// referencia; y cada defecto del molde, con su fichero (contracts/
+// sincronia-de-los-paquetes.md §6 de H45).
 func TestRegiones(t *testing.T) {
 	t.Parallel()
 
@@ -324,7 +342,8 @@ type casoDeRegion struct {
 }
 
 // probarLosDefectosDeLasRegiones fija cada defecto nuevo del molde, con su
-// fichero, y que con ellos Escribir no escribe nada.
+// fichero, y que con ellos no hay ninguna referencia regenerada y Escribir no
+// escribe nada; y que los preceptos del cómputo de un tipo no son de su paquete.
 func probarLosDefectosDeLasRegiones(t *testing.T) {
 	t.Parallel()
 
@@ -338,10 +357,86 @@ func probarLosDefectosDeLasRegiones(t *testing.T) {
 
 			regenerado := regenerar(t, raiz, nil)
 			assert.Equal(t, caso.defectos, presentarDefectos(regenerado.Defectos()))
+
+			var regeneradas []string
+
+			for _, skill := range regenerado.Skills {
+				for _, referencia := range skill.AManoConRegiones {
+					regeneradas = append(regeneradas, skill.Nombre+": "+referencia.Fichero)
+				}
+			}
+
+			assert.Empty(t, regeneradas, "con defectos no hay ninguna referencia regenerada")
 			require.Error(t, skills.Escribir(raiz, regenerado))
 			assert.Equal(t, antes, fotografiar(t, raiz), "con defectos no se escribe nada")
 		})
 	}
+
+	t.Run("computo-de-otro-paquete", probarElComputoDeOtroPaquete)
+}
+
+// Los tipos y el cómputo de prueba de los defectos del paquete de un tipo
+// (contracts/sincronia-de-los-paquetes.md §6 de H45), cada uno como una entrada
+// de su lista de data/plazos.yaml: uno con su precepto en la norma sin vertical;
+// otro con un precepto de lo administrativo y otro del paquete de ensayo; y uno
+// de lo administrativo con un cómputo que cita la norma del paquete de ensayo.
+const (
+	tipoSinPaquete = "  - codigo: prueba-sin-paquete\n" +
+		"    nombre: plazo de prueba de una norma sin paquete\n" +
+		"    computo: lpac\n" +
+		"    duracion: {cantidad: 1, unidad: meses}\n" +
+		"    da: vencimiento\n" +
+		"    preceptos:\n" +
+		"      - {norma: BOE-A-2003-23186, bloque: a97, apartado: \"97\", fija: duracion, vigente_desde: \"2004-07-01\"}\n"
+	tipoDeDosPaquetes = "  - codigo: prueba-de-dos-paquetes\n" +
+		"    nombre: plazo de prueba de dos paquetes\n" +
+		"    computo: lpac\n" +
+		"    duracion: {cantidad: 1, unidad: meses}\n" +
+		"    da: vencimiento\n" +
+		"    preceptos:\n" +
+		"      - {norma: BOE-A-2015-10565, bloque: a122, apartado: \"122.1\", fija: duracion, vigente_desde: \"2016-10-02\"}\n" +
+		"      - {norma: " + normaDelEnsayo + ", bloque: a2, apartado: \"2\", fija: inicio, vigente_desde: \"2016-10-02\"}\n"
+	tipoDeOtroComputo = "  - codigo: prueba-de-otro-computo\n" +
+		"    nombre: plazo de prueba con el cómputo de otro paquete\n" +
+		"    computo: prueba\n" +
+		"    duracion: {cantidad: 1, unidad: meses}\n" +
+		"    da: vencimiento\n" +
+		"    preceptos:\n" +
+		"      - {norma: BOE-A-2015-10565, bloque: a122, apartado: \"122.1\", fija: duracion, vigente_desde: \"2016-10-02\"}\n"
+	computoDeOtroPaquete = "  - codigo: prueba\n" +
+		"    municipios: [el del interesado]\n" +
+		"    unidades: [meses]\n" +
+		"    preceptos:\n" +
+		"      - {norma: " + normaDelEnsayo + ", bloque: a3, apartado: \"3\", fija: meses, vigente_desde: \"2016-10-02\"}\n"
+)
+
+// anadirALosPlazos añade al data/plazos.yaml del árbol de raíz el tipo, detrás
+// de los demás tipos, y el cómputo, delante de los demás cómputos.
+func anadirALosPlazos(t *testing.T, raiz, tipo, computo string) {
+	t.Helper()
+
+	cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "plazos.yaml"), "\ncomputos:\n",
+		"\n"+tipo+"computos:\n"+computo)
+}
+
+// probarElComputoDeOtroPaquete fija que el paquete de un tipo es el de las
+// normas de sus preceptos propios y no el de las de su cómputo (FR-001; US3.3 de
+// H45): un tipo de lo administrativo con un cómputo que cita una norma del
+// paquete de ensayo no da ningún defecto y sale en la referencia de lo
+// administrativo.
+func probarElComputoDeOtroPaquete(t *testing.T) {
+	t.Parallel()
+
+	raiz := arbolDeRegiones(t)
+	anadirALosPlazos(t, raiz, tipoDeOtroComputo, computoDeOtroPaquete)
+
+	regenerado := regenerar(t, raiz, nil)
+	assert.Empty(t, presentarDefectos(regenerado.Defectos()))
+	require.NoError(t, skills.Escribir(raiz, regenerado))
+
+	assert.Contains(t, leerFicheroDePrueba(t, rutaDeLaReferenciaConRegiones(raiz)),
+		"| plazo de prueba con el cómputo de otro paquete | `prueba-de-otro-computo` | 1 mes | `prueba` | "+
+			"art. 122.1 LPAC [BOE-A-2015-10565, bloque a122] |\n")
 }
 
 // casosDeRegiones son los casos de probarLosDefectosDeLasRegiones.
@@ -477,6 +572,28 @@ func casosDeRegiones() []casoDeRegion {
 					"    precepto: {norma: BOE-A-2003-23186, bloque: a97, apartado: \"97\"}\n")
 			},
 			defectos: []string{filaSinRegion("liquidaciones")},
+		},
+		{
+			nombre: "tipo-sin-paquete",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				anadirALosPlazos(t, raiz, tipoSinPaquete, "")
+			},
+			defectos: []string{
+				"plazos-y-territorio: data/plazos.yaml: el tipo prueba-sin-paquete no es de ningún paquete: ninguna " +
+					"norma de sus preceptos lleva vertical en data/normas.yaml",
+			},
+		},
+		{
+			nombre: "tipo-de-dos-paquetes",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				anadirALosPlazos(t, raiz, tipoDeDosPaquetes, "")
+			},
+			defectos: []string{
+				"plazos-y-territorio: data/plazos.yaml: el tipo prueba-de-dos-paquetes es de más de un paquete: " +
+					"administrativo, ensayo",
+			},
 		},
 		{
 			nombre: "region-sin-sus-datos",
