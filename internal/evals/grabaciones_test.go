@@ -13,6 +13,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -1877,4 +1878,49 @@ func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) [
 	}
 
 	return defectos
+}
+
+// TestSinLasGrabacionesDeLosHitos comprueba que quien lee UnionDeGrabaciones
+// para preparar la caché de una sesión o calcular las dependencias de una eval
+// devuelve su error, sin seguir con una unión a medias (FR-015): en un árbol
+// con los esquemas del repositorio y sin evidencias/, la unión no se puede leer.
+//
+//nolint:paralleltest // t.Chdir cambia el directorio de todo el proceso: no puede ir con otra prueba a la vez.
+func TestSinLasGrabacionesDeLosHitos(t *testing.T) {
+	const fichero = "01-lpac-articulo-21.yaml"
+
+	ruta := directorioDeLasEvals + "/normativa/" + fichero
+	contenido, err := os.ReadFile(raizDelRepositorio + "/" + ruta)
+	require.NoError(t, err)
+
+	esquemas, err := filepath.Abs(raizDelRepositorio + "/schemas")
+	require.NoError(t, err)
+
+	arbol := t.TempDir()
+	require.NoError(t, os.Symlink(esquemas, filepath.Join(arbol, "schemas")))
+
+	paquete := filepath.Join(arbol, "internal", "evals")
+	require.NoError(t, os.MkdirAll(paquete, 0o750))
+
+	dirCache, base := t.TempDir(), t.TempDir()
+
+	t.Chdir(paquete)
+
+	_, err = UnionDeGrabaciones()
+	require.ErrorIs(t, err, fs.ErrNotExist, "sin evidencias/ la unión no se lee")
+
+	t.Run("cache-de-la-sesion", func(t *testing.T) {
+		eval := Eval{Fichero: fichero, GrafoPrevio: GrafoPrevio{Grabaciones: "un-conjunto"}}
+
+		require.ErrorIs(t, prepararLaCacheDeLaSesion(dirCache, base, eval, GrafosPrevios), fs.ErrNotExist)
+	})
+
+	t.Run("dependencias-de-la-eval", func(t *testing.T) {
+		calculo := calculoDeDependencias{arbol: fstest.MapFS{ruta: {Data: contenido}}}
+
+		grabaciones, err := calculo.grabacionesDeLaEval(ruta, fichero)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, directorioDeLasEvidencias, "el error es el de la unión, no el de leer la eval")
+		assert.Nil(t, grabaciones)
+	})
 }
