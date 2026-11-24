@@ -20,7 +20,9 @@ import (
 )
 
 // Las cuatro descripciones de la variante del repositorio, cada una la línea de
-// su apartado de contracts/variante.md §2 sin el salto de línea final.
+// su apartado de contracts/variante.md §2 sin el salto de línea final, salvo la
+// de plazos-y-territorio, que es el texto de FR-023 de H45, que deja de nombrar
+// una materia.
 const (
 	descripcionCortaDeConsultaJuridica = "Punto de entrada de toda pregunta legal en España, de cualquier materia: " +
 		"dice qué capacidad de kitlegal la resuelve —normativa, jurisprudencia, plazos y territorio— y con qué skill, " +
@@ -37,11 +39,11 @@ const (
 		"que dice una norma —un artículo, ley o real decreto, el plazo o requisito que fija— o de lo que decía en " +
 		"una fecha, aunque el agente crea saberlo. Se activa antes de boe_articulo u otra herramienta boe_…: qué " +
 		"pedir y cómo citar lo dice la skill."
-	descripcionCortaDePlazosYTerritorio = "Calcula con kitlegal hasta qué día se puede recurrir una resolución " +
-		"administrativa, cuándo vence un plazo del procedimiento común (LPAC) o el del contencioso y cuándo hay " +
-		"silencio, con los festivos que cuentan, e identifica el territorio de un municipio: INE, provincia, " +
-		"comunidad, DIR3 y boletines. No cuenta plazos de otras materias. Se usa al preguntar cuándo vence un plazo " +
-		"o un recurso, o qué boletines tiene un municipio."
+	descripcionCortaDePlazosYTerritorio = "Calcula con kitlegal hasta qué día se puede recurrir una resolución, " +
+		"cuándo vence un plazo y cuándo hay silencio, con los festivos que cuentan, e identifica el territorio de " +
+		"un municipio: INE, provincia, comunidad, DIR3 y boletines. Cuenta los plazos de las materias que cubre y " +
+		"de las demás dice que no los cubre, sin darlos de memoria. Se usa al preguntar cuándo vence un plazo o un " +
+		"recurso, o qué boletines tiene un municipio."
 )
 
 // lasCuatroSkills son las de skills/ del repositorio, en orden de nombre, las de

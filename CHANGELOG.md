@@ -51,6 +51,15 @@ sustituyen a este fichero.
   cabe. Entre las cuatro skills son doce sesiones a la vez como mucho, y no once; el tope, los modelos y los demás
   ajustes del trabajo no cambian. Doce a la vez pueden topar con el límite de la suscripción, que el cierre enseña como
   fallo de la fuente.
+- **La descripción de `plazos-y-territorio` deja de nombrar una materia** (H45; ADR 0062). Ya no habla del
+  procedimiento común (LPAC) ni del contencioso, ni dice que no cuenta plazos de otras materias; ahora es: «Calcula con
+  kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo y cuándo hay silencio, con los
+  festivos que cuentan, e identifica el territorio de un municipio: INE, provincia, comunidad, DIR3 y boletines. Cuenta
+  los plazos de las materias que cubre y de las demás dice que no los cubre, sin darlos de memoria. Se usa al preguntar
+  cuándo vence un plazo o un recurso, o qué boletines tiene un municipio.» Son 429 caracteres, los que lee el agente en
+  cada sesión para elegir skill, y es la que instala `kitlegal skills install`. La variante
+  `producto-descripciones-cortas` del laboratorio lleva el mismo texto, y la suma de sus cuatro descripciones pasa de
+  1 690 a 1 692 caracteres, con el tope de 1 700. `kitlegal plazos` no cambia.
 
 ### Corregido
 
