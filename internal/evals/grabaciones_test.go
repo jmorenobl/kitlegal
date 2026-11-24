@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -392,6 +393,22 @@ func probarLasRaicesDeLosHitos(t *testing.T) {
 		require.ErrorContains(t, err, raiz+"/"+directorioDeLasEvidencias, "el error nombra el directorio que no se lee")
 		assert.Nil(t, union)
 	})
+
+	// Que no haya manifiesto no es un error, pero que no se pueda mirar sí: un
+	// manifiesto.json que es un enlace a sí mismo hace fallar os.Stat con ELOOP,
+	// y el error nombra la carpeta del hito.
+	t.Run("manifiesto-que-no-se-mira", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := arbolDeEvidencias(t, []carpetaDeEvidencias{{nombre: "h50", subcarpetas: conLaDelBOE}})
+		manifiesto := filepath.Join(raiz, directorioDeLasEvidencias, "h50", nombreDelManifiestoDeUnHito)
+		require.NoError(t, os.Symlink(manifiesto, manifiesto))
+
+		union, err := unionDeGrabacionesDe(raiz)
+		require.ErrorIs(t, err, syscall.ELOOP)
+		require.ErrorContains(t, err, manifiesto, "el error nombra lo que no se pudo mirar")
+		assert.Nil(t, union)
+	})
 }
 
 // TestCarpetaDeUnHito fija qué carpetas de evidencias/ son de un hito, con su
@@ -409,6 +426,9 @@ func TestCarpetaDeUnHito(t *testing.T) {
 		{nombre: "h9-1", hito: 9, subhito: 1, esDeUnHito: true},
 		{nombre: "adr-0036"},
 		{nombre: "sondeos-20261025"},
+		// Un número que no cabe en un int no es el de un hito ni el de un subhito.
+		{nombre: "h99999999999999999999"},
+		{nombre: "h9-99999999999999999999"},
 	}
 
 	for _, caso := range casos {

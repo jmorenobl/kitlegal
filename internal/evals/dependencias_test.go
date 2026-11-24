@@ -714,6 +714,7 @@ func TestEsDeUnaRaizDeGrabaciones(t *testing.T) {
 		{ruta: "evidencias/h36/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
 		{ruta: "evidencias/h99/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
 		{ruta: "evidencias/h9-1/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots, es: true},
+		{ruta: "evidencias/h36"},
 		{ruta: "evidencias/h36/" + nombreDelManifiestoDeUnHito},
 		{ruta: "evidencias/h9/boe.fiestas-laborales/" + grabacionDeRobots},
 		{ruta: "evidencias/adr-0036/" + boe.NombreDeLaFuente + "/" + grabacionDeRobots},
