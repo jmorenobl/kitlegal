@@ -1,17 +1,14 @@
 {
-  "id": "T001",
-  "texto": "T001 [P] [US2] `TestCoberturaDelRepositorio` genérico en `internal/skills/cobertura_test.go` (FR-001, FR-002, FR-003, FR-004; US2.1-US2.5; SC-004, SC-007; contracts/tests-genericos.md §1; data-model §1; research D1): `type tupla struct{ delPrecepto, apartado, queLaRige string }` local al test, sin campo de procedimiento; `deLaBase` con una tupla por fila de `LeerCobertura(...).ReguladosAparte`, en su orden, solo si es de `paqueteDeLaBase` por el filtro escrito en el test (el `vertical` de la norma que la rige en `normasDelRepositorioPorIdentificador`; sin norma o sin `vertical`, el de la norma de su precepto), sin `paqueteDeLaFila` ni `filasDeLaCobertura`; `nueve := []tupla{…}` las nueve tuplas de data-model §1 a mano y en su orden con `const lpac = \"BOE-A-2015-10565\"`; la comprobación por subsecuencia del contrato (`casadas`, `assert.Equal(t, len(deLaBase), casadas, …)`) con el mensaje de §1 («…: de sus filas de administrativo, `<leídas>`, solo las `<n>` primeras son, en su orden, de las nueve tuplas de contracts/datos-de-plazos.md §3 de H9, `<nueve>`»), y el comentario del test con la regla y con que lo que falta o cambia de texto lo ve `h32-paquetes` (FR-004). Ninguna de las nueve cadenas de procedimiento de hoy (`cobertura_test.go:384-397`) queda en el cuerpo del test (comprobar con `grep -n`). Ver en rojo, en una copia del módulo en `$TMPDIR` con el cambio, L06 (`sed -i 39d data/cobertura.yaml` → «solo las 5 primeras») y L07 (`LeerCobertura` con `Norma = nil`, la orden de Q8 → `expected: 9`, `actual: 0`); `go test -count=1 -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/` sigue en verde con el guion de hoy; `make ci` en verde.",
+  "id": "T002",
+  "texto": "T002 [P] [US3] La línea del paso 2, contada en `internal/evals/conjunto_test.go` (FR-005; US1.4, US3.1-US3.3; SC-004; contracts/tests-genericos.md §2; data-model §2; research D2): `func mutantesDeLasOrdenes(t *testing.T) []mutanteDeUnControl` con `t.Helper()`, y su llamada en `TestControlesSobreLasReferenciasAMano` pasa `t`; el defecto esperado de `forma-en-una-referencia-con-otros-bloques` y `forma-en-ninguna-referencia` pasa a `fmt.Sprintf(\"normativa: SKILL.md: línea %d, «%s»%s\", lineaDeLaOrdenDelPasoDos(t), bashDelPasoDos, sinSuForma)`; nueva `func lineaDeLaOrdenDelPasoDos(t *testing.T) int` que lee `filepath.Join(raizDeLasSkills, directorioDeLasSkills, skillNormativa, ficheroDeLaSkill)` con `contenidoDelFichero`, recorre `strings.Lines` con un contador propio desde 1 y guarda cada línea cuyo `strings.TrimSpace` es `bashDelPasoDos`, con `require.Len(t, lineas, 1, \"premisa: la orden de Bash del paso 2 está en una sola línea del SKILL.md de normativa\")`, sin `tramosDeCodigo` ni `ordenesDeLectura`. Ningún otro mutante cambia y ningún número de línea del `SKILL.md` queda escrito para esos dos casos. Comprobar que con `main` el defecto esperado es el de hoy byte a byte, con «línea 36» (Q6, con `-v`); ver en rojo los dos casos, en una copia del módulo en `$TMPDIR` con el cambio, con P6 (`defectosDeLasOrdenes(delSkillMd, nil)`) y con «otra línea» (`tramoDeCodigo{linea: numero + 1, …}` en `tramosDeCodigo`), con las órdenes de Q8; `h45-paquete-de-mas` de hoy sigue en verde; `make ci` en verde.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "fd7fe1641389e2b73a6aec2dbbed3232f65cd8d4",
+  "base": "12b51cebef979c3fc5e8b63d589c7c175f6f0cec",
   "rutas": [
-    "cobertura_test.go",
-    "contracts/datos-de-plazos.md",
+    "SKILL.md",
     "contracts/tests-genericos.md",
-    "data/cobertura.yaml",
-    "internal/app/",
-    "internal/skills/cobertura_test.go"
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false,
   "converger": false,

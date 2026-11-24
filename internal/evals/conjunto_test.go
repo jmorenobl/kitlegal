@@ -5075,7 +5075,7 @@ func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
-	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(),
+	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(t),
 		mutantesDeLaLineaSinConsulta(), mutantesDeLasFormasMovidas(), mutantesDeLasLineasDeAviso(t),
 		mutantesDeLasOrdenesDeEjemplo(t))
 
@@ -5303,8 +5303,11 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 // tal como está, con otros bloques en esa forma y sin ella (§C.3 de H45); y las
 // órdenes de articulos, que desde H31 están en references/varios_bloques.md
 // (contracts/skills-reescritas.md de H31, «normativa»), llevadas de ahí a
-// SKILL.md, o quitadas.
-func mutantesDeLasOrdenes() []mutanteDeUnControl {
+// SKILL.md, o quitadas. La línea de la orden del paso 2 en el defecto es la del
+// SKILL.md del módulo, que la copia lleva tal cual: ningún mutante lo toca.
+func mutantesDeLasOrdenes(t *testing.T) []mutanteDeUnControl {
+	t.Helper()
+
 	const (
 		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
 		enPowerShell = "# Lecturas en PowerShell\n\n```powershell\n" + powershellDeArticulo + "\n```\n"
@@ -5312,7 +5315,9 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 
 	sinSuFormaEnLaReferencia := []string{"normativa: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
 		sinSuForma}
-	sinSuFormaEnElSkillMd := []string{"normativa: SKILL.md: línea 36, «" + bashDelPasoDos + "»" + sinSuForma}
+	sinSuFormaEnElSkillMd := []string{
+		fmt.Sprintf("normativa: SKILL.md: línea %d, «%s»%s", lineaDeLaOrdenDelPasoDos(t), bashDelPasoDos, sinSuForma),
+	}
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
 	}
@@ -5377,6 +5382,34 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 			exactos: true,
 		},
 	}
+}
+
+// lineaDeLaOrdenDelPasoDos es el número, contado desde 1 sobre el fichero
+// entero, de la única línea del SKILL.md de normativa del módulo que es, sin los
+// blancos de sus extremos, la orden de Bash del paso 2. Se cuenta aparte, sin
+// tramosDeCodigo ni ordenesDeLectura, para que un control que da otra línea no
+// arrastre consigo el defecto esperado.
+func lineaDeLaOrdenDelPasoDos(t *testing.T) int {
+	t.Helper()
+
+	skillMd := filepath.Join(raizDeLasSkills, directorioDeLasSkills, skillNormativa, ficheroDeLaSkill)
+
+	var (
+		lineas []int
+		numero int
+	)
+
+	for linea := range strings.Lines(string(contenidoDelFichero(t, skillMd))) {
+		numero++
+
+		if strings.TrimSpace(linea) == bashDelPasoDos {
+			lineas = append(lineas, numero)
+		}
+	}
+
+	require.Len(t, lineas, 1, "premisa: la orden de Bash del paso 2 está en una sola línea del SKILL.md de normativa")
+
+	return lineas[0]
 }
 
 // mutantesDeLaLineaSinConsulta son los del control 2: en cada skill que la
