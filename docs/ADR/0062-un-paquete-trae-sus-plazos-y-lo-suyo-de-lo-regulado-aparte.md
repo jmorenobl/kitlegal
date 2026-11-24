@@ -1,6 +1,6 @@
 # 0062 · Un paquete de materia trae sus plazos y lo suyo de lo regulado aparte, y el molde lo admite sin código
 
-- **Estado**: propuesta (2026-11-22); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+- **Estado**: aceptada (2026-11-24)
 - **Fecha**: 2026-11-22
 - **Hito**: H45 (puntos 1 a 5, 7 y 8) y H42 (punto 6). Se escribe con sus entradas, antes de los runs y fuera de
   ellos, en una sesión interactiva. Precisa el orden del ADR 0059 (punto 1): H45 va entre H36 y H42. Precisa el molde
