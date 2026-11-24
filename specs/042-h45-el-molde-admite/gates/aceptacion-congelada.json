@@ -3,6 +3,8 @@
   "commit": "fcc2236f9e68341d991a7b2fdd92bcbf8228c26e",
   "ficheros": {
     "specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar": "2adba0d35b4261faf3e5f9fc7b31a8726e2a770030ceb9552feb859193f17b6e",
-    "specs/042-h45-el-molde-admite/aceptacion/skills-instaladas.txtar": "dc3a74e6ea420f4dfa78ad14a58d5babae1dae1aca5ebf3951c98c542f6c9606"
+    "specs/042-h45-el-molde-admite/aceptacion/skills-instaladas.txtar": "dc3a74e6ea420f4dfa78ad14a58d5babae1dae1aca5ebf3951c98c542f6c9606",
+    "internal/app/testdata/script/h45-paquete-de-mas.txtar": "2adba0d35b4261faf3e5f9fc7b31a8726e2a770030ceb9552feb859193f17b6e",
+    "internal/app/testdata/script/h45-skills-instaladas.txtar": "dc3a74e6ea420f4dfa78ad14a58d5babae1dae1aca5ebf3951c98c542f6c9606"
   }
 }
