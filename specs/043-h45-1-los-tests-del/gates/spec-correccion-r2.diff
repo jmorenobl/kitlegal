@@ -1,0 +1,45 @@
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-24 12:55:37.273382410 +0100
++++ ahora/spec.md	2026-11-24 12:56:11.835144335 +0100
+@@ -59,8 +59,8 @@
+ 
+ - Q: ¿Cómo corre `TestDefinicionDelJob` en la copia con un paquete más? → A: por la lista de subtests, al menos
+   `cuatro-evals-mas`, que con 16 copias fijas no depende de cuántas evals tenga el módulo; sale de los tests enteros, y
+-  sobre la copia no corren `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden las evals del módulo copiado
+-  más las cinco de la copia. Descartado: dejarlo entero, que con las 16 de H42 da 21 evals en la copia, no caben, y el
++  sobre la copia no corren `del-repositorio`, `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden contra el
++  tope las evals del módulo copiado más las cinco de la copia. Descartado: dejarlo entero, que con las 16 de H42 da 21 evals en la copia, no caben, y el
+   guion sale en rojo en el `make ci` de H42, que no puede tocarlo. Es la lectura literal del hito («la lista de
+   subtests de la copia gana … `TestDefinicionDelJob`»). (auto)
+ 
+@@ -200,8 +200,8 @@
+ El guion `h45-paquete-de-mas` y su copia congelada pasan de un paquete que solo añade a uno que hace lo que hará H42:
+ estrecha una fila de la base sin partirla, da norma a otra, lleva una referencia en `normativa` y añade evals de modo y
+ una de lo no declarado en `plazos-y-territorio`. Corre en la copia, además de su lista de hoy,
+-`TestControlesSobreLasReferenciasAMano` y, de `TestDefinicionDelJob`, al menos `cuatro-evals-mas` (FR-011), y todo
+-sigue en verde.
++`TestControlesSobreLasReferenciasAMano` y, de `TestDefinicionDelJob`, al menos `cuatro-evals-mas` y nunca los que
++miden contra el tope las evals del módulo copiado (FR-011), y todo sigue en verde.
+ 
+ **Why this priority**: es la aceptación del hito; sin ella, que los cuatro tests sean genéricos no lo comprueba nada
+ dentro de `make ci`.
+@@ -304,7 +304,8 @@
+   la copia.
+ - **FR-011**: La lista de subtests que el guion corre en la copia gana `TestControlesSobreLasReferenciasAMano` y, de
+   `TestDefinicionDelJob`, al menos `cuatro-evals-mas`; `TestDefinicionDelJob` sale de los tests enteros, y sobre la
+-  copia no corren `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden las evals del módulo copiado. La
++  copia no corren `del-repositorio`, `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden contra el tope las
++  evals del módulo copiado. La
+   sincronía, los tests enteros y los subtests salen con 0. Criterio: el escenario 1 de US6.
+ - **FR-012**: Con cualquiera de los cuatro tests devuelto a su versión de `main`, el guion sale en rojo. Criterio: el
+   escenario 2 de US6, uno por test, en el registro de mutantes del hito.
+@@ -381,7 +382,8 @@
+   que la fila pase a `prueba.md` como la del art. 112.4 pasa a `fiscal.md` con H42: es el caso que hoy pone en rojo
+   `TestCoberturaDelRepositorio`. Su precepto aplicable es uno ya grabado de esa norma.
+ - **«La lista de subtests gana `TestDefinicionDelJob`»**: lo decide la Clarification (auto) de la sesión 2026-11-24
+-  (FR-011). `TestControlesSobreLasReferenciasAMano` se añade a la lista, entero o con sus dos casos.
++  (FR-011): sobre la copia no corre ningún subtest que mida contra el tope las evals del módulo copiado
++  (`del-repositorio`, `peor-caso`, `tope-con-las-evals-del-repositorio`). `TestControlesSobreLasReferenciasAMano` se añade a la lista, entero o con sus dos casos.
+ - **Del esperado de `TestCoberturaDelRepositorio`**: el hito admite dos formas («leídas del YAML en crudo, o escritas a
+   mano sin el texto del procedimiento»); el plan elige la que cumple a la vez FR-001 a FR-003, y en particular que L06
+   siga en rojo en este test.

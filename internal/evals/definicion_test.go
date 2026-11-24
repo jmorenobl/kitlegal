@@ -343,8 +343,8 @@ var entornoDelTrabajo = map[string]string{
 // matriz da 1, 3, 5 y 3 sesiones a la vez, 12 entre todas, con
 // plazos-y-territorio a tres; el peor caso que se espera de cada trabajo sale de
 // las evals del repositorio, sin planes, segundos ni minutos escritos, y cabe en
-// su tope; y con cuatro evals de modo más en plazos-y-territorio, como las de
-// H42, el suyo cabe en el tope a tres y no a dos.
+// su tope; y con una carpeta de 16 evals de modo en plazos-y-territorio, las que
+// tendrá con las de H42, el suyo cabe en el tope a tres y no a dos (H45.1).
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -3403,27 +3403,29 @@ func peorCasoEsperado(t *testing.T, leida DefinicionDelJob, evals, skill string)
 	return peor
 }
 
-// probarCuatroEvalsMas fija que el trabajo de plazos-y-territorio admite las
-// cuatro evals que H42 le añade (US8.2 y US8.3; FR-022; SC-006; research D9):
-// con las evals del repositorio copiadas en un directorio temporal y cuatro
-// copias de más de una eval de modo que decide de plazos-y-territorio, su peor
-// caso, el que se espera de esas evals, cabe en los 352 minutos del tope de la
-// definición del repositorio, y con la misma definición y plazos-y-territorio a
-// dos, como iba hasta H45, no cabe.
+// probarCuatroEvalsMas fija que el trabajo de plazos-y-territorio admite una
+// carpeta de 16 evals de modo, las que tendrá con las cuatro que H42 le añade
+// (US4.1 a US4.4 de H45.1; FR-006, FR-007; SC-006; research D3): con las evals
+// del repositorio copiadas en un directorio temporal y, en la carpeta de
+// plazos-y-territorio, sus evals cambiadas por 16 copias de la primera de modo
+// que decide, su peor caso, el que se espera de esas evals, cabe en el tope de
+// la definición del repositorio, y con la misma definición y
+// plazos-y-territorio a dos, como iba hasta H45, no cabe. Las 16 son fijas: la
+// medida no cambia con las evals que tenga la carpeta del repositorio. Que esas
+// quepan en el tope lo exige probarElTopeConLasEvalsDelRepositorio (FR-008).
 func probarCuatroEvalsMas(t *testing.T) {
 	t.Parallel()
 
 	const (
-		skill         = "plazos-y-territorio"
-		evalsDeMas    = 4
-		primeraCopia  = 90
-		topeEnMinutos = 352
-		deDosEnDos    = 2
+		skill            = "plazos-y-territorio"
+		evalsDeLaCarpeta = 16
+		deDosEnDos       = 2
 	)
 
 	leida, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
-	require.Equal(t, topeEnMinutos, leida.TopeEnMinutos, "premisa: el tope del trabajo evals")
+
+	tope := time.Duration(leida.TopeEnMinutos) * time.Minute
 
 	evals := filepath.Join(t.TempDir(), directorioDeLasEvals)
 	require.NoError(t, os.CopyFS(evals, os.DirFS(directorioDeEvals)))
@@ -3448,25 +3450,27 @@ func probarCuatroEvalsMas(t *testing.T) {
 
 	_, descripcion, _ := strings.Cut(copiada, "-")
 
-	for numero := range evalsDeMas {
-		copia := fmt.Sprintf("%02d-copia-%s", primeraCopia+numero, descripcion)
+	// Se quitan solo las evals: lo que no es una eval de la carpeta, que el
+	// peor caso también lee, se queda.
+	for _, eval := range conjunto.Evals {
+		require.NoError(t, carpeta.Remove(eval.Fichero))
+	}
 
-		_, err := carpeta.Stat(copia)
-		require.ErrorIs(t, err, os.ErrNotExist, "premisa: la copia %s no sustituye a ninguna eval", copia)
-		require.NoError(t, carpeta.WriteFile(copia, contenido, 0o600))
+	for numero := range evalsDeLaCarpeta {
+		require.NoError(t, carpeta.WriteFile(fmt.Sprintf("%02d-copia-%s", numero+1, descripcion), contenido, 0o600))
 	}
 
 	conLasCopias, err := LeerConjunto(filepath.Join(evals, skill))
 	require.NoError(t, err)
-	require.Len(t, conLasCopias.Evals, len(conjunto.Evals)+evalsDeMas, "premisa: las copias son evals bien formadas")
-
-	tope := time.Duration(leida.TopeEnMinutos) * time.Minute
+	require.Len(t, conLasCopias.Evals, evalsDeLaCarpeta,
+		"premisa: la carpeta de %s de la copia tiene %d evals bien formadas", skill, evalsDeLaCarpeta)
 
 	peor, err := leida.peorCaso(evals, skill)
 	require.NoError(t, err)
 	assert.Equal(t, peorCasoEsperado(t, leida, evals, skill), peor)
 	assert.GreaterOrEqual(t, tope, peor.Duracion(),
-		"con cuatro evals m\xc3\xa1s y la definici\xc3\xb3n del repositorio, el tope cubre el peor caso de %s, %s", skill, peor)
+		"con %d evals de %s y la definici\xc3\xb3n del repositorio, el tope cubre su peor caso, %s",
+		evalsDeLaCarpeta, skill, peor)
 
 	aDos := leida
 	aDos.PorSkill = maps.Clone(leida.PorSkill)
@@ -3478,7 +3482,7 @@ func probarCuatroEvalsMas(t *testing.T) {
 	peorADos, err := aDos.peorCaso(evals, skill)
 	require.NoError(t, err)
 	assert.Less(t, tope, peorADos.Duracion(),
-		"con cuatro evals m\xc3\xa1s y %s a dos, el tope no cubre su peor caso, %s", skill, peorADos)
+		"con %d evals de %s y la skill a dos, el tope no cubre su peor caso, %s", evalsDeLaCarpeta, skill, peorADos)
 }
 
 // ejecucionPropia es la ejecución que decide en segundo-disparo: las de

@@ -2910,12 +2910,13 @@ func TestEvalsDelRepositorio(t *testing.T) {
 // probarLosPreceptosDeLaCobertura es el subtest precepto-de-la-cobertura de
 // TestEvalsDelRepositorio (contracts/forma-de-cita.md §4 de H32; data-model §8
 // de H32; research D16 de H32; FR-014): las evals de plazos-y-territorio que
-// llevan no_cubierto, al menos una, tienen cada una por precepto el de una fila
-// de data/cobertura.yaml; y su mutante, cada una de ellas con un bloque que
-// ninguna fila tiene —la 12 entre ellas—, da el defecto con su fichero y su
-// precepto. Desde H45, cuáles son y su precepto salen de las evals que lee
-// LeerConjunto, no de una lista escrita aquí (contracts/tests-sin-listas.md de
-// H45; FR-016).
+// llevan no_cubierto de lo regulado aparte, al menos una, tienen cada una por
+// precepto el de una fila de data/cobertura.yaml; y su mutante, cada una de
+// ellas con un bloque que ninguna fila tiene —la 12 entre ellas—, da el defecto
+// con su fichero y su precepto. Desde H45, cuáles son y su precepto salen de las
+// evals que lee LeerConjunto, no de una lista escrita aquí
+// (contracts/tests-sin-listas.md de H45; FR-016). Las de lo no declarado no
+// llevan precepto y no se miran (FR-009 de H45.1).
 func probarLosPreceptosDeLaCobertura(t *testing.T) {
 	t.Parallel()
 
@@ -2928,7 +2929,8 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 	conNoCubierto := slices.DeleteFunc(slices.Clone(dePlazosYTerritorio.Evals), func(eval Eval) bool {
 		return !llevaNoCubierto(eval)
 	})
-	require.NotEmpty(t, conNoCubierto, "%s tiene al menos una eval con no_cubierto", evalsDePlazosYTerritorio)
+	require.NotEmpty(t, conNoCubierto, "%s tiene al menos una eval con no_cubierto de lo regulado aparte",
+		evalsDePlazosYTerritorio)
 
 	assert.Empty(t, preceptosFueraDeLaCobertura(dePlazosYTerritorio.Evals, cobertura),
 		"cada no_cubierto.precepto de %s es el de una fila de %s", evalsDePlazosYTerritorio, coberturaDelRepositorio)
@@ -2951,12 +2953,14 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 	}
 }
 
-// llevaNoCubierto dice si la eval lleva no_cubierto: el filtro de
-// precepto-de-la-cobertura, escrito aquí y no con la regla de producción, para
-// que un mutante de esa regla no lo arrastre (contracts/tests-sin-listas.md de
-// H45).
+// llevaNoCubierto dice si la eval lleva no_cubierto de lo regulado aparte: el
+// filtro de precepto-de-la-cobertura, escrito aquí y no con la regla de
+// producción, para que un mutante de esa regla no lo arrastre
+// (contracts/tests-sin-listas.md de H45). Deja fuera las de lo no declarado
+// (fuera_de_lo_declarado), que no llevan precepto (contracts/tests-genericos.md
+// §4 de H45.1; FR-009).
 func llevaNoCubierto(eval Eval) bool {
-	return eval.NoCubierto != NoCubiertoEsperado{}
+	return eval.NoCubierto != NoCubiertoEsperado{} && !eval.NoCubierto.FueraDeLoDeclarado
 }
 
 // probarLasSkillsNombradas es el subtest skills-nombradas de
@@ -3192,10 +3196,11 @@ func capacidadesDelRepositorio(t *testing.T) []string {
 }
 
 // preceptosFueraDeLaCobertura son los defectos de las evals que llevan
-// no_cubierto cuyo no_cubierto.precepto no es el precepto —su norma y su
-// bloque— de ninguna fila de la cobertura por materia, uno por eval, en su
-// orden, con su fichero y su precepto (data-model §8 de H32; FR-014). Las demás
-// evals no lo llevan y no se miran.
+// no_cubierto de lo regulado aparte cuyo no_cubierto.precepto no es el
+// precepto —su norma y su bloque— de ninguna fila de la cobertura por materia,
+// uno por eval, en su orden, con su fichero y su precepto (data-model §8 de
+// H32; FR-014). Las demás evals —sin no_cubierto o con el de lo no declarado,
+// que no lleva precepto— no se miran.
 func preceptosFueraDeLaCobertura(evals []Eval, cobertura skills.Cobertura) []string {
 	var defectos []string
 
@@ -5075,7 +5080,7 @@ func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
-	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(),
+	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(t),
 		mutantesDeLaLineaSinConsulta(), mutantesDeLasFormasMovidas(), mutantesDeLasLineasDeAviso(t),
 		mutantesDeLasOrdenesDeEjemplo(t))
 
@@ -5303,8 +5308,11 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 // tal como está, con otros bloques en esa forma y sin ella (§C.3 de H45); y las
 // órdenes de articulos, que desde H31 están en references/varios_bloques.md
 // (contracts/skills-reescritas.md de H31, «normativa»), llevadas de ahí a
-// SKILL.md, o quitadas.
-func mutantesDeLasOrdenes() []mutanteDeUnControl {
+// SKILL.md, o quitadas. La línea de la orden del paso 2 en el defecto es la del
+// SKILL.md del módulo, que la copia lleva tal cual: ningún mutante lo toca.
+func mutantesDeLasOrdenes(t *testing.T) []mutanteDeUnControl {
+	t.Helper()
+
 	const (
 		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
 		enPowerShell = "# Lecturas en PowerShell\n\n```powershell\n" + powershellDeArticulo + "\n```\n"
@@ -5312,7 +5320,9 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 
 	sinSuFormaEnLaReferencia := []string{"normativa: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
 		sinSuForma}
-	sinSuFormaEnElSkillMd := []string{"normativa: SKILL.md: línea 36, «" + bashDelPasoDos + "»" + sinSuForma}
+	sinSuFormaEnElSkillMd := []string{
+		fmt.Sprintf("normativa: SKILL.md: línea %d, «%s»%s", lineaDeLaOrdenDelPasoDos(t), bashDelPasoDos, sinSuForma),
+	}
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
 	}
@@ -5377,6 +5387,34 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 			exactos: true,
 		},
 	}
+}
+
+// lineaDeLaOrdenDelPasoDos es el número, contado desde 1 sobre el fichero
+// entero, de la única línea del SKILL.md de normativa del módulo que es, sin los
+// blancos de sus extremos, la orden de Bash del paso 2. Se cuenta aparte, sin
+// tramosDeCodigo ni ordenesDeLectura, para que un control que da otra línea no
+// arrastre consigo el defecto esperado.
+func lineaDeLaOrdenDelPasoDos(t *testing.T) int {
+	t.Helper()
+
+	skillMd := filepath.Join(raizDeLasSkills, directorioDeLasSkills, skillNormativa, ficheroDeLaSkill)
+
+	var (
+		lineas []int
+		numero int
+	)
+
+	for linea := range strings.Lines(string(contenidoDelFichero(t, skillMd))) {
+		numero++
+
+		if strings.TrimSpace(linea) == bashDelPasoDos {
+			lineas = append(lineas, numero)
+		}
+	}
+
+	require.Len(t, lineas, 1, "premisa: la orden de Bash del paso 2 está en una sola línea del SKILL.md de normativa")
+
+	return lineas[0]
 }
 
 // mutantesDeLaLineaSinConsulta son los del control 2: en cada skill que la

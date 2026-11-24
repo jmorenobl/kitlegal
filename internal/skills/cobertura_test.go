@@ -319,18 +319,24 @@ func verticalesDelRepositorio(t *testing.T) []string {
 
 // TestCoberturaDelRepositorio comprueba la cobertura por materia del
 // repositorio (contracts/datos-de-plazos.md §3 de H9; FR-031; research D17 de
-// H9): LeerCobertura la lee sin ningún defecto y trae, de las nueve entradas en
-// su orden —las cuatro letras de la DA 1ª.2 LPAC, con la c repartida por
-// materias, y los arts. 112.2 y 112.4—, con la norma de su precepto y solo la
-// aplicación de los tributos y los sancionadores de tráfico con la norma que los
-// rige, las que son de lo administrativo, en las dos listas por la misma regla
-// escrita aquí (FR-016 de H45; contracts/tests-sin-listas.md): una entrada es de
-// lo administrativo si la norma que la rige está en data/normas.yaml con ese
-// vertical y, si no lleva norma o la suya no tiene vertical, si lo tiene la de su
-// precepto. Así una entrada de otro paquete, o una de estas que pasa a otro, no
-// cuenta en ninguna de las dos. Que cada bloque esté grabado y que cada
-// identificador sea el de la búsqueda grabada lo comprueba
-// TestPreceptosDeLosPlazos, en internal/evals.
+// H9; FR-001 a FR-004 y research D1 de H45.1): LeerCobertura la lee sin ningún
+// defecto y cada una de sus filas de lo regulado aparte que es de lo
+// administrativo es, en su orden, una de las nueve tuplas escritas aquí —la
+// norma de su precepto, su apartado y la norma que la rige, sin el texto de su
+// procedimiento—: las cuatro letras de la DA 1ª.2 LPAC, con la c repartida en
+// cuatro filas, y los arts. 112.2 y 112.4, y solo la aplicación de los tributos
+// y los sancionadores de tráfico con la norma que los rige. Una fila leída es
+// de lo administrativo por la regla escrita aquí: la norma que la rige está en
+// data/normas.yaml con ese vertical o, si no lleva norma o la suya no tiene
+// vertical, lo tiene la de su precepto. Las leídas son una subsecuencia de las
+// nueve: una fila que pasa a otro paquete, porque gana la norma de otro, deja
+// de estar entre las leídas sin dejar un hueco que adivinar entre las nueve, y
+// una fila de la base que pierde o cambia la norma que la rige no está en su
+// sitio entre ellas. Que no falte ninguna fila de la base ni cambie el texto de
+// su procedimiento lo comprueba el guion h32-paquetes, contra las líneas de la
+// región de la cobertura de cada skill; que cada bloque esté grabado y que cada
+// identificador sea el de la búsqueda grabada, TestPreceptosDeLosPlazos, en
+// internal/evals.
 func TestCoberturaDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -342,61 +348,54 @@ func TestCoberturaDelRepositorio(t *testing.T) {
 
 	normas := normasDelRepositorioPorIdentificador(t)
 
-	type entrada struct {
-		procedimiento, delPrecepto, apartado, queLaRige string
+	type tupla struct {
+		delPrecepto, apartado, queLaRige string
 	}
 
-	deLaBase := func(entradas []entrada) []entrada {
-		var delPaquete []entrada
+	var deLaBase []tupla
 
-		for _, una := range entradas {
-			vertical := normas[una.queLaRige].Vertical
-			if vertical == "" {
-				vertical = normas[una.delPrecepto].Vertical
-			}
-
-			if vertical == paqueteDeLaBase {
-				delPaquete = append(delPaquete, una)
-			}
-		}
-
-		return delPaquete
-	}
-
-	leidas := make([]entrada, 0, len(cobertura.ReguladosAparte))
 	for _, regulado := range cobertura.ReguladosAparte {
-		leida := entrada{
-			procedimiento: regulado.Procedimiento,
-			delPrecepto:   regulado.Precepto.Norma,
-			apartado:      regulado.Precepto.Apartado,
-		}
+		leida := tupla{delPrecepto: regulado.Precepto.Norma, apartado: regulado.Precepto.Apartado}
 		if regulado.Norma != nil {
 			leida.queLaRige = regulado.Norma.Identificador
 		}
 
-		leidas = append(leidas, leida)
+		vertical := normas[leida.queLaRige].Vertical
+		if vertical == "" {
+			vertical = normas[leida.delPrecepto].Vertical
+		}
+
+		if vertical == paqueteDeLaBase {
+			deLaBase = append(deLaBase, leida)
+		}
 	}
 
 	const lpac = "BOE-A-2015-10565"
 
-	assert.Equal(t, deLaBase([]entrada{
-		{
-			"aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa", lpac,
-			"DA 1ª.2.a", "BOE-A-2003-23186",
-		},
-		{
-			"gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y " +
-				"desempleo", lpac, "DA 1ª.2.b", "",
-		},
-		{"procedimientos sancionadores en materia tributaria y aduanera", lpac, "DA 1ª.2.c", ""},
-		{"procedimientos sancionadores en el orden social", lpac, "DA 1ª.2.c", ""},
-		{"procedimientos sancionadores en materia de tráfico y seguridad vial", lpac, "DA 1ª.2.c", "BOE-A-2015-11722"},
-		{"procedimientos sancionadores en materia de extranjería", lpac, "DA 1ª.2.c", ""},
-		{"actuaciones y procedimientos en materia de extranjería y asilo", lpac, "DA 1ª.2.d", ""},
-		{"procedimientos de impugnación que una ley establece en sustitución del recurso de alzada", lpac, "112.2", ""},
-		{"reclamaciones económico-administrativas", lpac, "112.4", ""},
-	}), deLaBase(leidas), "%s trae, de las nueve entradas de contracts/datos-de-plazos.md §3, las de %s, en su orden",
-		coberturaDelRepositorio, paqueteDeLaBase)
+	nueve := []tupla{
+		{lpac, "DA 1ª.2.a", "BOE-A-2003-23186"},
+		{lpac, "DA 1ª.2.b", ""},
+		{lpac, "DA 1ª.2.c", ""},
+		{lpac, "DA 1ª.2.c", ""},
+		{lpac, "DA 1ª.2.c", "BOE-A-2015-11722"},
+		{lpac, "DA 1ª.2.c", ""},
+		{lpac, "DA 1ª.2.d", ""},
+		{lpac, "112.2", ""},
+		{lpac, "112.4", ""},
+	}
+
+	casadas := 0
+
+	for _, una := range nueve {
+		if casadas < len(deLaBase) && deLaBase[casadas] == una {
+			casadas++
+		}
+	}
+
+	assert.Equal(t, len(deLaBase), casadas,
+		"%s: de sus filas de %s, %v, solo las %d primeras son, en su orden, de las nueve tuplas de "+
+			"contracts/datos-de-plazos.md §3 de H9, %v",
+		coberturaDelRepositorio, paqueteDeLaBase, deLaBase, casadas, nueve)
 }
 
 // TestCompilarEsquemaDeCoberturaDesdeUnaRuta fija la lectura y la compilación

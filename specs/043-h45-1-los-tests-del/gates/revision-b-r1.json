@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (del paso de barrido, 16:18, la hora del commit 4edbf8b0, cabeza de la rama): lint «0 issues», test y test-integration con -race en verde, govulncheck, TestEsquemasPublicados, skills-check, goreleaser check, gitleaks, go mod verify y «ci: todos los controles en verde», exit=0. Reproducido en un clon de la cabeza fuera del repositorio (/tmp/claude/jb451): golangci-lint run sobre internal/skills, internal/evals e internal/app, «0 issues»; golangci-lint fmt --diff sin salida; `go test -race -shuffle=on ./internal/skills/ ./internal/evals/ ./internal/app/`, 2872 tests en verde. No he repetido `make ci` entero (govulncheck, gitleaks y goreleaser solo constan en ci.log). Árbol: solo cambian los ficheros de gates/ que escribe el propio paso de revisión (modelos.jsonl, revision-cambios.md, revision-ciclo.json)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo es de test y corre offline (el guion, con GOPROXY=off, internal/app/testdata/script/h45-paquete-de-mas.txtar:46). Mutado en el clon, cada test cae con lo que dice detectar: L06 (fuera data/cobertura.yaml:39) → TestCoberturaDelRepositorio «expected: 9, actual: 5 … solo las 5 primeras»; L07 (Norma = nil en internal/skills/cobertura.go) → 9 y 0; P6 y «otra línea» → forma-en-una-referencia-con-otros-bloques y forma-en-ninguna-referencia en rojo; T1 → cuatro-evals-mas «5h52m0s is not greater than or equal to 7h47m49s»; L29 → «5h52m0s is not less than 4h10m13s»; L33 → el mensaje de la 12 con a999; las 07, 08 y 12 pasadas a lo no declarado → «Should NOT be empty … al menos una eval con no_cubierto de lo regulado aparte»; L04 y L05 con la sincronía → h32-paquetes «filas: 32 de 33», `no match for ^filas: 33 de 33$`, y TestCoberturaDelRepositorio en verde, como dice FR-004. SC-005, uno a uno: con cobertura_test.go de main, el guion da `tests enteros: 1` y nombra TestCoberturaDelRepositorio; con el 36 escrito, `tests enteros: 1` y TestControlesSobreLasReferenciasAMano/forma-en-una-referencia-con-otros-bloques; con definicion_test.go de main, `subtests: 1` y TestDefinicionDelJob/cuatro-evals-mas; con llevaNoCubierto de main, `subtests: 1` y «95-fuera-de-lo-declarado.yaml: no_cubierto.precepto , bloque  no es el precepto de ninguna fila». El esperado de la línea del paso 2 no es tautológico: lineaDeLaOrdenDelPasoDos (conjunto_test.go:5392-5418) cuenta aparte de tramosDeCodigo, y el mutante de «otra línea» lo prueba. Suite congelada propia: el hito no tiene (plan, «Aceptación e2e: no aplica», Complexity Tracking); su aceptación es el guion de H45, que el fichero del hito manda cambiar junto con su copia congelada: los dos son iguales byte a byte (cmp sin salida; sha256 9d501425…), el guion lo comprueba en su línea 75 y está en verde con `copia: hecha`, `sincronía: 0`, `orden del paso 2 de normativa, líneas más abajo: 1`, `tests enteros: 0`, `subtests: 0`."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "`git diff --name-status main...HEAD` fuera de specs/043: tres ficheros _test.go (internal/skills/cobertura_test.go, internal/evals/conjunto_test.go, internal/evals/definicion_test.go), los dos .txtar y el fichero del hito movido a done/. Ninguna importación nueva; entre las líneas añadidas no hay net/http, os.Exit ni panic, y el único fmt.Printf nuevo está en el programa paquete-de-mas.go del archivo del guion (txtar:187), fuera del módulo, como el de H45. Lint en verde."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet, sobre ni esquema cambia: el diff no lleva ningún .go de producción ni nada de schemas/, data/ ni skills/. Los tests que validan la salida real contra el esquema siguen en verde (ci.log:76-77, TestEsquemasPublicados; ci.log:78-81, skills-check)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de producción, código de salida ni contrato cambia. El programa del guion sale con 1 cuando no puede instalar: con la fila de extranjería de data/cobertura.yaml cambiada en el clon, `exec go run` falla en txtar:50 con «paquete-de-mas: instalación: …/data/cobertura.yaml no lleva una sola vez …», exit status 1."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Sin CHANGELOG, ADR ni docs/SOURCES.md, y es lo correcto: ningún comportamiento visible, decisión ni fuente cambia (research D8; tasks.md, tabla de la DoD). Ninguna página de docs/, CONTRIBUTING.md ni CHANGELOG.md describe lo que el hito cambia de estos tests ni del guion (grep de cuatro-evals-mas, línea 36, paquete-de-mas, llevaNoCubierto y mutantesDeLasOrdenes fuera de specs/). Las afirmaciones de los artefactos que he cotejado se sostienen: mutantes.md da para L06, L07, T1, L29, los cuatro tests devueltos a main y la copia congelada distinta las mismas salidas que he visto en mi clon; plan.md da 109 bytes para la salida en verde del guion y son los de sus cinco líneas; spec.md da 5 h 22 min 45 s para 16 copias a tres, 5 h 59 min 1 s para 18 y 7 h 47 min 49 s a dos, y son las que da el subtest mutado."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva ni grabación: en testdata/ solo cambia el guion, que corre sin red (GOPROXY=off, GOFLAGS=-mod=readonly). El paquete de prueba usa lo ya grabado de BOE-A-2015-11722, bloque a1, el mismo precepto de la fila de tráfico de data/cobertura.yaml:39. La eval de lo no declarado del archivo (txtar:549-558) es una pregunta inventada sin datos de nadie. Sin secretos, NIF ni POST."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Entre las líneas añadidas del diff no hay nolint, t.Skip, TODO, FIXME ni errores descartados con `_ =`. Ningún fixture retocado para que pase un test: el único fichero de testdata/ que cambia es el guion que el hito manda cambiar, en la tarea [datos] T005, y con cada test de main sale en rojo (criterio b). Cuarentena vacía (gates/cuarentena.json); las seis tareas, a la primera (gates/tareas-intentos.json)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff es el que pide US1.3: nada en data/, evals/, skills/ ni .github/, ningún .go que no sea _test.go, y h32-paquetes y h33-cobertura-instalada sin tocar. Del guion de main solo desaparecen la cabecera, los dos filtros y la copia de la 99- (sustituida por las cuatro de 96- a 99- y la 95-); lo demás del programa no cambia. Los supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: los tres comentarios corregidos en T003 y T004 no tocan código, y TestControlesSobreLasReferenciasAMano entero en la lista de tests enteros es una de las dos formas que admite «Assumptions» del spec («entero o con sus dos casos»)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna salida que consuma una skill o una persona en tiempo de consulta cambia (ningún .go de producción, dato, skill ni referencia en el diff): cero invocaciones nuevas por pregunta y nada que crezca con la caché ni con el grafo, así que no hay nada que sembrar. Lo que cambia lo lee quien escribe un paquete, una vez por `make ci` en rojo: el mensaje de TestCoberturaDelRepositorio lo acotan las filas de lo regulado aparte (dos listas de tuplas, visto con L06); el guion da cinco líneas, 109 bytes, en verde, y de cada orden que cae solo su principio (maxSalida = 1200, txtar:152). Cada señal deja de darse cuando se corrige el dato que nombra."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza: `tupla` sin procedimiento, las nueve a mano y la subsecuencia (cobertura_test.go:351-398) → FR-001 a FR-003; lineaDeLaOrdenDelPasoDos y la `t` de mutantesDeLasOrdenes (conjunto_test.go:5313, 5392-5418) → FR-005; evalsDeLaCarpeta = 16, los Remove y las 16 copias, sin topeEnMinutos (definicion_test.go:3419-3466) → FR-006, FR-007, SC-006; `!FueraDeLoDeclarado` (conjunto_test.go:2963) → FR-009; cambiosDeLaBase y cambiarUnaVez (txtar:128-141, 320-337) → FR-010 a y b; paquete/prueba-de-normativa.md → FR-010 c; 95- a 99- → FR-010 d; ordenDelPasoDos, lineaDeLaOrden y su línea en la salida → US6.4 y la quinta línea de SC-003; los dos filtros → FR-011; el cmp → FR-013. Ningún paquete, tipo exportado, opción ni dependencia nuevos; cobertura_test.go queda con una línea menos que en main. Las dos guardas del programa (el viejo que no está una vez; la orden en ninguna o en más de una línea) tratan un estado al que llega el siguiente hito que cambie esas filas o el SKILL.md, y le dan el fichero y el texto que falla en vez de un grep sin contexto, que es lo que pide «Quién consume cada salida» del spec."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md tiene su control en `make ci` y lo he visto en rojo en el clon al pasar la medida del umbral. SC-006, FR-006, FR-007: con timeout-minutes de 352 a 320 en .github/workflows/evals.yml:296, cuatro-evals-mas cae («5h20m0s is not greater than or equal to 5h22m45s»); con la carpeta a 18, cae (5h59m1s); con la carpeta a 10, cae por el otro lado («5h52m0s is not less than 5h4m37s»); con T1 y L29, cae. FR-008: con 20 evals en evals/plazos-y-territorio del clon, tope-con-las-evals-del-repositorio, peor-caso y del-repositorio en rojo (6h26m13s) y cuatro-evals-mas en verde. FR-003: L06 y L07. FR-004, SC-007: L04 y L05, «filas: 32 de 33». FR-005: P6 y otra línea. FR-009: L33 y las tres a lo no declarado. SC-003, FR-011: un código distinto de 0 pone el guion en rojo (los cuatro tests devueltos a main). FR-010: sin cambiarUnaVez, `no match for` en txtar:66; sin la referencia de normativa, «líneas más abajo: 0» y `no match for` en txtar:71. FR-013: con un byte distinto en la copia congelada, el cmp de txtar:75 da «… differ». SC-002: con una línea cambiada en skills/plazos-y-territorio/references/administrativo.md, TestSkillsDelRepositorio en rojo. SC-004, SC-005 y FR-012 los mide el registro mutantes.md por decisión del spec, y sus rojos son los de estos controles."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "internal/evals/definicion_test.go:2568-2571: el comentario del caso sintético plazos-y-territorio-de-dos-en-dos sigue diciendo que la línea del tope «con cuatro evals de modo más, la da probarCuatroEvalsMas»; desde este hito la da con una carpeta de 16 evals de modo. Es la misma frase que T003 corrigió en el comentario de TestDefinicionDelJob; no cambia nada observable y se lee con el comentario de la función, que ya lo precisa.",
+    "specs/042-h45-el-molde-admite/gates/aceptacion-congelada.json conserva la huella 2adba0d3… del guion de H45, que ya no es la de sus dos ficheros (9d501425…). El cambio lo manda el fichero del hito y el guardián de diff solo mira la suite del hito en curso, así que nada sale en rojo; queda para quien lea el informe.",
+    "FR-010 d (las cuatro evals de modo y la de lo no declarado de la copia) no tiene una comprobación propia dentro del guion, a diferencia de a, b y c: que la copia las ejerce lo prueba SC-005 en mutantes.md, como pide el spec, y lo he reproducido (con cuatro-evals-mas o llevaNoCubierto de main, `subtests: 1`).",
+    "Con las 16 evals que tendrá H42 simuladas en el clon (tres copias más de la 01 y una de lo no declarado en evals/plazos-y-territorio), TestDefinicionDelJob y TestEvalsDelRepositorio del módulo siguen en verde y el guion de la copia, con 21 evals, también. No he montado el prototipo entero de H42 (la LGT con su vertical, fiscal.md, los guiones de H32 y H33): el spec lo deja a la persona antes de lanzar H42.",
+    "TestCoberturaDelRepositorio pasa con cero filas de la base y ya no ve por sí solo una fila que falta: es lo que pide FR-002, y la fila que falta la ve h32-paquetes (comprobado con L04 y L05).",
+    "La capa de permisos de esta sesión no deja expandir `$TMPDIR` ni ejecutar un guion de bash: los mutantes van aplicados uno a uno con sed en /tmp/claude/jb451, el directorio temporal escribible de la sesión, y el clon queda limpio (`git status --short` sin salida). No he podido comprobar que `$TMPDIR` sea /tmp/claude."
+  ]
+}
