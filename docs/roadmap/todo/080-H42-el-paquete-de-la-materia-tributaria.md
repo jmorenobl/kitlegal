@@ -15,7 +15,8 @@ depende_de: [H45, H45.1]
   H45; el ADR 0059 (punto 2) y el ADR 0061. El run no los cambia ni escribe otro.
 - **Solo con datos.** El hito entra con datos, referencias, evals y `testdata/`. Ninguna tarea declara un fichero `.go`,
   un `SKILL.md` escrito a mano ni `.github/`: lo hace verdad el guardián de diff, que solo deja tocar las rutas
-  declaradas. Si el plan encuentra algo que pida Go, es un defecto del molde que vuelve a H45, no una tarea de este hito.
+  declaradas. Si el plan encuentra algo que pida Go, es un defecto del molde que va a un hito del molde, como H45.1, no una tarea de este
+  hito.
   Los cuatro que encontró el prototipo del 2026-11-24 los arregla H45.1, que va antes. Lo que no es Go y esta entrada sí
   declara son los dos guiones de aceptación de H32 y H33 que fijan las filas tributarias de antes, con sus copias
   congeladas (punto 9 de «Entrega»).
@@ -76,7 +77,8 @@ depende_de: [H45, H45.1]
     sobre un tope de 352 min.
 - **Lo comprobado en un segundo prototipo**, el 2026-11-24, sobre `main` después de H45 (`95442cf0`), con la entrada
   entera —las dos `fiscal.md`, los datos, las grabaciones en `evidencias/h42/`, la 07 cambiada y las evals 13 a 16— y
-  sin Go (rama `h42-prototipo`):
+  sin Go de producción (rama `h42-prototipo`, que lleva además los cuatro tests parcheados a mano y, en su último
+  commit, un cambio de `.github/` solo para la medida):
   - el binario da las fechas de T1 a T8; la sincronía reparte los dos tipos y las tres filas tributarias a `fiscal.md`
     y deja la aduanera en `administrativo.md`, que baja a 98 líneas; la `fiscal.md` de `plazos-y-territorio` tiene 71;
   - el cuerpo de `normativa` pasa de 10 750 a 10 820 caracteres y el de `plazos-y-territorio` de 10 686 a 10 756 (el
@@ -282,7 +284,8 @@ depende_de: [H45, H45.1]
   - el hito no tiene ningún cambio en Go;
   - `administrativo.md` y los plazos de hoy salen como en `main`, salvo las filas que pasan a `fiscal.md`.
 - **Antes de lanzar** (lo hace la persona, no el run):
-  - que H45 y H45.1 estén hechos y fusionados;
+  - que H45 y H45.1 estén hechos y fusionados, y que el prototipo de `h42-prototipo`, rebasado sobre `main` sin sus
+    tests parcheados ni su cambio de `.github/`, dé `make ci` en verde sin ningún `.go`;
   - **una medida previa sobre un prototipo completo** sobre el `main` de después de H45, con el job de evals de
     `normativa`, `plazos-y-territorio` y `consulta-juridica`, unas 460 sesiones. El prototipo lleva las dos `fiscal.md`
     escritas, los datos, la 07 cambiada y las evals 13 a 16. Hace falta porque cambia lo que leen las preguntas
@@ -294,5 +297,5 @@ depende_de: [H45, H45.1]
   - el sondeo del alias: `claude -p --model sonnet --output-format json 'Responde solo: ok'` da en `modelUsage` el
     `MODELO_DE_EVALS` de `.github/workflows/evals.yml` (ADR 0031);
   - mover este fichero a `in-progress/`, sin su prefijo.
-- **Dependencias**: H45, que deja el molde. H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
+- **Dependencias**: H45, que deja el molde, y H45.1, que suelta sus cuatro tests. H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
   0059), y H44 pone la doctrina sobre este paquete.
