@@ -156,13 +156,66 @@ func enUnBloqueDeMasDeUnaLinea(contenido string) bool {
 // description, «Una skill de ensayo.», mide 20 caracteres.
 const skillDeLaQuintaSkill = "---\nname: quinta\ndescription: >-\n  Una skill\n  de ensayo.\n---\n\n# Quinta\n"
 
+// letrasDeMasDeLaDe451 son las que el mutante «una de 451» añade a la
+// description de normativa, de 426 caracteres, para que tenga 451; y
+// sumaUnaPorEncimaDelMaximo, la suma de las descripciones de skills/ a la que
+// lleva el mutante «una suma de 1701», una más que maximoDeLasDescripcionesCortas.
+const (
+	letrasDeMasDeLaDe451      = 25
+	sumaUnaPorEncimaDelMaximo = maximoDeLasDescripcionesCortas + 1
+)
+
+// lineaDeLaSumaDelProducto es la línea que da
+// defectosDeLasDescripcionesDelProducto cuando las descripciones de skills/
+// suman suma caracteres, más de maximoDeLasDescripcionesCortas.
+func lineaDeLaSumaDelProducto(suma int) string {
+	return fmt.Sprintf("skills: las descripciones suman %d caracteres (máximo 1700)", suma)
+}
+
+// sumaDeLasDescripcionesDelProducto es la suma en runas de las description de
+// las skills de skills/ de la raíz, la que mide
+// defectosDeLasDescripcionesDelProducto, leída de cada SKILL.md.
+func sumaDeLasDescripcionesDelProducto(t *testing.T, raiz string) int {
+	t.Helper()
+
+	suma := 0
+
+	for _, skill := range skillsDelArbol(t, raiz) {
+		contenido, err := leerFichero(filepath.Join(raiz, directorioDeLasSkills, skill, ficheroDeLaSkill))
+		require.NoError(t, err)
+
+		suma += longitudDeLaDescripcion(t, contenido)
+	}
+
+	return suma
+}
+
+// longitudDeLaDescripcion es la longitud en runas de la description del
+// frontmatter del contenido de un SKILL.md, leída con skills.LeerFrontmatter: la
+// que mide defectosDeLaDescripcionDeLaSkill.
+func longitudDeLaDescripcion(t *testing.T, contenido []byte) int {
+	t.Helper()
+
+	frontmatter, err := skills.LeerFrontmatter(contenido)
+	require.NoError(t, err)
+
+	return utf8.RuneCountInString(frontmatter.Description)
+}
+
 // TestDescripcionesDelProducto comprueba las descripciones de skills/ contra la
 // variante producto-descripciones-cortas y sus límites (FR-001, FR-002, FR-004;
 // SC-001, SC-003; contracts/controles.md §1.2 y §1.3): la rama, sin ninguna
 // línea, y cada mutante, la medida pasada de su umbral, con sus líneas exactas y
-// en su orden (ADR 0029).
+// en su orden (ADR 0029). Las sumas de los mutantes se derivan de la de las
+// descripciones de skills/ del repositorio, la de hoy (FR-023 de H45; research
+// D8 de H45): la que esperan «una de 451» y «una quinta skill sin texto», de lo
+// que añaden, y lo que añade «una suma de 1701», de la que tiene que dar; así no
+// cambian con el texto de ninguna.
 func TestDescripcionesDelProducto(t *testing.T) {
 	t.Parallel()
+
+	sumaDeHoy := sumaDeLasDescripcionesDelProducto(t, raizDelRepositorio)
+	deLaQuinta := longitudDeLaDescripcion(t, []byte(skillDeLaQuintaSkill))
 
 	t.Run("la rama", func(t *testing.T) {
 		t.Parallel()
@@ -257,13 +310,14 @@ func TestDescripcionesDelProducto(t *testing.T) {
 			mutante: func(t *testing.T, raiz string) {
 				t.Helper()
 
-				cambiarElSkill(t, raiz, "normativa", "lo dice la skill.", "lo dice la skill."+strings.Repeat("é", 25))
+				cambiarElSkill(t, raiz, "normativa", "lo dice la skill.",
+					"lo dice la skill."+strings.Repeat("é", letrasDeMasDeLaDe451))
 			},
 			esperadas: []string{
 				"skills/normativa/SKILL.md: la description no es la de " +
 					"laboratorio/producto-descripciones-cortas/normativa.txt",
 				"skills/normativa/SKILL.md: la description tiene 451 caracteres (máximo 450)",
-				"skills: las descripciones suman 1715 caracteres (máximo 1700)",
+				lineaDeLaSumaDelProducto(sumaDeHoy + letrasDeMasDeLaDe451),
 			},
 		},
 		{
@@ -271,8 +325,11 @@ func TestDescripcionesDelProducto(t *testing.T) {
 			mutante: func(t *testing.T, raiz string) {
 				t.Helper()
 
+				deMas := sumaUnaPorEncimaDelMaximo - sumaDeHoy
+				require.Positive(t, deMas, "la suma de hoy, %d, no llega a %d", sumaDeHoy, sumaUnaPorEncimaDelMaximo)
+
 				cambiarElSkill(t, raiz, "plazos-y-territorio", "tiene un municipio.",
-					"tiene un municipio."+strings.Repeat("é", 11))
+					"tiene un municipio."+strings.Repeat("é", deMas))
 			},
 			esperadas: []string{
 				"skills/plazos-y-territorio/SKILL.md: la description no es la de " +
@@ -291,7 +348,7 @@ func TestDescripcionesDelProducto(t *testing.T) {
 			},
 			esperadas: []string{
 				"skills/quinta: no tiene descripción en laboratorio/producto-descripciones-cortas",
-				"skills: las descripciones suman 1710 caracteres (máximo 1700)",
+				lineaDeLaSumaDelProducto(sumaDeHoy + deLaQuinta),
 			},
 		},
 	}

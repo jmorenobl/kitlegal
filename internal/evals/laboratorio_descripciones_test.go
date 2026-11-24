@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"fmt"
 	"io/fs"
 	"maps"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,6 +87,29 @@ func TestDescripcionesCortas(t *testing.T) {
 		"plazos-y-territorio.txt": descripcionCortaDePlazosYTerritorio + "\n",
 	}
 
+	// defectosDelEjemplo son los del caso «una que empieza por <ejemplo>», que
+	// pone etiquetaDelEjemplo delante de la de normativa: el de la etiqueta y, si
+	// la suma de lasDelContrato, sin sus saltos de línea, más lo que añade,
+	// conLaEtiqueta, pasa de maximoDeLasDescripcionesCortas, el de la suma
+	// (FR-023 de H45; research D8 de H45).
+	const etiquetaDelEjemplo = "<ejemplo> "
+
+	conLaEtiqueta := utf8.RuneCountInString(etiquetaDelEjemplo)
+	for _, contenido := range lasDelContrato {
+		conLaEtiqueta += utf8.RuneCountInString(strings.TrimSuffix(contenido, "\n"))
+	}
+
+	defectosDelEjemplo := []string{
+		"laboratorio/producto-descripciones-cortas: la descripción de normativa tiene la etiqueta XML " +
+			"«<ejemplo>» (no admite ninguna)",
+	}
+
+	if conLaEtiqueta > maximoDeLasDescripcionesCortas {
+		defectosDelEjemplo = append(defectosDelEjemplo, fmt.Sprintf(
+			"laboratorio/producto-descripciones-cortas: las descripciones suman %d caracteres (máximo 1700)",
+			conLaEtiqueta))
+	}
+
 	casos := []struct {
 		nombre   string
 		skills   []string
@@ -137,11 +162,8 @@ func TestDescripcionesCortas(t *testing.T) {
 			nombre: "una que empieza por <ejemplo>",
 			skills: lasCuatroSkills,
 			variante: conLaEntrada(lasDelContrato, "normativa.txt",
-				"<ejemplo> "+descripcionCortaDeNormativa+"\n"),
-			defectos: []string{
-				"laboratorio/producto-descripciones-cortas: la descripción de normativa tiene la etiqueta XML " +
-					"«<ejemplo>» (no admite ninguna)",
-			},
+				etiquetaDelEjemplo+descripcionCortaDeNormativa+"\n"),
+			defectos: defectosDelEjemplo,
 		},
 		{
 			nombre:   "una quinta skill sin descripción",

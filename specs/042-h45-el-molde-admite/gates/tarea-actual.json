@@ -1,20 +1,14 @@
 {
-  "id": "T015",
-  "texto": "T015 [datos] [US4] Los guiones de la app sin listas, con sus copias congeladas (FR-016, FR-017, FR-026; US1.3, US4.1-US4.3; SC-004; contracts/tests-sin-listas.md, la tabla de la sección de la app, la segunda): `internal/app/testdata/script/h32-paquetes.txtar` y `specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar` buscan las filas del generador y la de tributos dentro de alguna referencia de un paquete de `plazos-y-territorio` (`references/*.md` con una región); `internal/app/testdata/script/h33-cobertura-instalada.txtar` y `specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar` exigen las 4 líneas de la base al principio de la región de lo cubierto y, en todas las referencias de paquetes instaladas, tantas filas como `- procedimiento:` y con norma tantas como `norma:` del `cobertura.yaml` del directorio de datos que está junto a `$KITLEGAL_SKILLS`, como dice el contrato (que el guion solo lee); `internal/app/testdata/script/h36-plazos-de-hoy.txtar` y `specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar` cambian `error-tipo` a código 2, `clase` `argumentos` y el mensaje con su forma (`el tipo \\\"inventado\\\" no es ` seguido de códigos separados por «, » y « ni » el último), con `stdout` y expresiones, sin el `hash` literal. Cada guion igual a su copia congelada. Ver en rojo cada guion con su mutante de la columna «Rojo con» (en una copia en `$TMPDIR`) y, en la copia con un paquete más, `h32-paquetes`, `h33-cobertura-instalada` y `h36-plazos-de-hoy` en verde; `make ci` en verde.",
+  "id": "T016",
+  "texto": "T016 [US9] Las sumas de los tests de descripciones derivadas de las descripciones de hoy (FR-023, FR-016; SC-007; contracts/skills-y-laboratorio.md §4; research D8): en `internal/evals/descripciones_del_producto_test.go`, «una de 451» y «una quinta skill sin texto» suman lo que añaden (25 y 20) a la suma de las cuatro descripciones leídas al empezar el test, y «una suma de 1701» añade a `plazos-y-territorio` `1701 − suma` letras; en `internal/evals/laboratorio_descripciones_test.go`, «una que empieza por <ejemplo>» espera el defecto de la suma solo si la suma de hoy más 10 pasa de 1 700. Con la descripción de hoy, todo sigue en verde. Ver en rojo una descripción por encima de 450 y la suma por encima de 1 700; `make ci` en verde.",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "3a9dfa0636c47e54aebb0b5bc9b216c9f9e90c88",
+  "base": "04beda2ee8251acc6b8f3cf71c13103d4cd9ba9f",
   "rutas": [
-    "cobertura.yaml",
-    "contracts/tests-sin-listas.md",
-    "internal/app/testdata/script/h32-paquetes.txtar",
-    "internal/app/testdata/script/h33-cobertura-instalada.txtar",
-    "internal/app/testdata/script/h36-plazos-de-hoy.txtar",
-    "references/*.md",
-    "specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar",
-    "specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar",
-    "specs/041-h36-el-motor-de/aceptacion/plazos-de-hoy.txtar"
+    "contracts/skills-y-laboratorio.md",
+    "internal/evals/descripciones_del_producto_test.go",
+    "internal/evals/laboratorio_descripciones_test.go"
   ],
   "cierre": false,
   "converger": false,
