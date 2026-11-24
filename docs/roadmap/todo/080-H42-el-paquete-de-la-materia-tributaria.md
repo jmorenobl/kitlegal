@@ -1,7 +1,7 @@
 ---
 id: H42
 fase: "1"
-depende_de: [H45]
+depende_de: [H45, H45.1]
 ---
 
 # H42 · El paquete de la materia tributaria, la segunda materia real de la base (ADR 0059 y 0062)
@@ -15,7 +15,11 @@ depende_de: [H45]
   H45; el ADR 0059 (punto 2) y el ADR 0061. El run no los cambia ni escribe otro.
 - **Solo con datos.** El hito entra con datos, referencias, evals y `testdata/`. Ninguna tarea declara un fichero `.go`,
   un `SKILL.md` escrito a mano ni `.github/`: lo hace verdad el guardián de diff, que solo deja tocar las rutas
-  declaradas. Si el plan encuentra algo que pida Go, es un defecto del molde que vuelve a H45, no una tarea de este hito.
+  declaradas. Si el plan encuentra algo que pida Go, es un defecto del molde que va a un hito del molde, como H45.1, no una tarea de este
+  hito.
+  Los cuatro que encontró el prototipo del 2026-11-24 los arregla H45.1, que va antes. Lo que no es Go y esta entrada sí
+  declara son los dos guiones de aceptación de H32 y H33 que fijan las filas tributarias de antes, con sus copias
+  congeladas (punto 9 de «Entrega»).
 - **Lo leído antes de escribirla**, con `kitlegal boe articulo` el 2026-11-21 y el 2026-11-22. Cada precepto que fija
   esta entrada, con su bloque, su versión y el día desde el que rige.
   - **Ley 58/2003, General Tributaria** (`BOE-A-2003-23186`):
@@ -71,6 +75,20 @@ depende_de: [H45]
     positivas, de normas distintas), y hoy tiene 23;
   - con las cuatro evals nuevas, `plazos-y-territorio` necesita la concurrencia 3 que trae H45: 5 h 14 min de peor caso
     sobre un tope de 352 min.
+- **Lo comprobado en un segundo prototipo**, el 2026-11-24, sobre `main` después de H45 (`95442cf0`), con la entrada
+  entera —las dos `fiscal.md`, los datos, las grabaciones en `evidencias/h42/`, la 07 cambiada y las evals 13 a 16— y
+  sin Go de producción (rama `h42-prototipo`, que lleva además los cuatro tests parcheados a mano y, en su último
+  commit, un cambio de `.github/` solo para la medida):
+  - el binario da las fechas de T1 a T8; la sincronía reparte los dos tipos y las tres filas tributarias a `fiscal.md`
+    y deja la aduanera en `administrativo.md`, que baja a 98 líneas; la `fiscal.md` de `plazos-y-territorio` tiene 71;
+  - el cuerpo de `normativa` pasa de 10 750 a 10 820 caracteres y el de `plazos-y-territorio` de 10 686 a 10 756 (el
+    guion de H33 le pone un tope de 10 860); las descripciones no cambian;
+  - el peor caso de la medida es de 223, 187 y 49 sesiones (459), y el de `plazos-y-territorio`, con 16 evals a tres,
+    de 5 h 14 min sobre 352 min;
+  - caen cuatro tests de Go que el molde de H45 dejó atados al estado de hoy (los arregla H45.1) y los guiones de H32 y
+    H33 del punto 9 de «Entrega»; con los cuatro arreglados y los guiones al día, `make ci` sale en verde;
+  - una referencia a mano no puede enlazar otra (la sincronía lo da como defecto), y cada línea con `⚠` de una
+    referencia a mano tiene que ser una de las del `SKILL.md` (`lineas-de-aviso-de-las-referencias`).
 - **Decisiones de esta entrada**, cada una con su motivo:
   - **El cómputo es `lpac`, sin uno nuevo** (ADR 0062, punto 6). Los arts. 223.1 y 235.1 solo fijan la duración y el día
     siguiente; el art. 7.2 LGT y la DA 1ª.2.a LPAC llevan al art. 30 LPAC. Sale lo que ya cuenta `lpac`: de fecha a
@@ -116,7 +134,8 @@ depende_de: [H45]
 
      Los códigos y los nombres los puede afinar el spec; los preceptos y los días, no.
   4. **`data/cobertura.yaml`**:
-     - en `cubierto`, una fila de `plazos` con `materia: fiscal`: «solo el recurso de reposición y la reclamación
+     - en `cubierto`, una fila de `plazos` con `materia: fiscal`, la última, detrás de la del territorio (la región de lo
+       cubierto empieza por las cuatro de la base, y el guion de H33 lo comprueba): «solo el recurso de reposición y la reclamación
        económico-administrativa en única o primera instancia contra un acto de aplicación de los tributos del Estado,
        los aplique la Administración del Estado o la de una comunidad autónoma, desde su notificación»;
      - en `regulados_aparte`, la fila de la DA 1ª.2.a se estrecha a «…, salvo el recurso de reposición y la
@@ -127,8 +146,9 @@ depende_de: [H45]
      - la fila del sancionador «en materia tributaria y aduanera» se parte en dos: la tributaria gana su norma, la LGT
        con `a207`, y pasa a `fiscal.md`; la aduanera sigue sin norma en `administrativo.md`, porque el 207 no habla de
        ella;
-     - la fila del art. 112.4 se estrecha igual que la de la DA 1ª.2.a, gana su norma, la LGT con `a234`, y pasa a
-       `fiscal.md`.
+     - la fila del art. 112.4 se estrecha a «reclamaciones económico-administrativas, salvo la reclamación en única o
+       primera instancia contra un acto de aplicación de los tributos del Estado», gana su norma, la LGT con `a234` y el
+       apartado 234.1, y pasa a `fiscal.md`.
 
      Lo que sale de lo regulado aparte es solo lo que cubren los dos tipos. Las demás filas no cambian, y
      `administrativo.md` queda sin filas tributarias salvo la aduanera.
@@ -141,7 +161,8 @@ depende_de: [H45]
          Administración del Estado o de una comunidad autónoma;
        - el inicio, el día de la notificación, y que con otro inicio el plazo no se pide;
        - los dos municipios, el del interesado y el de la sede del órgano que dictó el acto, que es también el que recibe
-         la reclamación (235.3). Si no se sabe el segundo, se pide, como dice `municipios.md`;
+         la reclamación (235.3). Si no se sabe el segundo, se pide, como dicen el paso 8 del cuerpo y
+         `calculo_de_plazos.md`, sin enlazarla: una referencia no enlaza otra;
        - que se elige una vía (222.2), y que los dos tipos dan la misma fecha;
        - que lo local va por su fila, y que lo foral y los tributos propios de una comunidad son de lo no declarado,
          sin nombrar las normas que los rigen.
@@ -157,6 +178,15 @@ depende_de: [H45]
      regiones. Ningún `SKILL.md` se escribe a mano.
   8. **Las evals** de «Evals», y **`CHANGELOG.md`**: en «Añadido», el paquete tributario con los dos plazos; en
      «Cambiado», la eval 07 de `plazos-y-territorio`.
+  9. **Los guiones de H32 y H33 que fijan las filas tributarias de antes**, en una tarea `[datos]` con sus copias
+     congeladas, como hizo H45 (T015): `internal/app/testdata/script/h32-paquetes.txtar` y
+     `specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar` buscan cada fila de las referencias de `c991808`
+     en alguna referencia de un paquete —y la del sancionador «en materia tributaria y aduanera» deja de estar: «filas:
+     32 de 33»— y comparan byte a byte la fila de la aplicación de los tributos, que se estrecha;
+     `internal/app/testdata/script/h33-cobertura-instalada.txtar` y
+     `specs/039-h33-cobertura-en-positivo/aceptacion/cobertura-instalada.txtar` buscan esa fila byte a byte en
+     `administrativo.md`. Los dos pasan a la fila nueva, en `fiscal.md`, y el de H32 deja fuera de su cuenta, nombrándola,
+     la fila que este hito parte; el spec fija la forma, sin aflojar nada más de lo que comprueban.
 - **Alcance**. El riesgo es crecer hacia la vertical fiscal. Fuera, en una lista cerrada:
   - el calendario del contribuyente y los plazos de fecha fija (ADR 0061, punto 5), los modelos y las
     autoliquidaciones;
@@ -217,7 +247,8 @@ depende_de: [H45]
     distingue la fila del sancionador de la de la DA 1ª.2.a, y eso lo dice su comentario.
   - **16**, lo foral: «Vivo en Bilbao y el 9 de septiembre de 2026 la Hacienda Foral de Bizkaia me notificó una
     liquidación del IRPF. ¿Hasta cuándo puedo recurrirla?». Prohíbe `plazos calcular` y pide la línea de lo no declarado
-    (`fuera_de_lo_declarado: true`). Con el formato de hoy, eso lo cumple cualquier línea `⚠ NO CUBIERTO:`: mide que no
+    (`no_cubierto: {fuera_de_lo_declarado: true}`, sin precepto, como la 04 de `consulta-juridica`; es la primera de
+    `plazos-y-territorio`, y la deja pasar H45.1). Con el formato de hoy, eso lo cumple cualquier línea `⚠ NO CUBIERTO:`: mide que no
     se calcula, no que se elija la línea de lo no declarado y no la de la fila con la LGT. Lo segundo lo ve la lectura
     de una muestra de respuestas en la medida previa.
   - **La 07 cambia de pregunta y conserva su clase**: hoy pregunta por una liquidación de la Agencia Tributaria, que pasa
@@ -227,11 +258,17 @@ depende_de: [H45]
     contar un tributo local con el 223 LGT o con el art. 124 LPAC.
   - **Coste**. Cada medida de las tres skills que cambian es de unas 460 sesiones, sin los votos del juez: 223 de
     `normativa` (23 evals), 187 de `plazos-y-territorio` (16) y 49 de `consulta-juridica` (4), según el plan de
-    `peorCaso`.
+    `peorCaso`, medido en el prototipo del 2026-11-24. Las grabaciones nuevas de `evidencias/h42/` son de una raíz que
+    sirve a todas las sesiones: si la decisión del job mide también `jurisprudencia`, son unas 120 más.
   - **Si una clase cae**, se compara con `main` y con la serie (ADR 0038). La reparación no toca para que pase ningún
     texto de skill fuera de las dos `fiscal.md`, y como mucho dos sondeos por pregunta. Si no se resuelve, se decide
     con lo que hay o se abre un hito.
 - **Riesgos**:
+  - **«Si el plazo fuera de un mes».** En la medida previa del 2026-11-24 (run 45370954378: Sonnet a 3/3 en todas las
+    series y 0 en todas las clases que deciden), dos respuestas en modo herramienta, una de la 07 y otra de la 15, apuntan
+    una duración como hipótesis («si el plazo es de un mes, como en otros recursos tributarios…»), sin fecha ni
+    cómputo. Ningún umbral lo ve. Lo cierra una frase en la `fiscal.md` de `plazos-y-territorio`: tras la línea de una
+    fila, ninguna duración, ni como hipótesis.
   - **La línea de lo local nombra la LGT.** La fila de la DA 1ª.2.a dice que lo suyo se rige por la LGT, y un tributo
     local se recurre por el art. 14.2 TRLRHL. Es la línea de `main`, y su función es que no se calcule con el
     procedimiento común ni con el 223 LGT. Darle a lo local una fila propia, con el TRLRHL, queda para un hito con su
@@ -252,15 +289,18 @@ depende_de: [H45]
   - el hito no tiene ningún cambio en Go;
   - `administrativo.md` y los plazos de hoy salen como en `main`, salvo las filas que pasan a `fiscal.md`.
 - **Antes de lanzar** (lo hace la persona, no el run):
-  - que H45 esté hecho y fusionado;
+  - que H45 y H45.1 estén hechos y fusionados, y que el prototipo de `h42-prototipo`, rebasado sobre `main` sin sus
+    tests parcheados ni su cambio de `.github/`, dé `make ci` en verde sin ningún `.go`;
   - **una medida previa sobre un prototipo completo** sobre el `main` de después de H45, con el job de evals de
     `normativa`, `plazos-y-territorio` y `consulta-juridica`, unas 460 sesiones. El prototipo lleva las dos `fiscal.md`
     escritas, los datos, la 07 cambiada y las evals 13 a 16. Hace falta porque cambia lo que leen las preguntas
     tributarias. Un rojo se compara con `main`, y como mucho un segundo sondeo por pregunta; se lee siempre una
     muestra de respuestas;
-  - en delorean, `df -h /tmp`;
+  - en delorean, `df -h /tmp`, y sitio en la cuota de `/tmp` de la persona: el `TMPDIR` de las sesiones es
+    `/tmp/claude-<uid>`, y el 2026-11-24 los scratchpads de sesiones viejas la llenaban (`disk quota exceeded` al
+    enlazar en `go test`);
   - el sondeo del alias: `claude -p --model sonnet --output-format json 'Responde solo: ok'` da en `modelUsage` el
     `MODELO_DE_EVALS` de `.github/workflows/evals.yml` (ADR 0031);
   - mover este fichero a `in-progress/`, sin su prefijo.
-- **Dependencias**: H45, que deja el molde. H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
+- **Dependencias**: H45, que deja el molde, y H45.1, que suelta sus cuatro tests. H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
   0059), y H44 pone la doctrina sobre este paquete.

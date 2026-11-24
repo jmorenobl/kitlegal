@@ -104,6 +104,10 @@ export const enLlano: Record<string, { titulo: string; frase: string }> = {
     titulo: "Materias nuevas sin tocar el programa",
     frase: "Una materia entra con sus normas, sus plazos y lo que la ley regula aparte, y cada cosa aparece en la referencia de su materia. Se prueba con lo administrativo y con una materia de ensayo, antes de la tributaria.",
   },
+  "H45.1": {
+    titulo: "Las pruebas del molde, sin el estado de hoy",
+    frase: "Las comprobaciones internas dejan de depender de lo que hay hoy en los datos, para que la materia tributaria entre sin tocar el programa.",
+  },
   H42: {
     titulo: "Lo tributario, como segunda materia",
     frase: "Los plazos del recurso de reposición y de la reclamación económico-administrativa contra los tributos del Estado. Fuera quedan las sanciones, los tributos locales y autonómicos propios, las aduanas, las haciendas forales, los modelos y los escritos.",
