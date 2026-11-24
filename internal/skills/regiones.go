@@ -523,18 +523,25 @@ func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([
 }
 
 // paqueteDeLaFila es el paquete de una fila de lo regulado aparte (contracts/
-// sincronia-de-los-paquetes.md §3 de H45): el vertical de la norma que la rige,
-// si la fila la lleva y está en la tabla de normas con vertical; si no, el de la
-// norma de su precepto; y ninguno si tampoco esa lo tiene. Es la única regla de
-// la región de la cobertura y de filasSinRegion.
+// sincronia-de-los-paquetes.md §3 de H45): ninguno si su precepto es de una
+// norma que no está en la tabla de normas, porque su línea no podría nombrarla;
+// si no, el vertical de la norma que la rige, si la fila la lleva y está en la
+// tabla con vertical; si no, el de la norma de su precepto; y ninguno si
+// tampoco esa lo tiene. Es la única regla de la región de la cobertura y de
+// filasSinRegion, que da el defecto de la fila que no es de ningún paquete.
 func paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string {
+	delPrecepto, esta := normas[entrada.Precepto.Norma]
+	if !esta {
+		return ""
+	}
+
 	if entrada.Norma != nil {
 		if vertical := normas[entrada.Norma.Identificador].Vertical; vertical != "" {
 			return vertical
 		}
 	}
 
-	return normas[entrada.Precepto.Norma].Vertical
+	return delPrecepto.Vertical
 }
 
 // filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos

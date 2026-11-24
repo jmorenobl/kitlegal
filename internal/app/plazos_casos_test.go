@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
 	"github.com/jmorenobl/kitlegal/internal/httpx"
 	"github.com/jmorenobl/kitlegal/internal/skills"
@@ -30,6 +32,9 @@ const (
 	principalDeLosLocalesDe2026 = "BOCM-20251212-34"
 	// coberturaDelRepositorio es data/cobertura.yaml, que el binario no lleva.
 	coberturaDelRepositorio = "../../data/cobertura.yaml"
+	// tiposDelRepositorio es data/plazos.yaml, del que salen los tipos que
+	// nombra el error del tipo que no existe.
+	tiposDelRepositorio = "../../data/plazos.yaml"
 )
 
 // Las normas de los casos de cobertura, por su identificador: la LPAC, la LGT y
@@ -264,7 +269,8 @@ func conSuProcedimiento(procedimiento string) func(skills.ReguladoAparte) bool {
 // compone con los festivos locales que deriva internal/source/bocm de la
 // resolución principal de 2026 sola (research.md D23 y D30 de H9); el 19 y el
 // 20 buscan su entrada en data/cobertura.yaml, leído con skills.LeerCobertura,
-// el 19 por su precepto y su norma y el 20 por su procedimiento.
+// el 19 por su precepto y su norma y el 20 por su procedimiento. Y el error del
+// tipo que no existe, con su mensaje entero (elTipoQueNoExiste).
 func TestCasosDePlazos(t *testing.T) {
 	t.Parallel()
 
@@ -296,6 +302,42 @@ func TestCasosDePlazos(t *testing.T) {
 			compruebaCasoDeCobertura(t, cobertura, caso)
 		})
 	}
+
+	t.Run("tipo-que-no-existe", func(t *testing.T) {
+		t.Parallel()
+
+		res := ordenDePlazos(t, empotrado, "inventado", "2026-09-09", "Leganés", "Leganés")
+
+		exigirSobreDeFallo(t, res, schema.ClaseArgumentos, 2, procedenciaDeUnFalloDePlazos)
+		assert.Equal(t, elTipoQueNoExiste(t, "inventado"), datosDelSobre(t, sobreDelJSON(t, res.salida))["mensaje"])
+	})
+}
+
+// elTipoQueNoExiste es el mensaje del error del tipo pedido que no es ninguno de
+// data/plazos.yaml, como lo da el binario de main (§C.6 de H36; FR-017 y FR-026
+// de H45): «el tipo "<pedido>" no es » y los códigos de sus tipos en el orden
+// del fichero, separados por «, » y con « ni » delante del último. Los códigos
+// salen del fichero leído con plazos.LeerTipos, no de una lista, para que un
+// paquete más traiga los suyos; la enumeración se escribe aquí y no con la del
+// dominio que se prueba.
+func elTipoQueNoExiste(t *testing.T, pedido string) string {
+	t.Helper()
+
+	contenido, err := os.ReadFile(tiposDelRepositorio)
+	require.NoError(t, err)
+
+	tipos, err := plazos.LeerTipos(contenido)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(tipos), 2, "data/plazos.yaml lleva más de un tipo")
+
+	codigos := make([]string, 0, len(tipos))
+	for _, tipo := range tipos {
+		codigos = append(codigos, tipo.Codigo)
+	}
+
+	ultimo := len(codigos) - 1
+
+	return `el tipo "` + pedido + `" no es ` + strings.Join(codigos[:ultimo], ", ") + " ni " + codigos[ultimo]
 }
 
 // compruebaCasoDeCobertura exige que data/cobertura.yaml lleve una sola entrada

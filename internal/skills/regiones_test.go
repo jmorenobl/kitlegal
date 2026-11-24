@@ -127,6 +127,16 @@ const (
 		"daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |\n"
 )
 
+// filaDeUnPreceptoSinTabla es una fila de prueba con la norma del paquete de
+// ensayo por norma que la rige y su precepto en una norma que no está en
+// normasDeLasRegiones: no es de ningún paquete (contracts/
+// sincronia-de-los-paquetes.md §3 de H45), y la sincronía da su defecto aunque
+// la referencia de ensayo lleve la región.
+const filaDeUnPreceptoSinTabla = "  - procedimiento: procedimientos de ensayo con su precepto en una norma que no está\n" +
+	"    precepto: {norma: BOE-A-2099-1, bloque: a112, apartado: \"112.4\"}\n" +
+	"    norma: {identificador: " + normaDelEnsayo + ", nombre: \"Ley 1/1900, de prueba de otro paquete\", " +
+	"aplicable: {bloque: a1, apartado: \"1\"}}\n"
+
 // prosaDelEnsayo es lo escrito a mano de la referencia del paquete de ensayo de
 // probarElPaqueteDeLaFila delante de su región de la cobertura: su título y el
 // bloque text con los dos motivos de la línea.
@@ -453,8 +463,10 @@ func probarLosDefectosDeLasRegiones(t *testing.T) {
 // Los tipos y el cómputo de prueba de los defectos del paquete de un tipo
 // (contracts/sincronia-de-los-paquetes.md §6 de H45), cada uno como una entrada
 // de su lista de data/plazos.yaml: uno con su precepto en la norma sin vertical;
-// otro con un precepto de lo administrativo y otro del paquete de ensayo; y uno
-// de lo administrativo con un cómputo que cita la norma del paquete de ensayo.
+// otro con un precepto del paquete de ensayo delante de dos de lo
+// administrativo, para que los paquetes solo salgan en orden alfabético y sin
+// repetir si se ordenan; y uno de lo administrativo con un cómputo que cita la
+// norma del paquete de ensayo.
 const (
 	tipoSinPaquete = "  - codigo: prueba-sin-paquete\n" +
 		"    nombre: plazo de prueba de una norma sin paquete\n" +
@@ -469,8 +481,9 @@ const (
 		"    duracion: {cantidad: 1, unidad: meses}\n" +
 		"    da: vencimiento\n" +
 		"    preceptos:\n" +
+		"      - {norma: " + normaDelEnsayo + ", bloque: a2, apartado: \"2\", fija: inicio, vigente_desde: \"2016-10-02\"}\n" +
 		"      - {norma: BOE-A-2015-10565, bloque: a122, apartado: \"122.1\", fija: duracion, vigente_desde: \"2016-10-02\"}\n" +
-		"      - {norma: " + normaDelEnsayo + ", bloque: a2, apartado: \"2\", fija: inicio, vigente_desde: \"2016-10-02\"}\n"
+		"      - {norma: BOE-A-2015-10565, bloque: a24, apartado: \"24.4\", fija: silencio, vigente_desde: \"2016-10-02\"}\n"
 	tipoDeOtroComputo = "  - codigo: prueba-de-otro-computo\n" +
 		"    nombre: plazo de prueba con el cómputo de otro paquete\n" +
 		"    computo: prueba\n" +
@@ -656,6 +669,17 @@ func casosDeRegiones() []casoDeRegion {
 					coberturaDeLasRegiones+filaDeLaNormaDelEnsayo)
 			},
 			defectos: []string{filaSinRegion("procedimientos de ensayo que la ley común deja aparte")},
+		},
+		{
+			nombre: "fila-con-su-precepto-en-una-norma-que-no-esta",
+			cambio: func(t *testing.T, raiz string) {
+				t.Helper()
+				escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "cobertura.yaml"),
+					coberturaDeLasRegiones+filaDeUnPreceptoSinTabla)
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "references", "ensayo.md"),
+					prosaDelEnsayo+inicioDeLaCobertura+finDeLaCobertura)
+			},
+			defectos: []string{filaSinRegion("procedimientos de ensayo con su precepto en una norma que no está")},
 		},
 		{
 			nombre: "tipo-sin-paquete",

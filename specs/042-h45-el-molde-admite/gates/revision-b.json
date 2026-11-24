@@ -1,0 +1,94 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log: «guardián de diff ok ((global), 14 ficheros)», «0 issues.», todos los paquetes en `ok` en `make test` y `make test-integration`, «ci: todos los controles en verde», «kitlegal-verificacion exit=0»; sus 14 ficheros son los del commit de cabeza 0d7cd86e (solo documentación y artefactos). `git status`: solo gates/modelos.jsonl cambiado y gates/revision-cambios.md y gates/revision-ciclo.json sin seguir, los tres del propio paso. Reproducido en un clon de la cabeza en el temporal: `go test -count=1 -skip '^(TestMedidasDeTiempo|TestCosteDelGrafo)$' ./...`, 5258 tests en verde en 32 paquetes. No he vuelto a correr el linter ni la variante con -race: de eso solo consta gates/ci.log."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "La suite congelada está intacta y activada: las huellas de specs/042-h45-el-molde-admite/aceptacion/*.txtar e internal/app/testdata/script/h45-*.txtar son las de gates/aceptacion-congelada.json (2adba0d3… y dc3a74e6…), y `go test -run 'TestEntregaDelHito/h45' ./internal/app/` sale en verde en el clon. Mutantes que sí caen (clon en el temporal): tipo a todas las referencias, fila por su precepto, `filasSinRegion` con la regla vieja, el paquete sin `Unidades`, el paquete con los preceptos del cómputo (internal/skills); orden alfabético de las raíces (internal/evals/grabaciones.go:142); `plazos-y-territorio` a dos, trece sesiones y tope a 330 min (TestDefinicionDelJob); `if r.conVigencia` y `Decide: true` (umbrales.go:625 y :1164); medidas por reutilizadas en `matrizDeLaEjecucion` (eleccion.go:386); la lista sin filtro devuelta a TestCoberturaDelRepositorio, que pone `h45-paquete-de-mas.txtar:41` en rojo. Incumple por dos cosas: un mutante que sobrevive sobre una promesa literal de §C.1 (`slices.Sort(paquetes)` quitado de internal/skills/regiones.go:606, 611 tests de internal/skills en verde), y que ningún test cubre la fila con norma de un paquete y precepto de una norma fuera de la tabla, que pierde el defecto que daba `main` (motivo 1)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El código de producción del diff son internal/skills/regiones.go e internal/evals/{grabaciones,dependencias,medida,sesiones}.go: sin net/http, os.Exit ni fmt.Print*; `os.ReadDir` y `os.Stat` solo en internal/evals/grabaciones.go:112 y :168. internal/evals/dependencias.go importa internal/source/boe, que grabaciones.go ya importaba. TestArquitectura en verde en gates/ci.log y en el clon. El `os.Exit` y los `fmt.Print*` de `paquete-de-mas.go` van dentro del archivo txtar del guion congelado, no en un paquete del módulo."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "`git diff --stat main...HEAD` no toca ningún applet, internal/core, schemas/ ni internal/cli: ninguna salida de applet cambia (FR-026). gates/ci.log: `go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/` en `ok`. El guion h36-plazos-de-hoy.txtar:42 sigue exigiendo el sobre entero del error de tipo desconocido (ok, fuente, url, fecha_consulta, hash con forma sha256 y data con clase y mensaje), ya sin el valor del hash, que cambia con los tipos."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún applet ni código de salida cambia. `UnionDeGrabaciones` pasa a devolver error y sus cuatro llamadores de producción lo propagan (internal/evals/medida.go:1151-1154 y :1249-1252, sesiones.go:439-442, dependencias.go:832-835); ningún `panic` nuevo. El guion h36-plazos-de-hoy.txtar:41 sigue exigiendo el código 2 del tipo desconocido."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:49-62, en «Cambiado» de Unreleased, lleva la concurrencia y la descripción nueva (FR-024). docs/SKILLS.md:215 dice la regla de FR-011 con la ausencia de condición (FR-013), y :249-250, :305-306 y :604-605, el reparto y los dos defectos. Ningún ADR cambia (el 0062 está en `main`); docs/SOURCES.md no aplica. Cifras comprobadas a mano con la fórmula del test: 14 469 s con las 12 evals a tres, 18 821 s con cuatro más y 27 253 s a dos; medido con `wc`: con_herramientas.md 2 611 bytes, administrativo.md 100 líneas y 10 635 bytes, la variante 429 caracteres y 1 692 la suma, el cuerpo de normativa de 10 926 a 10 750. Ningún símbolo retirado (`GrabacionesDeH36`, `raicesDeGrabaciones`, `filaDeLosTributos`…) queda nombrado fuera de specs/ y del fichero del hito."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El hito no añade ninguna llamada de red ni toca internal/httpx. El guion h45-paquete-de-mas.txtar fija `GOPROXY=off`, `GOENV=off` y `GOFLAGS=-mod=readonly` (líneas 30-34). Ningún dato externo nuevo: `git diff --stat main...HEAD -- data/ evals/ schemas/ testdata/ evidencias/` vacío; los fixtures nuevos son sintéticos (BOE-A-1900-1 y -2) o copia de data/plazos.yaml, y el paquete del guion usa BOE-A-2015-11722, ya grabado. Sin secretos (gitleaks en gates/ci.log) ni datos personales."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de los `.go`, de .golangci.yml y de .github/ no hay ningún `nolint`, `t.Skip`, TODO ni error ignorado (la única coincidencia de la búsqueda es `nombre, _, _ = strings.Cut(…)` en internal/skills/referencias_test.go). .golangci.yml:434-438 solo añade la palabra `regiones` a `misspell.ignore-rules`, con su comentario y su supuesto (T003). Los fixtures y guiones de hitos anteriores solo cambian en commits de tareas `[datos]` (T002, T005, T015, T017) y cada copia de specs/ es idéntica a la activa (`cmp` de las cuatro)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "El diff no trae nada fuera del spec: evals/, data/, internal/evals/conjunto.go y `kitlegal plazos` no cambian, y de skills/ solo las cuatro líneas movidas de normativa, su con_herramientas.md y la description de plazos-y-territorio. Incumple un supuesto: el `[skill]` de T005 (gates/supuestos.md:12) no es la lectura conservadora. Para la fila con norma de un paquete y precepto de una norma que no está en data/normas.yaml elige escribir la línea, y así retira el defecto que daba `main` y deja una cita sin nombre de norma (motivo 1, medido)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna salida del binario cambia. Lo que lee una skill sale de data/ y no del uso: administrativo.md sigue en 100 líneas y 10 635 bytes, y con el reparto cada referencia crece solo con los tipos y filas de su paquete (en el clon, el guion del paquete de más deja el tipo y las dos filas de `prueba` en prueba.md y ninguna en administrativo.md). con_herramientas.md, que normativa lee una vez por conversación, pasa de 2 442 a 2 611 bytes. La description que el agente lee en cada sesión mide 429 caracteres (1 692 las cuatro). La SKILL.md no pide ninguna invocación nueva por pregunta. Los defectos nuevos salen una vez por skill (`sinRepetir`) y dejan de darse al corregir el dato."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza: `paquetesDelTipo` y los dos defectos (regiones.go:547-609) a FR-001 a FR-004; `paqueteDeLaFila` (:530-538), una sola regla para la región y `filasSinRegion`, a FR-005 a FR-007; `unionDeGrabacionesDe`, `carpetaDeUnHito`, `tieneLasGrabacionesDelBOE` y `existeComo` (grabaciones.go:92-207) a FR-015 y §C.4; `esDeUnaRaizDeGrabaciones` (dependencias.go:281-300) a FR-015 por research D5 (`rutaQueMide` no lee el disco ni devuelve error); `leerCachesDeGo` y las dos variables del arnés (internal/app/e2e_test.go) las exige el guion congelado de SC-004. Sin paquetes, tipos exportados, opciones ni reintentos nuevos. Lo que sobra es menor y va a observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Comprobado con mutantes en el clon: SC-002 (TestVerticalDeEnsayo en rojo con el tipo en todas las referencias, la fila por su precepto y `filasSinRegion` vieja); SC-003 (TestRegiones/defectos); SC-004 (`h45-paquete-de-mas.txtar:41`, «no match for ^tests enteros: 0$»); SC-005 (`raices-de-los-hitos/orden-y-carpetas-que-no-entran` con el orden por ruta); SC-006 (`concurrencia: 2` en .github/workflows/evals.yml:260 → `cuatro-evals-mas`, `del-repositorio` y `tope-con-las-evals-del-repositorio`; normativa a 6 → `del-repositorio`; `timeout-minutes: 330` → `peor-caso`, «el tope de la definición cubre el peor caso de normativa, 20117 s»). SC-007: los topes de 450 y 1 700 los comprueban sobre el repositorio internal/evals/laboratorio_descripciones.go:104 y :122 (TestDescripcionesCortas, laboratorio_descripciones_test.go:67) y descripciones_del_producto_test.go:223, y el texto, byte a byte, los dos guiones de skills instaladas. Los umbrales de las evals del cierre existen con sus nombres (umbrales.go:128-141, descripciones.go:29) y el hito no los toca; su medida la hace el cierre, no esta sesión."
+    }
+  ],
+  "motivos": [
+    "[i][b] internal/skills/regiones.go:530-538 (`paqueteDeLaFila`) y :496-523 (`filasDeLaCobertura`): una fila de `regulados_aparte` con la `norma` de un paquete y con su precepto en una norma que no está en data/normas.yaml ya no da defecto, y la sincronía escribe su línea con la cita sin el nombre de la norma. Medido en un clon de la cabeza: con la última fila de data/cobertura.yaml como `precepto: {norma: BOE-A-2099-1, bloque: a112, apartado: \"112.4\"}` y `norma: {identificador: BOE-A-1998-16718, …}`, `go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/ -args -regenerar-skills` sale en verde (228 tests) y deja en skills/plazos-y-territorio/references/administrativo.md:39 «…no por el procedimiento común (art. 112.4  [BOE-A-2099-1, bloque a112])»; con el regiones.go de `main` y los mismos datos, la misma orden da «la fila de «reclamaciones económico-administrativas» no la genera ninguna región cobertura_por_materia» en consulta-juridica y en plazos-y-territorio. Era el único control que cruzaba el precepto de una fila con la tabla de normas (lo dice el propio supuesto `[skill]` de T005, gates/supuestos.md:12), y las filas con norma de un paquete son justo las que trae H42. Con los tipos el defecto equivalente se conserva (`filasDeLosTipos`); con las filas, no. Qué cambiar: en `paqueteDeLaFila`, una fila cuyo precepto es de una norma que no está en la tabla no es de ningún paquete (devuelve vacío antes de mirar `entrada.Norma`), con lo que `filasDeLaCobertura` la salta y `filasSinRegion` da el defecto de hoy con su texto: la misma regla en los dos sitios (FR-006) y ningún texto nuevo. Añadir el caso a `casosDeRegiones` de internal/skills/regiones_test.go (la fila con la norma de ensayo y su precepto en una norma fuera de `normasDeLasRegiones` → `filaSinRegion(…)`), y corregir el supuesto de T005 en gates/supuestos.md, contracts/sincronia-de-los-paquetes.md §3, research.md D2 y el comentario de `paqueteDeLaFila`. Toca alcance: es la lectura conservadora, conservar el defecto de `main` («como hoy», FR-005). No he medido si `make ci` entero detecta por otra vía una fila así cuando su precepto es de una norma grabada.",
+    "[b] `TestRegiones/defectos/tipo-de-dos-paquetes` (internal/skills/regiones_test.go:672-681, con `tipoDeDosPaquetes` en :466-473) no detecta el orden alfabético de los paquetes que prometen FR-004 y §C.1: sus dos preceptos ya van en ese orden, el de la LPAC (administrativo) y después el de la norma de ensayo. Mutante en el clon: `slices.Sort(paquetes)` quitado de `paquetesDelTipo` (internal/skills/regiones.go:606) → `go test -count=1 ./internal/skills/`, 611 tests en verde; sin la ordenación, además, `slices.Compact` deja de quitar un paquete repetido que no sea contiguo. Qué cambiar: en `tipoDeDosPaquetes`, el precepto de la norma de ensayo delante del de la LPAC y un tercero de lo administrativo detrás, de modo que «administrativo, ensayo» solo salga con la ordenación y sin repetir."
+  ],
+  "observaciones": [
+    "El orden por subhito de §C.4 no tiene test: con `return cmp.Compare(una.hito, otra.hito)` en internal/evals/grabaciones.go:142, `raices-de-los-hitos` y TestGrabacionesSinSolape siguen en verde (el caso solo trae un subhito, h9-1). Es una diferencia interna: dos raíces no comparten ficheros y el orden no cambia lo que se reproduce.",
+    "`existeComo(ruta, directorio)` (internal/evals/grabaciones.go:167-179): con `return info != nil, nil` los tests de las raíces siguen en verde; un `manifiesto.json` que es carpeta o una `boe.legislacion-consolidada` que es fichero no los crea `grabar-datos.sh`. Bastaría con que existan.",
+    "Ramas sin cubrir del código nuevo, todas de error sobre estados que el kit no crea: el error de `os.Stat` que no es «no existe» (`existeComo` al 80 %), el subhito no numérico (`carpetaDeUnHito` al 84,6 %) y el error de `UnionDeGrabaciones` en sus llamadores (`grabacionesDeLaEval` al 80 %, `baseVigente` al 85 %, `abrirSesion` al 84 %).",
+    "`carpetaDeUnHito` toma por carpetas de un hito nombres como `h+5` o `h036` (`strconv.Atoi`), y el comentario de :139-140 justifica la ordenación estable con h36 y h036: son nombres que `grabar-datos.sh` no da.",
+    "`esDeUnaRaizDeGrabaciones` da por raíz de grabaciones cualquier `evidencias/h<n>/boe.legislacion-consolidada/`, tenga o no `manifiesto.json`, mientras que la unión lo exige: en el peor caso una propuesta mide evals de más, nunca de menos.",
+    "En TestVerticalDeEnsayo, los mutantes «un tipo a todas las referencias» y «una fila por su precepto» caen primero por las 101 líneas sin índice de administrativo.md (vertical_de_ensayo_test.go:114); `comprobarElReparto` solo llega a verse subiendo ese tope, como registra mutantes.md (M01b, M02b).",
+    "`paquete-de-mas.go`, dentro del guion congelado, recorta a 1 200 bytes la salida de una orden que falla para sortear un defecto del verificador «rojo primero» (supuesto de T001): no se traza a ningún FR, pero es de la suite congelada y no se puede retirar; el arreglo del verificador queda para una propuesta del workflow.",
+    "Los comentarios de .github/workflows/evals.yml:284-295 conservan cifras «de hoy» anteriores a H45 (19 525 s «a dos a la vez» para plazos-y-territorio); la línea 279 avisa de que son de antes de H45.",
+    "La forma para PowerShell queda al final de con_herramientas.md, tras el apartado «Encadenar y fallar» y sin decir de qué orden es: es el sitio literal que fijan el hito y §C.2, y lo mide la persona en la medida previa y el cierre.",
+    "TestCoberturaDelRepositorio aplica el mismo filtro del paquete a lo esperado y a lo leído (internal/skills/cobertura_test.go:349-363 y :398): si la LPAC perdiera su `vertical`, las dos listas quedarían vacías y pasaría en vacío; lo cubre TestNormasDelRepositorio/paquete-de-lo-administrativo.",
+    "No medido en esta sesión: las evals del cierre (SC-010 y el juez de las descripciones de SC-007), que mide el workflow sobre la cabeza; ni el linter ni `-race`, de los que solo consta gates/ci.log."
+  ]
+}

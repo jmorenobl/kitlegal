@@ -80,9 +80,11 @@ cambia: pinta los tipos que recibe.
 
 ### D2 · El paquete de una fila (FR-005 a FR-007)
 
-Decisión: `paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string`, sin exportar, en `regiones.go`: el
-`vertical` de `entrada.Norma.Identificador` si la fila lleva `norma` y esa norma está en `data/normas.yaml` con
-`vertical`; si no, el de la norma de `entrada.Precepto.Norma` (vacío si no está o no lo lleva). La usan
+Decisión: `paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string`, sin exportar, en `regiones.go`:
+vacío si la norma de `entrada.Precepto.Norma` no está en `data/normas.yaml`, como hoy, que la fila da el defecto de
+`filasSinRegion` (corregido en la revisión final, `gates/supuestos.md`); si no, el `vertical` de
+`entrada.Norma.Identificador` si la fila lleva `norma` y esa norma está en `data/normas.yaml` con `vertical`; y si no, el
+de la norma del precepto (vacío si no lo lleva). La usan
 `filasDeLaCobertura` (`regiones.go:510-513`, que hoy compara `norma.Vertical` del precepto) y `filasSinRegion`
 (`regiones.go:839-842`), con lo que FR-006 tiene la misma regla por construcción. La línea no cambia (FR-007):
 `region.linea.linea(entrada, norma)` sigue recibiendo la norma del precepto, como hoy. Visto en P1 y P3: con los datos de

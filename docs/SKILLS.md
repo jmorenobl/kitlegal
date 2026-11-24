@@ -247,7 +247,7 @@ Una materia entra en la base como un paquete de ficheros, no como una skill ni c
 | Sus normas | Las entradas de `data/normas.yaml` con `vertical: <nombre>` | Ídem; el identificador y el título, de lo grabado (`TestIdentificadoresDeLasNormas`) |
 | Una referencia por skill de capacidad que la necesite | `skills/<skill>/references/<nombre>.md`, en `references/` plano (§4) | A mano, con las tablas de `data/` en regiones generadas |
 | Sus plazos | Los tipos de `data/plazos.yaml` cuyos preceptos propios —los de `preceptos` y los de `unidades`, no los del cómputo— son de normas del paquete; las normas sin `vertical` no cuentan (H45; ADR 0062, punto 1) | La persona |
-| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuya `norma`, la que la rige, es del paquete o, si la fila no la lleva o esa norma no tiene `vertical`, cuyo `precepto.norma` lo es (H45; ADR 0062, punto 2); y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
+| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuya `norma`, la que la rige, es del paquete o, si la fila no la lleva o esa norma no tiene `vertical`, cuyo `precepto.norma` lo es (H45; ADR 0062, punto 2); una fila cuyo `precepto.norma` no está en `data/normas.yaml` no es de ningún paquete y da el defecto de la fila sin región; y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
 | Sus evals | `evals/<skill>/NN-*.yaml` de la skill que hereda su pregunta | La persona |
 
 No hay fichero que declare el paquete: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la
@@ -302,7 +302,7 @@ las evals sabe qué datos carga la skill (ADR 0045). Admiten región tres genera
 
 | Generador | Datos | Filas |
 |---|---|---|
-| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` del paquete del fichero: el de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el de la norma de su precepto; columnas `Procedimiento` y `Línea que da la respuesta` |
+| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` del paquete del fichero: el de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el de la norma de su precepto, que tiene que estar en `data/normas.yaml`; columnas `Procedimiento` y `Línea que da la respuesta` |
 | `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Los tipos de plazo del paquete del fichero, en el orden de `data/plazos.yaml`, con el precepto en la forma única. Un tipo cuyas normas no llevan `vertical`, o llevan dos distintos, es un defecto de `data/plazos.yaml` (§5) |
 | `leyes_vertebrales` | `data/normas.yaml` | Las normas con `vertebral: true` |
 

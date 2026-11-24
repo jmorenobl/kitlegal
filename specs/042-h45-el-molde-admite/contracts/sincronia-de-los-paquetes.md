@@ -41,6 +41,9 @@ salen en ninguna.
 
 ## 3. La región `cobertura_por_materia` y `filasSinRegion` (FR-005, FR-006, FR-007)
 
+- `paqueteDeLaFila(entrada, normas)`: vacío si la norma del precepto no está en `data/normas.yaml`, como hoy (la línea
+  no podría nombrarla); si no, el `vertical` de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el
+  de la norma de su precepto.
 - `filasDeLaCobertura`: la fila sale en la referencia de `paqueteDeLaFila(entrada, normas)`. La línea, con
   `region.linea.linea(entrada, norma)` y la norma del precepto, como hoy.
 - `filasSinRegion(cubiertos)`: defecto, con el texto de hoy, para cada fila cuyo `paqueteDeLaFila` es vacío o no está
@@ -81,8 +84,9 @@ research D10) con las normas sintéticas de `normasDeLasRegiones`, que ganan una
 | Subtest | Cambio en el `plazos.yaml` de prueba | Esperado |
 |---|---|---|
 | `tipo-sin-paquete` | un tipo con su precepto en la norma sintética sin `vertical` (la LGT de `normasDeLasRegiones`) | el defecto «no es de ningún paquete» con su código, y ninguna referencia regenerada |
-| `tipo-de-dos-paquetes` | un tipo con un precepto de la LPAC y otro de la norma de prueba | «es de más de un paquete: administrativo, ensayo» |
+| `tipo-de-dos-paquetes` | un tipo con un precepto de la norma de prueba delante de dos de la LPAC, para que el orden alfabético y sin repetir solo salga si se ordenan | «es de más de un paquete: administrativo, ensayo» |
 | `computo-de-otro-paquete` | un cómputo nuevo que cita la norma de prueba, y un tipo de la LPAC con él | 0 defectos; el tipo sale en `administrativo.md` |
+| `fila-con-su-precepto-en-una-norma-que-no-esta` (en `cobertura.yaml`, con la `ensayo.md` con su región) | una fila con la norma de prueba por norma que la rige y su precepto en una norma que no está en `normasDeLasRegiones` | el defecto de §3 para esa fila, como en `main` |
 
 Sin la regla (mutante de US3.4), los dos primeros dan 0 defectos y el tercero, si se cuentan los preceptos del cómputo,
 el de dos paquetes.
