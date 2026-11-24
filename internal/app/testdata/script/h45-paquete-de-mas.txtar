@@ -1,30 +1,44 @@
 # paquete-de-mas.txtar
 # Un paquete más no pone en rojo ningún test ajeno (contracts/aceptacion.md §1 y
-# research D3 de H45). El programa paquete-de-mas.go, de solo biblioteca
-# estándar, copia el módulo bajo prueba (la raíz de $KITLEGAL_SKILLS/..) en
-# repo, sin las carpetas de primer nivel .git, web, dist, bin, .codegraph,
-# specs, .specify, .agents y .claude y sin enlaces simbólicos; le instala el
-# paquete prueba de data-model §6 —las entradas de paquete/*.yaml al final del
-# bloque de su clave en repo/data/, paquete/prueba.md en las referencias de
-# plazos-y-territorio y una eval más, la copia de la primera de
-# evals/plazos-y-territorio/ con el prefijo 99-—; la sincroniza como
-# make skills-sync; y corre en ella la lista de FR-016 con dos órdenes go test,
-# los tests enteros y los subtests. De cada paso imprime una línea con su código
-# y, de cada orden que no sale con 0, escribe el principio de su salida, hasta
-# 1200 bytes, en la de errores.
+# research D3 de H45; contracts/copia-con-un-paquete-mas.md y research D5 de
+# H45.1). El programa paquete-de-mas.go, de solo biblioteca estándar, copia el
+# módulo bajo prueba (la raíz de $KITLEGAL_SKILLS/..) en repo, sin las carpetas
+# de primer nivel .git, web, dist, bin, .codegraph, specs, .specify, .agents y
+# .claude y sin enlaces simbólicos; le instala el paquete prueba de data-model §6
+# de H45 y §5 de H45.1 —las entradas de paquete/*.yaml al final del bloque de su
+# clave en repo/data/, los dos cambios de la base en repo/data/cobertura.yaml,
+# paquete/prueba.md en las referencias de plazos-y-territorio,
+# paquete/prueba-de-normativa.md en las de normativa, cuatro copias de la
+# primera eval de evals/plazos-y-territorio/ con los prefijos 96- a 99- y
+# paquete/fuera-de-lo-declarado.yaml como 95-fuera-de-lo-declarado.yaml—; la
+# sincroniza como make skills-sync; imprime cuántas líneas más abajo está la
+# orden del paso 2 en el SKILL.md de normativa de la copia que en el del módulo;
+# y corre en ella la lista de FR-016 de H45 con FR-011 de H45.1 con dos órdenes
+# go test, los tests enteros, con TestControlesSobreLasReferenciasAMano, y los
+# subtests, con solo cuatro-evals-mas de TestDefinicionDelJob. De cada paso
+# imprime una línea con su código y, de cada orden que no sale con 0, escribe el
+# principio de su salida, hasta 1200 bytes, en la de errores.
 #
-# El paquete solo añade: la norma de tráfico BOE-A-2015-11722, grabada y fuera de
+# El paquete añade: la norma de tráfico BOE-A-2015-11722, grabada y fuera de
 # data/normas.yaml, con vertical: prueba; un tipo suyo; una fila de lo regulado
-# aparte con ella por norma; su fila de lo cubierto; y su referencia, con las dos
-# regiones vacías. Tras sincronizar, el tipo, la fila nueva y la de tráfico de
-# hoy, que lleva la misma norma, son de prueba.md, y ninguno de
-# administrativo.md (US2.1, US2.2 sobre datos reales).
+# aparte con ella por norma; su fila de lo cubierto; su referencia en
+# plazos-y-territorio, con las dos regiones vacías; su referencia en normativa;
+# cuatro evals de modo, la 99- de H45 entre ellas; y una eval de lo no
+# declarado. Y cambia dos filas de la base de data/cobertura.yaml: estrecha la de
+# extranjería y asilo, sin partirla, y da su norma a la del orden social, que
+# pasa a prueba.md. Tras sincronizar, el tipo, la fila nueva, la de tráfico de
+# hoy, que lleva la misma norma, y la del orden social son de prueba.md, y
+# ninguno de administrativo.md (US2.1, US2.2 sobre datos reales); la fila
+# estrechada sigue en administrativo.md; y la línea del paquete está en la
+# región de los paquetes del SKILL.md de normativa, con la orden del paso 2 una
+# línea más abajo (US6.3, US6.4 de H45.1).
 #
 # El entorno de Go: GOCACHE y GOMODCACHE los da el arnés (research D4); el guion
 # fija un HOME y un GOPATH suyos, sin proxy de módulos, sin el fichero de go env
 # y sin tocar go.mod.
 #
-# Cubre: US4, US2.1-US2.2 · FR-001, FR-002, FR-005, FR-006, FR-016, FR-017 · SC-004
+# Cubre: US4, US2.1-US2.2 · FR-001, FR-002, FR-005, FR-006, FR-016, FR-017 · SC-004;
+# US6 · FR-010 a FR-013 · SC-003 de H45.1
 
 mkdir casa
 env HOME=$WORK/casa
@@ -48,12 +62,27 @@ grep '^\| procedimientos sancionadores en materia de tráfico y seguridad vial \
 ! grep 'BOE-A-2015-11722' repo/skills/plazos-y-territorio/references/administrativo.md
 ! grep 'prueba-de-un-paquete-mas' repo/skills/plazos-y-territorio/references/administrativo.md
 
+# --- la fila estrechada, en la referencia de la base; la que gana la norma, en la del paquete (US6.3 · FR-010) ---
+grep '^\| actuaciones y procedimientos en materia de extranjería y asilo, salvo los del paquete de prueba \|' repo/skills/plazos-y-territorio/references/administrativo.md
+grep '^\| procedimientos sancionadores en el orden social \|' repo/skills/plazos-y-territorio/references/prueba.md
+! grep '^\| procedimientos sancionadores en el orden social \|' repo/skills/plazos-y-territorio/references/administrativo.md
+
+# --- la referencia en normativa: su línea, en la región de los paquetes; la orden del paso 2, una más abajo (US6.4 · FR-010) ---
+grep '^- Si la pregunta es de lo prueba, lee \[prueba\]\(references/prueba\.md\)\.$' repo/skills/normativa/SKILL.md
+stdout '^orden del paso 2 de normativa, líneas más abajo: 1$'
+
+# --- este guion y su copia congelada, iguales byte a byte (FR-013 de H45.1) ---
+cmp $KITLEGAL_SKILLS/../internal/app/testdata/script/h45-paquete-de-mas.txtar $KITLEGAL_SKILLS/../specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar
+
 -- paquete-de-mas.go --
 // paquete-de-mas copia el módulo bajo prueba, instala en la copia el paquete
-// prueba del archivo del guion, la sincroniza y corre en ella la lista de
-// FR-016 de H45 (contracts/aceptacion.md §1). Imprime una línea por paso y, de
-// cada orden que no sale con 0, escribe el principio de su salida en la de
-// errores. Sale con 0 salvo que no pueda copiar o instalar.
+// prueba del archivo del guion, la sincroniza, mide cuántas líneas más abajo
+// queda la orden del paso 2 de normativa y corre en ella la lista de FR-016 de
+// H45 con FR-011 de H45.1 (contracts/aceptacion.md §1 de H45;
+// contracts/copia-con-un-paquete-mas.md §2 de H45.1). Imprime una línea por
+// paso y, de cada orden que no sale con 0, escribe el principio de su salida en
+// la de errores. Sale con 0 salvo que no pueda copiar, instalar o encontrar una
+// sola vez la orden del paso 2.
 //
 //	go run paquete-de-mas.go <raíz del módulo> <carpeta de la copia>
 package main
@@ -77,17 +106,43 @@ var excluidas = map[string]bool{
 
 // Los filtros de las dos órdenes de la lista: los tests enteros de
 // internal/skills e internal/evals, y los subtests de internal/evals e
-// internal/app.
+// internal/app. De TestDefinicionDelJob solo corre cuatro-evals-mas: ni
+// del-repositorio, ni peor-caso, ni tope-con-las-evals-del-repositorio, que
+// miden contra el tope las evals del módulo copiado (FR-011 de H45.1).
 const (
 	filtroDeLosTestsEnteros = `^(TestLeerCobertura|TestCoberturaDelRepositorio|TestRegionDeLoCubierto|` +
 		`TestRenderizarRecursosYPlazos|TestRegionDeLaCobertura|TestRegiones|TestVerticalDeEnsayo|` +
-		`TestDefinicionDelJob|TestPlanEnDosModos|TestUmbralesDePlazosYTerritorio|TestUmbralesDeNormativa|` +
+		`TestPlanEnDosModos|TestUmbralesDePlazosYTerritorio|TestUmbralesDeNormativa|` +
 		`TestUmbralesDeLasSkills|TestInformeEnDosModos|TestMatrizDeLasPropuestas|` +
-		`TestSkillsDelProductoDesdeControl|TestDescripcionesDelProducto|TestDescripcionesCortas)$`
-	filtroDeLosSubtests = `^(TestEvalsDelRepositorio|TestCasosDePlazos|TestEntregaDelHito)$/` +
+		`TestSkillsDelProductoDesdeControl|TestDescripcionesDelProducto|TestDescripcionesCortas|` +
+		`TestControlesSobreLasReferenciasAMano)$`
+	filtroDeLosSubtests = `^(TestEvalsDelRepositorio|TestCasosDePlazos|TestEntregaDelHito|TestDefinicionDelJob)$/` +
 		`^(precepto-de-la-cobertura|ordenes-para-powershell|conjunto-plazos-y-territorio|19-eval-c-tributos|` +
-		`h32-paquetes|h33-cobertura-instalada|h36-plazos-de-hoy|h41-4-skills-instaladas)$`
+		`h32-paquetes|h33-cobertura-instalada|h36-plazos-de-hoy|h41-4-skills-instaladas|cuatro-evals-mas)$`
 )
+
+// cambiosDeLaBase son los dos cambios del paquete en filas de lo regulado
+// aparte de la base, sin norma, de data/cobertura.yaml (FR-010 a y b de
+// H45.1): estrecha la de extranjería y asilo sin partirla, con su texto dentro,
+// y da a la del orden social la norma del paquete, con su precepto aplicable.
+var cambiosDeLaBase = []struct{ viejo, nuevo string }{
+	{
+		"  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo\n",
+		"  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo, salvo los del paquete de prueba\n",
+	},
+	{
+		"  - procedimiento: procedimientos sancionadores en el orden social\n" +
+			"    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: \"DA 1ª.2.c\"}\n",
+		"  - procedimiento: procedimientos sancionadores en el orden social\n" +
+			"    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: \"DA 1ª.2.c\"}\n" +
+			"    norma: {identificador: BOE-A-2015-11722, nombre: \"texto refundido de la Ley sobre Tráfico, Circulación de " +
+			"Vehículos a Motor y Seguridad Vial\", aplicable: {bloque: a1, apartado: \"1\"}}\n",
+	},
+}
+
+// ordenDelPasoDos es la orden de Bash del paso 2 del SKILL.md de normativa.
+const ordenDelPasoDos = "kitlegal boe articulo BOE-A-1978-31229 a140 --json && " +
+	"kitlegal graph check BOE-A-1978-31229 a140 --json"
 
 // maxSalida son los bytes que se escriben de la salida de una orden que no sale
 // con 0: su principio, donde go test nombra el primer test que cae y da su
@@ -118,6 +173,19 @@ func main() {
 
 	ejecutar(copia, "sincronía",
 		"test", "-count=1", "-run", "^TestSkillsDelRepositorio$", "./internal/app/", "-args", "-regenerar-skills")
+
+	delModulo, err := lineaDeLaOrden(filepath.Join(os.Args[1], "skills", "normativa", "SKILL.md"))
+	if err != nil {
+		terminar(fmt.Errorf("orden del paso 2: %w", err))
+	}
+
+	deLaCopia, err := lineaDeLaOrden(filepath.Join(copia, "skills", "normativa", "SKILL.md"))
+	if err != nil {
+		terminar(fmt.Errorf("orden del paso 2: %w", err))
+	}
+
+	fmt.Printf("orden del paso 2 de normativa, líneas más abajo: %d\n", deLaCopia-delModulo)
+
 	ejecutar(copia, "tests enteros",
 		"test", "-count=1", "-run", filtroDeLosTestsEnteros, "./internal/skills/", "./internal/evals/")
 	ejecutar(copia, "subtests",
@@ -198,7 +266,7 @@ func copiarFichero(origen, destino string) (err error) {
 }
 
 // instalar añade a la copia el paquete prueba del archivo del guion
-// (data-model §6 de H45).
+// (data-model §6 de H45 y §5 de H45.1).
 func instalar(copia string) error {
 	datos := filepath.Join(copia, "data")
 
@@ -216,8 +284,16 @@ func instalar(copia string) error {
 		}
 	}
 
+	if err := cambiarUnaVez(filepath.Join(datos, "cobertura.yaml"), cambiosDeLaBase); err != nil {
+		return err
+	}
+
 	referencias := filepath.Join(copia, "skills", "plazos-y-territorio", "references")
 	if err := copiarFichero(filepath.Join("paquete", "prueba.md"), filepath.Join(referencias, "prueba.md")); err != nil {
+		return err
+	}
+
+	if err := copiarFichero(filepath.Join("paquete", "prueba-de-normativa.md"), filepath.Join(copia, "skills", "normativa", "references", "prueba.md")); err != nil {
 		return err
 	}
 
@@ -228,7 +304,67 @@ func instalar(copia string) error {
 		return err
 	}
 
-	return copiarFichero(filepath.Join(evals, primera), filepath.Join(evals, "99-"+primera))
+	for _, prefijo := range []string{"96-", "97-", "98-", "99-"} {
+		if err := copiarFichero(filepath.Join(evals, primera), filepath.Join(evals, prefijo+primera)); err != nil {
+			return err
+		}
+	}
+
+	return copiarFichero(filepath.Join("paquete", "fuera-de-lo-declarado.yaml"),
+		filepath.Join(evals, "95-fuera-de-lo-declarado.yaml"))
+}
+
+// cambiarUnaVez sustituye en el fichero cada texto viejo de los cambios, en su
+// orden, por su nuevo. Cada viejo tiene que estar una sola vez en el fichero: si
+// otro cambio de la base lo ha movido, la instalación falla y lo dice.
+func cambiarUnaVez(fichero string, cambios []struct{ viejo, nuevo string }) error {
+	contenido, err := os.ReadFile(fichero)
+	if err != nil {
+		return err
+	}
+
+	texto := string(contenido)
+
+	for _, cambio := range cambios {
+		if strings.Count(texto, cambio.viejo) != 1 {
+			return fmt.Errorf("%s no lleva una sola vez %q", fichero, cambio.viejo)
+		}
+
+		texto = strings.Replace(texto, cambio.viejo, cambio.nuevo, 1)
+	}
+
+	return os.WriteFile(fichero, []byte(texto), 0o644)
+}
+
+// lineaDeLaOrden es el número, desde 1, de la única línea del fichero que es,
+// sin los blancos de sus extremos, la orden del paso 2.
+func lineaDeLaOrden(fichero string) (int, error) {
+	contenido, err := os.ReadFile(fichero)
+	if err != nil {
+		return 0, err
+	}
+
+	numero, encontrada := 0, 0
+
+	for linea := range strings.Lines(string(contenido)) {
+		numero++
+
+		if strings.TrimSpace(linea) != ordenDelPasoDos {
+			continue
+		}
+
+		if encontrada != 0 {
+			return 0, fmt.Errorf("%s lleva la orden %q en más de una línea", fichero, ordenDelPasoDos)
+		}
+
+		encontrada = numero
+	}
+
+	if encontrada == 0 {
+		return 0, fmt.Errorf("%s no lleva la orden %q en ninguna línea", fichero, ordenDelPasoDos)
+	}
+
+	return encontrada, nil
 }
 
 // primerFichero es el nombre del primer fichero de la carpeta en orden de
@@ -405,3 +541,18 @@ lo regula aparte la ley, no el procedimiento común (<precepto> [<identificador>
 
 <!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->
 <!-- fin de recursos_y_plazos -->
+-- paquete/prueba-de-normativa.md --
+# Lo prueba
+
+El paquete prueba en `normativa`: el de la copia con un paquete más, que comprueba que un paquete con referencia en
+esta skill no pone en rojo ningún test ajeno. No es una materia, y ninguna pregunta lo pide.
+-- paquete/fuera-de-lo-declarado.yaml --
+# Eval de lo no declarado del paquete prueba: un plazo de una materia que kitlegal no declara cubierta. La respuesta lo
+# declara con la plantilla y el motivo de lo no declarado, sin calcular ningún plazo.
+pregunta: "Me perdieron la maleta en un vuelo del 3 de noviembre de 2026. ¿Hasta qué día puedo reclamar a la compañía aérea?"
+activa: true
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  fuera_de_lo_declarado: true
