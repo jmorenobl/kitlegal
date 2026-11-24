@@ -1,20 +1,13 @@
 {
-  "id": "T017",
-  "texto": "T017 [datos] [US9] La descripción nueva de `plazos-y-territorio`, en una sola tarea con el guion que la fija porque en cuanto cambia el binario empotra otra y `h41-4-skills-instaladas` la ve (FR-023, FR-024; US9.1, US9.2; SC-007; contracts/skills-y-laboratorio.md §4; research D8): la `description` del frontmatter de `skills/plazos-y-territorio/SKILL.md` y `laboratorio/producto-descripciones-cortas/plazos-y-territorio.txt` pasan al texto de FR-023 byte a byte (429 caracteres, `wc -m` sin el salto), sin tocar nada más de la skill; `descripcionCortaDePlazosYTerritorio` de `internal/evals/laboratorio_descripciones_test.go` la sigue; la línea 34 de `internal/app/testdata/script/h41-4-skills-instaladas.txtar` y de su copia congelada `specs/038-h41-4-las-skills-del/aceptacion/skills-instaladas.txtar` la exige con `( |\\n  )` entre palabras; si la declaración de `plazos-y-territorio` de `internal/evals/laboratorio_familias_test.go` fija la descripción, la sigue; y `CHANGELOG.md`, *Unreleased* «Cambiado», dice la descripción nueva, que deja de nombrar una materia. Comprobar con `wc -m` los 429 caracteres y la suma de la variante (1 692 ≤ 1 700); ver en rojo, con la descripción de hoy en el `SKILL.md` o en la variante, `TestSkillsDelProductoDesdeControl`, `TestDescripcionesCortas` y `h41-4-skills-instaladas`; `make ci` en verde.",
+  "id": "T018",
+  "texto": "T018 Escribir `specs/042-h45-el-molde-admite/mutantes.md` (FR-027; FR-008, FR-018, FR-025, FR-026; SC-001 a SC-009, SC-011; plan, tabla de mutantes; research D13): una entrada por control de «Criterios del hito (literales)» del spec, con la orden exacta, lo esperado y lo visto, cada mutante aplicado en una copia del módulo en `$TMPDIR` y nunca en el árbol de trabajo, y las comparaciones con `main` hechas con `git show main:<ruta>` o `git diff main -- <rutas>`, que solo leen. Incluye: lo de hoy igual (`make skills-sync` sin diferencias; el diff de las skills frente a `main` solo en las cuatro líneas movidas de `normativa`, su `con_herramientas.md` y la `description` de `plazos-y-territorio`; la regla de hoy con un tipo de ensayo en rojo en `TestVerticalDeEnsayo`; `TestCasosDePlazos`, `TestAppletPlazos` y los guiones `h9-plazos-*` y `h36-plazos-de-hoy` en verde); el molde (los cuatro mutantes de US2.4); los defectos (la regla quitada; el cómputo contado); los tests sin listas (con los dos guiones de la suite de aceptación del hito, que no se tocan, activados en una copia, `h45-paquete-de-mas` en verde, y en rojo con la lista literal de hoy devuelta a `TestCoberturaDelRepositorio`, `tests enteros: 1`; y el mutante de cada test de la lista); las grabaciones; el tope del trabajo; la descripción; PowerShell (los cinco de §C.3); el laboratorio (sus dos mutantes); el diff de las evals frente a `main`, vacío (FR-025), y las reglas del conjunto de `normativa`, en el código de producción del conjunto de evals, sin cambiar frente a `main` (FR-018). Recorrer los escenarios del quickstart del hito y apuntar en el registro lo que se haya podido medir y lo que no; `make ci` en verde.",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "fa75846e42034fd367547f1e15b9e9f3fc3f8a4d",
+  "base": "7e9029cf17bf6c1a41cbc1071ba8f3392f18a454",
   "rutas": [
-    "CHANGELOG.md",
-    "SKILL.md",
-    "contracts/skills-y-laboratorio.md",
-    "internal/app/testdata/script/h41-4-skills-instaladas.txtar",
-    "internal/evals/laboratorio_descripciones_test.go",
-    "internal/evals/laboratorio_familias_test.go",
-    "laboratorio/producto-descripciones-cortas/plazos-y-territorio.txt",
-    "skills/plazos-y-territorio/SKILL.md",
-    "specs/038-h41-4-las-skills-del/aceptacion/skills-instaladas.txtar"
+    "con_herramientas.md",
+    "specs/042-h45-el-molde-admite/mutantes.md"
   ],
   "cierre": false,
   "converger": false,
