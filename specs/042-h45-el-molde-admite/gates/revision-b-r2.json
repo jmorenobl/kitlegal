@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log, escrito a las 03:02:17, la hora del commit de cabeza 5080c9cb: «guardián de diff ok ((global), 19 ficheros)» —los 19 de ese commit—, «0 issues.», todos los paquetes en `ok` en `make test` y en `make test-integration`, los tiempos, govulncheck («No vulnerabilities found.»), `TestEsquemasPublicados`, los controles de las skills, goreleaser, gitleaks, `go mod verify` y `go mod tidy -diff`, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». `git status`: nada fuera de gates/; en gates/, solo lo del propio paso (modelos.jsonl, revision-cambios.md, revision-cambios-r2.diff y base-global-pendiente). Reproducido en un clon de 5080c9cb en el temporal: `go test -count=1 -skip '^(TestMedidasDeTiempo|TestCosteDelGrafo)$' ./...` da `ok` en todos los paquetes salvo internal/app e internal/evals, que cayeron con «disk quota exceeded» del temporal que comparto con el otro juez y que, corridos solos, dan `ok` (8,9 s y 15,2 s); el linter del proyecto sobre internal/skills, internal/app e internal/core/plazos, «0 issues.». La variante con -race y el linter del resto solo constan en gates/ci.log."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Los tres motivos de la ronda 1 están corregidos, comprobado con mutantes en el clon. (1) `if false && !esta` en `paqueteDeLaFila` (internal/skills/regiones.go:534) → `TestRegiones/defectos/fila-con-su-precepto-en-una-norma-que-no-esta` en rojo (regiones_test.go:444: espera el defecto de la fila sin región y recibe nil). Y con los datos reales: la última fila de data/cobertura.yaml con `precepto.norma: BOE-A-2099-1` y `norma: BOE-A-1998-16718` → `go test -run '^TestSkillsDelRepositorio$' ./internal/app/ -args -regenerar-skills` da «la fila de «reclamaciones económico-administrativas» no la genera ninguna región cobertura_por_materia» en consulta-juridica y en plazos-y-territorio, como `main`, y no reescribe ninguna referencia (`git status` del clon: solo data/cobertura.yaml). (2) `slices.Sort(paquetes)` quitado (regiones.go:613) → `TestRegiones/defectos/tipo-de-dos-paquetes` en rojo («ensayo, administrativo» por «administrativo, ensayo»); `return paquetes` sin `slices.Compact` → `TestRegiones/sincronia`, `/paquete-de-la-fila` y los de `/defectos` en rojo. (3) El del juez A: `codigos[1], codigos[2] = codigos[2], codigos[1]` en `tipoDesconocido` (internal/core/plazos/errores.go:75) → `TestCasosDePlazos/tipo-que-no-existe` en rojo (plazos_casos_test.go:312); lo que espera es, con los datos de hoy, el mensaje del `error-tipo.json` del guion de `main`, y con un tipo más añadido al data/plazos.yaml del clon sigue en verde, porque deriva y no lista. Suite congelada intacta, activada y en verde: las huellas de aceptacion/*.txtar y de internal/app/testdata/script/h45-*.txtar son las de gates/aceptacion-congelada.json (2adba0d3… y dc3a74e6…), y `TestEntregaDelHito/h45-paquete-de-mas` (7,5 s), `/h45-skills-instaladas` y `/h36-plazos-de-hoy` salen en PASS con y sin `-tags=integration`. En la cabeza siguen cayendo los mutantes del reparto: `case true:` por `case paquetes[0] == region.paquete:` → TestVerticalDeEnsayo; la fila repartida por su precepto → TestVerticalDeEnsayo y `TestRegiones/paquete-de-la-fila`."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango solo añade a producción una consulta al mapa de normas en `paqueteDeLaFila` (internal/skills/regiones.go:532-545): ni net/http, ni os.Exit, ni fmt.Print* (búsqueda en las líneas añadidas de gates/revision-cambios-r2.diff, sin resultados). El subtest nuevo importa internal/core/schema, que ya importan 17 ficheros de test de internal/app. En el clon: el linter del proyecto (depguard, forbidigo), «0 issues.» en los tres paquetes tocados, y `go test ./internal/` (TestArquitectura) en `ok`. Lo demás del hito no lo toca el rango y consta en gates/revision-b-r1.json."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, schemas/ ni internal/cli: `git diff --stat 0d7cd86..HEAD` fuera de gates/ son docs/SKILLS.md, regiones.go, dos ficheros de test y tres artefactos del hito. El subtest nuevo exige el sobre de fallo entero del tipo que no existe (`exigirSobreDeFallo` con la clase `argumentos`, el código 2 y la procedencia de `kitlegal plazos`, plazos_casos_test.go:311) además de su mensaje. gates/ci.log: `go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/` en `ok`."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida cambia en el rango. `paqueteDeLaFila` lee el mapa con la forma de dos valores, sin índices ni `panic`, y el defecto de la fila sale por `filasSinRegion` (regiones.go:909-916), la vía de `main`, como defecto de la sincronía. El binario sigue dando 2 y la clase `argumentos` al tipo desconocido: `TestCasosDePlazos/tipo-que-no-existe` y h36-plazos-de-hoy.txtar:41-42, en verde en el clon."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "docs/SKILLS.md:250 y :305 dicen la regla corregida —la fila cuyo `precepto.norma` no está en data/normas.yaml no es de ningún paquete y da el defecto de la fila sin región—, que es lo que hace el producto (medido, criterio b). Dicen lo mismo contracts/sincronia-de-los-paquetes.md §3 y §6, research.md D2 y el comentario de regiones.go:525-531; gates/supuestos.md:12 corrige el supuesto de T005 y sus líneas 31 y 32 registran las dos correcciones. Las filas nuevas de mutantes.md (F5, D3, D4 y D5) las he reproducido en el clon con el test, la línea y el mensaje que dicen (plazos_casos_test.go:312; regiones_test.go:444, y :454 y :455 son las aserciones de «ninguna referencia regenerada» y de `Escribir`). El CHANGELOG no cambia, y está bien: la corrección devuelve el defecto de `main` y no altera nada de lo que dice Unreleased. Ningún ADR ni fuente en el rango. Lo que la corrección dejó atrás, data-model.md §3 y tasks.md T006, va a observaciones."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no añade red, fuentes ni datos externos: `git diff --stat 0d7cd86..HEAD -- skills/ data/ evals/ schemas/ testdata/ evidencias/ internal/httpx internal/cli`, vacío. Los datos nuevos son cadenas de prueba dentro de regiones_test.go (la norma `BOE-A-2099-1`, que no existe, puesta para que no esté en la tabla) y la lectura del data/plazos.yaml del repositorio. Sin secretos (gitleaks en gates/ci.log: «no leaks found») ni datos personales."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas del rango no hay `nolint`, `t.Skip`, TODO, FIXME ni error ignorado (búsqueda sobre gates/revision-cambios-r2.diff, sin resultados); los dos `err` de `elTipoQueNoExiste` van con `require.NoError` (plazos_casos_test.go:327 y :330). Ningún fixture ni guion cambia en el rango: los casos nuevos van en regiones_test.go, y el guion h36-plazos-de-hoy y su copia congelada no se tocan. gates/cuarentena.json sigue vacío (`\"tareas\": {}`)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango se limita a los tres motivos de la ronda 1, los dos míos y el del juez A: cuatro líneas de producción en `paqueteDeLaFila`, un caso de test nuevo y otro reordenado, un subtest con su función de apoyo y los artefactos que lo describen (7 ficheros fuera de gates/, 98 líneas añadidas y 15 quitadas). gates/supuestos.md:12 deja el supuesto de T005 en la lectura conservadora, la de `main`: la fila no es de ningún paquete, `filasDeLaCobertura` no la escribe y `filasSinRegion` da el defecto de hoy con su texto, sin ninguno nuevo. Las líneas 31 y 32 registran las dos correcciones con su impacto, `[skill]` e `[interno]`."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida del binario ni ningún fichero de skills/. Medido en el clon con `wc`: skills/plazos-y-territorio/references/administrativo.md, 100 líneas y 10 635 bytes, y skills/normativa/references/con_herramientas.md, 43 líneas y 2 611 bytes, los de la ronda 1; ninguno crece con lo consultado, porque salen de data/. El defecto que vuelve solo se da en `make skills-sync` y sus tests, una vez por fila y por skill con la plantilla, y deja de darse al corregir el dato. Ninguna SKILL.md pide una invocación más por pregunta."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Lo nuevo del rango se traza. El retorno temprano de `paqueteDeLaFila` (internal/skills/regiones.go:533-536), a FR-005 («como hoy») y FR-006: la misma regla en `filasDeLaCobertura` y en `filasSinRegion`, sin función, rama ni texto de defecto nuevos. El caso `fila-con-su-precepto-en-una-norma-que-no-esta` (regiones_test.go:673-683) y el tipo de dos paquetes con el precepto de ensayo delante (:484-486), a §3 y §C.1 del contrato y a FR-004 (orden alfabético y sin repetir). `TestCasosDePlazos/tipo-que-no-existe` con `elTipoQueNoExiste` (internal/app/plazos_casos_test.go:306-341), a FR-017 y FR-026. Ningún paquete, símbolo exportado, opción ni reintento nuevo; lo que sobraba en la ronda 1 era menor, sigue en gates/revision-b-r1.json y el rango no lo toca."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "La fila FR-026 de «Controles de umbral» (plan.md:274) tiene ya el control que le faltaba: con los códigos del mensaje en otro orden, `TestCasosDePlazos`, que corre en `make ci`, sale en rojo (plazos_casos_test.go:312). En la cabeza siguen saliendo en rojo con su mutante, en el clon: SC-006, `concurrencia: 2` en .github/workflows/evals.yml:260 → `TestDefinicionDelJob/tope-con-las-evals-del-repositorio`, `/cuatro-evals-mas` («5h52m0s is not greater than or equal to 7h34m13s») y `/del-repositorio`; `timeout-minutes: 330` en :296 → además `/peor-caso` («5h30m0s is not greater than or equal to 5h35m17s»); SC-002, los dos mutantes del reparto → TestVerticalDeEnsayo; SC-003, `TestRegiones/defectos` con los mutantes del criterio b; SC-004, el guion h45-paquete-de-mas en verde, que exige `tests enteros: 0` y `subtests: 0` (h45-paquete-de-mas.txtar:41-42). SC-005 y SC-007 no los toca el rango y constan con su mutante en gates/revision-b-r1.json. Los umbrales de las evals los mide el cierre, no esta sesión."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "specs/042-h45-el-molde-admite/data-model.md:34-35 y la descripción de T006 en tasks.md:86 siguen dando la regla de `paqueteDeLaFila` sin la salvedad que añadió la corrección (ninguno si la norma del precepto no está en data/normas.yaml, aunque la norma que rige la fila lleve `vertical`). La salvedad está en docs/SKILLS.md:250, contracts/sincronia-de-los-paquetes.md §3, research.md D2, gates/supuestos.md y el comentario del código; solo se llega a ese caso con un dato mal escrito, y la sincronía lo dice con su defecto. Basta una frase más en data-model.md §3.",
+    "En mutantes.md, las filas de T018 (D1, D2, M02, M03, L14…) llevan los números de línea de su copia en 7e9029cf, que su cabecera nombra, y las cuatro nuevas (F5, D3, D4, D5), los de la cabecera: tras la corrección, regiones_test.go va 10 líneas más abajo en esa zona y regiones.go, 7. Son referencias de línea de un registro fechado.",
+    "Según mutantes.md, el corrector corrió F5, D3, D4 y D5 en el árbol de trabajo y los deshizo, cuando la cabecera del fichero dice que ningún mutante se aplicó al árbol. `git status` no enseña ningún cambio fuera de gates/, y los cuatro los he repetido en un clon con el resultado que dicen.",
+    "`TestCasosDePlazos/tipo-que-no-existe` no está en la lista que corre el guion congelado h45-paquete-de-mas (de TestCasosDePlazos solo filtra `19-eval-c-tributos`, línea 87-89), así que que un paquete más no lo pone en rojo no lo comprueba ningún control: lo he comprobado a mano, con un tipo más en el data/plazos.yaml del clon, y sigue en verde.",
+    "docs/SKILLS.md:305 pone «que tiene que estar en data/normas.yaml» detrás de la rama del precepto, y el código lo exige también cuando la norma que rige la fila lleva `vertical`; la fila :250 lo dice entero.",
+    "Las observaciones de la ronda 1 (gates/revision-b-r1.json) siguen como estaban: el orden por subhito de §C.4 sin test, `existeComo` con su segundo argumento, las ramas de error sin cubrir, los nombres de carpeta que `carpetaDeUnHito` admite, `esDeUnaRaizDeGrabaciones` sin mirar el manifiesto, el recorte a 1 200 bytes del guion congelado y las cifras «de hoy» de los comentarios de evals.yml. El rango no toca ninguno de esos ficheros.",
+    "El `go test ./...` entero del clon falló una vez en internal/app e internal/evals con «disk quota exceeded» del directorio temporal, que comparten los dos jueces; cada paquete, solo, sale en `ok`. Es del entorno de la revisión, no del hito.",
+    "No medido en esta sesión: las evals del cierre (SC-010 y el juez de las descripciones de SC-007), que mide el workflow sobre la cabeza; la variante con -race, el linter fuera de los tres paquetes tocados y la suite de integración entera, de los que solo consta gates/ci.log (de integración he corrido los guiones h45-* y h36-plazos-de-hoy)."
+  ]
+}

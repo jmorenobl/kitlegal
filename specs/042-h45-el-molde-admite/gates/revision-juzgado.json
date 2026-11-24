@@ -25,6 +25,32 @@
           "sin_modelo_real": null
         }
       }
+    },
+    {
+      "ronda": 2,
+      "ciclo": 1,
+      "sha": "5080c9cb1eb823dcdc89786a1d2156aae1dc0948",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado",
+      "leido": "2026-11-24T02:25:27Z",
+      "modelos": {
+        "a": {
+          "sesion": "4d4816f2-190b-45e1-92c4-d6896b526607",
+          "pedido": "claude-opus-5-5",
+          "real": {
+            "claude-opus-5-5": 129
+          },
+          "sin_modelo_real": null
+        },
+        "b": {
+          "sesion": "05d8fef4-0248-4530-84d7-9f6873a6dbe4",
+          "pedido": "claude-fable-5-2",
+          "real": {
+            "claude-fable-5-2": 133
+          },
+          "sin_modelo_real": null
+        }
+      }
     }
   ]
 }
