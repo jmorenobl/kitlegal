@@ -18,7 +18,7 @@
 exec kitlegal skills install --dir destino --json
 
 # --- Las dos órdenes de leer, cada una en su sitio y una vez (US1, 1 y 2) ---
-grep '^## Protocolo\n\nAntes de la primera orden o llamada, lee \[municipios\.md\]\(references/municipios\.md\): qué hacer si falta el municipio o\nno sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura\.\n\nTerritorio: del 1 al 4, y el 5 y el 6 si va más allá\.' destino/plazos-y-territorio/SKILL.md
+grep '^## Protocolo\n\nAntes de la primera orden o llamada, lee \[municipios\.md\]\(references/municipios\.md\): cómo se pide cada\noperación, qué hacer si falta el municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su\ncobertura\.\n\nTerritorio: del 1 al 4, y el 5 y el 6 si va más allá\.' destino/plazos-y-territorio/SKILL.md
 grep 'Un acto presunto no tiene fecha: ningún plazo\. Antes del 8, lee\n   \[calculo_de_plazos\.md\]\(references/calculo_de_plazos\.md\): los municipios que cuentan, el plazo sin calcular y la\n   lectura en la fecha de inicio\.\n8\. \*\*Situar el plazo\*\*' destino/plazos-y-territorio/SKILL.md
 grep -count=1 '\]\(references/municipios\.md\)' destino/plazos-y-territorio/SKILL.md
 grep -count=1 '\]\(references/calculo_de_plazos\.md\)' destino/plazos-y-territorio/SKILL.md

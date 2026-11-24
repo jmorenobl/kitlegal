@@ -1,8 +1,8 @@
 # Los municipios
 
-El detalle del territorio de un municipio (pasos 1 a 4 de `SKILL.md`): qué hacer si falta el municipio, qué trae
-`data`, la plantilla con que se presenta, qué dice cada aspecto de la cobertura y qué hacer cuando `territorio` o
-`plazos` no salen con 0. La forma de las tres líneas de cobertura es la de «Cómo se presenta el territorio» del cuerpo.
+El detalle del territorio de un municipio (pasos 1 a 4 de `SKILL.md`) y cómo se pide cada operación: qué hacer si
+falta el municipio, qué trae `data`, la plantilla con que se presenta, qué dice cada aspecto de la cobertura, qué hacer
+cuando `territorio` o `plazos` no salen con 0, y la herramienta o la orden de cada operación.
 
 ## El municipio que falta
 
@@ -61,3 +61,23 @@ dir3: <valor>
 - En `plazos`, el 2 o el 3 de un municipio se tratan igual, con los candidatos en `data.mensaje` tras el municipio. El
   3 con un `data.mensaje` que empieza por «el plazo de tipo» no es de un municipio: es el plazo sin calcular del paso 9.
 - Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.
+
+## Cómo se presenta el territorio
+
+Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con la clave y el valor
+exactos, una línea por aspecto, y detrás puedes explicarla:
+
+```text
+boletin_autonomico: <valor>
+boletin_provincial: <valor>
+dir3: <valor>
+```
+
+## Herramienta u orden
+
+Con la herramienta de su fila de «Comandos» de `SKILL.md` si entre las tuyas hay una con ese nombre, sola o tras el
+prefijo de tu agente, como `mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si no, con la orden
+`kitlegal … --json`, desde el `PATH`. Donde la orden sale con un código, la herramienta da un error con la
+`data.clase` entre paréntesis: 0 correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un
+municipio—, 3 (`no-encontrado`) un municipio fuera de la relación o un plazo con preceptos que no regían el día de
+inicio.

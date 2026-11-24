@@ -70,8 +70,8 @@ var fallosAdmitidosDelProducto = map[string][]string{
 // plazos-y-territorio, contracts/controles.md §2.2 de H41.1).
 var remisionesDelPlan = map[string][]string{
 	"jurisprudencia": {
-		"Antes de pedir una u otra, lee [references/consulta_preparada.md](references/consulta_preparada.md): la " +
-			"orden de cada forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.",
+		"Antes de pedir una u otra, lee [references/consulta_preparada.md](references/consulta_preparada.md): qué " +
+			"se pide según cómo se dio la referencia, la orden de cada forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.",
 		"Con cada documento, antes del cotejo, lee [references/documento_aportado.md](references/documento_aportado.md): " +
 			"qué se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se corresponden " +
 			"o si no lleva ficha.",
@@ -96,7 +96,8 @@ var remisionesDelPlan = map[string][]string{
 	"plazos-y-territorio": {
 		"- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el " +
 			"autonómico de la `comunidad` de `data`, y la norma que prevalece.",
-		"Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si falta el " +
+		"Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): cómo se pide cada " +
+			"operación, qué hacer si falta el " +
 			"municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.",
 		"Antes del 8, lee [calculo_de_plazos.md](references/calculo_de_plazos.md): los municipios que cuentan, el " +
 			"plazo sin calcular y la lectura en la fecha de inicio.",

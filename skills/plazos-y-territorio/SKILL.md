@@ -28,8 +28,9 @@ Cuándo leer cada una:
 
 ## Protocolo
 
-Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si falta el municipio o
-no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.
+Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): cómo se pide cada
+operación, qué hacer si falta el municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su
+cobertura.
 
 Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 y, solo si hay plazo, del 8 al 11.
 
@@ -66,17 +67,6 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
     la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
     `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
-
-## Cómo se presenta el territorio
-
-Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con la clave y el valor
-exactos, una línea por aspecto, y detrás puedes explicarla:
-
-```text
-boletin_autonomico: <valor>
-boletin_provincial: <valor>
-dir3: <valor>
-```
 
 ## Cómo se presenta un plazo
 
@@ -122,29 +112,21 @@ y con su forma; detrás puedes explicarla.
 
 ## Comandos
 
-Con la herramienta de su fila si entre las tuyas hay una con ese nombre, sola o tras el prefijo de tu agente, como
-`mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si no, con la orden `kitlegal … --json`, desde el
-`PATH`. Donde la orden sale con un código, la herramienta da un error con la `data.clase` entre paréntesis: 0
-correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3 (`no-encontrado`) un
-municipio fuera de la relación o un plazo con preceptos que no regían el día de inicio.
+`kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
 ### `kitlegal territorio`
 
-| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
-|---|---|---|---|
-| `kitlegal territorio resolver <consulta>` | `territorio_resolver` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. | objeto con `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`, `boletines`, `cobertura` |
+| Orden | Herramienta | Qué hace |
+|---|---|---|
+| `kitlegal territorio resolver <consulta>` | `territorio_resolver` | Devuelve el territorio de un municipio, por su nombre o por su código INE, con la cobertura de lo que está configurado y verificado. |
 
 ### `kitlegal plazos`
 
-| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
-|---|---|---|---|
-| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados, los avisos y la cobertura de los festivos. No la da si alguno de sus preceptos no regía así el día de inicio. | objeto con `fecha`, `tipo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura` |
-
-La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
-
-Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.
+| Orden | Herramienta | Qué hace |
+|---|---|---|
+| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados, los avisos y la cobertura de los festivos. No la da si alguno de sus preceptos no regía así el día de inicio. |
 
 <!-- fin de la tabla de comandos -->
 

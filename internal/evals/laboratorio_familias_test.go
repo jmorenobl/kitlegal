@@ -507,6 +507,14 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				antes:   "2. **Nunca inventar contenido legal.** " + siUnaLecturaFalla + " Lo que lo leído no da\n",
 				despues: "2. **Nunca inventar contenido legal.** Lo que lo leído no da\n",
 			},
+			{
+				antes: "una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el " +
+					"`PATH` o, si la\n" +
+					"tienes, con su herramienta.\n",
+				despues: "una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el " +
+					"`PATH` o con\n" +
+					"su herramienta.\n",
+			},
 		},
 		movimientos: []movimientoALaReferencia{
 			{
@@ -568,6 +576,114 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				antes:   antesDelCotejo + "\n### 4. Citar\n",
 				despues: "### 4. Citar\n",
 			},
+			{
+				antes: "[references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada forma, cómo " +
+					"se dan las casillas\n" +
+					"y qué hacer con el equivalente que devuelva la operación. Lo que se pide depende de cómo se dio la " +
+					"referencia:\n",
+				despues: "[references/consulta_preparada.md](references/consulta_preparada.md): qué se pide según cómo se dio " +
+					"la referencia, la\n" +
+					"orden de cada forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la " +
+					"operación. Un número sin\n" +
+					"fecha no se prepara de ninguna forma, tampoco como ROJ: lleva la línea y se pide la fecha.\n",
+			},
+			{
+				antes: "| Cómo se dio | Qué se pide |\n" +
+					"|---|---|\n" +
+					"| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` |\n" +
+					"| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` |\n" +
+					"| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` |\n" +
+					"| Número sin fecha («la STS 1088/2023») | nada: **sin fecha no se prepara de ninguna forma**, " +
+					"tampoco como ROJ; lleva la línea y se pide la fecha |\n" +
+					"\n" +
+					"- Una cita escrita como «STS 1088/2023, de 4 de julio» lleva el **número de resolución**, no el " +
+					"ROJ: se prepara con\n" +
+					"  `resolucion` y con `fecha` en la forma `AAAA-MM-DD`. El año de la fecha es el del número, salvo " +
+					"que la cita diga otro.\n",
+			},
+			{
+				antes: "- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió " +
+					"(`ecli`, `roj`, o\n" +
+					"  `resolucion` con `fecha`).\n",
+			},
+			{
+				antes: "- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se " +
+					"nombran como las\n" +
+					"  nombra el texto.\n",
+			},
+			{
+				antes: "entre paréntesis la `data.clase` del resultado que la herramienta marca como error: 0 correcto " +
+					"—también cuando el\n" +
+					"documento no es el pedido, que es un hallazgo y no un fallo— y 2 (`argumentos`) con una referencia " +
+					"mal formada, más de\n" +
+					"una forma de referencia, un número de resolución sin su fecha, un texto de búsqueda vacío o un " +
+					"documento sin ficha\n" +
+					"reconocible. Ante un error de argumentos, corrige la llamada o pide a la persona lo que falta, y no " +
+					"cites.\n",
+				despues: "entre paréntesis la `data.clase` del resultado que la herramienta marca como error: 0 correcto y 2 " +
+					"(`argumentos`) con\n" +
+					"una referencia mal formada, más de una forma de referencia, un número de resolución sin su fecha, " +
+					"un texto de búsqueda\n" +
+					"vacío o un documento sin ficha reconocible. Ante un error de argumentos, corrige la llamada o pide " +
+					"a la persona lo que\n" +
+					"falta, y no cites.\n",
+			},
+		},
+		enLasReferencias: []cambioEnUnaReferencia{
+			{
+				referencia: "consulta_preparada.md",
+				antes: "para una pregunta por materia (paso 6). La línea que va encima de la consulta, lo que se pide en " +
+					"cada caso y lo que se\n" +
+					"le dice a la persona que haga son los del paso 2; aquí está el detalle.\n",
+				despues: "para una pregunta por materia (paso 6). La línea que va encima de la consulta y lo que se le dice a " +
+					"la persona que\n" +
+					"haga son los del paso 2; aquí está el detalle, y lo que se pide según cómo se dio la referencia.\n",
+			},
+			{
+				referencia: "consulta_preparada.md",
+				antes:      "sentencias que le interesen y las adjunte, y sigue con lo que traiga (pasos 3 a 5).\n",
+				despues: "sentencias que le interesen y las adjunte, y sigue con lo que traiga (pasos 3 a 5).\n" +
+					"\n" +
+					"## Lo que se pide\n" +
+					"\n" +
+					"Lo que se pide depende de cómo se dio la referencia:\n" +
+					"\n" +
+					"| Cómo se dio | Qué se pide |\n" +
+					"|---|---|\n" +
+					"| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` |\n" +
+					"| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` |\n" +
+					"| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` |\n" +
+					"| Número sin fecha («la STS 1088/2023») | nada: **sin fecha no se prepara de ninguna forma**, " +
+					"tampoco como ROJ; lleva la línea y se pide la fecha |\n" +
+					"\n" +
+					"- Una cita escrita como «STS 1088/2023, de 4 de julio» lleva el **número de resolución**, no el " +
+					"ROJ: se prepara con\n" +
+					"  `resolucion` y con `fecha` en la forma `AAAA-MM-DD`. El año de la fecha es el del número, salvo " +
+					"que la cita diga otro.\n",
+			},
+			{
+				referencia: "documento_aportado.md",
+				antes:      "si no lo es, un hallazgo que dice qué difiere (`hallazgos`).\n",
+				despues: "si no lo es, un hallazgo que dice qué difiere (`hallazgos`). La orden sale con 0 también cuando el " +
+					"documento no es el\n" +
+					"pedido, que es un hallazgo y no un fallo.\n",
+			},
+			{
+				referencia: "documento_aportado.md",
+				antes: "documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a una sentencia " +
+					"identificada.\n",
+				despues: "documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a una sentencia " +
+					"identificada.\n" +
+					"\n" +
+					"## La referencia pedida y las sentencias que menciona\n" +
+					"\n" +
+					"- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió " +
+					"(`ecli`, `roj`, o\n" +
+					"  `resolucion` con `fecha`).\n" +
+					"- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se " +
+					"nombran como las\n" +
+					"  nombra el texto.\n",
+			},
 		},
 	},
 	// La forma sin condición de H41 con M1 (FR-001 a FR-005 de H41.1; ADR 0053,
@@ -616,6 +732,42 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				despues: "   plazo, un órgano o una vía de otra materia tampoco: su línea, sin darlos de memoria ni pedir " +
 					"`plazos calcular`.\n",
 			},
+			{
+				antes: "Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si " +
+					"falta el municipio o\n" +
+					"no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.\n",
+				despues: "Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): cómo se pide " +
+					"cada\n" +
+					"operación, qué hacer si falta el municipio o no sale con 0, qué trae `data`, la plantilla del " +
+					"territorio y qué dice su\n" +
+					"cobertura.\n",
+			},
+			{
+				antes: "\n" +
+					"## Cómo se presenta el territorio\n" +
+					"\n" +
+					"Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con " +
+					"la clave y el valor\n" +
+					"exactos, una línea por aspecto, y detrás puedes explicarla:\n" +
+					"\n" +
+					"```text\n" +
+					"boletin_autonomico: <valor>\n" +
+					"boletin_provincial: <valor>\n" +
+					"dir3: <valor>\n" +
+					"```\n",
+			},
+			{
+				antes: "Con la herramienta de su fila si entre las tuyas hay una con ese nombre, sola o tras el prefijo de " +
+					"tu agente, como\n" +
+					"`mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si no, con la orden `kitlegal … " +
+					"--json`, desde el\n" +
+					"`PATH`. Donde la orden sale con un código, la herramienta da un error con la `data.clase` entre " +
+					"paréntesis: 0\n" +
+					"correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3 " +
+					"(`no-encontrado`) un\n" +
+					"municipio fuera de la relación o un plazo con preceptos que no regían el día de inicio.\n",
+				despues: "`kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila.\n",
+			},
 		},
 		movimientos: []movimientoALaReferencia{
 			{
@@ -643,6 +795,51 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				referencia: "administrativo.md",
 				antes:      anteQuienSeReclamaEnLaBase,
 				despues:    anteQuienSeReclama,
+			},
+			{
+				referencia: "municipios.md",
+				antes: "El detalle del territorio de un municipio (pasos 1 a 4 de `SKILL.md`): qué hacer si falta el " +
+					"municipio, qué trae\n" +
+					"`data`, la plantilla con que se presenta, qué dice cada aspecto de la cobertura y qué hacer cuando " +
+					"`territorio` o\n" +
+					"`plazos` no salen con 0. La forma de las tres líneas de cobertura es la de «Cómo se presenta el " +
+					"territorio» del cuerpo.\n",
+				despues: "El detalle del territorio de un municipio (pasos 1 a 4 de `SKILL.md`) y cómo se pide cada " +
+					"operación: qué hacer si\n" +
+					"falta el municipio, qué trae `data`, la plantilla con que se presenta, qué dice cada aspecto de la " +
+					"cobertura, qué hacer\n" +
+					"cuando `territorio` o `plazos` no salen con 0, y la herramienta o la orden de cada operación.\n",
+			},
+			{
+				referencia: "municipios.md",
+				antes:      "- Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.\n",
+				despues: "- Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.\n" +
+					"\n" +
+					"## Cómo se presenta el territorio\n" +
+					"\n" +
+					"Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con " +
+					"la clave y el valor\n" +
+					"exactos, una línea por aspecto, y detrás puedes explicarla:\n" +
+					"\n" +
+					"```text\n" +
+					"boletin_autonomico: <valor>\n" +
+					"boletin_provincial: <valor>\n" +
+					"dir3: <valor>\n" +
+					"```\n" +
+					"\n" +
+					"## Herramienta u orden\n" +
+					"\n" +
+					"Con la herramienta de su fila de «Comandos» de `SKILL.md` si entre las tuyas hay una con ese " +
+					"nombre, sola o tras el\n" +
+					"prefijo de tu agente, como `mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si " +
+					"no, con la orden\n" +
+					"`kitlegal … --json`, desde el `PATH`. Donde la orden sale con un código, la herramienta da un error " +
+					"con la\n" +
+					"`data.clase` entre paréntesis: 0 correcto, 2 (`argumentos`) argumentos inválidos —también un nombre " +
+					"de más de un\n" +
+					"municipio—, 3 (`no-encontrado`) un municipio fuera de la relación o un plazo con preceptos que no " +
+					"regían el día de\n" +
+					"inicio.\n",
 			},
 		},
 	},

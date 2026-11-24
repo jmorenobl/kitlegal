@@ -24,7 +24,8 @@ Un PDF lo lees tú y pasas su ficha: kitlegal no abre ficheros.
 ## Lo que devuelve
 
 Los ocho datos de la ficha (`ficha`), si el documento es el pedido (`es_la_pedida`, solo si diste una referencia) y,
-si no lo es, un hallazgo que dice qué difiere (`hallazgos`).
+si no lo es, un hallazgo que dice qué difiere (`hallazgos`). La orden sale con 0 también cuando el documento no es el
+pedido, que es un hallazgo y no un fallo.
 
 ## El documento que no es el pedido
 
@@ -49,3 +50,10 @@ Si el cotejo termina con el código 2 (`argumentos`) porque el texto no lleva un
 nombra el mensaje. Si está en el documento, no pasaste la ficha entera: repite el cotejo con todas sus líneas. Si no
 está, no hay sentencia que citar: di qué falta —el encabezamiento del documento del CENDOJ, o ese dato— y pide el
 documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a una sentencia identificada.
+
+## La referencia pedida y las sentencias que menciona
+
+- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o
+  `resolucion` con `fecha`).
+- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se nombran como las
+  nombra el texto.

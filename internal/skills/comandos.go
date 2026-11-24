@@ -42,16 +42,7 @@ const (
 
 	// columnasDeLaTabla son la fila de títulos de la tabla de un applet y su fila
 	// de separación (contracts/skills.md §4 de H21).
-	columnasDeLaTabla = "| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|"
-
-	// Lo que devuelve un verbo en data, según su forma.
-	textoDeObjeto          = "objeto"
-	textoDeListaDeObjetos  = "lista de objetos"
-	textoSinFormaDeclarada = "sin forma declarada"
-
-	// valorDeUnaBandera es lo que sigue a una bandera global que lleva valor; el
-	// de una bandera propia de un verbo se llama como ella.
-	valorDeUnaBandera = "<valor>"
+	columnasDeLaTabla = "| Orden | Herramienta | Qué hace |\n|---|---|---|"
 )
 
 // Lo que la tabla lee del documento de --describe (data-model §2.1).
@@ -517,11 +508,10 @@ func (p propiedadesEnOrden) nombres() []string {
 //     Kong: [<norma> [<bloques>...]]; y, detrás, cada bandera propia del verbo
 //     entre corchetes, [--<nombre> <nombre>], o [--<nombre>] si no lleva valor
 //     (research.md D14 de H23)—, la herramienta del servidor MCP que hace lo mismo,
-//     `<applet>_<verbo>`, lo que hace y lo que devuelve en data; en cada celda la
-//     barra se escribe \| y un salto de línea es un espacio;
-//   - detrás de la última sección, la línea del sobre, que es el mismo por la
-//     orden y por la herramienta de cada fila, y la de las banderas comunes, que
-//     valen para todas las órdenes de la tabla.
+//     `<applet>_<verbo>`, y lo que hace; en cada celda la barra se escribe \| y
+//     un salto de línea es un espacio. Lo que devuelve en data, el sobre y las
+//     banderas comunes no van en la tabla: los da el esquema de salida de la
+//     herramienta y --describe de la orden (ADR 0063).
 //
 // Empieza y termina con una línea en blanco y usa \n como fin de línea; las
 // mismas entradas dan siempre los mismos bytes. Es un defecto, sin tabla, no
@@ -560,7 +550,7 @@ func RenderizarTabla(applets []string, descripciones []DescripcionDeVerbo) ([]by
 		}
 	}
 
-	tabla.WriteString("\n" + lineaDelSobre(comun.Sobre) + "\n\n" + lineaDeLasBanderas(comun.Banderas) + "\n\n")
+	tabla.WriteString("\n")
 
 	return tabla.Bytes(), nil
 }
@@ -628,7 +618,6 @@ func filaDelVerbo(verbo DescripcionDeVerbo) string {
 		"`" + sintaxisDeLaOrden(verbo) + "`",
 		"`" + nombreDeLaHerramienta(verbo) + "`",
 		verbo.Hace,
-		verbo.Devuelve.texto(),
 	}
 
 	for indice, celda := range celdas {
@@ -682,48 +671,6 @@ func nombreDeLaHerramienta(verbo DescripcionDeVerbo) string {
 	return verbo.Applet + separadorDeLaHerramienta + verbo.Verbo
 }
 
-// texto es lo que devuelve un verbo como lo escribe la tabla: la forma y, si la
-// definición declara claves, «con» y sus claves separadas por «, ».
-func (d Devuelve) texto() string {
-	var forma string
-
-	switch d.Forma {
-	case FormaObjeto:
-		forma = textoDeObjeto
-	case FormaListaDeObjetos:
-		forma = textoDeListaDeObjetos
-	default:
-		return textoSinFormaDeclarada
-	}
-
-	if len(d.Claves) == 0 {
-		return forma
-	}
-
-	return forma + " con " + strings.Join(comoCodigo(d.Claves), ", ")
-}
-
-// lineaDelSobre es la línea que da las claves del sobre y las de data en un
-// sobre de fallo, y que dice que la orden y la herramienta de cada fila
-// devuelven el mismo (H21 FR-030).
-func lineaDelSobre(sobre Sobre) string {
-	return "La orden y la herramienta de cada fila devuelven el mismo sobre: " +
-		strings.Join(comoCodigo(sobre.Claves), ", ") +
-		"; con `ok` falso, `" + claveDeLosDatos + "` lleva " + enumerar(comoCodigo(sobre.ClavesDeFallo)) + "."
-}
-
-// lineaDeLasBanderas es la línea de las banderas comunes a todas las órdenes,
-// cada una con --, y con <valor> detrás la que lleva valor.
-func lineaDeLasBanderas(banderas []Bandera) string {
-	escritas := make([]string, 0, len(banderas))
-
-	for _, bandera := range banderas {
-		escritas = append(escritas, bandera.escrita(valorDeUnaBandera))
-	}
-
-	return "Banderas comunes: " + strings.Join(comoCodigo(escritas), ", ") + "."
-}
-
 // escrita es la bandera como se escribe en una orden: -- y su nombre y, detrás,
 // si lleva valor, el texto que lo nombra.
 func (b Bandera) escrita(valor string) string {
@@ -732,17 +679,6 @@ func (b Bandera) escrita(valor string) string {
 	}
 
 	return "--" + b.Nombre + " " + valor
-}
-
-// comoCodigo escribe cada texto como código de Markdown.
-func comoCodigo(textos []string) []string {
-	codigos := make([]string, 0, len(textos))
-
-	for _, texto := range textos {
-		codigos = append(codigos, "`"+texto+"`")
-	}
-
-	return codigos
 }
 
 // enumerar une los textos como una enumeración: separados por «, » salvo el
