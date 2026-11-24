@@ -1,7 +1,7 @@
 ---
 id: H42
 fase: "1"
-depende_de: [H45, H45.1]
+depende_de: [H45, H45.1, H46]
 ---
 
 # H42 · El paquete de la materia tributaria, la segunda materia real de la base (ADR 0059 y 0062)
@@ -82,7 +82,9 @@ depende_de: [H45, H45.1]
   - el binario da las fechas de T1 a T8; la sincronía reparte los dos tipos y las tres filas tributarias a `fiscal.md`
     y deja la aduanera en `administrativo.md`, que baja a 98 líneas; la `fiscal.md` de `plazos-y-territorio` tiene 71;
   - el cuerpo de `normativa` pasa de 10 750 a 10 820 caracteres y el de `plazos-y-territorio` de 10 686 a 10 756 (el
-    guion de H33 le pone un tope de 10 860); las descripciones no cambian;
+    guion de H33 le pone un tope de 10 860); las descripciones no cambian. Así, con un paquete de más, `normativa`
+    pasa de 11 000 en `h45-paquete-de-mas`; con los cuerpos de H46 (ADR 0063), sobre su prototipo
+    (`cuerpos-con-fiscal`), quedan en 9568 y 9458, y el guion sale en verde;
   - el peor caso de la medida es de 223, 187 y 49 sesiones (459), y el de `plazos-y-territorio`, con 16 evals a tres,
     de 5 h 14 min sobre 352 min;
   - caen cuatro tests de Go que el molde de H45 dejó atados al estado de hoy (los arregla H45.1) y los guiones de H32 y
@@ -289,9 +291,9 @@ depende_de: [H45, H45.1]
   - el hito no tiene ningún cambio en Go;
   - `administrativo.md` y los plazos de hoy salen como en `main`, salvo las filas que pasan a `fiscal.md`.
 - **Antes de lanzar** (lo hace la persona, no el run):
-  - que H45 y H45.1 estén hechos y fusionados, y que el prototipo de `h42-prototipo`, rebasado sobre `main` sin sus
+  - que H45, H45.1 y H46 estén hechos y fusionados, y que el prototipo de `h42-prototipo`, rebasado sobre `main` sin sus
     tests parcheados ni su cambio de `.github/`, dé `make ci` en verde sin ningún `.go`;
-  - **una medida previa sobre un prototipo completo** sobre el `main` de después de H45, con el job de evals de
+  - **una medida previa sobre un prototipo completo** sobre el `main` de después de H46, con el job de evals de
     `normativa`, `plazos-y-territorio` y `consulta-juridica`, unas 460 sesiones. El prototipo lleva las dos `fiscal.md`
     escritas, los datos, la 07 cambiada y las evals 13 a 16. Hace falta porque cambia lo que leen las preguntas
     tributarias. Un rojo se compara con `main`, y como mucho un segundo sondeo por pregunta; se lee siempre una
@@ -302,5 +304,6 @@ depende_de: [H45, H45.1]
   - el sondeo del alias: `claude -p --model sonnet --output-format json 'Responde solo: ok'` da en `modelUsage` el
     `MODELO_DE_EVALS` de `.github/workflows/evals.yml` (ADR 0031);
   - mover este fichero a `in-progress/`, sin su prefijo.
-- **Dependencias**: H45, que deja el molde, y H45.1, que suelta sus cuatro tests. H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
+- **Dependencias**: H45, que deja el molde; H45.1, que suelta sus cuatro tests; y H46, que deja sitio en los cuerpos
+  (ADR 0063). H37 puede tomar de aquí el órgano tributario como segundo destinatario (ADR
   0059), y H44 pone la doctrina sobre este paquete.
