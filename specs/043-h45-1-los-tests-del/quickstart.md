@@ -35,7 +35,7 @@ git diff --name-only main...HEAD
 Esperado: las dos primeras no imprimen nada; la tercera, solo `internal/skills/cobertura_test.go`,
 `internal/evals/conjunto_test.go`, `internal/evals/definicion_test.go`,
 `internal/app/testdata/script/h45-paquete-de-mas.txtar`, `specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar`,
-`docs/roadmap/done/H45.1-los-tests-del-molde-sin-el-estado-de-hoy.md` (el commit con que se lanzó el hito) y ficheros de
+`docs/roadmap/done/H45.1-los-tests-del-molde-sin-el-estado-de-hoy.md` (movido de `in-progress/` a `done/` en la rama, `b2daefa4`) y ficheros de
 `specs/043-h45-1-los-tests-del/`.
 
 ## Q4 · La copia con un paquete más, en verde con los cuatro casos (SC-003; US6.1, US6.3, US6.4; FR-010, FR-011)

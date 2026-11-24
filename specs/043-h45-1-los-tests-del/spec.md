@@ -6,7 +6,8 @@
 
 **Status**: Draft
 
-**Input**: el fichero del hito, `docs/roadmap/in-progress/H45.1-los-tests-del-molde-sin-el-estado-de-hoy.md`, que aplica
+**Input**: el fichero del hito, `docs/roadmap/in-progress/H45.1-los-tests-del-molde-sin-el-estado-de-hoy.md` al
+lanzarlo (hoy en `docs/roadmap/done/`), que aplica
 los puntos 5 (ningún test fija con una lista lo que hay en `data/` o `evals/`) y 9 (H42 entra solo con datos) del ADR
 0062 (`docs/ADR/0062-un-paquete-trae-sus-plazos-y-lo-suyo-de-lo-regulado-aparte.md`). Los demás puntos no cambian; el
 run no cambia ningún ADR ni escribe otro.
@@ -102,7 +103,7 @@ viendo.
 **Why this priority**: es el primero de los cuatro rojos del prototipo de H42 (el sancionador «en materia tributaria y
 aduanera», que pasa a ser solo aduanera, y la fila del art. 112.4, que gana la LGT y pasa a `fiscal.md`).
 
-**Independent Test**: en la copia con un paquete más (US5), `TestCoberturaDelRepositorio` en verde; en el árbol, los
+**Independent Test**: en la copia con un paquete más (US6), `TestCoberturaDelRepositorio` en verde; en el árbol, los
 mutantes L06 y L07 de H45 la ponen en rojo, y L04 y L05 los ve `h32-paquetes`.
 
 **Acceptance Scenarios**:
@@ -148,8 +149,9 @@ verde con el defecto una línea más abajo que en el `SKILL.md` del módulo copi
 
 `TestDefinicionDelJob/cuatro-evals-mas` deja de probar el hueco que quedaba el día de H45 sobre las evals del
 repositorio: mide una copia con 16 evals de `plazos-y-territorio`, copias de una eval de modo, que con la definición del
-repositorio cabe en el tope a tres sesiones a la vez y no cabe a dos. Que las evals del repositorio quepan lo sigue
-exigiendo `probarElPeorCasoDelTrabajo`.
+repositorio cabe en el tope a tres sesiones a la vez y no cabe a dos. Que las evals del repositorio quepan lo siguen
+exigiendo `probarElPeorCasoDelTrabajo` (`peor-caso`) y `probarElTopeConLasEvalsDelRepositorio`
+(`tope-con-las-evals-del-repositorio`).
 
 **Why this priority**: tercer rojo del prototipo de H42: con sus 16 evals, sumar cuatro da 20, que no caben, aunque las
 16 sí.
@@ -206,8 +208,8 @@ miden contra el tope las evals del módulo copiado (FR-011), y todo sigue en ver
 **Why this priority**: es la aceptación del hito; sin ella, que los cuatro tests sean genéricos no lo comprueba nada
 dentro de `make ci`.
 
-**Independent Test**: `go test -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/` en verde con las
-cuatro líneas en 0; con cualquiera de los cuatro tests devuelto a su versión de `main`, en rojo.
+**Independent Test**: `go test -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/` en verde con
+`copia: hecha` y sus tres códigos en 0; con cualquiera de los cuatro tests devuelto a su versión de `main`, en rojo.
 
 **Acceptance Scenarios**:
 
@@ -280,9 +282,9 @@ cuatro líneas en 0; con cualquiera de los cuatro tests devuelto a su versión d
 - **FR-007**: El subtest no escribe minutos ni segundos: el tope sale de la definición leída y la duración, de
   `peorCaso`, comparada con `peorCasoEsperado` como hoy. Criterio: sin la constante `topeEnMinutos` ni otra duración
   literal en el subtest; L29 lo pone en rojo.
-- **FR-008**: Que las evals del repositorio quepan en el tope lo sigue exigiendo `probarElPeorCasoDelTrabajo`
-  (`tope-con-las-evals-del-repositorio`), que este hito no cambia. Criterio: en una copia con evals de más que a tres
-  no caben, ese subtest en rojo.
+- **FR-008**: Que las evals del repositorio quepan en el tope lo siguen exigiendo `probarElPeorCasoDelTrabajo`
+  (`peor-caso`) y `probarElTopeConLasEvalsDelRepositorio` (`tope-con-las-evals-del-repositorio`), que este hito no
+  cambia. Criterio: en una copia con evals de más que a tres no caben, `tope-con-las-evals-del-repositorio` en rojo.
 
 **`llevaNoCubierto`** (`internal/evals/conjunto_test.go`)
 
@@ -336,7 +338,7 @@ en tiempo de consulta:
   por `make ci`; uno por defecto, con el fichero, la eval o la línea que falla, unos 200 bytes. Leen `data/`, `evals/` y
   `skills/`, no la caché ni el grafo: con meses de uso, cientos de normas y miles de bloques consultados, son los
   mismos. Cada uno deja de darse cuando el dato que nombra se corrige; con un paquete correcto no se da.
-- **La salida del guion de la copia**: la lee `TestEntregaDelHito` en cada `make ci`; cuatro líneas, más el principio de
+- **La salida del guion de la copia**: la lee `TestEntregaDelHito` en cada `make ci`; cinco líneas, más el principio de
   la salida de cada orden que no sale con 0, hasta 1 200 bytes cada una (como hoy). No depende del uso. Deja de dar un
   código distinto de 0 en cuanto el test que cae vuelve a ser genérico.
 
@@ -347,8 +349,9 @@ en tiempo de consulta:
 - **SC-001**: En el árbol de la rama, `make ci` en verde. Control: `make ci`.
 - **SC-002**: En el árbol de la rama, `make skills-check` en verde: cero diferencias en las referencias generadas y en
   las salidas del binario respecto de `main`. Control: `make skills-check`, que sale en rojo con una sola diferencia.
-- **SC-003**: `TestEntregaDelHito/h45-paquete-de-mas` en verde dentro de `make ci`, con sus cuatro líneas: `copia:
-  hecha`, `sincronía: 0`, `tests enteros: 0`, `subtests: 0`. Control: el guion, que falla en `make ci` si cualquiera de
+- **SC-003**: `TestEntregaDelHito/h45-paquete-de-mas` en verde dentro de `make ci`, con `copia:
+  hecha`, `sincronía: 0`, `tests enteros: 0` y `subtests: 0` entre sus cinco líneas (la quinta, `orden del paso 2 de
+  normativa, líneas más abajo: 1`). Control: el guion, que falla en `make ci` si cualquiera de
   los tres códigos no es 0.
 - **SC-004**: Cada uno de los cuatro tests, en rojo con su mutante de hoy —L06 y L07 para `TestCoberturaDelRepositorio`;
   P6 para los dos casos de `mutantesDeLasOrdenes`; T1 y L29 para `cuatro-evals-mas`; L33 para

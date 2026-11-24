@@ -12,8 +12,9 @@ que las filas de lo administrativo leídas sean, en su orden, de ellas: una fila
 sin poner el test en rojo (research D1). `mutantesDeLasOrdenes` cuenta la línea de la orden del paso 2 en el `SKILL.md`
 de `normativa` que copia el caso (D2). `cuatro-evals-mas` mide una carpeta de 16 evals de modo, con el tope de la
 definición (D3). `llevaNoCubierto` deja fuera las evals de lo no declarado (D4). La copia con un paquete más de H45 pasa
-a estrechar una fila de la base, dar norma a otra, llevar una referencia en `normativa` y añadir cinco evals, corre los
-dos tests que faltaban en su lista y comprueba con `cmp` que es igual a su copia congelada (D5). Un prototipo en un clon
+a estrechar una fila de la base, dar norma a otra, llevar una referencia en `normativa` y añadir cinco evals, corre
+`TestControlesSobreLasReferenciasAMano`, que faltaba en su lista, y de `TestDefinicionDelJob` solo `cuatro-evals-mas`, y
+comprueba con `cmp` que es igual a su copia congelada (D5). Un prototipo en un clon
 lo midió entero: verde con `main` y con la copia, y en rojo con cada mutante y con cada test devuelto a `main` (research
 P1). Ningún cambio de producción, de datos, de skills ni de `.github/`.
 

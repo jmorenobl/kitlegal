@@ -1,16 +1,11 @@
 {
-  "id": "T006",
-  "texto": "T006 [US1] Escribir `specs/043-h45-1-los-tests-del/mutantes.md` (SC-001, SC-002, SC-004, SC-005, SC-007; FR-003 a FR-010, FR-012, FR-013, FR-014; US1.1-US1.4; plan, tablas «Mutantes» y «Controles de umbral»; quickstart Q1-Q8; research D7): en el árbol, `make ci` (Q1), `make skills-check` (Q2), las tres órdenes de diff contra `main` de Q3 (las dos primeras sin salida; la tercera solo con los ficheros que lista Q3), `cmp` de Q5 y las órdenes de Q6 y Q7; y en un `git clone --no-hardlinks -q . \"$TMPDIR/h451\"` (con `origin/main`; V13), nunca en el árbol de trabajo, cada mutante de Q8 aplicado, su control corrido y deshecho hasta que `git -C \"$TMPDIR/h451\" status --short` no dé nada: L06 y L07 (`TestCoberturaDelRepositorio`), L04 y L05 con la sincronía (`h32-paquetes`, `no match for ^filas: 33 de 33$`, y `TestCoberturaDelRepositorio` en verde), P6 y otra línea (los dos casos), T1 y L29 (`cuatro-evals-mas`), las ocho evals de más (FR-008), L33 y las tres pasadas a lo no declarado (`precepto-de-la-cobertura`), cada uno de los cuatro tests devuelto a `main` (`h45-paquete-de-mas`, SC-005), la copia congelada distinta (FR-013), los tres de FR-010 (sin `cambiarUnaVez`: el `grep` de la fila estrechada, el de la fila del orden social y su `! grep`, uno tras otro; sin la referencia de `normativa`: el `grep` de su línea y el `stdout` de `líneas más abajo: 1`; con el viejo que no está una vez: el `exec go run` con 1 y «no lleva una sola vez») y una línea cambiada en una referencia generada de `skills/plazos-y-territorio/references/administrativo.md` del clon (`make skills-check` en rojo con una diferencia, el umbral de SC-002). Por cada uno, la orden exacta, lo esperado y lo visto (el principio de la salida real), sin dar por visto nada que no se haya ejecutado en la sesión. Comprobar al final que el árbol de trabajo solo cambia en `specs/043-h45-1-los-tests-del/mutantes.md` y que `make ci` sigue en verde.",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "c7633c45b8651d1d7ad1ea8b8af622af8a902172",
-  "rutas": [
-    "TMPDIR/h451",
-    "origin/main",
-    "skills/plazos-y-territorio/references/administrativo.md",
-    "specs/043-h45-1-los-tests-del/mutantes.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

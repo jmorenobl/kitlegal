@@ -102,7 +102,7 @@ rojo (Q8).
 ## Phase 7: User Story 6 — la copia con un paquete más ejerce los cuatro casos (Priority: P1)
 
 **Goal**: el guion `h45-paquete-de-mas` y su copia congelada de H45 montan un paquete que hace lo que hará H42 y corren
-los dos tests que faltaban en su lista.
+`TestControlesSobreLasReferenciasAMano`, que faltaba en su lista, y de `TestDefinicionDelJob` solo `cuatro-evals-mas`.
 
 **Independent Test**: `go test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/` en verde con
 `copia: hecha`, `sincronía: 0`, `orden del paso 2 de normativa, líneas más abajo: 1`, `tests enteros: 0` y
