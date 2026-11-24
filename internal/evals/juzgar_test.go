@@ -4794,7 +4794,7 @@ func TestLineaDeLaSalidaNoEscrita(t *testing.T) {
 
 	dirCache := t.TempDir()
 
-	faltas, err := Preparar(dirCache, UnionDeGrabaciones(),
+	faltas, err := Preparar(dirCache, unionDeGrabaciones(t),
 		[]Consulta{{Applet: "boe", Verbo: "indice", Argumentos: []string{normaDeLasTrazas}}})
 	require.NoError(t, err)
 	require.Empty(t, faltas, "premisa: las grabaciones sirven el índice de la LPAC: %s", presentarFaltas(faltas))

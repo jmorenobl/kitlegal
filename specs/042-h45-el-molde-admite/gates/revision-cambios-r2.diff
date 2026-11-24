@@ -1,0 +1,268 @@
+diff --git a/docs/SKILLS.md b/docs/SKILLS.md
+index 78dee12e..dfe8a879 100644
+--- a/docs/SKILLS.md
++++ b/docs/SKILLS.md
+@@ -247,7 +247,7 @@ Una materia entra en la base como un paquete de ficheros, no como una skill ni c
+ | Sus normas | Las entradas de `data/normas.yaml` con `vertical: <nombre>` | Ídem; el identificador y el título, de lo grabado (`TestIdentificadoresDeLasNormas`) |
+ | Una referencia por skill de capacidad que la necesite | `skills/<skill>/references/<nombre>.md`, en `references/` plano (§4) | A mano, con las tablas de `data/` en regiones generadas |
+ | Sus plazos | Los tipos de `data/plazos.yaml` cuyos preceptos propios —los de `preceptos` y los de `unidades`, no los del cómputo— son de normas del paquete; las normas sin `vertical` no cuentan (H45; ADR 0062, punto 1) | La persona |
+-| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuya `norma`, la que la rige, es del paquete o, si la fila no la lleva o esa norma no tiene `vertical`, cuyo `precepto.norma` lo es (H45; ADR 0062, punto 2); y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
++| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuya `norma`, la que la rige, es del paquete o, si la fila no la lleva o esa norma no tiene `vertical`, cuyo `precepto.norma` lo es (H45; ADR 0062, punto 2); una fila cuyo `precepto.norma` no está en `data/normas.yaml` no es de ningún paquete y da el defecto de la fila sin región; y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
+ | Sus evals | `evals/<skill>/NN-*.yaml` de la skill que hereda su pregunta | La persona |
+ 
+ No hay fichero que declare el paquete: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la
+@@ -302,7 +302,7 @@ las evals sabe qué datos carga la skill (ADR 0045). Admiten región tres genera
+ 
+ | Generador | Datos | Filas |
+ |---|---|---|
+-| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` del paquete del fichero: el de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el de la norma de su precepto; columnas `Procedimiento` y `Línea que da la respuesta` |
++| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` del paquete del fichero: el de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el de la norma de su precepto, que tiene que estar en `data/normas.yaml`; columnas `Procedimiento` y `Línea que da la respuesta` |
+ | `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Los tipos de plazo del paquete del fichero, en el orden de `data/plazos.yaml`, con el precepto en la forma única. Un tipo cuyas normas no llevan `vertical`, o llevan dos distintos, es un defecto de `data/plazos.yaml` (§5) |
+ | `leyes_vertebrales` | `data/normas.yaml` | Las normas con `vertebral: true` |
+ 
+diff --git a/internal/app/plazos_casos_test.go b/internal/app/plazos_casos_test.go
+index 61276e1b..46b89a54 100644
+--- a/internal/app/plazos_casos_test.go
++++ b/internal/app/plazos_casos_test.go
+@@ -4,12 +4,14 @@ import (
+ 	"encoding/json"
+ 	"os"
+ 	"slices"
++	"strings"
+ 	"testing"
+ 
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+ 
+ 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
++	"github.com/jmorenobl/kitlegal/internal/core/schema"
+ 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
+ 	"github.com/jmorenobl/kitlegal/internal/httpx"
+ 	"github.com/jmorenobl/kitlegal/internal/skills"
+@@ -30,6 +32,9 @@ const (
+ 	principalDeLosLocalesDe2026 = "BOCM-20251212-34"
+ 	// coberturaDelRepositorio es data/cobertura.yaml, que el binario no lleva.
+ 	coberturaDelRepositorio = "../../data/cobertura.yaml"
++	// tiposDelRepositorio es data/plazos.yaml, del que salen los tipos que
++	// nombra el error del tipo que no existe.
++	tiposDelRepositorio = "../../data/plazos.yaml"
+ )
+ 
+ // Las normas de los casos de cobertura, por su identificador: la LPAC, la LGT y
+@@ -264,7 +269,8 @@ func conSuProcedimiento(procedimiento string) func(skills.ReguladoAparte) bool {
+ // compone con los festivos locales que deriva internal/source/bocm de la
+ // resolución principal de 2026 sola (research.md D23 y D30 de H9); el 19 y el
+ // 20 buscan su entrada en data/cobertura.yaml, leído con skills.LeerCobertura,
+-// el 19 por su precepto y su norma y el 20 por su procedimiento.
++// el 19 por su precepto y su norma y el 20 por su procedimiento. Y el error del
++// tipo que no existe, con su mensaje entero (elTipoQueNoExiste).
+ func TestCasosDePlazos(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -296,6 +302,42 @@ func TestCasosDePlazos(t *testing.T) {
+ 			compruebaCasoDeCobertura(t, cobertura, caso)
+ 		})
+ 	}
++
++	t.Run("tipo-que-no-existe", func(t *testing.T) {
++		t.Parallel()
++
++		res := ordenDePlazos(t, empotrado, "inventado", "2026-09-09", "Leganés", "Leganés")
++
++		exigirSobreDeFallo(t, res, schema.ClaseArgumentos, 2, procedenciaDeUnFalloDePlazos)
++		assert.Equal(t, elTipoQueNoExiste(t, "inventado"), datosDelSobre(t, sobreDelJSON(t, res.salida))["mensaje"])
++	})
++}
++
++// elTipoQueNoExiste es el mensaje del error del tipo pedido que no es ninguno de
++// data/plazos.yaml, como lo da el binario de main (§C.6 de H36; FR-017 y FR-026
++// de H45): «el tipo "<pedido>" no es » y los códigos de sus tipos en el orden
++// del fichero, separados por «, » y con « ni » delante del último. Los códigos
++// salen del fichero leído con plazos.LeerTipos, no de una lista, para que un
++// paquete más traiga los suyos; la enumeración se escribe aquí y no con la del
++// dominio que se prueba.
++func elTipoQueNoExiste(t *testing.T, pedido string) string {
++	t.Helper()
++
++	contenido, err := os.ReadFile(tiposDelRepositorio)
++	require.NoError(t, err)
++
++	tipos, err := plazos.LeerTipos(contenido)
++	require.NoError(t, err)
++	require.GreaterOrEqual(t, len(tipos), 2, "data/plazos.yaml lleva más de un tipo")
++
++	codigos := make([]string, 0, len(tipos))
++	for _, tipo := range tipos {
++		codigos = append(codigos, tipo.Codigo)
++	}
++
++	ultimo := len(codigos) - 1
++
++	return `el tipo "` + pedido + `" no es ` + strings.Join(codigos[:ultimo], ", ") + " ni " + codigos[ultimo]
+ }
+ 
+ // compruebaCasoDeCobertura exige que data/cobertura.yaml lleve una sola entrada
+diff --git a/internal/skills/regiones.go b/internal/skills/regiones.go
+index 0e02ee06..cb6263c2 100644
+--- a/internal/skills/regiones.go
++++ b/internal/skills/regiones.go
+@@ -523,18 +523,25 @@ func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([
+ }
+ 
+ // paqueteDeLaFila es el paquete de una fila de lo regulado aparte (contracts/
+-// sincronia-de-los-paquetes.md §3 de H45): el vertical de la norma que la rige,
+-// si la fila la lleva y está en la tabla de normas con vertical; si no, el de la
+-// norma de su precepto; y ninguno si tampoco esa lo tiene. Es la única regla de
+-// la región de la cobertura y de filasSinRegion.
++// sincronia-de-los-paquetes.md §3 de H45): ninguno si su precepto es de una
++// norma que no está en la tabla de normas, porque su línea no podría nombrarla;
++// si no, el vertical de la norma que la rige, si la fila la lleva y está en la
++// tabla con vertical; si no, el de la norma de su precepto; y ninguno si
++// tampoco esa lo tiene. Es la única regla de la región de la cobertura y de
++// filasSinRegion, que da el defecto de la fila que no es de ningún paquete.
+ func paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string {
++	delPrecepto, esta := normas[entrada.Precepto.Norma]
++	if !esta {
++		return ""
++	}
++
+ 	if entrada.Norma != nil {
+ 		if vertical := normas[entrada.Norma.Identificador].Vertical; vertical != "" {
+ 			return vertical
+ 		}
+ 	}
+ 
+-	return normas[entrada.Precepto.Norma].Vertical
++	return delPrecepto.Vertical
+ }
+ 
+ // filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos
+diff --git a/internal/skills/regiones_test.go b/internal/skills/regiones_test.go
+index 22aaded8..ede750ea 100644
+--- a/internal/skills/regiones_test.go
++++ b/internal/skills/regiones_test.go
+@@ -127,6 +127,16 @@ const (
+ 		"daprimera]). kitlegal no da sus plazos, órganos, vías ni escritos. |\n"
+ )
+ 
++// filaDeUnPreceptoSinTabla es una fila de prueba con la norma del paquete de
++// ensayo por norma que la rige y su precepto en una norma que no está en
++// normasDeLasRegiones: no es de ningún paquete (contracts/
++// sincronia-de-los-paquetes.md §3 de H45), y la sincronía da su defecto aunque
++// la referencia de ensayo lleve la región.
++const filaDeUnPreceptoSinTabla = "  - procedimiento: procedimientos de ensayo con su precepto en una norma que no está\n" +
++	"    precepto: {norma: BOE-A-2099-1, bloque: a112, apartado: \"112.4\"}\n" +
++	"    norma: {identificador: " + normaDelEnsayo + ", nombre: \"Ley 1/1900, de prueba de otro paquete\", " +
++	"aplicable: {bloque: a1, apartado: \"1\"}}\n"
++
+ // prosaDelEnsayo es lo escrito a mano de la referencia del paquete de ensayo de
+ // probarElPaqueteDeLaFila delante de su región de la cobertura: su título y el
+ // bloque text con los dos motivos de la línea.
+@@ -453,8 +463,10 @@ func probarLosDefectosDeLasRegiones(t *testing.T) {
+ // Los tipos y el cómputo de prueba de los defectos del paquete de un tipo
+ // (contracts/sincronia-de-los-paquetes.md §6 de H45), cada uno como una entrada
+ // de su lista de data/plazos.yaml: uno con su precepto en la norma sin vertical;
+-// otro con un precepto de lo administrativo y otro del paquete de ensayo; y uno
+-// de lo administrativo con un cómputo que cita la norma del paquete de ensayo.
++// otro con un precepto del paquete de ensayo delante de dos de lo
++// administrativo, para que los paquetes solo salgan en orden alfabético y sin
++// repetir si se ordenan; y uno de lo administrativo con un cómputo que cita la
++// norma del paquete de ensayo.
+ const (
+ 	tipoSinPaquete = "  - codigo: prueba-sin-paquete\n" +
+ 		"    nombre: plazo de prueba de una norma sin paquete\n" +
+@@ -469,8 +481,9 @@ const (
+ 		"    duracion: {cantidad: 1, unidad: meses}\n" +
+ 		"    da: vencimiento\n" +
+ 		"    preceptos:\n" +
++		"      - {norma: " + normaDelEnsayo + ", bloque: a2, apartado: \"2\", fija: inicio, vigente_desde: \"2016-10-02\"}\n" +
+ 		"      - {norma: BOE-A-2015-10565, bloque: a122, apartado: \"122.1\", fija: duracion, vigente_desde: \"2016-10-02\"}\n" +
+-		"      - {norma: " + normaDelEnsayo + ", bloque: a2, apartado: \"2\", fija: inicio, vigente_desde: \"2016-10-02\"}\n"
++		"      - {norma: BOE-A-2015-10565, bloque: a24, apartado: \"24.4\", fija: silencio, vigente_desde: \"2016-10-02\"}\n"
+ 	tipoDeOtroComputo = "  - codigo: prueba-de-otro-computo\n" +
+ 		"    nombre: plazo de prueba con el cómputo de otro paquete\n" +
+ 		"    computo: prueba\n" +
+@@ -657,6 +670,17 @@ func casosDeRegiones() []casoDeRegion {
+ 			},
+ 			defectos: []string{filaSinRegion("procedimientos de ensayo que la ley común deja aparte")},
+ 		},
++		{
++			nombre: "fila-con-su-precepto-en-una-norma-que-no-esta",
++			cambio: func(t *testing.T, raiz string) {
++				t.Helper()
++				escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "cobertura.yaml"),
++					coberturaDeLasRegiones+filaDeUnPreceptoSinTabla)
++				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "references", "ensayo.md"),
++					prosaDelEnsayo+inicioDeLaCobertura+finDeLaCobertura)
++			},
++			defectos: []string{filaSinRegion("procedimientos de ensayo con su precepto en una norma que no está")},
++		},
+ 		{
+ 			nombre: "tipo-sin-paquete",
+ 			cambio: func(t *testing.T, raiz string) {
+diff --git a/specs/042-h45-el-molde-admite/contracts/sincronia-de-los-paquetes.md b/specs/042-h45-el-molde-admite/contracts/sincronia-de-los-paquetes.md
+index f45e9a6b..7d8eb27d 100644
+--- a/specs/042-h45-el-molde-admite/contracts/sincronia-de-los-paquetes.md
++++ b/specs/042-h45-el-molde-admite/contracts/sincronia-de-los-paquetes.md
+@@ -41,6 +41,9 @@ salen en ninguna.
+ 
+ ## 3. La región `cobertura_por_materia` y `filasSinRegion` (FR-005, FR-006, FR-007)
+ 
++- `paqueteDeLaFila(entrada, normas)`: vacío si la norma del precepto no está en `data/normas.yaml`, como hoy (la línea
++  no podría nombrarla); si no, el `vertical` de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el
++  de la norma de su precepto.
+ - `filasDeLaCobertura`: la fila sale en la referencia de `paqueteDeLaFila(entrada, normas)`. La línea, con
+   `region.linea.linea(entrada, norma)` y la norma del precepto, como hoy.
+ - `filasSinRegion(cubiertos)`: defecto, con el texto de hoy, para cada fila cuyo `paqueteDeLaFila` es vacío o no está
+@@ -81,8 +84,9 @@ research D10) con las normas sintéticas de `normasDeLasRegiones`, que ganan una
+ | Subtest | Cambio en el `plazos.yaml` de prueba | Esperado |
+ |---|---|---|
+ | `tipo-sin-paquete` | un tipo con su precepto en la norma sintética sin `vertical` (la LGT de `normasDeLasRegiones`) | el defecto «no es de ningún paquete» con su código, y ninguna referencia regenerada |
+-| `tipo-de-dos-paquetes` | un tipo con un precepto de la LPAC y otro de la norma de prueba | «es de más de un paquete: administrativo, ensayo» |
++| `tipo-de-dos-paquetes` | un tipo con un precepto de la norma de prueba delante de dos de la LPAC, para que el orden alfabético y sin repetir solo salga si se ordenan | «es de más de un paquete: administrativo, ensayo» |
+ | `computo-de-otro-paquete` | un cómputo nuevo que cita la norma de prueba, y un tipo de la LPAC con él | 0 defectos; el tipo sale en `administrativo.md` |
++| `fila-con-su-precepto-en-una-norma-que-no-esta` (en `cobertura.yaml`, con la `ensayo.md` con su región) | una fila con la norma de prueba por norma que la rige y su precepto en una norma que no está en `normasDeLasRegiones` | el defecto de §3 para esa fila, como en `main` |
+ 
+ Sin la regla (mutante de US3.4), los dos primeros dan 0 defectos y el tercero, si se cuentan los preceptos del cómputo,
+ el de dos paquetes.
+diff --git a/specs/042-h45-el-molde-admite/mutantes.md b/specs/042-h45-el-molde-admite/mutantes.md
+index 25203112..083300c0 100644
+--- a/specs/042-h45-el-molde-admite/mutantes.md
++++ b/specs/042-h45-el-molde-admite/mutantes.md
+@@ -87,6 +87,7 @@ en `PASS` con `-v` en la copia); `-run '^TestEntregaDelHito$/^(h9-plazos-.*|h36-
+ | F2 | el mensaje de un tipo desconocido sin « ni »: `texto += ", "` en `internal/core/plazos/tipos.go:820` | `'^TestEntregaDelHito$/^h36-plazos-de-hoy$' ./internal/app/` | `h36-plazos-de-hoy.txtar:42: no match for` la expresión del sobre de `error-tipo` |
+ | F3 | otra clase: `return schema.ClaseNoEncontrado` en `internal/core/plazos/errores.go:35` | la de F2 | `h36-plazos-de-hoy.txtar:41: unexpected command failure` (el `exec` que espera el código 2 recibe otro) |
+ | F4 | el mensaje sin el tipo pedido: `argumentos("el tipo no es %s", enumeracion(codigos))` en `internal/core/plazos/errores.go:75` | la de F2 | `h36-plazos-de-hoy.txtar:42: no match for` la expresión del sobre de `error-tipo` |
++| F5 | los códigos del mensaje de un tipo desconocido en otro orden: `codigos[1], codigos[2] = codigos[2], codigos[1]` antes del `return` de `tipoDesconocido`, `internal/core/plazos/errores.go:75`. Corrida en la revisión final, en el árbol de trabajo y deshecha después (`git diff --stat -- internal/core/` vacío) | `'^TestCasosDePlazos$' ./internal/app/` | `TestCasosDePlazos/tipo-que-no-existe`, `plazos_casos_test.go:312`: lo esperado, derivado de `data/plazos.yaml`, es «el tipo "inventado" no es alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio ni generico», el mensaje del `error-tipo.json` de `main`; lo dado, con `contencioso` y `reposicion` cambiados. La expresión de `h36-plazos-de-hoy.txtar:42` lo acepta |
+ 
+ ### C2 · El molde, en `TestVerticalDeEnsayo` crecida (FR-002, FR-005, FR-006, FR-020; US2; SC-002)
+ 
+@@ -110,6 +111,9 @@ tres en `PASS`.
+ |---|---|---|---|
+ | D1 | quitar la regla: `defectos = nil` antes de `if len(defectos) > 0` en `filasDeLosRecursosYPlazos`, `internal/skills/regiones.go:580` | `'^TestRegiones$' ./internal/skills/` | `TestRegiones/defectos/tipo-de-dos-paquetes` y `/tipo-sin-paquete`, cada uno en `regiones_test.go:434` (el defecto), `:444` («con defectos no hay ninguna referencia regenerada») y `:445` |
+ | D2 | contar los preceptos del cómputo: `tipo.PreceptosDelComputo` dentro del `slices.Concat` de `paquetesDelTipo`, `internal/skills/regiones.go:600` | la de D1 | `TestRegiones/defectos/computo-de-otro-paquete`, `regiones_test.go:509`: «plazos-y-territorio: data/plazos.yaml: el tipo prueba-de-otro-computo es de más de un paquete: administrativo, ensayo»; y `/tipo-sin-paquete` (`:434`, `:444`: «[plazos-y-territorio: administrativo.md]», `:445`) |
++| D3 | los paquetes sin ordenar: `slices.Sort(paquetes)` quitado de `paquetesDelTipo`, `internal/skills/regiones.go`. Corrida en la revisión final, en el árbol de trabajo, como D4 y D5, y deshecha después | la de D1 | `TestRegiones/defectos/tipo-de-dos-paquetes`, `regiones_test.go:444`: «… es de más de un paquete: ensayo, administrativo»; su tipo lleva el precepto de ensayo delante de dos de la LPAC |
++| D4 | los paquetes sin quitar los repetidos: `return paquetes` en lugar de `return slices.Compact(paquetes)` en `paquetesDelTipo` | la de D1 | cada tipo de lo administrativo con más de un precepto da un defecto, como «el tipo contencioso es de más de un paquete: administrativo, administrativo»: `TestRegiones/sincronia`, `/paquete-de-la-fila`, `/defectos/tipo-sin-paquete` y los demás en rojo |
++| D5 | la fila con su precepto en una norma que no está, de un paquete: `if false && !esta` en `paqueteDeLaFila`, `internal/skills/regiones.go` | la de D1 | `TestRegiones/defectos/fila-con-su-precepto-en-una-norma-que-no-esta`, `regiones_test.go:444` (no da el defecto de la fila sin región, el de `main`), `:454` («[plazos-y-territorio: administrativo.md plazos-y-territorio: ensayo.md]») y `:455` |
+ 
+ ### C4 · Los tests sin listas (FR-016; US4; SC-004)
+ 
+diff --git a/specs/042-h45-el-molde-admite/research.md b/specs/042-h45-el-molde-admite/research.md
+index 9a0fd9e0..11bb04e9 100644
+--- a/specs/042-h45-el-molde-admite/research.md
++++ b/specs/042-h45-el-molde-admite/research.md
+@@ -80,9 +80,11 @@ cambia: pinta los tipos que recibe.
+ 
+ ### D2 · El paquete de una fila (FR-005 a FR-007)
+ 
+-Decisión: `paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string`, sin exportar, en `regiones.go`: el
+-`vertical` de `entrada.Norma.Identificador` si la fila lleva `norma` y esa norma está en `data/normas.yaml` con
+-`vertical`; si no, el de la norma de `entrada.Precepto.Norma` (vacío si no está o no lo lleva). La usan
++Decisión: `paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string`, sin exportar, en `regiones.go`:
++vacío si la norma de `entrada.Precepto.Norma` no está en `data/normas.yaml`, como hoy, que la fila da el defecto de
++`filasSinRegion` (corregido en la revisión final, `gates/supuestos.md`); si no, el `vertical` de
++`entrada.Norma.Identificador` si la fila lleva `norma` y esa norma está en `data/normas.yaml` con `vertical`; y si no, el
++de la norma del precepto (vacío si no lo lleva). La usan
+ `filasDeLaCobertura` (`regiones.go:510-513`, que hoy compara `norma.Vertical` del precepto) y `filasSinRegion`
+ (`regiones.go:839-842`), con lo que FR-006 tiene la misma regla por construcción. La línea no cambia (FR-007):
+ `region.linea.linea(entrada, norma)` sigue recibiendo la norma del precepto, como hoy. Visto en P1 y P3: con los datos de

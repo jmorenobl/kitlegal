@@ -3,6 +3,7 @@ package skills
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"testing"
@@ -85,7 +86,10 @@ func coberturaLeidaDePrueba() Cobertura {
 // vocabulario, una fila con normas y un motivo que falta o va vacío— y la clave
 // repetida que rechaza el lector son un error que nombra el punto del documento
 // y su línea, y con él no se entrega nada. El subtest repositorio fija el
-// motivo y lo cubierto de data/cobertura.yaml (FR-001 de H33).
+// motivo y lo cubierto de la base de data/cobertura.yaml (FR-001 de H33): sus
+// filas sin materia o de lo administrativo, en su orden; las demás son de otro
+// paquete (FR-016 de H45) y solo se exige que su materia sea el vertical de
+// alguna norma de data/normas.yaml.
 func TestLeerCobertura(t *testing.T) {
 	t.Parallel()
 
@@ -97,6 +101,22 @@ func TestLeerCobertura(t *testing.T) {
 
 		cobertura, err := LeerCobertura(contenido)
 		require.NoError(t, err, "la cobertura por materia del repositorio, %s", coberturaDelRepositorio)
+
+		verticales := verticalesDelRepositorio(t)
+
+		var deLaBase []FilaCubierta
+
+		for _, fila := range cobertura.Cubierto {
+			if fila.Materia == "" || fila.Materia == paqueteDeLaBase {
+				deLaBase = append(deLaBase, fila)
+
+				continue
+			}
+
+			assert.Contains(t, verticales, fila.Materia,
+				"la fila de lo cubierto de la capacidad %q de %s lleva por materia el vertical de una norma de %s",
+				fila.Capacidad, coberturaDelRepositorio, normasDelRepositorio)
+		}
 
 		assert.Equal(t, "fuera de lo que kitlegal cubre", cobertura.MotivoDeLoNoDeclarado,
 			"%s trae el motivo de lo no declarado de FR-001", coberturaDelRepositorio)
@@ -124,7 +144,7 @@ func TestLeerCobertura(t *testing.T) {
 				Alcance: "la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un " +
 					"municipio.",
 			},
-		}, cobertura.Cubierto, "%s trae las cuatro filas de lo cubierto de FR-001, en su orden", coberturaDelRepositorio)
+		}, deLaBase, "%s trae las cuatro filas de lo cubierto de la base de FR-001, en su orden", coberturaDelRepositorio)
 	})
 
 	casos := []struct {
@@ -253,13 +273,63 @@ func cambiadaEnLaCobertura(t *testing.T, viejo, nuevo string) string {
 // este paquete, que es donde go test ejecuta sus tests.
 const coberturaDelRepositorio = "../../data/cobertura.yaml"
 
+// normasDelRepositorio es data/normas.yaml, relativo al directorio de este
+// paquete: la tabla de normas de la que salen los paquetes, los valores de
+// vertical de sus normas (data-model §1 de H45).
+const normasDelRepositorio = "../../data/normas.yaml"
+
+// paqueteDeLaBase es el paquete de lo administrativo, el de la base: el
+// vertical de sus normas en data/normas.yaml (contracts/paquetes.md §1 de H32).
+const paqueteDeLaBase = "administrativo"
+
+// normasDelRepositorioPorIdentificador son las normas de data/normas.yaml por
+// su identificador.
+func normasDelRepositorioPorIdentificador(t *testing.T) map[string]Norma {
+	t.Helper()
+
+	contenido, err := os.ReadFile(normasDelRepositorio)
+	require.NoError(t, err, "la tabla de normas del repositorio no se puede leer")
+
+	normas, err := LeerNormas(contenido)
+	require.NoError(t, err, "la tabla de normas del repositorio, %s", normasDelRepositorio)
+
+	porIdentificador := make(map[string]Norma, len(normas))
+	for _, norma := range normas {
+		porIdentificador[norma.Identificador] = norma
+	}
+
+	return porIdentificador
+}
+
+// verticalesDelRepositorio son los valores de vertical de las normas de
+// data/normas.yaml, los paquetes del repositorio, cada uno una vez.
+func verticalesDelRepositorio(t *testing.T) []string {
+	t.Helper()
+
+	var verticales []string
+
+	for _, norma := range normasDelRepositorioPorIdentificador(t) {
+		if norma.Vertical != "" && !slices.Contains(verticales, norma.Vertical) {
+			verticales = append(verticales, norma.Vertical)
+		}
+	}
+
+	return verticales
+}
+
 // TestCoberturaDelRepositorio comprueba la cobertura por materia del
 // repositorio (contracts/datos-de-plazos.md §3 de H9; FR-031; research D17 de
-// H9): LeerCobertura la lee sin ningún defecto y trae las nueve entradas en su
-// orden —las cuatro letras de la DA 1ª.2 LPAC, con la c repartida por materias,
-// y los arts. 112.2 y 112.4—, y solo la aplicación de los tributos y los
-// sancionadores de tráfico llevan la norma que los rige. Que cada bloque esté
-// grabado y que cada identificador sea el de la búsqueda grabada lo comprueba
+// H9): LeerCobertura la lee sin ningún defecto y trae, de las nueve entradas en
+// su orden —las cuatro letras de la DA 1ª.2 LPAC, con la c repartida por
+// materias, y los arts. 112.2 y 112.4—, con la norma de su precepto y solo la
+// aplicación de los tributos y los sancionadores de tráfico con la norma que los
+// rige, las que son de lo administrativo, en las dos listas por la misma regla
+// escrita aquí (FR-016 de H45; contracts/tests-sin-listas.md): una entrada es de
+// lo administrativo si la norma que la rige está en data/normas.yaml con ese
+// vertical y, si no lleva norma o la suya no tiene vertical, si lo tiene la de su
+// precepto. Así una entrada de otro paquete, o una de estas que pasa a otro, no
+// cuenta en ninguna de las dos. Que cada bloque esté grabado y que cada
+// identificador sea el de la búsqueda grabada lo comprueba
 // TestPreceptosDeLosPlazos, en internal/evals.
 func TestCoberturaDelRepositorio(t *testing.T) {
 	t.Parallel()
@@ -270,28 +340,63 @@ func TestCoberturaDelRepositorio(t *testing.T) {
 	cobertura, err := LeerCobertura(contenido)
 	require.NoError(t, err, "la cobertura por materia del repositorio, %s", coberturaDelRepositorio)
 
+	normas := normasDelRepositorioPorIdentificador(t)
+
 	type entrada struct {
-		procedimiento, apartado string
-		conNorma                bool
+		procedimiento, delPrecepto, apartado, queLaRige string
+	}
+
+	deLaBase := func(entradas []entrada) []entrada {
+		var delPaquete []entrada
+
+		for _, una := range entradas {
+			vertical := normas[una.queLaRige].Vertical
+			if vertical == "" {
+				vertical = normas[una.delPrecepto].Vertical
+			}
+
+			if vertical == paqueteDeLaBase {
+				delPaquete = append(delPaquete, una)
+			}
+		}
+
+		return delPaquete
 	}
 
 	leidas := make([]entrada, 0, len(cobertura.ReguladosAparte))
 	for _, regulado := range cobertura.ReguladosAparte {
-		leidas = append(leidas, entrada{regulado.Procedimiento, regulado.Precepto.Apartado, regulado.Norma != nil})
+		leida := entrada{
+			procedimiento: regulado.Procedimiento,
+			delPrecepto:   regulado.Precepto.Norma,
+			apartado:      regulado.Precepto.Apartado,
+		}
+		if regulado.Norma != nil {
+			leida.queLaRige = regulado.Norma.Identificador
+		}
+
+		leidas = append(leidas, leida)
 	}
 
-	assert.Equal(t, []entrada{
-		{"aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa", "DA 1ª.2.a", true},
-		{"gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y " +
-			"desempleo", "DA 1ª.2.b", false},
-		{"procedimientos sancionadores en materia tributaria y aduanera", "DA 1ª.2.c", false},
-		{"procedimientos sancionadores en el orden social", "DA 1ª.2.c", false},
-		{"procedimientos sancionadores en materia de tráfico y seguridad vial", "DA 1ª.2.c", true},
-		{"procedimientos sancionadores en materia de extranjería", "DA 1ª.2.c", false},
-		{"actuaciones y procedimientos en materia de extranjería y asilo", "DA 1ª.2.d", false},
-		{"procedimientos de impugnación que una ley establece en sustitución del recurso de alzada", "112.2", false},
-		{"reclamaciones económico-administrativas", "112.4", false},
-	}, leidas, "%s trae las nueve entradas de contracts/datos-de-plazos.md §3, en su orden", coberturaDelRepositorio)
+	const lpac = "BOE-A-2015-10565"
+
+	assert.Equal(t, deLaBase([]entrada{
+		{
+			"aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa", lpac,
+			"DA 1ª.2.a", "BOE-A-2003-23186",
+		},
+		{
+			"gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y " +
+				"desempleo", lpac, "DA 1ª.2.b", "",
+		},
+		{"procedimientos sancionadores en materia tributaria y aduanera", lpac, "DA 1ª.2.c", ""},
+		{"procedimientos sancionadores en el orden social", lpac, "DA 1ª.2.c", ""},
+		{"procedimientos sancionadores en materia de tráfico y seguridad vial", lpac, "DA 1ª.2.c", "BOE-A-2015-11722"},
+		{"procedimientos sancionadores en materia de extranjería", lpac, "DA 1ª.2.c", ""},
+		{"actuaciones y procedimientos en materia de extranjería y asilo", lpac, "DA 1ª.2.d", ""},
+		{"procedimientos de impugnación que una ley establece en sustitución del recurso de alzada", lpac, "112.2", ""},
+		{"reclamaciones económico-administrativas", lpac, "112.4", ""},
+	}), deLaBase(leidas), "%s trae, de las nueve entradas de contracts/datos-de-plazos.md §3, las de %s, en su orden",
+		coberturaDelRepositorio, paqueteDeLaBase)
 }
 
 // TestCompilarEsquemaDeCoberturaDesdeUnaRuta fija la lectura y la compilación

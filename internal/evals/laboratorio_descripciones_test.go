@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"fmt"
 	"io/fs"
 	"maps"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +20,9 @@ import (
 )
 
 // Las cuatro descripciones de la variante del repositorio, cada una la línea de
-// su apartado de contracts/variante.md §2 sin el salto de línea final.
+// su apartado de contracts/variante.md §2 sin el salto de línea final, salvo la
+// de plazos-y-territorio, que es el texto de FR-023 de H45, que deja de nombrar
+// una materia.
 const (
 	descripcionCortaDeConsultaJuridica = "Punto de entrada de toda pregunta legal en España, de cualquier materia: " +
 		"dice qué capacidad de kitlegal la resuelve —normativa, jurisprudencia, plazos y territorio— y con qué skill, " +
@@ -35,11 +39,11 @@ const (
 		"que dice una norma —un artículo, ley o real decreto, el plazo o requisito que fija— o de lo que decía en " +
 		"una fecha, aunque el agente crea saberlo. Se activa antes de boe_articulo u otra herramienta boe_…: qué " +
 		"pedir y cómo citar lo dice la skill."
-	descripcionCortaDePlazosYTerritorio = "Calcula con kitlegal hasta qué día se puede recurrir una resolución " +
-		"administrativa, cuándo vence un plazo del procedimiento común (LPAC) o el del contencioso y cuándo hay " +
-		"silencio, con los festivos que cuentan, e identifica el territorio de un municipio: INE, provincia, " +
-		"comunidad, DIR3 y boletines. No cuenta plazos de otras materias. Se usa al preguntar cuándo vence un plazo " +
-		"o un recurso, o qué boletines tiene un municipio."
+	descripcionCortaDePlazosYTerritorio = "Calcula con kitlegal hasta qué día se puede recurrir una resolución, " +
+		"cuándo vence un plazo y cuándo hay silencio, con los festivos que cuentan, e identifica el territorio de " +
+		"un municipio: INE, provincia, comunidad, DIR3 y boletines. Cuenta los plazos de las materias que cubre y " +
+		"de las demás dice que no los cubre, sin darlos de memoria. Se usa al preguntar cuándo vence un plazo o un " +
+		"recurso, o qué boletines tiene un municipio."
 )
 
 // lasCuatroSkills son las de skills/ del repositorio, en orden de nombre, las de
@@ -83,6 +87,29 @@ func TestDescripcionesCortas(t *testing.T) {
 		"jurisprudencia.txt":      descripcionCortaDeJurisprudencia + "\n",
 		"normativa.txt":           descripcionCortaDeNormativa + "\n",
 		"plazos-y-territorio.txt": descripcionCortaDePlazosYTerritorio + "\n",
+	}
+
+	// defectosDelEjemplo son los del caso «una que empieza por <ejemplo>», que
+	// pone etiquetaDelEjemplo delante de la de normativa: el de la etiqueta y, si
+	// la suma de lasDelContrato, sin sus saltos de línea, más lo que añade,
+	// conLaEtiqueta, pasa de maximoDeLasDescripcionesCortas, el de la suma
+	// (FR-023 de H45; research D8 de H45).
+	const etiquetaDelEjemplo = "<ejemplo> "
+
+	conLaEtiqueta := utf8.RuneCountInString(etiquetaDelEjemplo)
+	for _, contenido := range lasDelContrato {
+		conLaEtiqueta += utf8.RuneCountInString(strings.TrimSuffix(contenido, "\n"))
+	}
+
+	defectosDelEjemplo := []string{
+		"laboratorio/producto-descripciones-cortas: la descripción de normativa tiene la etiqueta XML " +
+			"«<ejemplo>» (no admite ninguna)",
+	}
+
+	if conLaEtiqueta > maximoDeLasDescripcionesCortas {
+		defectosDelEjemplo = append(defectosDelEjemplo, fmt.Sprintf(
+			"laboratorio/producto-descripciones-cortas: las descripciones suman %d caracteres (máximo 1700)",
+			conLaEtiqueta))
 	}
 
 	casos := []struct {
@@ -137,11 +164,8 @@ func TestDescripcionesCortas(t *testing.T) {
 			nombre: "una que empieza por <ejemplo>",
 			skills: lasCuatroSkills,
 			variante: conLaEntrada(lasDelContrato, "normativa.txt",
-				"<ejemplo> "+descripcionCortaDeNormativa+"\n"),
-			defectos: []string{
-				"laboratorio/producto-descripciones-cortas: la descripción de normativa tiene la etiqueta XML " +
-					"«<ejemplo>» (no admite ninguna)",
-			},
+				etiquetaDelEjemplo+descripcionCortaDeNormativa+"\n"),
+			defectos: defectosDelEjemplo,
 		},
 		{
 			nombre:   "una quinta skill sin descripción",

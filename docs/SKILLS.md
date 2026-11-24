@@ -212,7 +212,7 @@ referencias generadas solo las leen `sin-instrucciones-de-evals` y `forma-de-cit
 | Control (subtest) | Skills | Lo que exige |
 |---|---|---|
 | `prosa-de-la-skill` | `normativa`, la que tiene `evals/<skill>/expresiones-prohibidas.yaml` | Ninguna expresión de la lista fuera del código y ninguna fecha AAAAMMDD con cifras, en ningún fichero |
-| `ordenes-para-powershell` | `normativa` | Cada orden de lectura o de comprobación lleva detrás, en el mismo fichero, su forma para PowerShell |
+| `ordenes-para-powershell` | `normativa` | Cada orden de lectura o de comprobación de una referencia lleva detrás, en el mismo fichero, su forma para PowerShell; la de una orden del `SKILL.md` va detrás de ella o en cualquier referencia a mano de la skill, con el mismo verbo, la misma norma y los mismos bloques, se lea esa referencia siempre o solo en algunos casos |
 | `linea-sin-consulta` | `normativa`, `plazos-y-territorio` | La línea `⚠ SIN CONSULTA AL BOE:`, sola en un bloque `text` del `SKILL.md` |
 | `formas-de-la-redaccion-fechada`, `avisos-de-la-skill`, `hallazgos-de-la-skill` | `normativa` | Cada forma, en el `SKILL.md` |
 | `lineas-de-aviso-de-las-referencias` | `normativa`, `plazos-y-territorio` | Cada línea `⚠` de una referencia a mano es, sin los blancos de los extremos, una línea del `SKILL.md` |
@@ -246,7 +246,8 @@ Una materia entra en la base como un paquete de ficheros, no como una skill ni c
 | Su nombre | El valor `vertical: <nombre>` de sus normas en `data/normas.yaml`: un adjetivo, porque el enlace dice «lo <nombre>», con la forma `^[a-z][a-z0-9-]*$` | La persona que añade la materia |
 | Sus normas | Las entradas de `data/normas.yaml` con `vertical: <nombre>` | Ídem; el identificador y el título, de lo grabado (`TestIdentificadoresDeLasNormas`) |
 | Una referencia por skill de capacidad que la necesite | `skills/<skill>/references/<nombre>.md`, en `references/` plano (§4) | A mano, con las tablas de `data/` en regiones generadas |
-| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuyo `precepto.norma` es una norma del paquete y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
+| Sus plazos | Los tipos de `data/plazos.yaml` cuyos preceptos propios —los de `preceptos` y los de `unidades`, no los del cómputo— son de normas del paquete; las normas sin `vertical` no cuentan (H45; ADR 0062, punto 1) | La persona |
+| Sus filas de cobertura | Las de `regulados_aparte` de `data/cobertura.yaml` cuya `norma`, la que la rige, es del paquete o, si la fila no la lleva o esa norma no tiene `vertical`, cuyo `precepto.norma` lo es (H45; ADR 0062, punto 2); una fila cuyo `precepto.norma` no está en `data/normas.yaml` no es de ningún paquete y da el defecto de la fila sin región; y, si el paquete cubre más que la base, las de `cubierto` con `materia: <nombre>` | La persona |
 | Sus evals | `evals/<skill>/NN-*.yaml` de la skill que hereda su pregunta | La persona |
 
 No hay fichero que declare el paquete: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la
@@ -301,8 +302,8 @@ las evals sabe qué datos carga la skill (ADR 0045). Admiten región tres genera
 
 | Generador | Datos | Filas |
 |---|---|---|
-| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` cuyo precepto es de una norma del paquete del fichero; columnas `Procedimiento` y `Línea que da la respuesta` |
-| `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Todos los tipos de plazo, con el precepto en la forma única |
+| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de `regulados_aparte` del paquete del fichero: el de la norma que la rige, si la fila la lleva y tiene `vertical`, y si no el de la norma de su precepto, que tiene que estar en `data/normas.yaml`; columnas `Procedimiento` y `Línea que da la respuesta` |
+| `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Los tipos de plazo del paquete del fichero, en el orden de `data/plazos.yaml`, con el precepto en la forma única. Un tipo cuyas normas no llevan `vertical`, o llevan dos distintos, es un defecto de `data/plazos.yaml` (§5) |
 | `leyes_vertebrales` | `data/normas.yaml` | Las normas con `vertebral: true` |
 
 El precepto se escribe en su **forma legible**: `art. <apartado>` si el apartado empieza por cifra, el apartado si no,
@@ -348,20 +349,28 @@ alguna región.
 **El paquete de lo administrativo** es el primero: `vertical: administrativo` en diez normas —LPAC, LRJSP, LRJPAC,
 LTAIBG, LRBRL, LCSP, LGS, LGP, TRLRHL y LJCA—; su única referencia, `plazos-y-territorio/references/administrativo.md`,
 con la prosa de lo que solo pide el procedimiento común (lo que la ley regula aparte, el acto presunto, el silencio, la
-reclamación del art. 24.2 LTAIBG), los dos motivos y las tres regiones; las nueve filas de `regulados_aparte`, con su
-precepto en la LPAC; y la fila de los plazos de `cubierto`, con `materia: administrativo`.
+reclamación del art. 24.2 LTAIBG), los dos motivos y las tres regiones; los siete tipos de `data/plazos.yaml`, con sus
+preceptos en la LPAC, la LJCA y la LTAIBG; las nueve filas de `regulados_aparte`, con su precepto en la LPAC (las de la
+LGT y del tráfico traen la norma que las rige, sin `vertical` o fuera de `data/normas.yaml`, y siguen siendo de lo
+administrativo por su precepto);
+y la fila de los plazos de `cubierto`, con `materia: administrativo`.
 `normativa` y `jurisprudencia` no necesitan referencia suya. La CE, el CC, la LEC y la LOPJ son de la base, y la LGT,
 la LIRPF, el ET, la LOPDGDD y la Ley 50/1980, de Contrato de Seguro, de materias sin paquete: no llevan `vertical`.
 
 **La vertical de ensayo** prueba el molde: `internal/skills/testdata/vertical-de-ensayo/` trae dos normas de una
 materia que no existe (`BOE-A-1900-1` y `BOE-A-1900-2`, `vertical: ensayo`), una referencia `ensayo.md` por skill de
-capacidad, la de `plazos-y-territorio` con los dos motivos y la región de la cobertura, una fila de
-`regulados_aparte`, una de `cubierto` (`capacidad: plazos`, `materia: ensayo`) y una eval de `normativa`.
+capacidad, la de `plazos-y-territorio` con los dos motivos y las regiones de la cobertura y de los recursos y plazos,
+un tipo de plazo (`ensayo`, con su precepto en `BOE-A-1900-1` y el cómputo `lpac`), dos filas de `regulados_aparte`
+—una con su precepto en la vertical y otra con su precepto en la LPAC y `BOE-A-1900-2` como la norma que la rige—,
+una de `cubierto` (`capacidad: plazos`, `materia: ensayo`) y una eval de `normativa`.
 `TestVerticalDeEnsayo` la instala sobre una copia de `skills/`, `data/` y `evals/normativa/`, corre la sincronía y
 comprueba que no queda ningún defecto ni deriva, que la eval se carga, que no hay ningún `.go`, que ningún `SKILL.md`
-cambia fuera de las marcas y que la región de lo cubierto de `consulta-juridica` termina con la línea de su fila; y que
-`skills/` y `data/` del repositorio no cambian. Su mutante, un enlace escrito a mano
-en el cuerpo de `normativa`, lo pone en rojo.
+cambia fuera de las marcas y que la región de lo cubierto de `consulta-juridica` termina con la línea de su fila; que
+el tipo de ensayo y la fila con norma salen en `plazos-y-territorio/references/ensayo.md` y en ninguna otra referencia,
+tampoco en `administrativo.md` (H45); que el cuerpo de cada skill de capacidad, con la línea de la vertical, tiene sitio
+para otra línea de paquete de su misma longitud bajo el tope de 11 000 caracteres; y que `skills/` y `data/` del
+repositorio no cambian. Su mutante, un enlace escrito a mano en el cuerpo de `normativa`, lo pone en rojo, y sin la
+región de la cobertura en `ensayo.md` la fila con norma da su defecto de fila sin región.
 
 ### Lo medido: los tres defectos que el reparto arregla
 
@@ -592,6 +601,8 @@ lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `normat
 | Región de la cobertura en una referencia que no lleva un motivo con `<norma>` y otro sin ella | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una referencia sin sus dos motivos` |
 | Región de la cobertura con la plantilla `⚠ NO CUBIERTO:` o un motivo que lleva un marcador desconocido, cada marcador una vez, primero los de la plantilla y después los de los motivos | `plazos-y-territorio: references/administrativo.md: la plantilla ⚠ NO CUBIERTO: de SKILL.md lleva <identificador de la ley>, un marcador que la tabla no conoce` y `plazos-y-territorio: references/administrativo.md: un motivo de la plantilla lleva <ley>, un marcador que la tabla no conoce` |
 | Fila de `regulados_aparte` que ninguna región de la cobertura genera, una por fila, en cada skill con la plantilla | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa» no la genera ninguna región cobertura_por_materia` |
+| Tipo de `data/plazos.yaml` cuyos preceptos propios no son de ninguna norma con `vertical`, uno por tipo, en cada skill con una región `recursos_y_plazos` (H45) | `plazos-y-territorio: data/plazos.yaml: el tipo <código> no es de ningún paquete: ninguna norma de sus preceptos lleva vertical en data/normas.yaml` |
+| Tipo de `data/plazos.yaml` cuyos preceptos propios son de normas de dos o más `vertical`, uno por tipo, con los paquetes en orden alfabético (H45) | `plazos-y-territorio: data/plazos.yaml: el tipo <código> es de más de un paquete: administrativo, ensayo` |
 | Skill con la plantilla cuya prosa no dice, entre comillas angulares, el motivo de lo no declarado | `consulta-juridica: SKILL.md: la prosa no dice el motivo de lo no declarado, «fuera de lo que kitlegal cubre»` |
 | Fila de `cubierto` con una `materia` que no es el `vertical` de ninguna norma, una por fila, en la skill con la región de lo cubierto | `consulta-juridica: data/cobertura.yaml: la fila de lo cubierto de la capacidad «plazos» lleva la materia «Laboral», que no es el vertical de ninguna norma de data/normas.yaml` |
 | Referencia de un paquete en una skill cuyo `SKILL.md` no lleva las marcas de los paquetes | `plazos-y-territorio: SKILL.md: referencia de paquete sin enlazar: administrativo.md` |

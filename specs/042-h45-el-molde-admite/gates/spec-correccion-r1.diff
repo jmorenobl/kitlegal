@@ -1,0 +1,69 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-23 17:27:07.562631425 +0100
++++ ahora/checklists/requirements.md	2026-11-23 17:28:25.153186191 +0100
+@@ -26,10 +26,12 @@
+   cálculo.
+ - [x] Requirements are testable and unambiguous — cada FR termina en «Comprobable:» con su escenario, su mutante o su
+   control; los defectos nuevos van byte a byte en §C.1, lo movido en §C.2, los casos del control en §C.3 y el orden de
+-  las raíces en §C.4.
++  las raíces en §C.4. US1 no congela la entrada ni lo esperado de los tests que FR-010, FR-014, FR-016, FR-017 y FR-023
++  cambian: exige que, con los datos de `main`, la salida del binario y lo que comprueba cada caso sean los de `main`.
+ - [x] Success criteria are measurable — SC-001 a SC-011 dan recuentos y topes (0 diferencias, 1 referencia, 2 defectos,
+   4 y 5 raíces, 12 sesiones, 352 min, 429/450/1 700/900 caracteres, 11 000 con 70 de sitio, 5 mutantes) y cada uno
+-  nombra la comprobación de `make ci` o del cierre que sale en rojo (criterio j).
++  nombra la comprobación de `make ci` o del cierre que sale en rojo (criterio j); SC-004, la de la suite de aceptación
++  que ejecuta los tests de §C.5 sobre la copia de US4.1.
+ - [x] Success criteria are technology-agnostic (no implementation details) — se miden sobre lo que ve quien usa las
+   skills o escribe un paquete (referencias, cuerpos, defectos, descripción, informe); los controles nombran el test que
+   los hace cumplir, como pide el criterio j.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-23 17:27:07.562650996 +0100
++++ ahora/spec.md	2026-11-23 17:28:19.891202783 +0100
+@@ -88,8 +88,10 @@
+ **Why this priority**: lo administrativo es la implementación que protege lo que ya funciona (principio X); el molde
+ nuevo no puede cambiar lo que lee hoy una skill.
+ 
+-**Independent Test**: `make skills-sync` sobre la rama no deja diferencias, y `TestSkillsDelProductoDesdeControl`,
+-`TestCasosDePlazos` y los goldens de H9 y H36 pasan sin cambiar su entrada ni lo esperado (FR-008, FR-026).
++**Independent Test**: `make skills-sync` sobre la rama no deja diferencias, y con los datos de `main` la salida del
++binario y lo que comprueban `TestSkillsDelProductoDesdeControl`, `TestCasosDePlazos` y los goldens de H9 y H36 son los
++mismos que en `main`, aunque lo esperado se escriba de otra forma, como piden FR-010, FR-014, FR-016, FR-017 y FR-023
++(FR-008, FR-026).
+ 
+ **Acceptance Scenarios**:
+ 
+@@ -162,8 +164,8 @@
+ 
+ **Why this priority**: es lo que hace que H42 entre sin Go (ADR 0062, punto 5).
+ 
+-**Independent Test**: los tests de la lista de FR-016 sobre una copia de `data/` y de `evals/` con un paquete más
+-(FR-016, FR-027).
++**Independent Test**: la comprobación de SC-004 en `make ci`, que ejecuta los tests de la lista de FR-016 sobre una
++copia de `data/` y de `evals/` con un paquete más (FR-016, FR-027).
+ 
+ **Acceptance Scenarios**:
+ 
+@@ -375,7 +377,7 @@
+   `testdata/`. La lista es la del hito más los que el plan encuentre con un prototipo entero (incluido `make
+   test-integration`). Cada caso sigue en rojo con el mutante que lo ponía en rojo. Queda fuera
+   `TestNormasDelRepositorio/paquete-de-lo-administrativo`, que declara a propósito las diez normas del paquete.
+-  Comprobable: US4.1 a US4.3.
++  Comprobable: US4.1 a US4.3, con la comprobación de SC-004 en `make ci`.
+ - **FR-017**: Los guiones de `internal/app` de la lista (`h32-paquetes.txtar`, `h33-cobertura-instalada.txtar`,
+   `h36-plazos-de-hoy.txtar` y `h41-4-skills-instaladas.txtar`) y sus copias congeladas de `specs/` los cambia una tarea
+   `[datos]` que los declara; cada guion sigue en rojo con el mutante que lo ponía en rojo. Comprobable: el guardián de
+@@ -489,9 +491,11 @@
+ - **SC-003**: Los 2 defectos nuevos (FR-003, FR-004) salen con su tipo en su copia, y el caso de US3.3 da 0 defectos.
+   Los subtests de la sincronía en `make ci` salen en rojo sin la regla.
+ - **SC-004**: Con la copia de US4.1, 0 tests de la lista de §C.5 salen en rojo; con la lista literal devuelta a uno, ese
+-  sale en rojo. Se mide en el run, no en `make ci` ni en el cierre: es la comprobación con mutante que el hito pide
+-  registrar en `mutantes.md` (FR-027), y el registro dice la orden y lo visto. En `make ci`, cada test de la lista sigue
+-  en rojo con su mutante de `main` (US4.3).
++  sale en rojo. Lo hace cumplir una comprobación de la suite de aceptación, en `make ci`, que ejecuta los tests de §C.5
++  sobre la copia de `data/` y de `evals/` de US4.1 y sale en rojo si alguno falla (cómo corren sobre la copia los
++  guiones de `internal/app`, con los datos empotrados en el binario, es del plan). `mutantes.md` registra su mutante, la
++  lista literal devuelta a uno de ellos, con la orden y lo visto (FR-027). En `make ci`, cada test de la lista sigue en
++  rojo con su mutante de `main` (US4.3).
+ - **SC-005**: La unión del repositorio tiene 4 raíces (H4, H5, H9 y h36), 0 de `evidencias/h9/`; con h99 en una copia, 5,
+   h99 la última. `TestGrabacionesSinSolape` y `TestManifiestoDeGrabaciones` salen en rojo, en `make ci`, con h36 detrás
+   de una raíz de número mayor o con un fichero repetido entre dos raíces.

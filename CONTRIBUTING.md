@@ -591,7 +591,9 @@ formato y el conjunto de las evals, que lo que necesitan —y, desde H26.1, lo q
 Una norma nueva, un precepto nuevo de `data/plazos.yaml` o de `data/cobertura.yaml`, o una eval que consulta algo que
 no está grabado, llega con su grabación, que hace una persona con `scripts/grabar-evals.sh` o, en un hito, el paso
 `grabar_datos` del workflow, sin modelo, con `TestGrabarEvals` y la raíz `evidencias/<hito>/` (así llegaron los bloques
-`a130` y `a133` de la LEC en H36): ningún control graba respuestas.
+`a130` y `a133` de la LEC en H36): ningún control graba respuestas. Desde H45 esa raíz entra sola, sin Go, en las
+grabaciones que reproducen las evals y los tests: cada `evidencias/<hito>/` con su `manifiesto.json` y su carpeta
+`boe.legislacion-consolidada/`, detrás de las de H4, H5 y H9 y por el número del hito (`UnionDeGrabaciones`).
 
 ### `make install` y los enlaces del anterior
 
@@ -774,9 +776,10 @@ expresiones, y cada línea con una fecha. `TestEvalsDelRepositorio` ya no compar
 los bloques grabados ni con las formas de la skill: de su calibrado sobre los informes de H7.1, H7.2 y H7.3 quedan
 solo sus tres totales (36, 11 y 9 respuestas marcadas), como premisa de `TestJuzgarSinLaLista`, que fija que ninguna
 de esas respuestas deja ya un motivo ni una clave de la lista en su resultado. Aparte, cada orden de lectura y
-comprobación de su `SKILL.md` y de sus referencias a mano lleva detrás, en el mismo fichero, su forma para PowerShell,
-con la misma norma y los mismos bloques, y la skill entera tiene la de `articulo` y la de `articulos`
-(`ordenes-para-powershell`).
+comprobación de sus referencias a mano lleva detrás, en el mismo fichero, su forma para PowerShell, con la misma norma y
+los mismos bloques; la de una orden de su `SKILL.md` va detrás de ella o, desde H45, en cualquiera de sus referencias a
+mano, con el mismo verbo, la misma norma y los mismos bloques, sin mirar cuándo se lee esa referencia; y la skill
+entera tiene la de `articulo` y la de `articulos` (`ordenes-para-powershell`).
 
 **El juez con modelo** de una skill es la carpeta `evals/<skill>/juez/` (ADR 0037). Juzga lo que ningún guion puede
 comprobar, el significado de una respuesta; lo que tiene forma o es un hecho de la sesión —citas, avisos, formas
@@ -1099,7 +1102,10 @@ no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de
 uno suma el peor caso del juez de las descripciones, `6 × (35 s + 5 s)`, 240 s, y el de `legal-core`, que no tiene
 juez de las respuestas, también los 60 s de instalar el Claude Code del juez: 20 117 s, 335,3 minutos, en
 `boe-legislacion`; 13 717 s, 228,6 minutos, en `jurisprudencia`; y 20 725 s, 345,4 minutos, en `legal-core`, que sigue
-siendo el mayor (los literales de `TestDefinicionDelJob`). Es un
+siendo el mayor (los literales de `TestDefinicionDelJob` hasta H45). Desde H45 el test ya no los fija: los calcula de
+`evals/` con la misma fórmula, y con `plazos-y-territorio` a tres el suyo es de 14 469 s, 241,2 minutos, con lo que el
+mayor es el de `normativa`, 20 117 s; con cuatro evals de modo más en `plazos-y-territorio` serían 18 821 s, 313,7
+minutos, que el tope cubre, y a dos, 27 253 s, que no. Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
 `jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s; y en `descripciones`, la
@@ -1122,7 +1128,7 @@ tope de 15 minutos, sus permisos de lectura, el checkout con toda la historia y 
 la salida `modo` de `tanda`, el `MODO_DE_EVALS` de su `env` y su segunda marca, y, en el trabajo de cada skill, sus
 permisos, el paso de la decisión con su plazo de 15 minutos y `GH_TOKEN` y `GH_REPO` solo en él (subprueba
 `plazo-de-la-decision`), el que ejecuta las evals con `DECISION_DE_EVALS`, la marca del informe escrito como último
-paso y que la matriz no abre más de 11 sesiones a la vez. Falla nombrando la clave, el valor encontrado y el
+paso y que la matriz no abre más de 12 sesiones a la vez (11 hasta H45, que pasa `plazos-y-territorio` a tres). Falla nombrando la clave, el valor encontrado y el
 esperado; una eval o un caso nuevos que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con
 consultas sintéticas y sin red, cómo decide `tanda` (subpruebas `segundo-disparo` y `estado-de-la-tanda`).
 

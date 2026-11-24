@@ -531,7 +531,10 @@ func TestEsquemaDeNormas(t *testing.T) {
 	t.Run("rangos-grabados", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, rangosDeLasBusquedasGrabadas(t, evals.UnionDeGrabaciones()), rangosDelEsquema(t, contenido),
+		union, err := evals.UnionDeGrabaciones()
+		require.NoError(t, err, "la unión de las grabaciones del repositorio")
+
+		assert.Equal(t, rangosDeLasBusquedasGrabadas(t, union), rangosDelEsquema(t, contenido),
 			"el enum de rango de %s es el conjunto de rangos de las búsquedas grabadas", esquemaPublicadoDeNormas)
 	})
 }

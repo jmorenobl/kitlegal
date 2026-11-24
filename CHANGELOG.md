@@ -46,6 +46,20 @@ sustituyen a este fichero.
   plazos calcular` ya no enumera los tipos ni los avisos: `tipo` y `avisos[].codigo` llevan el `pattern`
   `^[a-z0-9]+(-[a-z0-9]+)*$` y ningún `enum`. El cómputo civil de la LEC (arts. 130.2 y 133 LEC) está en el motor,
   pero no se pide todavía desde `kitlegal plazos`: ningún tipo de `data/plazos.yaml` cuenta con él.
+- **El trabajo de evals de `plazos-y-territorio` abre tres sesiones a la vez, y no dos** (H45; ADR 0062). Con cuatro
+  evals de modo más, como las que prepara H42, su peor caso a dos pasaría del tope de 352 minutos del trabajo, y a tres
+  cabe. Entre las cuatro skills son doce sesiones a la vez como mucho, y no once; el tope, los modelos y los demás
+  ajustes del trabajo no cambian. Doce a la vez pueden topar con el límite de la suscripción, que el cierre enseña como
+  fallo de la fuente.
+- **La descripción de `plazos-y-territorio` deja de nombrar una materia** (H45; ADR 0062). Ya no habla del
+  procedimiento común (LPAC) ni del contencioso, ni dice que no cuenta plazos de otras materias; ahora es: «Calcula con
+  kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo y cuándo hay silencio, con los
+  festivos que cuentan, e identifica el territorio de un municipio: INE, provincia, comunidad, DIR3 y boletines. Cuenta
+  los plazos de las materias que cubre y de las demás dice que no los cubre, sin darlos de memoria. Se usa al preguntar
+  cuándo vence un plazo o un recurso, o qué boletines tiene un municipio.» Son 429 caracteres, los que lee el agente en
+  cada sesión para elegir skill, y es la que instala `kitlegal skills install`. La variante
+  `producto-descripciones-cortas` del laboratorio lleva el mismo texto, y la suma de sus cuatro descripciones pasa de
+  1 690 a 1 692 caracteres, con el tope de 1 700. `kitlegal plazos` no cambia.
 
 ### Corregido
 

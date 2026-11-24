@@ -1,10 +1,16 @@
 package skills_test
 
 import (
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,46 +25,54 @@ const (
 	finDeLoCubierto    = "<!-- fin de lo que cubre la base -->\n"
 )
 
-// lineasDeLoCubierto son las de la región de lo cubierto de la skill de entrada
-// con los datos del repositorio: una por fila de lo cubierto de
-// data/cobertura.yaml, en su orden (contracts/skills.md §1 de H33).
-var lineasDeLoCubierto = []string{
-	"- **Normativa**: leer y citar cualquier norma consolidada del BOE, estatal o autonómica, de cualquier materia y " +
-		"en cualquier fecha.",
-	"- **Jurisprudencia**: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y " +
-		"cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.",
-	"- **Plazos**: solo los del procedimiento administrativo común, los del acceso a la información pública y la " +
-		"interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que " +
-		"la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.",
-	"- **Territorio**: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.",
+// lineasDeLoCubiertoDelRepositorio son las de la región de lo cubierto de la
+// skill de entrada con los datos del repositorio (contracts/skills.md §1 de H33;
+// FR-016 de H45): una por fila de lo cubierto de data/cobertura.yaml, en su
+// orden, «- **<capacidad>**: <alcance>», con la capacidad con su primera letra en
+// mayúscula y sin su materia.
+func lineasDeLoCubiertoDelRepositorio(t *testing.T) []string {
+	t.Helper()
+
+	cobertura, err := skills.LeerCobertura(leerDatosDelRepositorio(t, "cobertura.yaml"))
+	require.NoError(t, err)
+
+	lineas := make([]string, 0, len(cobertura.Cubierto))
+
+	for _, fila := range cobertura.Cubierto {
+		primera, tamano := utf8.DecodeRuneInString(fila.Capacidad)
+		lineas = append(lineas, "- **"+string(unicode.ToUpper(primera))+fila.Capacidad[tamano:]+"**: "+fila.Alcance)
+	}
+
+	return lineas
 }
 
 // TestRegionDeLoCubierto fija la región de lo que cubre la base (FR-003 y FR-007;
 // contracts/datos-y-regiones.md §3 y §4; contracts/controles.md §1 de H33) sobre
-// una copia de consulta-juridica, plazos-y-territorio y los datos del
-// repositorio: la región de la skill de entrada da las cuatro líneas de lo
-// cubierto en su orden y la sincronía no cambia nada. Cada mutante, la medida
-// pasada de su umbral de cero (ADR 0029), da los defectos exactos de cada skill
-// de la copia, que con alguno no lleva nada regenerado: una materia que no es el
-// vertical de ninguna norma, el de la materia, que da la sincronía y no el
-// esquema; sin data/cobertura.yaml, en la skill de entrada el de su región y el
-// de su plantilla, y en plazos-y-territorio el de su plantilla y el de su región
-// cobertura_por_materia; sin la marca de fin de la región en la skill de entrada,
-// el de sus marcas que no van en pareja; y el motivo cambiado en la prosa de la
-// skill de entrada, el del motivo.
+// una copia de consulta-juridica, de cada skill con una referencia de un paquete
+// y de los datos del repositorio: la región de la skill de entrada da una línea
+// por fila de lo cubierto de data/cobertura.yaml, en su orden, y la sincronía no
+// cambia nada. Cada mutante, la medida pasada de su umbral de cero (ADR 0029), da
+// los defectos exactos de cada skill de la copia, que con alguno no lleva nada
+// regenerado: una materia que no es el vertical de ninguna norma, el de la
+// materia, que da la sincronía y no el esquema; sin data/cobertura.yaml, en la
+// skill de entrada el de su región y el de su plantilla, y en cada otra skill el
+// de su plantilla, si la tiene, y el de la región cobertura_por_materia de cada
+// referencia que la lleva, en orden de nombre (FR-016 de H45); sin la marca de
+// fin de la región en la skill de entrada, el de sus marcas que no van en pareja;
+// y el motivo cambiado en la prosa de la skill de entrada, el del motivo.
 func TestRegionDeLoCubierto(t *testing.T) {
 	t.Parallel()
 
 	t.Run("repositorio", func(t *testing.T) {
 		t.Parallel()
 
-		raiz := copiaDeLaEntradaYDePlazos(t)
+		raiz, _ := copiaDeLaEntradaYDeLosPaquetes(t)
 
 		regenerado := regenerar(t, raiz, nil)
 		require.Empty(t, presentarDefectos(regenerado.Defectos()))
 
-		entrada := skillDe(t, regenerado, "consulta-juridica")
-		assert.Equal(t, lineasDeLoCubierto, lineasEntreLasMarcasDeLoCubierto(t, string(entrada.Contenido)),
+		entrada := skillDe(t, regenerado, skillDeEntrada)
+		assert.Equal(t, lineasDeLoCubiertoDelRepositorio(t), lineasEntreLasMarcasDeLoCubierto(t, string(entrada.Contenido)),
 			"la región da una línea por fila de lo cubierto, en su orden")
 
 		derivas, err := skills.Comparar(raiz, regenerado)
@@ -69,7 +83,7 @@ func TestRegionDeLoCubierto(t *testing.T) {
 	casos := []struct {
 		nombre   string
 		mutante  func(t *testing.T, raiz string)
-		defectos map[string][]string
+		defectos func(t *testing.T, raiz string, nombres []string) map[string][]string
 	}{
 		{
 			nombre: "materia-que-no-es-un-vertical",
@@ -79,12 +93,10 @@ func TestRegionDeLoCubierto(t *testing.T) {
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "cobertura.yaml"), "    materia: administrativo\n",
 					"    materia: Laboral\n")
 			},
-			defectos: map[string][]string{
-				"consulta-juridica": {
-					"consulta-juridica: data/cobertura.yaml: la fila de lo cubierto de la capacidad «plazos» lleva la " +
-						"materia «Laboral», que no es el vertical de ninguna norma de data/normas.yaml",
-				},
-			},
+			defectos: soloEnLaEntrada(
+				"consulta-juridica: data/cobertura.yaml: la fila de lo cubierto de la capacidad «plazos» lleva la " +
+					"materia «Laboral», que no es el vertical de ninguna norma de data/normas.yaml",
+			),
 		},
 		{
 			nombre: "sin-data-cobertura",
@@ -93,17 +105,7 @@ func TestRegionDeLoCubierto(t *testing.T) {
 
 				require.NoError(t, os.Remove(filepath.Join(raiz, "data", "cobertura.yaml")))
 			},
-			defectos: map[string][]string{
-				"consulta-juridica": {
-					"consulta-juridica: SKILL.md: la región lo que cubre la base sin data/cobertura.yaml",
-					"consulta-juridica: SKILL.md: la plantilla ⚠ NO CUBIERTO: sin data/cobertura.yaml",
-				},
-				"plazos-y-territorio": {
-					"plazos-y-territorio: SKILL.md: la plantilla ⚠ NO CUBIERTO: sin data/cobertura.yaml",
-					"plazos-y-territorio: references/administrativo.md: la región cobertura_por_materia sin " +
-						"data/cobertura.yaml",
-				},
-			},
+			defectos: defectosSinLaCobertura,
 		},
 		{
 			nombre: "marcas-sin-pareja",
@@ -113,11 +115,9 @@ func TestRegionDeLoCubierto(t *testing.T) {
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md"),
 					"<!-- fin de lo que cubre la base -->\n", "")
 			},
-			defectos: map[string][]string{
-				"consulta-juridica": {
-					"consulta-juridica: SKILL.md: las marcas de lo que cubre la base no van en pareja: falta la de fin",
-				},
-			},
+			defectos: soloEnLaEntrada(
+				"consulta-juridica: SKILL.md: las marcas de lo que cubre la base no van en pareja: falta la de fin",
+			),
 		},
 		{
 			nombre: "motivo-cambiado-en-la-prosa",
@@ -127,12 +127,10 @@ func TestRegionDeLoCubierto(t *testing.T) {
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "consulta-juridica", "SKILL.md"),
 					"«fuera\nde lo que kitlegal cubre»", "«fuera\nde lo que cubre kitlegal»")
 			},
-			defectos: map[string][]string{
-				"consulta-juridica": {
-					"consulta-juridica: SKILL.md: la prosa no dice el motivo de lo no declarado, «fuera de lo que " +
-						"kitlegal cubre»",
-				},
-			},
+			defectos: soloEnLaEntrada(
+				"consulta-juridica: SKILL.md: la prosa no dice el motivo de lo no declarado, «fuera de lo que " +
+					"kitlegal cubre»",
+			),
 		},
 	}
 
@@ -140,8 +138,9 @@ func TestRegionDeLoCubierto(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			raiz := copiaDeLaEntradaYDePlazos(t)
+			raiz, deLaCopia := copiaDeLaEntradaYDeLosPaquetes(t)
 			caso.mutante(t, raiz)
+			defectos := caso.defectos(t, raiz, deLaCopia)
 
 			regenerado := regenerar(t, raiz, nil)
 
@@ -150,7 +149,7 @@ func TestRegionDeLoCubierto(t *testing.T) {
 			for _, skill := range regenerado.Skills {
 				nombres = append(nombres, skill.Nombre)
 
-				esperados := caso.defectos[skill.Nombre]
+				esperados := defectos[skill.Nombre]
 				assert.Equal(t, esperados, presentarDefectos(skill.Defectos), "los defectos de %s", skill.Nombre)
 
 				if len(esperados) > 0 {
@@ -158,22 +157,153 @@ func TestRegionDeLoCubierto(t *testing.T) {
 				}
 			}
 
-			assert.Equal(t, []string{"consulta-juridica", "plazos-y-territorio"}, nombres, "las skills de la copia")
+			assert.Equal(t, deLaCopia, nombres, "las skills de la copia")
 		})
 	}
 }
 
-// copiaDeLaEntradaYDePlazos es la copia de plazos-y-territorio y de los datos de
-// sus referencias de copiaDePlazosYTerritorio con la skill de entrada,
-// consulta-juridica, que no declara applets: la de la región de lo cubierto y la
-// de la lista de los paquetes de la base.
-func copiaDeLaEntradaYDePlazos(t *testing.T) string {
+// skillDeEntrada es la skill que lleva la región de lo cubierto.
+const skillDeEntrada = "consulta-juridica"
+
+// soloEnLaEntrada son los defectos de un mutante que solo da defectos en la
+// skill de entrada: los dados, en su orden.
+func soloEnLaEntrada(defectos ...string) func(*testing.T, string, []string) map[string][]string {
+	return func(*testing.T, string, []string) map[string][]string {
+		return map[string][]string{skillDeEntrada: defectos}
+	}
+}
+
+// defectosSinLaCobertura son los defectos de la copia de raíz, con las skills
+// de nombres, sin data/cobertura.yaml: en la skill de entrada, el de su región y
+// el de su plantilla; en cada otra, el de su plantilla, si la tiene, y detrás el
+// de la región cobertura_por_materia de cada references/*.md que lleva su marca,
+// en orden de nombre (FR-016 de H45).
+func defectosSinLaCobertura(t *testing.T, raiz string, nombres []string) map[string][]string {
+	t.Helper()
+
+	defectos := map[string][]string{
+		skillDeEntrada: {
+			skillDeEntrada + ": SKILL.md: la región lo que cubre la base sin data/cobertura.yaml",
+			skillDeEntrada + ": SKILL.md: la plantilla ⚠ NO CUBIERTO: sin data/cobertura.yaml",
+		},
+	}
+
+	for _, skill := range nombres {
+		if skill == skillDeEntrada {
+			continue
+		}
+
+		var deLaSkill []string
+
+		if conLaPlantillaDeNoCubierto(leerFicheroDePrueba(t, rutaDeSkill(raiz, skill, "SKILL.md"))) {
+			deLaSkill = append(deLaSkill, skill+": SKILL.md: la plantilla ⚠ NO CUBIERTO: sin data/cobertura.yaml")
+		}
+
+		referencias, err := filepath.Glob(rutaDeSkill(raiz, skill, "references", "*.md"))
+		require.NoError(t, err)
+
+		for _, referencia := range referencias {
+			if strings.Contains(leerFicheroDePrueba(t, referencia), "\n"+marcaDeLaCobertura) {
+				deLaSkill = append(deLaSkill, skill+": references/"+filepath.Base(referencia)+
+					": la región cobertura_por_materia sin data/cobertura.yaml")
+			}
+		}
+
+		if len(deLaSkill) > 0 {
+			defectos[skill] = deLaSkill
+		}
+	}
+
+	return defectos
+}
+
+// marcaDeLaCobertura es el principio de la marca de inicio de la región
+// cobertura_por_materia de una referencia de un paquete.
+const marcaDeLaCobertura = "<!-- inicio de cobertura_por_materia: "
+
+// conLaPlantillaDeNoCubierto dice si el cuerpo de un SKILL.md tiene la
+// plantilla ⚠ NO CUBIERTO: (contracts/datos-y-regiones.md §5 de H33): una sola
+// línea que, sin los blancos del principio, empieza por la etiqueta y lleva
+// <motivo>.
+func conLaPlantillaDeNoCubierto(cuerpo string) bool {
+	plantillas := 0
+
+	for linea := range strings.Lines(cuerpo) {
+		linea = strings.TrimLeft(linea, " ")
+		if strings.HasPrefix(linea, "⚠ NO CUBIERTO: ") && strings.Contains(linea, "<motivo>") {
+			plantillas++
+		}
+	}
+
+	return plantillas == 1
+}
+
+// copiaDeLaEntradaYDeLosPaquetes es la copia de plazos-y-territorio y de los
+// datos de sus referencias de copiaDePlazosYTerritorio con la skill de entrada,
+// consulta-juridica, que no declara applets —la de la región de lo cubierto y la
+// de la lista de los paquetes de la base—, y con cada otra skill del repositorio
+// que tiene una referencia de un paquete (skillsConUnPaquete), sin sus applets
+// declarados, como plazos-y-territorio; y los nombres de sus skills, en orden.
+func copiaDeLaEntradaYDeLosPaquetes(t *testing.T) (string, []string) {
 	t.Helper()
 
 	raiz := copiaDePlazosYTerritorio(t)
-	require.NoError(t, os.CopyFS(rutaDeSkill(raiz, "consulta-juridica"), os.DirFS("../../skills/consulta-juridica")))
+	nombres := []string{"plazos-y-territorio"}
 
-	return raiz
+	for _, skill := range slices.Concat([]string{skillDeEntrada}, skillsConUnPaquete(t)) {
+		if slices.Contains(nombres, skill) {
+			continue
+		}
+
+		require.NoError(t, os.CopyFS(rutaDeSkill(raiz, skill), os.DirFS(filepath.Join(skillsDelRepositorio, skill))))
+		sinLosApplets(t, rutaDeSkill(raiz, skill, "SKILL.md"))
+
+		nombres = append(nombres, skill)
+	}
+
+	slices.Sort(nombres)
+
+	return raiz, nombres
+}
+
+// skillsConUnPaquete son las skills del repositorio, en orden de nombre, con
+// alguna referencia de un paquete: references/<paquete>.md, con <paquete> el
+// vertical de alguna norma de data/normas.yaml (data-model §1 de H45).
+func skillsConUnPaquete(t *testing.T) []string {
+	t.Helper()
+
+	normas, err := skills.LeerNormas(leerDatosDelRepositorio(t, "normas.yaml"))
+	require.NoError(t, err)
+
+	referencias, err := fs.Glob(os.DirFS(skillsDelRepositorio), "*/references/*.md")
+	require.NoError(t, err)
+
+	var conPaquete []string
+
+	for _, referencia := range referencias {
+		skill, _, _ := strings.Cut(referencia, "/")
+		paquete := strings.TrimSuffix(path.Base(referencia), ".md")
+
+		if !slices.Contains(conPaquete, skill) && slices.ContainsFunc(normas, func(norma skills.Norma) bool {
+			return norma.Vertical == paquete
+		}) {
+			conPaquete = append(conPaquete, skill)
+		}
+	}
+
+	return conPaquete
+}
+
+// lineaDeLosApplets es la de los applets que declara el frontmatter de un
+// SKILL.md: la tabla de comandos no se regenera sin sus descripciones.
+var lineaDeLosApplets = regexp.MustCompile(`(?m)^  kitlegal-applets: [^\n]*\n`)
+
+// sinLosApplets quita del SKILL.md de ruta la línea de los applets que declara,
+// si la lleva.
+func sinLosApplets(t *testing.T, ruta string) {
+	t.Helper()
+
+	escribirFicheroDePrueba(t, ruta, lineaDeLosApplets.ReplaceAllString(leerFicheroDePrueba(t, ruta), ""))
 }
 
 // skillDe es la skill regenerada de nombre.

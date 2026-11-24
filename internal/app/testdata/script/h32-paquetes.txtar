@@ -1,20 +1,26 @@
 # paquetes.txtar
 # Lo administrativo es el primer paquete de materia: cada fila de las tres
 # referencias generadas de legal-core en c991808 —la cobertura por materia, los
-# recursos y plazos y las leyes vertebrales— tiene sus datos en la referencia del
-# paquete en plazos-y-territorio, con la cita en la forma única; la fila de la
-# aplicación de los tributos es, byte a byte, la del ejemplo de
-# contracts/paquetes.md §3; ningún cuerpo de una skill de capacidad nombra una
-# norma del paquete ni una de las evals por materia; y el SKILL.md de
-# plazos-y-territorio lleva, entre sus marcas, el enlace a la referencia.
+# recursos y plazos y las leyes vertebrales— tiene sus datos en alguna referencia
+# de un paquete en plazos-y-territorio, con la cita en la forma única; la fila de
+# la aplicación de los tributos es, byte a byte, la del ejemplo de
+# contracts/paquetes.md §3, en alguna de ellas; ningún cuerpo de una skill de
+# capacidad nombra una norma del paquete ni una de las evals por materia; y el
+# SKILL.md de plazos-y-territorio lleva, entre sus marcas, el enlace a la
+# referencia.
 #
-# Cubre: US4 · FR-019, FR-021, FR-023 · SC-017.
+# Cubre: US4 · FR-019, FR-021, FR-023 · SC-017. Desde H45, FR-016 y FR-017 ·
+# SC-004: las filas se buscan en todas las referencias de los paquetes, no solo
+# en la de lo administrativo, porque un paquete más se lleva a la suya las filas
+# de sus normas.
 #
 # Las tres referencias de c991808 van copiadas enteras en las secciones
 # c991808/, tal como las da git show: el make ci de la entrega corre sobre un
-# clon superficial, sin ese commit. Una fila tiene sus datos en la referencia si
-# una de sus líneas lleva cada celda de la fila tal cual y, de cada precepto
-# «<apartado> (<identificador>, bloque <id>)», el apartado y
+# clon superficial, sin ese commit. Las referencias de un paquete son los
+# references/*.md de plazos-y-territorio que llevan una región, una línea que
+# empieza por «<!-- inicio de » (referencias.sh). Una fila tiene sus datos en
+# ellas si una línea de alguna lleva cada celda de la fila tal cual y, de cada
+# precepto «<apartado> (<identificador>, bloque <id>)», el apartado y
 # «[<identificador>, bloque <id>]» (filas.awk); una celda «—» no tiene datos.
 #
 # Las normas del paquete son las de data/normas.yaml de la rama con vertical: su
@@ -25,15 +31,14 @@
 # mínima de FR-021, como texto. Los awk y el sh salen siempre con 0: el veredicto
 # es el de stdout.
 
-env REFERENCIA=$KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
-exists $REFERENCIA
-
-# --- FR-019: cada fila de c991808, con sus datos, en la referencia del paquete ---
-exec awk -f filas.awk c991808/cobertura_por_materia.md c991808/recursos_y_plazos.md c991808/leyes_vertebrales.md $REFERENCIA
+# --- FR-019: cada fila de c991808, con sus datos, en alguna referencia de un paquete ---
+exec sh referencias.sh $KITLEGAL_SKILLS/plazos-y-territorio awk -v tablas=3 -f filas.awk c991808/cobertura_por_materia.md c991808/recursos_y_plazos.md c991808/leyes_vertebrales.md
+stdout '^referencias con una región: [1-9][0-9]*$'
 stdout '^filas: 33 de 33$'
 
-# --- FR-012, FR-019: la fila de la aplicación de los tributos, byte a byte ---
-exec awk -f iguales.awk tributos.txt $REFERENCIA
+# --- FR-012, FR-019: la fila de la aplicación de los tributos, byte a byte, en alguna de ellas ---
+exec sh referencias.sh $KITLEGAL_SKILLS/plazos-y-territorio awk -f iguales.awk tributos.txt
+stdout '^referencias con una región: [1-9][0-9]*$'
 stdout '^iguales: 1 de 1$'
 
 # --- FR-023: el enlace a la referencia, entre las marcas de los paquetes ---
@@ -128,9 +133,27 @@ texto|TRLRHL
 texto|IRPF
 texto|LTAIBG
 texto|LRJSP
+-- referencias.sh --
+# referencias.sh <skill> <orden>...: escribe cuántos references/*.md de <skill>
+# llevan una región —una línea que empieza por «<!-- inicio de »— en una línea
+# «referencias con una región: <n>» y ejecuta la orden con, detrás, cada uno de
+# ellos, en orden de nombre. Sale siempre con 0: el veredicto es el de stdout.
+skill=$1
+shift
+n=0
+for referencia in "$skill"/references/*.md; do
+	if grep -q '^<!-- inicio de ' "$referencia"; then
+		set -- "$@" "$referencia"
+		n=$((n + 1))
+	fi
+done
+echo "referencias con una región: $n"
+"$@"
+exit 0
 -- filas.awk --
-# filas.awk <tabla>... <referencia>: por cada fila de datos de cada tabla, si una
-# línea de la referencia —el último fichero— lleva todos sus datos, y cuáles no.
+# filas.awk -v tablas=<n> <tabla>... <referencia>...: por cada fila de datos de
+# cada una de las n tablas —los n primeros ficheros—, si una línea de alguna
+# referencia —los que siguen— lleva todos sus datos, y cuáles no.
 function partir(s, separador, partes,   n, p) {
 	n = 0
 	while ((p = index(s, separador)) > 0) {
@@ -161,7 +184,7 @@ function todos(r, linea,   i) {
 	for (i = 1; i <= cuantos[r]; i++) if (!index(linea, necesita[r, i])) return 0
 	return 1
 }
-FNR == 1 { enTabla = 0; referencia = (FILENAME == ARGV[ARGC - 1]) }
+FNR == 1 { enTabla = 0; referencia = (++fichero > tablas) }
 referencia { for (r = 1; r <= filas; r++) if (!hallada[r] && todos(r, $0)) hallada[r] = 1; next }
 !/^\|/ { next }
 !enTabla { enTabla = 1; next }
@@ -173,8 +196,8 @@ END {
 	print "filas: " estan " de " filas
 }
 -- iguales.awk --
-# iguales.awk <esperadas> <fichero>: cada línea de <esperadas> es, byte a byte,
-# una línea de <fichero>.
+# iguales.awk <esperadas> <fichero>...: cada línea de <esperadas> es, byte a
+# byte, una línea de alguno de los ficheros.
 FNR == 1 { f++ }
 f == 1 { esperadas[++n] = $0; next }
 { hay[$0] = 1 }

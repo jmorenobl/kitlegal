@@ -1,0 +1,30 @@
+# skills-instaladas.txtar
+# Lo que instala `kitlegal skills install` de las dos skills que H45 cambia
+# (contracts/aceptacion.md §2 de H45):
+#
+# - normativa hace sitio en su cuerpo: su SKILL.md ya no lleva «En PowerShell
+#   5.1:», y su references/con_herramientas.md acaba, tras una línea en blanco,
+#   con las cuatro líneas de §C.2 del spec, la frase y el bloque powershell de la
+#   orden de lectura del paso 2 sin su sangría (FR-009). El `$` de
+#   `$LASTEXITCODE` va escapado para la expresión; entre comillas simples,
+#   testscript no lo expande.
+# - plazos-y-territorio lleva la description de FR-023, que ya no nombra la LPAC
+#   ni el contencioso: en el frontmatter, detrás de `name:` y de la clave
+#   `description: >-`, y delante de `metadata:`. Cada espacio del texto es
+#   `( |\n  )`, un espacio o un corte de línea con su sangría, que el bloque `>-`
+#   vuelve a leer como un espacio, como en h41-4-skills-instaladas.txtar. Dónde se
+#   corta cada línea no lo fija el spec, y el guion no lo afirma.
+#
+# Cubre: US5.1, US9.1 · FR-009, FR-023 · SC-007
+#
+# Que nada más cambie en el cuerpo de normativa lo comprueba
+# TestSkillsDelProductoDesdeControl (FR-009).
+
+exec kitlegal skills install --dir destino --json
+
+# --- normativa (US5.1 · FR-009) ---
+! grep 'En PowerShell 5\.1:' destino/normativa/SKILL.md
+grep '\n\nEn PowerShell 5\.1:\n```powershell\nkitlegal boe articulo BOE-A-1978-31229 a140 --json; if \(\$LASTEXITCODE -eq 0\) \{ kitlegal graph check BOE-A-1978-31229 a140 --json \}\n```\n\z' destino/normativa/references/con_herramientas.md
+
+# --- plazos-y-territorio (US9.1 · FR-023) ---
+grep '\A---\nname: plazos-y-territorio\ndescription: >-\n  Calcula( |\n  )con( |\n  )kitlegal( |\n  )hasta( |\n  )qué( |\n  )día( |\n  )se( |\n  )puede( |\n  )recurrir( |\n  )una( |\n  )resolución,( |\n  )cuándo( |\n  )vence( |\n  )un( |\n  )plazo( |\n  )y( |\n  )cuándo( |\n  )hay( |\n  )silencio,( |\n  )con( |\n  )los( |\n  )festivos( |\n  )que( |\n  )cuentan,( |\n  )e( |\n  )identifica( |\n  )el( |\n  )territorio( |\n  )de( |\n  )un( |\n  )municipio:( |\n  )INE,( |\n  )provincia,( |\n  )comunidad,( |\n  )DIR3( |\n  )y( |\n  )boletines\.( |\n  )Cuenta( |\n  )los( |\n  )plazos( |\n  )de( |\n  )las( |\n  )materias( |\n  )que( |\n  )cubre( |\n  )y( |\n  )de( |\n  )las( |\n  )demás( |\n  )dice( |\n  )que( |\n  )no( |\n  )los( |\n  )cubre,( |\n  )sin( |\n  )darlos( |\n  )de( |\n  )memoria\.( |\n  )Se( |\n  )usa( |\n  )al( |\n  )preguntar( |\n  )cuándo( |\n  )vence( |\n  )un( |\n  )plazo( |\n  )o( |\n  )un( |\n  )recurso,( |\n  )o( |\n  )qué( |\n  )boletines( |\n  )tiene( |\n  )un( |\n  )municipio\.\nmetadata:\n' destino/plazos-y-territorio/SKILL.md

@@ -1148,6 +1148,11 @@ func (r *reconstructor) baseVigente() (string, error) {
 		return "", err
 	}
 
+	union, err := UnionDeGrabaciones()
+	if err != nil {
+		return "", err
+	}
+
 	preparada := r.ahora()
 
 	base, err := os.MkdirTemp("", prefijoDeLaBaseReconstruida)
@@ -1155,7 +1160,7 @@ func (r *reconstructor) baseVigente() (string, error) {
 		return "", fmt.Errorf("el directorio temporal de la base no se puede crear: %w", err)
 	}
 
-	faltas, err := Preparar(base, UnionDeGrabaciones(), r.consultas)
+	faltas, err := Preparar(base, union, r.consultas)
 	if err == nil && len(faltas) > 0 {
 		err = fmt.Errorf("la base no sirve las consultas de las evals de %s:\n%s", r.evals, lineasDeLasFaltas(faltas))
 	}
@@ -1241,7 +1246,12 @@ func (r *reconstructor) textosDeLaSesion(sesion sesionDelInforme, eval Eval, gra
 // un error, con sus faltas.
 func prepararLaCacheDeLaSesion(dirCache, base string, eval Eval, grafosPrevios string) error {
 	if eval.GrafoPrevio.Grabaciones != "" {
-		faltas, err := prepararGrafoPrevio(dirCache, UnionDeGrabaciones(), grafosPrevios, eval)
+		union, err := UnionDeGrabaciones()
+		if err != nil {
+			return err
+		}
+
+		faltas, err := prepararGrafoPrevio(dirCache, union, grafosPrevios, eval)
 		if err != nil {
 			return err
 		}

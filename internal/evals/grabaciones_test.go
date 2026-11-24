@@ -5,12 +5,15 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
+	"syscall"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -258,21 +261,227 @@ func TestManifiestoDeGrabaciones(t *testing.T) {
 				ruta, manifiesto.normas)
 		})
 	}
+
+	t.Run("raices-de-los-hitos", probarLasRaicesDeLosHitos)
 }
 
-// TestGrabacionesSinSolape comprueba que la unión son los conjuntos de
-// grabaciones de H4, de H5 y de H9, en ese orden, y que, dos a dos, solo
-// comparten el nombre de la grabación de robots.txt (contrato
-// evals-y-grabaciones §3.4; data-model §7.3; research D15 de H9). Cualquier
-// otro nombre común haría que, en la unión que copia Preparar, la grabación de
-// un conjunto sustituyera sin avisar a la de uno anterior, que es de su hito y
-// que los siguientes solo leen.
+// unionDeGrabaciones es UnionDeGrabaciones para un test: su error lo hace fallar.
+func unionDeGrabaciones(t *testing.T) []string {
+	t.Helper()
+
+	union, err := UnionDeGrabaciones()
+	require.NoError(t, err, "la unión de las grabaciones del repositorio")
+
+	return union
+}
+
+// raicesFijas son las tres raíces de grabaciones que no son de una carpeta de
+// evidencias/, en el orden en que encabezan la unión.
+func raicesFijas() []string {
+	return []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9}
+}
+
+// carpetaDeEvidencias es una carpeta de evidencias/ de un árbol sintético: su
+// nombre, si lleva manifiesto.json y sus subcarpetas.
+type carpetaDeEvidencias struct {
+	nombre        string
+	conManifiesto bool
+	subcarpetas   []string
+}
+
+// arbolDeEvidencias crea en un directorio temporal del test un repositorio con
+// evidencias/ y, dentro, las carpetas dadas, y devuelve su raíz. Cada subcarpeta
+// lleva un fichero, como una carpeta de grabaciones.
+func arbolDeEvidencias(t *testing.T, carpetas []carpetaDeEvidencias) string {
+	t.Helper()
+
+	raiz := t.TempDir()
+
+	for _, carpeta := range carpetas {
+		directorio := filepath.Join(raiz, directorioDeLasEvidencias, carpeta.nombre)
+		require.NoError(t, os.MkdirAll(directorio, 0o750))
+
+		if carpeta.conManifiesto {
+			require.NoError(t, os.WriteFile(filepath.Join(directorio, nombreDelManifiestoDeUnHito), []byte("{}"), 0o600))
+		}
+
+		for _, subcarpeta := range carpeta.subcarpetas {
+			require.NoError(t, os.MkdirAll(filepath.Join(directorio, subcarpeta), 0o750))
+			require.NoError(t, os.WriteFile(filepath.Join(directorio, subcarpeta, grabacionDeRobots), []byte("{}"), 0o600))
+		}
+	}
+
+	return raiz
+}
+
+// raizDeUnHito es la raíz de grabaciones del BOE de la carpeta de evidencias/
+// del repositorio de raíz dada.
+func raizDeUnHito(raiz, carpeta string) string {
+	return raiz + "/" + directorioDeLasEvidencias + "/" + carpeta + "/" + boe.NombreDeLaFuente
+}
+
+// probarLasRaicesDeLosHitos es la subprueba raices-de-los-hitos de
+// TestManifiestoDeGrabaciones (FR-015; US7.2 y US7.3; contracts/evals.md §1): en
+// un árbol sintético, unionDeGrabacionesDe da las tres raíces fijas y detrás la
+// carpeta del BOE de cada carpeta de un hito con manifiesto.json y esa carpeta,
+// por número de hito y de subhito, y ninguna otra.
+func probarLasRaicesDeLosHitos(t *testing.T) {
+	t.Parallel()
+
+	conLaDelBOE := []string{boe.NombreDeLaFuente}
+
+	casos := []struct {
+		nombre   string
+		carpetas []carpetaDeEvidencias
+		hitos    []string
+	}{
+		{
+			nombre: "con-h99",
+			carpetas: []carpetaDeEvidencias{
+				{nombre: "h9", conManifiesto: true, subcarpetas: []string{"bocm.fiestas-locales", "boe.fiestas-laborales"}},
+				{nombre: "h36", conManifiesto: true, subcarpetas: conLaDelBOE},
+				{nombre: "h99", conManifiesto: true, subcarpetas: conLaDelBOE},
+			},
+			hitos: []string{"h36", "h99"},
+		},
+		{
+			nombre: "orden-y-carpetas-que-no-entran",
+			carpetas: []carpetaDeEvidencias{
+				{nombre: "adr-0001", conManifiesto: true, subcarpetas: conLaDelBOE},
+				{nombre: "h100", conManifiesto: true, subcarpetas: conLaDelBOE},
+				{nombre: "h36", conManifiesto: true, subcarpetas: conLaDelBOE},
+				{nombre: "h42", conManifiesto: true},
+				{nombre: "h43", subcarpetas: conLaDelBOE},
+				{nombre: "h9-1", conManifiesto: true, subcarpetas: conLaDelBOE},
+				{nombre: "sondeos-1", conManifiesto: true, subcarpetas: conLaDelBOE},
+			},
+			hitos: []string{"h9-1", "h36", "h100"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolDeEvidencias(t, caso.carpetas)
+
+			esperada := raicesFijas()
+			for _, hito := range caso.hitos {
+				esperada = append(esperada, raizDeUnHito(raiz, hito))
+			}
+
+			union, err := unionDeGrabacionesDe(raiz)
+			require.NoError(t, err)
+			assert.Equal(t, esperada, union,
+				"las tres raíces fijas y detrás la de cada hito con manifiesto y carpeta del BOE, por su número")
+
+			// Cada llamada da una lista nueva: lo que un llamador cambia en la suya
+			// no llega a la siguiente.
+			union[0] = ""
+			otra, err := unionDeGrabacionesDe(raiz)
+			require.NoError(t, err)
+			assert.Equal(t, esperada, otra, "una llamada no ve lo que se cambió en la lista de otra")
+		})
+	}
+
+	t.Run("sin-evidencias", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := t.TempDir()
+
+		union, err := unionDeGrabacionesDe(raiz)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, raiz+"/"+directorioDeLasEvidencias, "el error nombra el directorio que no se lee")
+		assert.Nil(t, union)
+	})
+
+	// Que no haya manifiesto no es un error, pero que no se pueda mirar sí: un
+	// manifiesto.json que es un enlace a sí mismo hace fallar os.Stat con ELOOP,
+	// y el error nombra la carpeta del hito.
+	t.Run("manifiesto-que-no-se-mira", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := arbolDeEvidencias(t, []carpetaDeEvidencias{{nombre: "h50", subcarpetas: conLaDelBOE}})
+		manifiesto := filepath.Join(raiz, directorioDeLasEvidencias, "h50", nombreDelManifiestoDeUnHito)
+		require.NoError(t, os.Symlink(manifiesto, manifiesto))
+
+		union, err := unionDeGrabacionesDe(raiz)
+		require.ErrorIs(t, err, syscall.ELOOP)
+		require.ErrorContains(t, err, manifiesto, "el error nombra lo que no se pudo mirar")
+		assert.Nil(t, union)
+	})
+}
+
+// TestCarpetaDeUnHito fija qué carpetas de evidencias/ son de un hito, con su
+// número y el de su subhito (contracts/evals.md §1).
+func TestCarpetaDeUnHito(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre        string
+		hito, subhito int
+		esDeUnHito    bool
+	}{
+		{nombre: "h9", hito: 9, esDeUnHito: true},
+		{nombre: "h36", hito: 36, esDeUnHito: true},
+		{nombre: "h9-1", hito: 9, subhito: 1, esDeUnHito: true},
+		{nombre: "adr-0036"},
+		{nombre: "sondeos-20261025"},
+		// Un número que no cabe en un int no es el de un hito ni el de un subhito.
+		{nombre: "h99999999999999999999"},
+		{nombre: "h9-99999999999999999999"},
+	}
+
+	for _, caso := range casos {
+		hito, subhito, es := carpetaDeUnHito(caso.nombre)
+		assert.Equalf(t, caso.esDeUnHito, es, "%s es la carpeta de un hito", caso.nombre)
+		assert.Equalf(t, caso.hito, hito, "%s: el número del hito", caso.nombre)
+		assert.Equalf(t, caso.subhito, subhito, "%s: el número del subhito", caso.nombre)
+	}
+}
+
+// TestGrabacionesSinSolape comprueba que la unión del repositorio son los
+// conjuntos de grabaciones de H4, de H5 y de H9, en ese orden, y detrás la
+// carpeta del BOE de cada carpeta de un hito de evidencias/ con su manifiesto
+// —la de h36 entre ellas, ninguna de h9, que no graba el BOE— (FR-015; US7.1),
+// y que, dos a dos, solo comparten el nombre de la grabación de robots.txt
+// (contrato evals-y-grabaciones §3.4; data-model §7.3; research D15 de H9).
+// Cualquier otro nombre común haría que, en la unión que copia Preparar, la
+// grabación de un conjunto sustituyera sin avisar a la de uno anterior, que es
+// de su hito y que los siguientes solo leen.
 func TestGrabacionesSinSolape(t *testing.T) {
 	t.Parallel()
 
-	conjuntos := UnionDeGrabaciones()
-	require.Equal(t, []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9, GrabacionesDeH36}, conjuntos,
-		"la unión son los conjuntos de H4, H5, H9 y H36, cada uno encima del anterior")
+	conjuntos := unionDeGrabaciones(t)
+	require.GreaterOrEqual(t, len(conjuntos), len(raicesFijas()))
+	require.Equal(t, raicesFijas(), conjuntos[:len(raicesFijas())],
+		"la unión empieza por los conjuntos de H4, H5 y H9, cada uno encima del anterior")
+	assert.Contains(t, conjuntos, raizDeUnHito(raizDelRepositorio, "h36"), "la unión lleva las grabaciones de h36")
+
+	for _, conjunto := range conjuntos {
+		assert.Falsef(t, strings.HasPrefix(conjunto, raizDelRepositorio+"/"+directorioDeLasEvidencias+"/h9/"),
+			"%s: las carpetas de h9 no son grabaciones del BOE", conjunto)
+	}
+
+	carpetasDelBOE, err := filepath.Glob(raizDeUnHito(raizDelRepositorio, "*"))
+	require.NoError(t, err)
+
+	var deLosHitos []string
+
+	for _, carpeta := range carpetasDelBOE {
+		delHito := filepath.Dir(carpeta)
+		if _, _, es := carpetaDeUnHito(filepath.Base(delHito)); !es {
+			continue
+		}
+
+		if _, err := os.Stat(filepath.Join(delHito, nombreDelManifiestoDeUnHito)); err == nil {
+			deLosHitos = append(deLosHitos, filepath.ToSlash(carpeta))
+		}
+	}
+
+	require.NotEmpty(t, deLosHitos, "algún hito de evidencias/ graba el BOE")
+	assert.ElementsMatch(t, deLosHitos, conjuntos[len(raicesFijas()):],
+		"detrás de las fijas, la carpeta del BOE de cada hito de evidencias/ con su manifiesto")
 
 	for posicion, anterior := range conjuntos {
 		delAnterior := nombresDeLasGrabaciones(t, anterior)
@@ -304,7 +513,7 @@ func TestDirectorioDeLosGrafosPrevios(t *testing.T) {
 	assert.Equal(t, GrafosPrevios, filepath.Join(filepath.Dir(GrabacionesDeH5), "grafo-previo"),
 		"cada grafo previo va en grafo-previo/, junto a las grabaciones de las evals")
 
-	for _, conjunto := range UnionDeGrabaciones() {
+	for _, conjunto := range unionDeGrabaciones(t) {
 		desdeLosGrafosPrevios, err := filepath.Rel(GrafosPrevios, conjunto)
 		require.NoError(t, err)
 		assert.True(t, strings.HasPrefix(desdeLosGrafosPrevios, ".."+string(filepath.Separator)),
@@ -679,7 +888,7 @@ func copiaDeLaUnionDeGrabaciones(t *testing.T) string {
 	t.Helper()
 
 	copia := t.TempDir()
-	for _, conjunto := range UnionDeGrabaciones() {
+	for _, conjunto := range unionDeGrabaciones(t) {
 		require.NoError(t, copiarGrabaciones(conjunto, copia))
 	}
 
@@ -1345,8 +1554,8 @@ func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]bl
 
 	dirCache := t.TempDir()
 
-	faltas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
-	require.NoError(t, err, "la caché de los preceptos se prepara desde %s", strings.Join(UnionDeGrabaciones(), " y "))
+	faltas, err := Preparar(dirCache, unionDeGrabaciones(t), consultas)
+	require.NoError(t, err, "la caché de los preceptos se prepara desde %s", strings.Join(unionDeGrabaciones(t), " y "))
 
 	sinGrabar := make(map[string]Falta, len(faltas))
 	for _, falta := range faltas {
@@ -1669,4 +1878,49 @@ func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) [
 	}
 
 	return defectos
+}
+
+// TestSinLasGrabacionesDeLosHitos comprueba que quien lee UnionDeGrabaciones
+// para preparar la caché de una sesión o calcular las dependencias de una eval
+// devuelve su error, sin seguir con una unión a medias (FR-015): en un árbol
+// con los esquemas del repositorio y sin evidencias/, la unión no se puede leer.
+//
+//nolint:paralleltest // t.Chdir cambia el directorio de todo el proceso: no puede ir con otra prueba a la vez.
+func TestSinLasGrabacionesDeLosHitos(t *testing.T) {
+	const fichero = "01-lpac-articulo-21.yaml"
+
+	ruta := directorioDeLasEvals + "/normativa/" + fichero
+	contenido, err := os.ReadFile(raizDelRepositorio + "/" + ruta)
+	require.NoError(t, err)
+
+	esquemas, err := filepath.Abs(raizDelRepositorio + "/schemas")
+	require.NoError(t, err)
+
+	arbol := t.TempDir()
+	require.NoError(t, os.Symlink(esquemas, filepath.Join(arbol, "schemas")))
+
+	paquete := filepath.Join(arbol, "internal", "evals")
+	require.NoError(t, os.MkdirAll(paquete, 0o750))
+
+	dirCache, base := t.TempDir(), t.TempDir()
+
+	t.Chdir(paquete)
+
+	_, err = UnionDeGrabaciones()
+	require.ErrorIs(t, err, fs.ErrNotExist, "sin evidencias/ la unión no se lee")
+
+	t.Run("cache-de-la-sesion", func(t *testing.T) {
+		eval := Eval{Fichero: fichero, GrafoPrevio: GrafoPrevio{Grabaciones: "un-conjunto"}}
+
+		require.ErrorIs(t, prepararLaCacheDeLaSesion(dirCache, base, eval, GrafosPrevios), fs.ErrNotExist)
+	})
+
+	t.Run("dependencias-de-la-eval", func(t *testing.T) {
+		calculo := calculoDeDependencias{arbol: fstest.MapFS{ruta: {Data: contenido}}}
+
+		grabaciones, err := calculo.grabacionesDeLaEval(ruta, fichero)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, directorioDeLasEvidencias, "el error es el de la unión, no el de leer la eval")
+		assert.Nil(t, grabaciones)
+	})
 }

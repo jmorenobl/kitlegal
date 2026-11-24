@@ -1,9 +1,11 @@
-# Las filas de cobertura de la vertical de ensayo de TestVerticalDeEnsayo (contracts/paquetes.md §5 de H32 y
-# contracts/datos-y-regiones.md §6 de H33): el test añade las entradas de cada clave al final del bloque de esa clave
-# en data/cobertura.yaml de una copia del repositorio. La de cubierto, de los plazos y con la materia de sus dos
-# normas, la escribe la región de lo que cubre la base de skills/consulta-juridica/SKILL.md; la de regulados_aparte,
-# con su precepto en la primera de sus dos normas, la genera la región cobertura_por_materia de
-# skills/plazos-y-territorio/references/ensayo.md.
+# Las filas de cobertura de la vertical de ensayo de TestVerticalDeEnsayo (contracts/paquetes.md §5 de H32,
+# contracts/datos-y-regiones.md §6 de H33 y contracts/sincronia-de-los-paquetes.md §3 y §5 de H45): el test añade las
+# entradas de cada clave al final del bloque de esa clave en data/cobertura.yaml de una copia del repositorio. La de
+# cubierto, de los plazos y con la materia de sus dos normas, la escribe la región de lo que cubre la base de
+# skills/consulta-juridica/SKILL.md. Las dos de regulados_aparte las genera la región cobertura_por_materia de
+# skills/plazos-y-territorio/references/ensayo.md: la primera, sin norma, con su precepto en la primera de sus dos
+# normas; la segunda, con su precepto en la DA 1ª.2.c de la LPAC, que es de lo administrativo, y la segunda norma como
+# la que la rige, que la hace del paquete de ensayo y no de administrativo.md.
 cubierto:
   - capacidad: plazos
     alcance: los de ensayo del molde de los paquetes.
@@ -11,3 +13,6 @@ cubierto:
 regulados_aparte:
   - procedimiento: procedimientos de ensayo del molde de los paquetes
     precepto: {norma: BOE-A-1900-1, bloque: a1, apartado: "1"}
+  - procedimiento: procedimientos de ensayo que la ley común deja aparte
+    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.c"}
+    norma: {identificador: BOE-A-1900-2, nombre: "Ley 2/1900, de ensayo del molde de los paquetes de materia", aplicable: {bloque: a1, apartado: "1"}}

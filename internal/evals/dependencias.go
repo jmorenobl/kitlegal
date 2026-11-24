@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/jmorenobl/kitlegal/internal/skills"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // Lo común y las rutas que miden las evals son listas fijas en el código, sin
@@ -233,7 +234,7 @@ func paquetesDeLosConjuntos(conjuntos []dependenciasDeLaEval) []string {
 // de un paquete de un conjunto.
 func rutaQueMide(ruta string, paquetes []string) bool {
 	switch {
-	case empiezaPorAlguno(ruta, raicesDeGrabaciones()):
+	case esDeUnaRaizDeGrabaciones(ruta):
 		return true
 	case strings.HasPrefix(ruta, directorioDelWorkflow):
 		return false
@@ -272,16 +273,30 @@ func empiezaPorAlguno(ruta string, prefijos []string) bool {
 	})
 }
 
-// raicesDeGrabaciones son las carpetas de las grabaciones que el arnés
-// sirve a las sesiones (FR-001(e)): las de UnionDeGrabaciones y la de
-// GrafosPrevios, relativas a la raíz y con la barra final.
-func raicesDeGrabaciones() []string {
-	raices := append(UnionDeGrabaciones(), GrafosPrevios)
-	for indice, raiz := range raices {
-		raices[indice] = desdeLaRaiz(raiz) + "/"
+// esDeUnaRaizDeGrabaciones dice, sin leer el disco, si una ruta relativa a la
+// raíz es de una de las carpetas de las grabaciones que el arnés sirve a las
+// sesiones (FR-001(e); FR-015 de H45; contracts/evals.md §1 de H45): de una de
+// las tres raíces fijas de UnionDeGrabaciones, de GrafosPrevios o de la carpeta
+// de la fuente boe de una carpeta de un hito de evidencias/.
+func esDeUnaRaizDeGrabaciones(ruta string) bool {
+	fijas := []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9, GrafosPrevios}
+	if slices.ContainsFunc(fijas, func(raiz string) bool { return strings.HasPrefix(ruta, desdeLaRaiz(raiz)+"/") }) {
+		return true
 	}
 
-	return raices
+	enLasEvidencias, es := strings.CutPrefix(ruta, directorioDeLasEvidencias+"/")
+	if !es {
+		return false
+	}
+
+	carpeta, dentro, es := strings.Cut(enLasEvidencias, "/")
+	if !es {
+		return false
+	}
+
+	_, _, deUnHito := carpetaDeUnHito(carpeta)
+
+	return deUnHito && strings.HasPrefix(dentro, boe.NombreDeLaFuente+"/")
 }
 
 // desdeLaRaiz es una ruta del arnés, relativa a este paquete, relativa a la
@@ -814,9 +829,14 @@ func (c calculoDeDependencias) grabacionesDeLaEval(ruta, fichero string) ([]entr
 		return nil, fmt.Errorf("%s no se puede leer como eval: %w", ruta, err)
 	}
 
+	union, err := UnionDeGrabaciones()
+	if err != nil {
+		return nil, err
+	}
+
 	var grabaciones []entradaDeDependencia
 
-	for _, raiz := range UnionDeGrabaciones() {
+	for _, raiz := range union {
 		grabaciones = append(grabaciones, entradaDeDependencia{
 			clase: entradaDirectorio, ruta: desdeLaRaiz(raiz) + "/", parte: parteDeLasGrabaciones,
 		})

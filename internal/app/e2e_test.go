@@ -170,6 +170,14 @@ const (
 	// laboratorio, que no va en el PATH (contracts/arnes-e2e.md §1 de H40).
 	variableDelLaboratorio = "KITLEGAL_LABORATORIO_BIN"
 
+	// variableCacheDeCompilados y variableCacheDeModulos llevan a cada guion
+	// las cachés de construcción y de módulos del go command del proceso de
+	// test, como a los guiones de la instalación del paquete Go de las skills:
+	// testscript da a un guion HOME=/no-home, y con él un go que el guion
+	// ejecute no tiene ninguna de las dos (research D4 de H45).
+	variableCacheDeCompilados = "GOCACHE"
+	variableCacheDeModulos    = "GOMODCACHE"
+
 	// variableDist es la ruta de dist/ tras make release (make
 	// snapshot-check): con ella, el origen sirve el snapshot (§5).
 	variableDist = "KITLEGAL_DIST"
@@ -378,6 +386,13 @@ func prepararEn(temporal, dist string) (map[string]string, error) {
 		return nil, fmt.Errorf("e2e: no se pudo resolver %s: %w", instaladorDelRepositorio, err)
 	}
 
+	caches, err := leerCachesDeGo()
+	if err != nil {
+		return nil, err
+	}
+
+	variables[variableCacheDeCompilados] = caches.Compilados
+	variables[variableCacheDeModulos] = caches.Modulos
 	variables[variableSkills] = skills
 	variables[variableInstalador] = instalador
 	variables[variableOrigen] = origen.directorio
@@ -393,6 +408,41 @@ func prepararEn(temporal, dist string) (map[string]string, error) {
 	}
 
 	return variables, nil
+}
+
+// cachesDeGo son las cachés de construcción y de módulos que da `go env` en el
+// proceso de test, las de variableCacheDeCompilados y variableCacheDeModulos.
+type cachesDeGo struct {
+	Compilados string `json:"GOCACHE"`
+	Modulos    string `json:"GOMODCACHE"`
+}
+
+// leerCachesDeGo lee una vez, con `go env -json`, las cachés de construcción y
+// de módulos del go command con que corre el test, como hacen los tests de la
+// instalación del paquete Go de las skills (research D4 de H45). Como la de
+// construir, la orden va escrita entera con constantes.
+func leerCachesDeGo() (cachesDeGo, error) {
+	var errores bytes.Buffer
+
+	orden := exec.CommandContext(context.Background(), "go", "env", "-json", "GOCACHE", "GOMODCACHE")
+	orden.Stderr = &errores
+
+	salida, err := orden.Output()
+	if err != nil {
+		return cachesDeGo{}, fmt.Errorf("e2e: no se pudieron leer las cachés de go con go env: %w: %s", err,
+			errores.Bytes())
+	}
+
+	var caches cachesDeGo
+	if err := json.Unmarshal(salida, &caches); err != nil {
+		return cachesDeGo{}, fmt.Errorf("e2e: no se pudo leer la salida de go env: %w: %s", err, salida)
+	}
+
+	if caches.Compilados == "" || caches.Modulos == "" {
+		return cachesDeGo{}, fmt.Errorf("e2e: go env no dio GOCACHE y GOMODCACHE: %s", salida)
+	}
+
+	return caches, nil
 }
 
 // construirBinarios construye a la vez, cada uno en su carpeta del temporal,
@@ -598,6 +648,8 @@ func ejecutarGuiones(t *testing.T, ficheros []string) {
 		Files:               ficheros,
 		RequireExplicitExec: true,
 		Setup: func(env *testscript.Env) error {
+			// Entre ellas, GOCACHE y GOMODCACHE, para el go que ejecute un
+			// guion (research D4 de H45).
 			for variable, valor := range entorno.variables {
 				env.Setenv(variable, valor)
 			}
@@ -1930,8 +1982,9 @@ func instalarNormativa(t *testing.T, binario, proyecto string) {
 
 // TestVariablesDeLosGuiones fija las variables de contracts/arnes-e2e.md §3 que
 // TestMain deja para todos los guiones: las rutas, absolutas —también las de
-// los tres binarios con reloj de H7 y la del programa laboratorio de H40—; el archivo de la plataforma y la versión
-// del origen; y los proxies cerrados.
+// los tres binarios con reloj de H7, la del programa laboratorio de H40 y las
+// cachés del go command de H45—; el archivo de la plataforma y la versión del
+// origen; y los proxies cerrados.
 func TestVariablesDeLosGuiones(t *testing.T) {
 	t.Parallel()
 
@@ -1940,6 +1993,7 @@ func TestVariablesDeLosGuiones(t *testing.T) {
 	rutas := []string{
 		variableDelBinario, variableV1, variableV2, variableSinEnlaces, variableT0, variableT1, variableT8,
 		variableSkills, variableInstalador, variableOrigen, variableDelLaboratorio,
+		variableCacheDeCompilados, variableCacheDeModulos,
 	}
 	for _, variable := range rutas {
 		assert.Truef(t, filepath.IsAbs(entorno.variables[variable]), "%s tiene que ser una ruta absoluta: %q",

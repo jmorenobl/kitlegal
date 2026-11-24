@@ -101,8 +101,9 @@ type contextoDeLaRegion struct {
 
 // generadoresDeRegiones son los tres generadores que admiten región, por su
 // nombre (contracts/paquetes.md §3 de H32): la cobertura por materia, con las
-// filas del paquete de la referencia; los recursos y plazos, con cada precepto en
-// la forma única; y las leyes vertebrales.
+// filas del paquete de la referencia; los recursos y plazos, con los tipos del
+// paquete de la referencia y cada precepto en la forma única; y las leyes
+// vertebrales.
 var generadoresDeRegiones = map[string]generadorDeRegion{
 	generadorDeLaCobertura: {
 		datos:       []string{ficheroDeLaCobertura, ficheroDeLasNormas},
@@ -489,9 +490,9 @@ func leerDatosDeLasRegiones(raiz string) *datosDeLasRegiones {
 }
 
 // filasDeLaCobertura son las filas de la región de la cobertura: una por entrada
-// de data/cobertura.yaml cuyo precepto es de una norma con el vertical del
-// paquete de la región, en su orden, con su procedimiento y su línea ⚠ NO
-// CUBIERTO:.
+// de data/cobertura.yaml del paquete de la región (paqueteDeLaFila), en su
+// orden, con su procedimiento y su línea ⚠ NO CUBIERTO:, que lleva la norma de
+// su precepto sea cual sea el paquete de la fila.
 func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([]byte, error) {
 	cobertura, err := usar(datos.cobertura, ficheroDeLaCobertura)
 	if err != nil {
@@ -508,25 +509,49 @@ func filasDeLaCobertura(datos *datosDeLasRegiones, region contextoDeLaRegion) ([
 	var filas bytes.Buffer
 
 	for _, entrada := range cobertura.ReguladosAparte {
-		norma, esta := porIdentificador[entrada.Precepto.Norma]
-		if !esta || norma.Vertical != region.paquete {
+		if paqueteDeLaFila(entrada, porIdentificador) != region.paquete {
 			continue
 		}
 
 		filas.WriteString(filaDeLaTabla([]string{
 			escapeDeCelda.Replace(entrada.Procedimiento),
-			escapeDeCelda.Replace(region.linea.linea(entrada, norma)),
+			escapeDeCelda.Replace(region.linea.linea(entrada, porIdentificador[entrada.Precepto.Norma])),
 		}))
 	}
 
 	return filas.Bytes(), nil
 }
 
-// filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos:
-// los tipos de data/plazos.yaml con sus preceptos citados con las normas de
-// data/normas.yaml. Un precepto de una norma que no está es un defecto de
-// data/plazos.yaml.
-func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, _ contextoDeLaRegion) ([]byte, error) {
+// paqueteDeLaFila es el paquete de una fila de lo regulado aparte (contracts/
+// sincronia-de-los-paquetes.md §3 de H45): ninguno si su precepto es de una
+// norma que no está en la tabla de normas, porque su línea no podría nombrarla;
+// si no, el vertical de la norma que la rige, si la fila la lleva y está en la
+// tabla con vertical; si no, el de la norma de su precepto; y ninguno si
+// tampoco esa lo tiene. Es la única regla de la región de la cobertura y de
+// filasSinRegion, que da el defecto de la fila que no es de ningún paquete.
+func paqueteDeLaFila(entrada ReguladoAparte, normas map[string]Norma) string {
+	delPrecepto, esta := normas[entrada.Precepto.Norma]
+	if !esta {
+		return ""
+	}
+
+	if entrada.Norma != nil {
+		if vertical := normas[entrada.Norma.Identificador].Vertical; vertical != "" {
+			return vertical
+		}
+	}
+
+	return delPrecepto.Vertical
+}
+
+// filasDeLosRecursosYPlazos son las filas de la región de los recursos y plazos
+// (contracts/sincronia-de-los-paquetes.md §1 y §2 de H45): los tipos de
+// data/plazos.yaml del paquete de la región, en su orden, con sus preceptos
+// citados con las normas de data/normas.yaml. Son defectos de data/plazos.yaml,
+// todos juntos y en el orden de sus tipos, cada tipo que no es de ningún paquete
+// o que es de más de uno (paquetesDelTipo), y sin ellos, un precepto de una norma
+// que no está.
+func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, region contextoDeLaRegion) ([]byte, error) {
 	tipos, err := usar(datos.tipos, ficheroDeLosPlazos)
 	if err != nil {
 		return nil, err
@@ -537,12 +562,57 @@ func filasDeLosRecursosYPlazos(datos *datosDeLasRegiones, _ contextoDeLaRegion) 
 		return nil, err
 	}
 
-	filas, err := filasDeLosTipos(tipos, normasPorIdentificador(normas))
+	porIdentificador := normasPorIdentificador(normas)
+
+	var (
+		defectos   []error
+		delPaquete []plazos.Tipo
+	)
+
+	for _, tipo := range tipos {
+		paquetes := paquetesDelTipo(tipo, porIdentificador)
+
+		switch {
+		case len(paquetes) == 0:
+			defectos = append(defectos, fmt.Errorf("el tipo %s no es de ningún paquete: ninguna norma de sus preceptos "+
+				"lleva vertical en %s/%s", tipo.Codigo, carpetaDeLosDatos, ficheroDeLasNormas))
+		case len(paquetes) > 1:
+			defectos = append(defectos, fmt.Errorf("el tipo %s es de más de un paquete: %s", tipo.Codigo,
+				strings.Join(paquetes, ", ")))
+		case paquetes[0] == region.paquete:
+			delPaquete = append(delPaquete, tipo)
+		}
+	}
+
+	if len(defectos) > 0 {
+		return nil, &defectoDeLosDatos{fichero: ficheroDeLosPlazos, causa: errors.Join(defectos...)}
+	}
+
+	filas, err := filasDeLosTipos(delPaquete, porIdentificador)
 	if err != nil {
 		return nil, &defectoDeLosDatos{fichero: ficheroDeLosPlazos, causa: err}
 	}
 
 	return filas, nil
+}
+
+// paquetesDelTipo son los paquetes de un tipo de data/plazos.yaml (FR-001;
+// research D1 de H45): los vertical distintos, en orden alfabético, de las
+// normas de sus preceptos propios —los de Preceptos y los de Unidades— entre las
+// normas por su identificador. Una norma que no está o que no lleva vertical no
+// cuenta, y los preceptos de su cómputo (PreceptosDelComputo) no se miran.
+func paquetesDelTipo(tipo plazos.Tipo, normas map[string]Norma) []string {
+	var paquetes []string
+
+	for _, precepto := range slices.Concat(tipo.Preceptos, slices.Collect(maps.Values(tipo.Unidades))) {
+		if vertical := normas[precepto.Norma].Vertical; vertical != "" {
+			paquetes = append(paquetes, vertical)
+		}
+	}
+
+	slices.Sort(paquetes)
+
+	return slices.Compact(paquetes)
 }
 
 // filasDeLasLeyesVertebrales son las filas de la región de las leyes
@@ -810,8 +880,8 @@ func defectosDeLosDatosQueFaltan(skill, loQueLoPide string, err error) (
 
 // filasSinRegion son los defectos de las filas de data/cobertura.yaml que
 // ninguna región de la cobertura genera (contracts/paquetes.md §3; FR-012 de
-// H32), una por fila y en su orden, sin la skill: las de una norma sin vertical o
-// que no está en data/normas.yaml, y las de un paquete que no está entre los
+// H32), una por fila y en su orden, sin la skill: las que no son de ningún
+// paquete (paqueteDeLaFila) y las de un paquete que no está entre los
 // cubiertos. Sin data/cobertura.yaml no hay filas; con defectos en él o en
 // data/normas.yaml, no se sabe de qué paquete es cada una, y sus defectos los
 // dan sus lectores. El error queda para lo que no se puede leer.
@@ -837,8 +907,7 @@ func (d *datosDeLasRegiones) filasSinRegion(cubiertos []string) ([]string, error
 	var defectos []string
 
 	for _, entrada := range cobertura.valor.ReguladosAparte {
-		norma, esta := porIdentificador[entrada.Precepto.Norma]
-		if esta && norma.Vertical != "" && slices.Contains(cubiertos, norma.Vertical) {
+		if paquete := paqueteDeLaFila(entrada, porIdentificador); paquete != "" && slices.Contains(cubiertos, paquete) {
 			continue
 		}
 

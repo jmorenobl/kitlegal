@@ -239,7 +239,13 @@ jobs:
         # skills de la entrega, en orden de nombre, y siguen siendo once: la de entrada, consulta-juridica, va a una, sin
         # objetivo, y jurisprudencia baja a tres, con lo que su peor caso pasa de 13 717 s a 17 637 s, que el tope cubre;
         # normativa a cuatro pasaría de él, y plazos-y-territorio a una, también (specs/030-h32-arquitectura-de-skills/
-        # contracts/evals.md §6; research.md D15; FR-039).
+        # contracts/evals.md §6; research.md D15; FR-039). Desde H45, plazos-y-territorio va a tres: a dos, con las cuatro
+        # evals de modo que le añade H42, su peor caso sería de 27 253 s, 454,2 minutos, que el tope no cubre, y a tres es
+        # de 18 821 s, 313,7 minutos; con sus doce evals de hoy, a tres, es de 14 469 s. Son doce sesiones entre los
+        # cuatro, 1, 3, 5 y 3, que sustituyen a las once de FR-020 y SC-011 de H30, y TestDefinicionDelJob sale en rojo si
+        # la matriz admite más; doce a la vez pueden topar con el límite de la suscripción, que el cierre enseña como fallo
+        # de la fuente (specs/042-h45-el-molde-admite/contracts/evals.md §2; research.md D9; FR-021; SC-006; ADR 0062).
+        # Son cuentas, no medidas.
         include:
           - skill: consulta-juridica
             concurrencia: 1
@@ -251,7 +257,7 @@ jobs:
             concurrencia: 5
             objetivo_de_duracion: 900
           - skill: plazos-y-territorio
-            concurrencia: 2
+            concurrencia: 3
             objetivo_de_duracion: 0
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
@@ -267,7 +273,10 @@ jobs:
     # jurisprudencia a tres: 15 013 s en consulta-juridica, 250,2 minutos, con sus cuatro evals y sin juez de las respuestas;
     # 17 637 s en jurisprudencia, 294,0 minutos; y, sin cambio, los de normativa y plazos-y-territorio, que sigue siendo
     # el mayor, 20 725 s, que los 352 minutos cubren sin cambiar (specs/030-h32-arquitectura-de-skills/contracts/evals.md
-    # §6). Las cifras que siguen son las de sus sesiones y su juez, sin la decisión ni la descripción.
+    # §6). Desde H45, con plazos-y-territorio a tres, el suyo es de 14 469 s, 241,2 minutos, y el mayor es el de
+    # normativa, 20 117 s, que los 352 minutos cubren sin cambiar; con las cuatro evals de H42, el de plazos-y-territorio
+    # sería de 18 821 s, 313,7 minutos (specs/042-h45-el-molde-admite/research.md D9). Las cifras que siguen son las de
+    # sus sesiones y su juez, sin la decisión ni la descripción, y de antes de H45.
     # 352 minutos: el peor caso de normativa, a cinco a la vez desde antes de H20, es de 18 977 s,
     # 316,3 minutos. Son los 12 997 s de sus sesiones, con sus 23 evals en tres tandas —las del modo orden, las del modo
     # herramienta y las de la eval sin binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md
