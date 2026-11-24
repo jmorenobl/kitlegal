@@ -264,6 +264,11 @@ depende_de: [H45, H45.1]
     texto de skill fuera de las dos `fiscal.md`, y como mucho dos sondeos por pregunta. Si no se resuelve, se decide
     con lo que hay o se abre un hito.
 - **Riesgos**:
+  - **«Si el plazo fuera de un mes».** En la medida previa del 2026-11-24 (run 45370954378: Sonnet a 3/3 en todas las
+    series y 0 en todas las clases que deciden), dos respuestas en modo herramienta, una de la 07 y otra de la 15, apuntan
+    una duración como hipótesis («si el plazo es de un mes, como en otros recursos tributarios…»), sin fecha ni
+    cómputo. Ningún umbral lo ve. Lo cierra una frase en la `fiscal.md` de `plazos-y-territorio`: tras la línea de una
+    fila, ninguna duración, ni como hipótesis.
   - **La línea de lo local nombra la LGT.** La fila de la DA 1ª.2.a dice que lo suyo se rige por la LGT, y un tributo
     local se recurre por el art. 14.2 TRLRHL. Es la línea de `main`, y su función es que no se calcule con el
     procedimiento común ni con el 223 LGT. Darle a lo local una fila propia, con el TRLRHL, queda para un hito con su
