@@ -1,14 +1,15 @@
 {
-  "id": "T003",
-  "texto": "T003 [P] [US4] `probarCuatroEvalsMas` con una carpeta de 16 en `internal/evals/definicion_test.go` (FR-006, FR-007, FR-008; US4.1-US4.4; SC-004, SC-006; contracts/tests-genericos.md §3; data-model §3; research D3): el subtest conserva su nombre `cuatro-evals-mas`; constantes `skill = \"plazos-y-territorio\"`, `evalsDeLaCarpeta = 16` y `deDosEnDos = 2`, sin `topeEnMinutos`, `evalsDeMas`, `primeraCopia` ni la premisa del tope de 352; la definición con `leerDefinicionDelJob(rutaDeLaDefinicionDelJob)` y `tope := time.Duration(leida.TopeEnMinutos) * time.Minute`; la copia de las evals con `os.CopyFS` en `t.TempDir()` y la eval copiada, la primera de modo que decide de `LeerConjunto` (`!SinBinarioNiServidor && !Informativa`), como hoy; en la carpeta de la skill de la copia, abierta con `os.OpenRoot`, `carpeta.Remove(eval.Fichero)` de cada eval de `LeerConjunto` y `carpeta.WriteFile(fmt.Sprintf(\"%02d-copia-%s\", numero+1, descripcion), contenido, 0o600)` para `numero` de 0 a 15; `require.Len(t, conLasCopias.Evals, evalsDeLaCarpeta, …)`; `peorCaso` comparado con `peorCasoEsperado` como hoy; `assert.GreaterOrEqual(t, tope, peor.Duracion(), …)` a la concurrencia del repositorio y `assert.Less(t, tope, peorADos.Duracion(), …)` con la skill a dos, con los dos mensajes de §3; el comentario de la función dice lo que mide y que las del repositorio las exige `probarElTopeConLasEvalsDelRepositorio`, que no cambia. Ninguna duración literal queda en el subtest (comprobar con `grep -n`). Ver en rojo, en una copia del módulo en `$TMPDIR` con el cambio, T1 («\"5h52m0s\" is not greater than or equal to …») y L29, y con ocho copias de más en `evals/plazos-y-territorio/` de esa copia, `tope-con-las-evals-del-repositorio` en rojo y `cuatro-evals-mas` en verde, con las órdenes de Q8; `h45-paquete-de-mas` de hoy sigue en verde; `make ci` en verde.",
+  "id": "T004",
+  "texto": "T004 [US5] `llevaNoCubierto` sin lo no declarado en `internal/evals/conjunto_test.go` (FR-009; US5.1-US5.3; SC-004; contracts/tests-genericos.md §4; data-model §4; research D4): `return eval.NoCubierto != NoCubiertoEsperado{} && !eval.NoCubierto.FueraDeLoDeclarado`, con un comentario que dice que deja fuera las de lo no declarado, que no llevan precepto; en `probarLosPreceptosDeLaCobertura`, el mensaje del `require.NotEmpty` pasa a «%s tiene al menos una eval con no_cubierto de lo regulado aparte»; `preceptosFueraDeLaCobertura` y el mutante `a999` no cambian. Ver en rojo, en una copia del módulo en `$TMPDIR` con el cambio, L33 (bloque `a999` en la 12, con el mensaje de hoy «12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: no_cubierto.precepto BOE-A-2015-10565, bloque a999 no es el precepto de ninguna fila de data/cobertura.yaml») y las 07, 08 y 12 pasadas a `fuera_de_lo_declarado: true` (`Should NOT be empty`), con las órdenes de Q8; `h45-paquete-de-mas` de hoy sigue en verde; `make ci` en verde. Va detrás de T002 porque toca el mismo fichero.",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "8f44401776d1c32599fa1a4a24cc8a9027b7a220",
+  "base": "cc7d9caa9feaed0110caeed1ed1d3a603443333d",
   "rutas": [
+    "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml",
     "contracts/tests-genericos.md",
-    "evals/plazos-y-territorio/",
-    "internal/evals/definicion_test.go"
+    "data/cobertura.yaml",
+    "internal/evals/conjunto_test.go"
   ],
   "cierre": false,
   "converger": false,
