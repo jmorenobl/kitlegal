@@ -1,0 +1,136 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-24 12:47:42.070420239 +0100
++++ ahora/checklists/requirements.md	2026-11-24 12:49:17.018487296 +0100
+@@ -24,8 +24,8 @@
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden verde/rojo de comprobaciones que el
+   hito nombra; no fijan diseño.
+ - [x] All acceptance scenarios are defined — Dado/Cuando/Entonces en US1 a US6.
+-- [x] Edge cases are identified — Edge Cases: fila partida, fila de los tributos, `main` sin evals de lo no declarado,
+-  región de paquetes vacía.
++- [x] Edge cases are identified — Edge Cases: fila partida, la fila de los tributos y las otras dos que cambia H42
++  (FR-010), `main` sin evals de lo no declarado, región de paquetes vacía.
+ - [x] Scope is clearly bounded — «Fuera de alcance», con la lista cerrada del hito.
+ - [x] Dependencies and assumptions identified — «Dependencias» (H45, H42) y «Assumptions».
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-24 12:47:42.070259383 +0100
++++ ahora/spec.md	2026-11-24 12:49:07.507518087 +0100
+@@ -55,7 +55,14 @@
+ 
+ ### Session 2026-11-24
+ 
+-Sin preguntas en la redacción: lo que el hito deja a elegir va a «Assumptions».
++Sin preguntas en la redacción: lo que el hito deja a elegir va a «Assumptions», salvo esta decisión:
++
++- Q: ¿Cómo corre `TestDefinicionDelJob` en la copia con un paquete más? → A: por la lista de subtests, al menos
++  `cuatro-evals-mas`, que con 16 copias fijas no depende de cuántas evals tenga el módulo; sale de los tests enteros, y
++  sobre la copia no corren `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden las evals del módulo copiado
++  más las cinco de la copia. Descartado: dejarlo entero, que con las 16 de H42 da 21 evals en la copia, no caben, y el
++  guion sale en rojo en el `make ci` de H42, que no puede tocarlo. Es la lectura literal del hito («la lista de
++  subtests de la copia gana … `TestDefinicionDelJob`»). (auto)
+ 
+ ## User Scenarios & Testing *(mandatory)*
+ 
+@@ -68,8 +75,8 @@
+ **Why this priority**: es la condición para que el hito sea solo de tests; sin ella, H42 no sabría si un rojo es del
+ molde o del paquete.
+ 
+-**Independent Test**: en el árbol de la rama, `make ci` en verde y `make skills-check` sin diferencias; el diff contra
+-`main` solo toca ficheros `_test.go`, los dos guiones de la copia y el directorio del feature.
++**Independent Test**: en el árbol de la rama, `make ci` en verde y `make skills-check` sin diferencias; ningún fichero
++del diff contra `main` está en `data/`, `evals/`, `skills/` ni `.github/`, ni es un `.go` que no termina en `_test.go`.
+ 
+ **Acceptance Scenarios**:
+ 
+@@ -122,7 +129,7 @@
+ **Why this priority**: segundo rojo del prototipo de H42; cae con el primer paquete con referencia en `normativa`.
+ 
+ **Independent Test**: en la copia con un paquete más, con la referencia de su paquete en `normativa`, los dos casos en
+-verde con el defecto en la línea 37; en el árbol, en la 36.
++verde con el defecto una línea más abajo que en el `SKILL.md` del módulo copiado; en el árbol, en la 36.
+ 
+ **Acceptance Scenarios**:
+ 
+@@ -193,7 +200,8 @@
+ El guion `h45-paquete-de-mas` y su copia congelada pasan de un paquete que solo añade a uno que hace lo que hará H42:
+ estrecha una fila de la base sin partirla, da norma a otra, lleva una referencia en `normativa` y añade evals de modo y
+ una de lo no declarado en `plazos-y-territorio`. Corre en la copia, además de su lista de hoy,
+-`TestControlesSobreLasReferenciasAMano` y `TestDefinicionDelJob`, y todo sigue en verde.
++`TestControlesSobreLasReferenciasAMano` y, de `TestDefinicionDelJob`, al menos `cuatro-evals-mas` (FR-011), y todo
++sigue en verde.
+ 
+ **Why this priority**: es la aceptación del hito; sin ella, que los cuatro tests sean genéricos no lo comprueba nada
+ dentro de `make ci`.
+@@ -213,7 +221,8 @@
+    **Entonces** la fila estrechada está en alguna referencia de un paquete con su texto de `c991808` como subcadena, y la
+    fila a la que dio norma está en `prueba.md` y no en `administrativo.md`.
+ 4. **Dado** la copia que monta el guion, sincronizada, **Cuando** se mira `skills/normativa/SKILL.md`, **Entonces** la
+-   región de los paquetes lleva la línea del paquete de prueba y la orden de Bash del paso 2 está en la línea 37.
++   región de los paquetes lleva la línea del paquete de prueba y la orden de Bash del paso 2 está una línea más abajo
++   que en el `SKILL.md` del módulo copiado.
+ 5. **Dado** los dos ficheros del guion, el de `internal/app/testdata/script/` y el de
+    `specs/042-h45-el-molde-admite/aceptacion/`, **Cuando** se comparan, **Entonces** son iguales byte a byte.
+ 
+@@ -225,7 +234,8 @@
+   estrechada queda como en US2.1 y la nueva es de otro paquete, que `TestCoberturaDelRepositorio` no mira; la copia lo
+   ejerce con la fila estrechada y la fila de lo regulado aparte que el paquete de prueba ya añade.
+ - La fila de la aplicación de los tributos (DA 1ª.2.a con la LGT): la fijan `TestCasosDePlazos/19-eval-c-tributos` y los
+-  guiones de H32 y H33, que este hito no toca; la copia no la estrecha ni le cambia la norma (FR-010).
++  guiones de H32 y H33, que este hito no toca; la copia no la estrecha ni le cambia la norma, como tampoco a las otras
++  dos que cambia H42 (FR-010).
+ - Con `main` no hay ninguna eval de lo no declarado en `plazos-y-territorio`: el filtro nuevo de `llevaNoCubierto` da
+   las mismas evals que hoy.
+ - Con `main` la región de los paquetes de `normativa` está vacía: la línea derivada es la 36.
+@@ -255,7 +265,8 @@
+ - **FR-005**: El número de línea del defecto esperado en `forma-en-una-referencia-con-otros-bloques` y
+   `forma-en-ninguna-referencia` sale del `SKILL.md` de `normativa` que el caso comprueba: la línea en que está la orden
+   de Bash del paso 2. Ningún número de línea del `SKILL.md` queda escrito para esos dos casos. Criterio: en el árbol, el
+-  defecto esperado es el de hoy, línea 36, byte a byte; en la copia de US6, línea 37 y verde; con P6 de H45, los dos
++  defecto esperado es el de hoy, línea 36, byte a byte; en la copia de US6, verde con el defecto una línea más abajo
++  que en el `SKILL.md` del módulo copiado; con P6 de H45, los dos
+   casos en rojo; con un control que da la orden del paso 2 en otra línea, los dos en rojo.
+ 
+ **`TestDefinicionDelJob/cuatro-evals-mas`** (`internal/evals/definicion_test.go`)
+@@ -287,10 +298,14 @@
+   regulado aparte de la base, sin norma, sin partirla y de forma que su texto de `c991808` sigue como subcadena;
+   (b) da por norma que la rige la del paquete de prueba a otra fila de la base sin norma, que pasa a `prueba.md`;
+   (c) lleva una referencia en `normativa`, con lo que su línea entra en la región de los paquetes del cuerpo; y (d)
+-  añade en `plazos-y-territorio` cuatro evals de modo y una de lo no declarado. Ninguno de los cambios toca la fila de
+-  la aplicación de los tributos. Criterio: los escenarios 3 y 4 de US6, comprobados por el guion sobre la copia.
+-- **FR-011**: La lista que el guion corre en la copia gana `TestControlesSobreLasReferenciasAMano` y mantiene
+-  `TestDefinicionDelJob`; la sincronía, los tests enteros y los subtests salen con 0. Criterio: el escenario 1 de US6.
++  añade en `plazos-y-territorio` cuatro evals de modo y una de lo no declarado. (a) y (b) van sobre filas de la base
++  que el hito no dice que cambie H42: ni la de la aplicación de los tributos, ni la del sancionador «en materia
++  tributaria y aduanera», ni la del art. 112.4. Criterio: los escenarios 3 y 4 de US6, comprobados por el guion sobre
++  la copia.
++- **FR-011**: La lista de subtests que el guion corre en la copia gana `TestControlesSobreLasReferenciasAMano` y, de
++  `TestDefinicionDelJob`, al menos `cuatro-evals-mas`; `TestDefinicionDelJob` sale de los tests enteros, y sobre la
++  copia no corren `peor-caso` ni `tope-con-las-evals-del-repositorio`, que miden las evals del módulo copiado. La
++  sincronía, los tests enteros y los subtests salen con 0. Criterio: el escenario 1 de US6.
+ - **FR-012**: Con cualquiera de los cuatro tests devuelto a su versión de `main`, el guion sale en rojo. Criterio: el
+   escenario 2 de US6, uno por test, en el registro de mutantes del hito.
+ - **FR-013**: Los dos ficheros del guion quedan iguales byte a byte, y el programa `paquete-de-mas.go` y los
+@@ -358,17 +373,15 @@
+ 
+ ## Assumptions
+ 
+-- **Las cuatro evals de modo de la copia incluyen la `99-` de hoy**: la copia añade a las 12 del repositorio cinco evals,
+-  cuatro copias de una eval de modo (la `99-` de hoy entre ellas) y una de lo no declarado, 17 en total. Es la lectura
+-  que menos añade del «añade cuatro evals de modo y una de lo no declarado»; con 17 copias de una eval de modo el peor
+-  caso a tres es de 5 h 40 min 53 s, bajo el tope de 352 min (medido en esta sesión), así que
+-  `tope-con-las-evals-del-repositorio` sigue en verde en la copia; con 18 de modo ya no cabría.
++- **Las cuatro evals de modo de la copia incluyen la `99-` de hoy**: la copia añade a las del módulo copiado (12 con
++  `main`) cinco evals, cuatro copias de una eval de modo (la `99-` de hoy entre ellas) y una de lo no declarado. Es la
++  lectura que menos añade del «añade cuatro evals de modo y una de lo no declarado». Con `cuatro-evals-mas` de `main`,
++  la copia de `main` mide 17 + 4 = 21 evals, que no caben a tres, y el guion sale en rojo (FR-012).
+ - **La norma que se da a la fila de la base es la del paquete de prueba** (`BOE-A-2015-11722`, `vertical: prueba`), para
+   que la fila pase a `prueba.md` como la del art. 112.4 pasa a `fiscal.md` con H42: es el caso que hoy pone en rojo
+   `TestCoberturaDelRepositorio`. Su precepto aplicable es uno ya grabado de esa norma.
+-- **«La lista de subtests gana `TestDefinicionDelJob`»**: `TestDefinicionDelJob` ya está entero en la orden de los tests
+-  enteros del guion, con `cuatro-evals-mas` dentro; basta con que siga allí. `TestControlesSobreLasReferenciasAMano` se
+-  añade a la lista, entero o con sus dos casos.
++- **«La lista de subtests gana `TestDefinicionDelJob`»**: lo decide la Clarification (auto) de la sesión 2026-11-24
++  (FR-011). `TestControlesSobreLasReferenciasAMano` se añade a la lista, entero o con sus dos casos.
+ - **Del esperado de `TestCoberturaDelRepositorio`**: el hito admite dos formas («leídas del YAML en crudo, o escritas a
+   mano sin el texto del procedimiento»); el plan elige la que cumple a la vez FR-001 a FR-003, y en particular que L06
+   siga en rojo en este test.
