@@ -77,7 +77,7 @@ go test -count=1 -v -run '^TestEvalsDelRepositorio$/^precepto-de-la-cobertura$' 
 
 Esperado: `PASS` en los tres.
 
-## Q8 · Los mutantes, en un clon del temporal (SC-004, SC-005, SC-007; FR-003 a FR-009, FR-012, FR-013)
+## Q8 · Los mutantes, en un clon del temporal (SC-004, SC-005, SC-007; FR-003 a FR-010, FR-012, FR-013)
 
 Preparación (lo único que crea es `$TMPDIR/h451`; el clon tiene `origin/main`, el `main` del repositorio):
 
@@ -184,6 +184,52 @@ git -C "$TMPDIR/h451" checkout -- internal/evals/conjunto_test.go
 printf '\n' >> "$TMPDIR/h451/specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar"
 go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
 git -C "$TMPDIR/h451" checkout -- specs/
+```
+
+**Los casos de FR-010, sin su paso en el programa** (FR-010; contracts/copia-con-un-paquete-mas.md §5): cada mutante del
+programa va igual en los dos guiones, y cada aserción que se quita para ver la siguiente se quita de los dos, para que el
+`cmp` (FR-013), el último, no sea el que cae.
+
+```bash
+s="$TMPDIR/h451/internal/app/testdata/script/h45-paquete-de-mas.txtar"
+c="$TMPDIR/h451/specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar"
+```
+
+*Sin `cambiarUnaVez`*: las cinco líneas de la salida, como en verde; cae el `grep` de la fila estrechada en
+`administrativo.md` (`no match for` con `salvo los del paquete de prueba`); sin él, el de la fila del orden social en
+`prueba.md` (`no match for` con `procedimientos sancionadores en el orden social`); y sin los dos, su `! grep` en
+`administrativo.md` (`unexpected match for`).
+
+```bash
+sed -i 's/cambiarUnaVez(filepath.Join(datos, "cobertura.yaml"), cambiosDeLaBase)/error(nil)/' "$s" "$c"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+sed -i '/^grep .*salvo los del paquete de prueba/d' "$s" "$c"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+sed -i '/^grep .*procedimientos sancionadores en el orden social/d' "$s" "$c"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+git -C "$TMPDIR/h451" checkout -- internal/app/testdata/ specs/
+```
+
+*Sin copiar `paquete/prueba-de-normativa.md`*: la salida dice `orden del paso 2 de normativa, líneas más abajo: 0`; cae
+el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md` (`no match for` con `Si la pregunta es de lo
+prueba`); y sin él, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$`.
+
+```bash
+sed -i 's|copiarFichero(filepath.Join("paquete", "prueba-de-normativa.md"), filepath.Join(copia, "skills", "normativa", "references", "prueba.md"))|error(nil)|' "$s" "$c"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+sed -i '/^grep .*repo\/skills\/normativa\/SKILL\.md$/d' "$s" "$c"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+git -C "$TMPDIR/h451" checkout -- internal/app/testdata/ specs/
+```
+
+*Un viejo de `cambiosDeLaBase` que ya no está una vez en `data/cobertura.yaml`*: el `exec go run` sale con 1
+(`unexpected command failure`) y su salida de errores dice `paquete-de-mas: instalación: …/data/cobertura.yaml no lleva
+una sola vez "  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo\n"`.
+
+```bash
+sed -i 's/^  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo$/  - procedimiento: actuaciones y procedimientos en materia de extranjería y de asilo/' "$TMPDIR/h451/data/cobertura.yaml"
+go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
+git -C "$TMPDIR/h451" checkout -- data/
 ```
 
 Al terminar:

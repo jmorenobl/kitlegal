@@ -55,14 +55,23 @@ var cambiosDeLaBase = []struct{ viejo, nuevo string }{
 ```
 
 `cambiarUnaVez(fichero string, cambios []struct{ viejo, nuevo string }) error` sustituye cada `viejo`, que tiene que
-estar una sola vez (`strings.Count`), por su `nuevo`; si no, devuelve un error que nombra el fichero y el texto, y la
-instalación falla (`paquete-de-mas: instalación: …`, código 1, el guion cae en su `exec`).
+estar una sola vez (`strings.Count`), por su `nuevo`; si no, devuelve `fmt.Errorf("%s no lleva una sola vez %q",
+fichero, viejo)`, que nombra el fichero y el texto, y la instalación falla (`paquete-de-mas: instalación: … no lleva
+una sola vez …`, código 1, el guion cae en su `exec`).
 
 **`instalar`**, tras `anadirEntradas`: `cambiarUnaVez` sobre `data/cobertura.yaml`; copia `paquete/prueba.md` en
 `skills/plazos-y-territorio/references/prueba.md` (hoy) y `paquete/prueba-de-normativa.md` en
 `skills/normativa/references/prueba.md`; copia la primera eval de `evals/plazos-y-territorio/` (`primerFichero`, hoy)
 con los prefijos `96-`, `97-`, `98-` y `99-`; y `paquete/fuera-de-lo-declarado.yaml` en
-`evals/plazos-y-territorio/95-fuera-de-lo-declarado.yaml`.
+`evals/plazos-y-territorio/95-fuera-de-lo-declarado.yaml`. Las dos llamadas nuevas que dan los casos de FR-010 van
+cada una en una sola línea, con este texto literal, para que sus mutantes (§5; quickstart Q8) las encuentren:
+
+```go
+	if err := cambiarUnaVez(filepath.Join(datos, "cobertura.yaml"), cambiosDeLaBase); err != nil {
+	if err := copiarFichero(filepath.Join("paquete", "prueba-de-normativa.md"), filepath.Join(copia, "skills", "normativa", "references", "prueba.md")); err != nil {
+```
+
+cada una seguida de `return err` y `}`.
 
 **La orden del paso 2** (US6.4): `const ordenDelPasoDos = "kitlegal boe articulo BOE-A-1978-31229 a140 --json && " +
 "kitlegal graph check BOE-A-1978-31229 a140 --json"` y `lineaDeLaOrden(fichero string) (int, error)`, el número de la
@@ -137,3 +146,8 @@ comprueba `h32-paquetes`, que corre en la copia entre los subtests (US6.3).
 | `llevaNoCubierto` de `main` | `subtests: 1`; `--- FAIL: TestEvalsDelRepositorio/precepto-de-la-cobertura` | ídem |
 | la copia congelada distinta | — | `… and …/paquete-de-mas.txtar differ` |
 | una fila de `cambiosDeLaBase` que ya no está una vez en `data/cobertura.yaml` (la cambió otro hito) | `paquete-de-mas: instalación: … no lleva una sola vez …` | `exec go run` sale con 1: la copia no deja de ejercer un caso de FR-010 sin decirlo |
+| `instalar` sin la llamada a `cambiarUnaVez` | las cinco líneas de §2, en verde | cae el `grep` de la fila estrechada en `administrativo.md` (`no match for …`); sin ese `grep`, el de la fila del orden social en `prueba.md`; sin los dos, su `! grep` en `administrativo.md` (`unexpected match for …`) |
+| `instalar` sin copiar `paquete/prueba-de-normativa.md` | `orden del paso 2 de normativa, líneas más abajo: 0` | cae el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`; sin ese `grep`, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$` |
+
+Cada rojo de §5 que muta el programa lo muta igual en los dos guiones, para que el `cmp`, el último, no sea el que cae;
+cada `grep` que se quita para ver el siguiente se quita también de los dos.

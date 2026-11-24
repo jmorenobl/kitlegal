@@ -1,0 +1,147 @@
+diff antes/contracts/copia-con-un-paquete-mas.md ahora/contracts/copia-con-un-paquete-mas.md
+--- antes/contracts/copia-con-un-paquete-mas.md	2026-11-24 14:05:53.440744140 +0100
++++ ahora/contracts/copia-con-un-paquete-mas.md	2026-11-24 14:07:39.135691263 +0100
+@@ -55,14 +55,23 @@
+ ```
+ 
+ `cambiarUnaVez(fichero string, cambios []struct{ viejo, nuevo string }) error` sustituye cada `viejo`, que tiene que
+-estar una sola vez (`strings.Count`), por su `nuevo`; si no, devuelve un error que nombra el fichero y el texto, y la
+-instalación falla (`paquete-de-mas: instalación: …`, código 1, el guion cae en su `exec`).
++estar una sola vez (`strings.Count`), por su `nuevo`; si no, devuelve `fmt.Errorf("%s no lleva una sola vez %q",
++fichero, viejo)`, que nombra el fichero y el texto, y la instalación falla (`paquete-de-mas: instalación: … no lleva
++una sola vez …`, código 1, el guion cae en su `exec`).
+ 
+ **`instalar`**, tras `anadirEntradas`: `cambiarUnaVez` sobre `data/cobertura.yaml`; copia `paquete/prueba.md` en
+ `skills/plazos-y-territorio/references/prueba.md` (hoy) y `paquete/prueba-de-normativa.md` en
+ `skills/normativa/references/prueba.md`; copia la primera eval de `evals/plazos-y-territorio/` (`primerFichero`, hoy)
+ con los prefijos `96-`, `97-`, `98-` y `99-`; y `paquete/fuera-de-lo-declarado.yaml` en
+-`evals/plazos-y-territorio/95-fuera-de-lo-declarado.yaml`.
++`evals/plazos-y-territorio/95-fuera-de-lo-declarado.yaml`. Las dos llamadas nuevas que dan los casos de FR-010 van
++cada una en una sola línea, con este texto literal, para que sus mutantes (§5; quickstart Q8) las encuentren:
++
++```go
++	if err := cambiarUnaVez(filepath.Join(datos, "cobertura.yaml"), cambiosDeLaBase); err != nil {
++	if err := copiarFichero(filepath.Join("paquete", "prueba-de-normativa.md"), filepath.Join(copia, "skills", "normativa", "references", "prueba.md")); err != nil {
++```
++
++cada una seguida de `return err` y `}`.
+ 
+ **La orden del paso 2** (US6.4): `const ordenDelPasoDos = "kitlegal boe articulo BOE-A-1978-31229 a140 --json && " +
+ "kitlegal graph check BOE-A-1978-31229 a140 --json"` y `lineaDeLaOrden(fichero string) (int, error)`, el número de la
+@@ -137,3 +146,8 @@
+ | `llevaNoCubierto` de `main` | `subtests: 1`; `--- FAIL: TestEvalsDelRepositorio/precepto-de-la-cobertura` | ídem |
+ | la copia congelada distinta | — | `… and …/paquete-de-mas.txtar differ` |
+ | una fila de `cambiosDeLaBase` que ya no está una vez en `data/cobertura.yaml` (la cambió otro hito) | `paquete-de-mas: instalación: … no lleva una sola vez …` | `exec go run` sale con 1: la copia no deja de ejercer un caso de FR-010 sin decirlo |
++| `instalar` sin la llamada a `cambiarUnaVez` | las cinco líneas de §2, en verde | cae el `grep` de la fila estrechada en `administrativo.md` (`no match for …`); sin ese `grep`, el de la fila del orden social en `prueba.md`; sin los dos, su `! grep` en `administrativo.md` (`unexpected match for …`) |
++| `instalar` sin copiar `paquete/prueba-de-normativa.md` | `orden del paso 2 de normativa, líneas más abajo: 0` | cae el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`; sin ese `grep`, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$` |
++
++Cada rojo de §5 que muta el programa lo muta igual en los dos guiones, para que el `cmp`, el último, no sea el que cae;
++cada `grep` que se quita para ver el siguiente se quita también de los dos.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-24 14:05:53.440676436 +0100
++++ ahora/plan.md	2026-11-24 14:09:06.248393976 +0100
+@@ -185,6 +185,9 @@
+ | FR-009 | L33; las tres de lo regulado aparte pasadas a lo no declarado | `TestEvalsDelRepositorio/precepto-de-la-cobertura` |
+ | FR-012, SC-005 | cada uno de los cuatro tests devuelto a `main` | `h45-paquete-de-mas` (`tests enteros: 1` o `subtests: 1`, con el test nombrado) |
+ | FR-013 | la copia congelada distinta | `h45-paquete-de-mas` (`cmp`: «… differ») |
++| FR-010 | `instalar` sin la llamada a `cambiarUnaVez`, igual en los dos guiones | `h45-paquete-de-mas`: el `grep` de la fila estrechada en `administrativo.md`; sin él, el de la fila del orden social en `prueba.md`; sin los dos, su `! grep` en `administrativo.md` (`unexpected match for`) |
++| FR-010 | `instalar` sin copiar `paquete/prueba-de-normativa.md`, igual en los dos guiones | `h45-paquete-de-mas`: el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`; sin él, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$` (la salida da `0`) |
++| FR-010 | la fila de extranjería de `data/cobertura.yaml` cambiada: su viejo de `cambiosDeLaBase` no está una vez | `h45-paquete-de-mas`: el `exec go run` sale con 1, «… no lleva una sola vez …» |
+ 
+ **Aceptación e2e: no aplica.** El hito no cambia ningún comportamiento del binario: ningún applet, verbo, bandera,
+ salida, código de salida, skill, referencia ni eval (FR-014), así que no hay guion nuevo que describa su entrega; una
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-11-24 14:05:53.440702461 +0100
++++ ahora/quickstart.md	2026-11-24 14:09:07.533389591 +0100
+@@ -77,7 +77,7 @@
+ 
+ Esperado: `PASS` en los tres.
+ 
+-## Q8 · Los mutantes, en un clon del temporal (SC-004, SC-005, SC-007; FR-003 a FR-009, FR-012, FR-013)
++## Q8 · Los mutantes, en un clon del temporal (SC-004, SC-005, SC-007; FR-003 a FR-010, FR-012, FR-013)
+ 
+ Preparación (lo único que crea es `$TMPDIR/h451`; el clon tiene `origin/main`, el `main` del repositorio):
+ 
+@@ -186,6 +186,52 @@
+ git -C "$TMPDIR/h451" checkout -- specs/
+ ```
+ 
++**Los casos de FR-010, sin su paso en el programa** (FR-010; contracts/copia-con-un-paquete-mas.md §5): cada mutante del
++programa va igual en los dos guiones, y cada aserción que se quita para ver la siguiente se quita de los dos, para que el
++`cmp` (FR-013), el último, no sea el que cae.
++
++```bash
++s="$TMPDIR/h451/internal/app/testdata/script/h45-paquete-de-mas.txtar"
++c="$TMPDIR/h451/specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar"
++```
++
++*Sin `cambiarUnaVez`*: las cinco líneas de la salida, como en verde; cae el `grep` de la fila estrechada en
++`administrativo.md` (`no match for` con `salvo los del paquete de prueba`); sin él, el de la fila del orden social en
++`prueba.md` (`no match for` con `procedimientos sancionadores en el orden social`); y sin los dos, su `! grep` en
++`administrativo.md` (`unexpected match for`).
++
++```bash
++sed -i 's/cambiarUnaVez(filepath.Join(datos, "cobertura.yaml"), cambiosDeLaBase)/error(nil)/' "$s" "$c"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++sed -i '/^grep .*salvo los del paquete de prueba/d' "$s" "$c"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++sed -i '/^grep .*procedimientos sancionadores en el orden social/d' "$s" "$c"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++git -C "$TMPDIR/h451" checkout -- internal/app/testdata/ specs/
++```
++
++*Sin copiar `paquete/prueba-de-normativa.md`*: la salida dice `orden del paso 2 de normativa, líneas más abajo: 0`; cae
++el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md` (`no match for` con `Si la pregunta es de lo
++prueba`); y sin él, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$`.
++
++```bash
++sed -i 's|copiarFichero(filepath.Join("paquete", "prueba-de-normativa.md"), filepath.Join(copia, "skills", "normativa", "references", "prueba.md"))|error(nil)|' "$s" "$c"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++sed -i '/^grep .*repo\/skills\/normativa\/SKILL\.md$/d' "$s" "$c"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++git -C "$TMPDIR/h451" checkout -- internal/app/testdata/ specs/
++```
++
++*Un viejo de `cambiosDeLaBase` que ya no está una vez en `data/cobertura.yaml`*: el `exec go run` sale con 1
++(`unexpected command failure`) y su salida de errores dice `paquete-de-mas: instalación: …/data/cobertura.yaml no lleva
++una sola vez "  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo\n"`.
++
++```bash
++sed -i 's/^  - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo$/  - procedimiento: actuaciones y procedimientos en materia de extranjería y de asilo/' "$TMPDIR/h451/data/cobertura.yaml"
++go -C "$TMPDIR/h451" test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
++git -C "$TMPDIR/h451" checkout -- data/
++```
++
+ Al terminar:
+ 
+ ```bash
+diff antes/tasks.md ahora/tasks.md
+--- antes/tasks.md	2026-11-24 14:05:53.440773561 +0100
++++ ahora/tasks.md	2026-11-24 14:09:02.651021733 +0100
+@@ -108,7 +108,7 @@
+ `copia: hecha`, `sincronía: 0`, `orden del paso 2 de normativa, líneas más abajo: 1`, `tests enteros: 0` y
+ `subtests: 0` (Q4); `cmp` de los dos guiones sin diferencias (Q5).
+ 
+-- [ ] T005 [datos] [US6] La copia con un paquete más, en `internal/app/testdata/script/h45-paquete-de-mas.txtar` y `specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar`, el mismo fichero byte a byte (FR-010, FR-011, FR-012, FR-013; US6.1-US6.5; SC-003; contracts/copia-con-un-paquete-mas.md §1-§5; data-model §5; research D5): el comentario de cabecera de §1 (lo que el paquete añade y las dos filas de la base que cambia; la lista de FR-016 de H45 con FR-011 de H45.1; «Cubre:» con «US6 · FR-010 a FR-013 · SC-003 de H45.1»); en el programa `paquete-de-mas.go` del archivo, los filtros `filtroDeLosTestsEnteros` (gana `TestControlesSobreLasReferenciasAMano`, pierde `TestDefinicionDelJob`) y `filtroDeLosSubtests` (gana `TestDefinicionDelJob` en el primer nivel y `cuatro-evals-mas` en el segundo, de modo que no corren `del-repositorio`, `peor-caso` ni `tope-con-las-evals-del-repositorio`) literales de §2; `cambiosDeLaBase` (estrecha «actuaciones y procedimientos en materia de extranjería y asilo» a «…, salvo los del paquete de prueba» y da a «procedimientos sancionadores en el orden social» la norma `BOE-A-2015-11722` con `aplicable: {bloque: a1, apartado: "1"}`) y `cambiarUnaVez`, que exige cada texto viejo una sola vez (`strings.Count`) y si no devuelve un error que nombra el fichero y el texto; en `instalar`, tras `anadirEntradas`, `cambiarUnaVez` sobre `data/cobertura.yaml`, `paquete/prueba-de-normativa.md` en `skills/normativa/references/prueba.md`, la primera eval de `evals/plazos-y-territorio/` con los prefijos `96-` a `99-` y `paquete/fuera-de-lo-declarado.yaml` como `95-fuera-de-lo-declarado.yaml`; `const ordenDelPasoDos` y `lineaDeLaOrden(fichero string) (int, error)`, que tras la sincronía imprime `orden del paso 2 de normativa, líneas más abajo: <copia − módulo>` (error con 0 o más de 1 línea → código 1); los dos ficheros nuevos del archivo de §3, `paquete/prueba-de-normativa.md` y `paquete/fuera-de-lo-declarado.yaml`, con su texto literal; y las comprobaciones de §4 tras las de hoy (los `grep` de la fila estrechada en `administrativo.md`, de la del orden social en `prueba.md` y su `! grep` en `administrativo.md`, el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`, el `stdout` de `líneas más abajo: 1` y el `cmp` de los dos guiones con `$KITLEGAL_SKILLS/..`). Lo demás del guion (la copia del módulo, `anadirEntradas`, la sincronía, `ejecutar`, `principio`, `maxSalida` y los cuatro `paquete/*.yaml`/`prueba.md` de hoy) no cambia. Escribir el fichero una vez y copiarlo al otro (`cp`), y comprobar con `cmp` que son iguales (Q5); ver el guion en verde con las cinco líneas (Q4); ver en rojo, en una copia del módulo en `$TMPDIR` con el cambio, cada uno de los cuatro tests devuelto a `main` (`tests enteros: 1` o `subtests: 1`, con el test nombrado; §5) y la copia congelada con un byte distinto («… differ»); `make ci` en verde. Es la única tarea `[datos]` y no toca nada fuera de esos dos ficheros.
++- [ ] T005 [datos] [US6] La copia con un paquete más, en `internal/app/testdata/script/h45-paquete-de-mas.txtar` y `specs/042-h45-el-molde-admite/aceptacion/paquete-de-mas.txtar`, el mismo fichero byte a byte (FR-010, FR-011, FR-012, FR-013; US6.1-US6.5; SC-003; contracts/copia-con-un-paquete-mas.md §1-§5; data-model §5; research D5): el comentario de cabecera de §1 (lo que el paquete añade y las dos filas de la base que cambia; la lista de FR-016 de H45 con FR-011 de H45.1; «Cubre:» con «US6 · FR-010 a FR-013 · SC-003 de H45.1»); en el programa `paquete-de-mas.go` del archivo, los filtros `filtroDeLosTestsEnteros` (gana `TestControlesSobreLasReferenciasAMano`, pierde `TestDefinicionDelJob`) y `filtroDeLosSubtests` (gana `TestDefinicionDelJob` en el primer nivel y `cuatro-evals-mas` en el segundo, de modo que no corren `del-repositorio`, `peor-caso` ni `tope-con-las-evals-del-repositorio`) literales de §2; `cambiosDeLaBase` (estrecha «actuaciones y procedimientos en materia de extranjería y asilo» a «…, salvo los del paquete de prueba» y da a «procedimientos sancionadores en el orden social» la norma `BOE-A-2015-11722` con `aplicable: {bloque: a1, apartado: "1"}`) y `cambiarUnaVez`, que exige cada texto viejo una sola vez (`strings.Count`) y si no devuelve `fmt.Errorf("%s no lleva una sola vez %q", fichero, viejo)`; en `instalar`, tras `anadirEntradas`, `cambiarUnaVez` sobre `data/cobertura.yaml` y `paquete/prueba-de-normativa.md` en `skills/normativa/references/prueba.md`, cada llamada en una sola línea con el texto literal de §2, la primera eval de `evals/plazos-y-territorio/` con los prefijos `96-` a `99-` y `paquete/fuera-de-lo-declarado.yaml` como `95-fuera-de-lo-declarado.yaml`; `const ordenDelPasoDos` y `lineaDeLaOrden(fichero string) (int, error)`, que tras la sincronía imprime `orden del paso 2 de normativa, líneas más abajo: <copia − módulo>` (error con 0 o más de 1 línea → código 1); los dos ficheros nuevos del archivo de §3, `paquete/prueba-de-normativa.md` y `paquete/fuera-de-lo-declarado.yaml`, con su texto literal; y las comprobaciones de §4 tras las de hoy (los `grep` de la fila estrechada en `administrativo.md`, de la del orden social en `prueba.md` y su `! grep` en `administrativo.md`, el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`, el `stdout` de `líneas más abajo: 1` y el `cmp` de los dos guiones con `$KITLEGAL_SKILLS/..`). Lo demás del guion (la copia del módulo, `anadirEntradas`, la sincronía, `ejecutar`, `principio`, `maxSalida` y los cuatro `paquete/*.yaml`/`prueba.md` de hoy) no cambia. Escribir el fichero una vez y copiarlo al otro (`cp`), y comprobar con `cmp` que son iguales (Q5); ver el guion en verde con las cinco líneas (Q4); ver en rojo, en una copia del módulo en `$TMPDIR` con el cambio, cada uno de los cuatro tests devuelto a `main` (`tests enteros: 1` o `subtests: 1`, con el test nombrado; §5), la copia congelada con un byte distinto («… differ») y los tres rojos de FR-010 de §5, con las órdenes de Q8 («Los casos de FR-010, sin su paso en el programa») y cada mutante del programa igual en los dos guiones: (1) `instalar` sin la llamada a `cambiarUnaVez`: cae el `grep` de la fila estrechada en `administrativo.md`; quitado ese `grep`, el de la fila del orden social en `prueba.md`; quitados los dos, su `! grep` en `administrativo.md` (`unexpected match for`); (2) `instalar` sin copiar `paquete/prueba-de-normativa.md`: la salida da `líneas más abajo: 0`, cae el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md` y, quitado ese `grep`, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$`; (3) la fila de extranjería de `data/cobertura.yaml` de la copia cambiada, de modo que su viejo de `cambiosDeLaBase` no está una vez: el `exec go run` sale con 1 y la salida de errores dice «no lleva una sola vez»; por cada uno, la orden, lo esperado y lo visto; `make ci` en verde. Es la única tarea `[datos]` y no toca nada fuera de esos dos ficheros.
+ 
+ **Checkpoint**: la aceptación del hito (SC-003) en verde dentro de `make ci`.
+ 
+@@ -122,7 +122,7 @@
+ **Independent Test**: `make ci` y `make skills-check` en verde (Q1, Q2); el diff contra `main` solo con los ficheros de
+ Q3; `mutantes.md` con una entrada por fila de la tabla «Mutantes» del plan.
+ 
+-- [ ] T006 [US1] Escribir `specs/043-h45-1-los-tests-del/mutantes.md` (SC-001, SC-002, SC-004, SC-005, SC-007; FR-003 a FR-009, FR-012, FR-013, FR-014; US1.1-US1.4; plan, tablas «Mutantes» y «Controles de umbral»; quickstart Q1-Q8; research D7): en el árbol, `make ci` (Q1), `make skills-check` (Q2), las tres órdenes de diff contra `main` de Q3 (las dos primeras sin salida; la tercera solo con los ficheros que lista Q3), `cmp` de Q5 y las órdenes de Q6 y Q7; y en un `git clone --no-hardlinks -q . "$TMPDIR/h451"` (con `origin/main`; V13), nunca en el árbol de trabajo, cada mutante de Q8 aplicado, su control corrido y deshecho hasta que `git -C "$TMPDIR/h451" status --short` no dé nada: L06 y L07 (`TestCoberturaDelRepositorio`), L04 y L05 con la sincronía (`h32-paquetes`, `no match for ^filas: 33 de 33$`, y `TestCoberturaDelRepositorio` en verde), P6 y otra línea (los dos casos), T1 y L29 (`cuatro-evals-mas`), las ocho evals de más (FR-008), L33 y las tres pasadas a lo no declarado (`precepto-de-la-cobertura`), cada uno de los cuatro tests devuelto a `main` (`h45-paquete-de-mas`, SC-005), la copia congelada distinta (FR-013) y una línea cambiada en una referencia generada de `skills/plazos-y-territorio/references/administrativo.md` del clon (`make skills-check` en rojo con una diferencia, el umbral de SC-002). Por cada uno, la orden exacta, lo esperado y lo visto (el principio de la salida real), sin dar por visto nada que no se haya ejecutado en la sesión. Comprobar al final que el árbol de trabajo solo cambia en `specs/043-h45-1-los-tests-del/mutantes.md` y que `make ci` sigue en verde.
++- [ ] T006 [US1] Escribir `specs/043-h45-1-los-tests-del/mutantes.md` (SC-001, SC-002, SC-004, SC-005, SC-007; FR-003 a FR-010, FR-012, FR-013, FR-014; US1.1-US1.4; plan, tablas «Mutantes» y «Controles de umbral»; quickstart Q1-Q8; research D7): en el árbol, `make ci` (Q1), `make skills-check` (Q2), las tres órdenes de diff contra `main` de Q3 (las dos primeras sin salida; la tercera solo con los ficheros que lista Q3), `cmp` de Q5 y las órdenes de Q6 y Q7; y en un `git clone --no-hardlinks -q . "$TMPDIR/h451"` (con `origin/main`; V13), nunca en el árbol de trabajo, cada mutante de Q8 aplicado, su control corrido y deshecho hasta que `git -C "$TMPDIR/h451" status --short` no dé nada: L06 y L07 (`TestCoberturaDelRepositorio`), L04 y L05 con la sincronía (`h32-paquetes`, `no match for ^filas: 33 de 33$`, y `TestCoberturaDelRepositorio` en verde), P6 y otra línea (los dos casos), T1 y L29 (`cuatro-evals-mas`), las ocho evals de más (FR-008), L33 y las tres pasadas a lo no declarado (`precepto-de-la-cobertura`), cada uno de los cuatro tests devuelto a `main` (`h45-paquete-de-mas`, SC-005), la copia congelada distinta (FR-013), los tres de FR-010 (sin `cambiarUnaVez`: el `grep` de la fila estrechada, el de la fila del orden social y su `! grep`, uno tras otro; sin la referencia de `normativa`: el `grep` de su línea y el `stdout` de `líneas más abajo: 1`; con el viejo que no está una vez: el `exec go run` con 1 y «no lleva una sola vez») y una línea cambiada en una referencia generada de `skills/plazos-y-territorio/references/administrativo.md` del clon (`make skills-check` en rojo con una diferencia, el umbral de SC-002). Por cada uno, la orden exacta, lo esperado y lo visto (el principio de la salida real), sin dar por visto nada que no se haya ejecutado en la sesión. Comprobar al final que el árbol de trabajo solo cambia en `specs/043-h45-1-los-tests-del/mutantes.md` y que `make ci` sigue en verde.
+ 
+ **Checkpoint**: el hito, listo para la revisión final del workflow.
+ 
+@@ -135,7 +135,7 @@
+ | SC-001 (`make ci` con 0 fallos) | `make ci` (existe; cada tarea lo deja en verde) | T001-T005 lo dejan en verde; T006 lo corre y lo registra |
+ | SC-002, FR-014 (0 diferencias en `skills/` y en las salidas del binario) | `make skills-check` (existe, sin cambios) | T006: verde en el árbol y rojo en el clon con una línea cambiada en una referencia generada |
+ | SC-003, FR-011 (los tres códigos en 0) | `h45-paquete-de-mas` | T005: lo construye; rojo con cada test devuelto a `main` (también en T006) |
+-| FR-010 (fila estrechada, fila del orden social, línea en `normativa`, orden una más abajo) | los `grep` y el `stdout` del guion | T005 |
++| FR-010 (fila estrechada, fila del orden social, línea en `normativa`, orden una más abajo) | los `grep` y el `stdout` del guion | T005: los construye; rojo sin `cambiarUnaVez` (los dos `grep` y el `! grep` de las filas), sin la referencia de `normativa` (el `grep` de su línea y el `stdout`) y con un viejo de `cambiosDeLaBase` que no está una vez (`exec go run` con 1) (también en T006) |
+ | FR-013 (0 bytes de diferencia) | el `cmp` del guion | T005: lo construye; rojo con la copia congelada distinta (también en T006) |
+ | FR-003 (las 9 tuplas; 0 filas fuera de ellas o de su orden) | `TestCoberturaDelRepositorio` | T001: rojo con L06 y L07 (también en T006) |
+ | FR-004, SC-007 (33 de 33 filas) | `h32-paquetes` (existe, sin cambios) | T006: rojo con L04 y L05 |

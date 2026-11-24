@@ -185,6 +185,9 @@ visto.
 | FR-009 | L33; las tres de lo regulado aparte pasadas a lo no declarado | `TestEvalsDelRepositorio/precepto-de-la-cobertura` |
 | FR-012, SC-005 | cada uno de los cuatro tests devuelto a `main` | `h45-paquete-de-mas` (`tests enteros: 1` o `subtests: 1`, con el test nombrado) |
 | FR-013 | la copia congelada distinta | `h45-paquete-de-mas` (`cmp`: «… differ») |
+| FR-010 | `instalar` sin la llamada a `cambiarUnaVez`, igual en los dos guiones | `h45-paquete-de-mas`: el `grep` de la fila estrechada en `administrativo.md`; sin él, el de la fila del orden social en `prueba.md`; sin los dos, su `! grep` en `administrativo.md` (`unexpected match for`) |
+| FR-010 | `instalar` sin copiar `paquete/prueba-de-normativa.md`, igual en los dos guiones | `h45-paquete-de-mas`: el `grep` de la línea del paquete en `repo/skills/normativa/SKILL.md`; sin él, `no match for ^orden del paso 2 de normativa, líneas más abajo: 1$` (la salida da `0`) |
+| FR-010 | la fila de extranjería de `data/cobertura.yaml` cambiada: su viejo de `cambiosDeLaBase` no está una vez | `h45-paquete-de-mas`: el `exec go run` sale con 1, «… no lleva una sola vez …» |
 
 **Aceptación e2e: no aplica.** El hito no cambia ningún comportamiento del binario: ningún applet, verbo, bandera,
 salida, código de salida, skill, referencia ni eval (FR-014), así que no hay guion nuevo que describa su entrega; una
