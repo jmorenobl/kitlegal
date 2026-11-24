@@ -1,0 +1,14 @@
+# Eval de cobertura del paquete tributario (H42, la negativa de la aceptación): el recurso contra una sanción de la
+# Agencia Tributaria, del procedimiento sancionador en materia tributaria, que la DA 1ª.2.c de la LPAC deja fuera del
+# procedimiento común y que el paquete no cubre. La respuesta tiene que declarar en la línea ⚠ NO CUBIERTO: que se rige
+# por la Ley General Tributaria, con su identificador, sin calcular ningún plazo ni dar la línea ⚠ PLAZO:. El formato
+# compara la norma y el bloque, no el apartado: no distingue la fila del sancionador (DA 1ª.2.c) de la de la aplicación
+# de los tributos (DA 1ª.2.a), que llevan las dos la LGT y el bloque daprimera (ADR 0062, punto 6).
+pregunta: "El 9 de septiembre de 2026 me notificaron en Leganés una sanción de la Agencia Tributaria. ¿Cuánto tengo para recurrirla?"
+activa: true
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  norma: BOE-A-2003-23186
+  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}

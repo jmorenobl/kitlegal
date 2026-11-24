@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:44Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a7",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:44 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a7\" tipo=\"precepto\" titulo=\"Artículo 7\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 7. Fuentes del ordenamiento tributario.</p>\n        <p class=\"parrafo\">1. Los tributos se regirán:</p>\n        <p class=\"parrafo_2\">a) Por la Constitución.</p>\n        <p class=\"parrafo\">b) Por los tratados o convenios internacionales que contengan cláusulas de naturaleza tributaria y, en particular, por los convenios para evitar la doble imposición, en los términos previstos en el artículo 96 de la Constitución.</p>\n        <p class=\"parrafo\">c) Por las normas que dicte la Unión Europea y otros organismos internacionales o supranacionales a los que se atribuya el ejercicio de competencias en materia tributaria de conformidad con el artículo 93 de la Constitución.</p>\n        <p class=\"parrafo\">d) Por esta ley, por las leyes reguladoras de cada tributo y por las demás leyes que contengan disposiciones en materia tributaria.</p>\n        <p class=\"parrafo\">e) Por las disposiciones reglamentarias dictadas en desarrollo de las normas anteriores y, específicamente en el ámbito tributario local, por las correspondientes ordenanzas fiscales.</p>\n        <p class=\"parrafo\">En el ámbito de competencias del Estado, corresponde al Ministro de Hacienda dictar disposiciones de desarrollo en materia tributaria, que revestirán la forma de orden ministerial, cuando así lo disponga expresamente la ley o reglamento objeto de desarrollo. Dicha orden ministerial podrá desarrollar directamente una norma con rango de ley cuando así lo establezca expresamente la propia ley.</p>\n        <p class=\"parrafo_2\">2. Tendrán carácter supletorio las disposiciones generales del derecho administrativo y los preceptos del derecho común.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

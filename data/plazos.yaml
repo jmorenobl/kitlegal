@@ -63,6 +63,22 @@ tipos:
       dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
       dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
       meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo, vigente_desde: "2016-10-02"}
+  - codigo: reposicion-tributaria
+    nombre: recurso de reposición contra un acto de aplicación de los tributos
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-2003-23186, bloque: a223, apartado: "223.1", fija: duracion, vigente_desde: "2004-07-01"}
+      - {norma: BOE-A-2003-23186, bloque: a7, apartado: "7.2", fija: supletoria, vigente_desde: "2004-07-01"}
+  - codigo: reclamacion-economico-administrativa
+    nombre: reclamación económico-administrativa en única o primera instancia
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    da: vencimiento
+    preceptos:
+      - {norma: BOE-A-2003-23186, bloque: a235, apartado: "235.1", fija: duracion, vigente_desde: "2015-10-12"}
+      - {norma: BOE-A-2003-23186, bloque: a7, apartado: "7.2", fija: supletoria, vigente_desde: "2004-07-01"}
 computos:
   - codigo: lpac
     municipios: [el del interesado, el de la sede del órgano]

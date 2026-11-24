@@ -1,0 +1,84 @@
+{
+  "ficheros": [
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a207.json",
+      "sha256": "358cdf3a8387547037313b295d6e19e3121984fe2b5bd0e8335781ee4880154e",
+      "bytes": 2014,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a222.json",
+      "sha256": "5c9882f1a73961419b639a378b05f264f05976d2dbba923efaf06bf5b672acf8",
+      "bytes": 2644,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a223.json",
+      "sha256": "ad5710c230dafd50daa7d455af6aa22950fb0940a0000719fa0b8bd41f035a40",
+      "bytes": 3105,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a226.json",
+      "sha256": "158334720401da55a9f96cce7d3a7fba353dc44f26b66d60927a5e0ee50cece4",
+      "bytes": 3478,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a234.json",
+      "sha256": "21dd5c0e65a859cc0fdd035ad4b044ac5123cfc67d9cbe4bd892fe56084594ed",
+      "bytes": 6740,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a235.json",
+      "sha256": "1fcb9a19547d4a738241dcf1cc5859a18e54c38730985c0de19a3ad3d406f39f",
+      "bytes": 10334,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2003-23186_texto_bloque_a7.json",
+      "sha256": "2dbe62d5f429e1b654b52e860e36cd81091c9388933ae7526e876170ce08402e",
+      "bytes": 3229,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2006-20764_texto_bloque_a63.json",
+      "sha256": "cded1a539b363ffdfa52f99060386b04058e8759846a17296df20caeb94e6a79",
+      "bytes": 37964,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2006-20764_texto_bloque_a74.json",
+      "sha256": "965045532e0d077eb9b687776889e5ec52859e45a79345e3ff23310f9e6334ec",
+      "bytes": 24556,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.legislacion-consolidada/GET_https_www.boe.es_robots.txt.json",
+      "sha256": "3507951e1de84b85a64406dc8f682f8053a432edde86b9231f12534a2904b083",
+      "bytes": 514606,
+      "fuente": "boe.legislacion-consolidada",
+      "fecha": "2026-11-24",
+      "versionado": "sí"
+    }
+  ]
+}

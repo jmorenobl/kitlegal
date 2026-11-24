@@ -22,6 +22,7 @@ Cuándo leer cada una:
 - La de cada paquete, en toda pregunta de plazos o de recursos y al nombrar una norma:
 <!-- paquetes: lo genera make skills-sync -->
 - Si la pregunta es de lo administrativo, lee [administrativo](references/administrativo.md).
+- Si la pregunta es de lo fiscal, lee [fiscal](references/fiscal.md).
 <!-- fin de los paquetes -->
 - [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el autonómico de la
   `comunidad` de `data`, y la norma que prevalece.
