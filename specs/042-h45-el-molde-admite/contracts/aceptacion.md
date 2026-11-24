@@ -52,7 +52,7 @@ tests derivados, `sincronía: 0` y caen `tests enteros` o `subtests` (P3). El mu
 hoy devuelta a uno de los tests», pone `tests enteros` o `subtests` en 1 (mutantes.md).
 
 Coste: dos órdenes `go test` en una copia nueva por ejecución, medidas en P3 en 7,4 s y 3,5 s de reloj; la copia, unos
-150 MB (research V10). Un `go test` anidado no hereda `-race`.
+50 MB (research V10). Un `go test` anidado no hereda `-race`.
 
 ## 2. `skills-instaladas.txtar` (US5.1, US9.1 · FR-009, FR-023 · SC-007)
 

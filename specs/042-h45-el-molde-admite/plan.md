@@ -49,8 +49,10 @@ del arnés de evals (`internal/evals`), de los tests de `internal/app` y de dos 
 suma ≤ 1 700 (SC-007); concurrencias del job ≤ 12 (FR-021); ninguna eval cambia (FR-025); ningún `.go` en un paquete
 nuevo (US2).
 
-**Scale/Scope**: 4 funciones sin exportar nuevas en producción (`paquetesDelTipo`, `paqueteDeLaFila`,
-`unionDeGrabacionesDe`, `carpetaDeUnHito`) y 1 predicado (`esDeUnaRaizDeGrabaciones`); 1 firma exportada que cambia
+**Scale/Scope**: 6 funciones sin exportar nuevas en producción (`paquetesDelTipo`, `paqueteDeLaFila`,
+`unionDeGrabacionesDe`, `carpetaDeUnHito` y, en la implementación, `tieneLasGrabacionesDelBOE` y `existeComo`, que
+miran el `manifiesto.json` y la carpeta de un hito) y 1 predicado (`esDeUnaRaizDeGrabaciones`, que sustituye a
+`raicesDeGrabaciones`); 1 firma exportada que cambia
 (`UnionDeGrabaciones`, gana el error) y 1 constante exportada que desaparece (`GrabacionesDeH36`); 5 ficheros de
 producción de Go (`internal/skills/regiones.go`, `internal/evals/grabaciones.go` y sus llamadores `dependencias.go`,
 `medida.go` y `sesiones.go`); unos 20 ficheros de test; 4 ficheros de prueba; 4 guiones de `internal/app` con sus copias
@@ -66,7 +68,7 @@ congeladas; 2 guiones de aceptación.
 | II · Nada sin cita ni fuente | Ningún sobre cambia (FR-026). La línea `⚠ NO CUBIERTO:` de cada fila nombra la norma que la rige y el precepto, como hoy (FR-007); que cada fila vaya a la referencia del paquete de su norma (FR-005) hace que una pregunta de esa materia lea su línea en la referencia que lee, y que un tipo mal declarado sea un defecto (FR-003, FR-004) impide dar el plazo de una materia con la referencia de otra. La descripción deja de decir que solo cuenta lo administrativo y declara que de las demás materias no da plazos (FR-023) |
 | III · Tests primero y offline | Primero los dos guiones de `aceptacion/`, rojos hoy por una aserción (contracts/aceptacion.md); los unitarios, offline sobre copias en `t.TempDir()` y ficheros de `testdata/`; la copia de SC-004, sin red (`GOPROXY=off`) y solo con grabaciones del repositorio. Las salidas de applet se siguen validando contra `schemas/` (ningún esquema cambia). Cobertura: el código nuevo de `internal/skills` e `internal/evals` lo cubren `TestVerticalDeEnsayo`, `TestRegiones/defectos`, `TestManifiestoDeGrabaciones` y `TestGrabacionesSinSolape` |
 | IV · Arquitectura hexagonal con reglas ejecutables | Todo en `internal/skills` e `internal/evals` (sin `core` nuevo); los defectos de la sincronía siguen siendo `defectoDeLosDatos` de `data/plazos.yaml` y `make skills-sync` falla con ellos como hoy; el error de leer `evidencias/` sube envuelto (`%w`) hasta quien prepara la sesión, que ya devuelve error, sin callarlo. El binario no cambia: ningún código de salida ni `panic` nuevo |
-| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia ni paquete nuevo; cuatro funciones sin exportar y un predicado, cada una con su requisito («Trazabilidad»). Rechazados: un campo `paquete:` (fuera de alcance), una orden nueva del arnés, `tar`/`awk` en el guion, un `fs.FS` en `UnionDeGrabaciones`, un test de cada nombre de carpeta que `grabar-datos.sh` no escribe (research D3, D5) |
+| V · Simplicidad y dependencias fijadas (YAGNI) | Ninguna dependencia ni paquete nuevo; seis funciones sin exportar (dos de ellas, auxiliares de `unionDeGrabacionesDe`) y un predicado, cada una con su requisito («Trazabilidad»). Rechazados: un campo `paquete:` (fuera de alcance), una orden nueva del arnés, `tar`/`awk` en el guion, un `fs.FS` en `UnionDeGrabaciones`, un test de cada nombre de carpeta que `grabar-datos.sh` no escribe (research D3, D5) |
 | VI · Un binario, convenciones de agente | Ninguna orden, bandera ni argumento nuevo; `--describe` no cambia; las skills siguen empotradas e instaladas por `kitlegal skills install` |
 | VII · Grafo y privacidad | Nada toca el grafo ni la caché; ningún dato de nadie |
 | VIII · Skills primero; el binario es la herramienta | Mejora el molde de las skills de capacidad para que una materia entre como paquete (lo que H42 necesita) y protege las cuatro skills: el cierre mide todas, sin reutilizar nada (FR-025). Lo único que cambia de una skill es el movimiento de `normativa` (sitio para un paquete real más) y la descripción de `plazos-y-territorio`; el cuerpo de `SKILL.md` sigue bajo su tope y el detalle, en `references/` |
@@ -79,7 +81,7 @@ congeladas; 2 guiones de aceptación.
 | R5 · solo `internal/render` escribe en stdout; logs con `log/slog` a stderr (`forbidigo`) | Nada nuevo del módulo escribe en stdout; el programa del guion lo hace fuera del módulo |
 | R6 · `internal/graph` no importa `internal/source` ni `internal/render` | `internal/graph` no cambia |
 | R7 · solo el paquete del servidor importa el SDK de MCP | Nada nuevo lo importa |
-| Garantía sin red de `TestArquitectura` (`paquetesSinRed`, `ficherosSinRed`) | Ningún paquete de las listas gana una importación que llegue a `net`; `internal/evals/grabaciones.go` solo gana `os` y `strconv` |
+| Garantía sin red de `TestArquitectura` (`paquetesSinRed`, `ficherosSinRed`) | Ningún paquete de las listas gana una importación que llegue a `net`; `internal/evals/grabaciones.go` solo gana `cmp`, `io/fs`, `os` y `strconv` |
 
 Re-evaluado tras la fase 1: sin violaciones; Complexity Tracking, vacío.
 
@@ -172,11 +174,11 @@ subtests de defectos; las grabaciones (6); el job (9); el control y el laborator
 
 | Salida | Quién la consume y cuántas veces | Tamaño, hoy y con meses de uso | Cuándo deja de darse |
 |---|---|---|---|
-| `references/<paquete>.md` de `plazos-y-territorio` (regiones `recursos_y_plazos` y `cobertura_por_materia`) | `plazos-y-territorio`, una vez por pregunta de ese paquete, por su línea de la marca de paquetes; usa una fila de tipo para el código de `plazos calcular` y una de lo regulado aparte para su `⚠ NO CUBIERTO:` | `administrativo.md`, 100 líneas y 10 635 bytes hoy y tras H42 (sus 9 filas de tipo, de unos 100 bytes, y sus filas de lo regulado aparte, de unos 340); cada paquete, solo sus filas. Sale de `data/`, no del uso: con cientos de normas y miles de bloques consultados durante meses, es la misma | una fila, al salir de `data/` o cambiar de paquete, en el siguiente `make skills-sync` |
-| `references/con_herramientas.md` de `normativa` | `normativa`, una vez por conversación, antes de la primera orden (cuerpo, línea 16); la forma movida, una vez por bloque leído sin fecha en PowerShell 5.1 sin MCP | de 2 442 a unos 2 616 bytes; no depende del uso | — (protocolo) |
+| `references/<paquete>.md` de `plazos-y-territorio` (regiones `recursos_y_plazos` y `cobertura_por_materia`) | `plazos-y-territorio`, una vez por pregunta de ese paquete, por su línea de la marca de paquetes; usa una fila de tipo para el código de `plazos calcular` y una de lo regulado aparte para su `⚠ NO CUBIERTO:` | `administrativo.md`, 100 líneas y 10 635 bytes hoy y tras H42 (sus 9 filas de tipo, de unos 145 bytes, y sus filas de lo regulado aparte, de unos 340); cada paquete, solo sus filas. Sale de `data/`, no del uso: con cientos de normas y miles de bloques consultados durante meses, es la misma | una fila, al salir de `data/` o cambiar de paquete, en el siguiente `make skills-sync` |
+| `references/con_herramientas.md` de `normativa` | `normativa`, una vez por conversación, antes de la primera orden (cuerpo, línea 16); la forma movida, una vez por bloque leído sin fecha en PowerShell 5.1 sin MCP | de 2 442 a 2 611 bytes; no depende del uso | — (protocolo) |
 | Cuerpo de `normativa` | el agente, al activar la skill, una vez por conversación | de 10 926 a unos 10 751 caracteres | — |
 | `description` de `plazos-y-territorio` | el agente, en cada sesión con las skills instaladas, para elegir skill | 429 caracteres (hoy 427); suma de la variante, 1 692 | — |
-| Defectos de FR-003 y FR-004 | quien escribe un paquete, persona o run, una vez por `make skills-sync` | una línea por tipo mal declarado, 153 bytes la de «sin paquete» | cuando las normas de los preceptos propios del tipo comparten un `vertical` |
+| Defectos de FR-003 y FR-004 | quien escribe un paquete, persona o run, una vez por `make skills-sync` | una línea por tipo mal declarado; la de «sin paquete», 139 bytes más el código del tipo, con el prefijo de la skill | cuando las normas de los preceptos propios del tipo comparten un `vertical` |
 | `UnionDeGrabaciones` | el job de evals y los tests, una vez por preparación de sesión | 4 raíces hoy; una más por hito que graba el BOE, no por uso | — |
 | Informe del job de evals | la persona, al cierre | su forma no cambia; doce sesiones a la vez pueden topar con el límite de la suscripción, que el cierre enseña como fallo de la fuente | — |
 
@@ -261,7 +263,7 @@ lanzar» del spec es de la persona y no es de este plan.
 | SC-001, FR-008 | 0 diferencias entre las referencias de `skills/` y lo generado desde `data/`; 0 bytes cambiados en las skills fuera de lo declarado | `TestSkillsDelRepositorio` (`make skills-check`) y `TestRegiones/sincronia`, en rojo con una región distinta de la generada; `TestSkillsDelProductoDesdeControl`, en rojo con un byte no declarado | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio`, `ci:internal/skills/regiones_test.go:TestRegiones`, `ci:internal/evals/laboratorio_familias_test.go:TestSkillsDelProductoDesdeControl` |
 | SC-002, FR-002, FR-005, FR-006, FR-020 | el tipo de ensayo en 1 referencia y en 0 más; la fila con norma en `ensayo.md` y en 0 líneas de `administrativo.md`; 0 `.go` y 0 `SKILL.md` fuera de las marcas; cada cuerpo con la línea de ensayo y 70 caracteres más, ≤ 11 000 | `TestVerticalDeEnsayo` | `ci:internal/skills/vertical_de_ensayo_test.go:TestVerticalDeEnsayo` |
 | SC-003, FR-003, FR-004 | 2 de 2 defectos con su tipo; 0 en el caso del cómputo | los tres subtests de `TestRegiones/defectos` | `ci:internal/skills/regiones_test.go:TestRegiones` |
-| SC-004, FR-016, FR-017 | 0 tests de la lista en rojo con la copia de un paquete más | `h45-paquete-de-mas`: `stdout` de los dos códigos `0` | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
+| SC-004, FR-016, FR-017 | 0 tests de la lista en rojo con la copia de un paquete más | `h45-paquete-de-mas`: `stdout` con `0` en la sincronía y en las dos órdenes `go test` | `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
 | SC-005, FR-015 | la unión del repositorio: 3 fijas + las carpetas de hito con manifiesto (hoy 4), 0 de `evidencias/h9/`; con h99 en una copia, 5, h99 la última; 0 ficheros compartidos entre dos raíces salvo `robots.txt` | `TestGrabacionesSinSolape`; `TestManifiestoDeGrabaciones/raices-de-los-hitos` | `ci:internal/evals/grabaciones_test.go:TestGrabacionesSinSolape`, `ci:internal/evals/grabaciones_test.go:TestManifiestoDeGrabaciones` |
 | SC-006, FR-021, FR-022 | suma de concurrencias ≤ 12; el peor caso de cada trabajo ≤ su tope (352 min el de `plazos-y-territorio`), también con cuatro evals más, y > 352 min con dos | `TestDefinicionDelJob` (`fallosDeLasSesionesALaVez`, `peor-caso`, `cuatro-evals-mas`) y `TestPlanEnDosModos` | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob`, `ci:internal/evals/plan_test.go:TestPlanEnDosModos` |
 | SC-007, FR-023 | 429 caracteres la de `plazos-y-territorio` (≤ 450); suma de la variante ≤ 1 700; cada `description` ≤ 900; el texto de FR-023 byte a byte | `TestDescripcionesCortas`, `TestDescripcionesDelProducto`, `TestSkillsDelProductoDesdeControl`, `h41-4-skills-instaladas` y `h45-skills-instaladas` | `ci:internal/evals/laboratorio_descripciones_test.go:TestDescripcionesCortas`, `ci:internal/evals/descripciones_del_producto_test.go:TestDescripcionesDelProducto`, `ci:internal/evals/laboratorio_familias_test.go:TestSkillsDelProductoDesdeControl`, `ci:internal/app/e2e_test.go:TestEntregaDelHito` |
@@ -277,7 +279,7 @@ lanzar» del spec es de la persona y no es de este plan.
 | SC-011 | `make ci` con 0 fallos | `make ci` | `ci:Makefile:ci` |
 
 Los nombres de los umbrales de las evals salen de los prefijos de `internal/evals/umbrales.go:128-141`, de
-`claseDeLasDescripciones` (`descripciones.go:29`) y del modelo `MODELO_DE_EVALS` de `.github/workflows/evals.yml:298`
+`claseDeLasDescripciones` (`descripciones.go:29`) y del modelo `MODELO_DE_EVALS` de `.github/workflows/evals.yml:307`
 (`claude-sonnet-5-5`); el hito no cambia ningún umbral, clase ni eval. La activación ante las preguntas de hoy (SC-010,
 la regla por serie del ADR 0016) va en los umbrales `sin_activar` de cada skill. Cada control de las filas de `ci:` tiene
 su mutante en `mutantes.md`.

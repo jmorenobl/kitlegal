@@ -50,7 +50,8 @@ la vertical de ensayo, que crece con un tipo de plazo y una fila con norma. H42 
 - `UnionDeGrabaciones` (`internal/evals/grabaciones.go`, línea 74) devuelve `GrabacionesDeH4`, `GrabacionesDeH5`,
   `GrabacionesDeH9` y `GrabacionesDeH36` (`../../evidencias/h36/boe.legislacion-consolidada`). En `evidencias/`, solo
   `h36/` tiene una carpeta `boe.legislacion-consolidada/`; `h9/` tiene `boe.fiestas-laborales/` y
-  `bocm.fiestas-locales/`; `h6/`, `h23/`, `adr-*` y `sondeos-*` tienen `manifiesto.json` y ninguna. `grabar-datos.sh`
+  `bocm.fiestas-locales/`; `h6/`, `adr-*` y `sondeos-*` tienen `manifiesto.json` y ninguna, y `h23/` está vacía (fuera de
+  git, solo en el árbol de trabajo). `grabar-datos.sh`
   (línea 100) nombra la carpeta de un hito con su id en minúsculas y el punto como guion (`H9.1` → `h9-1`).
 - `.github/workflows/evals.yml`: concurrencia 1 (`consulta-juridica`), 3 (`jurisprudencia`), 5 (`normativa`) y 2
   (`plazos-y-territorio`), once en total; `sesionesALaVezComoMucho = 11` (`internal/evals/definicion_test.go`, línea
@@ -459,7 +460,7 @@ guion `h41-4-skills-instaladas.txtar` y el juez de las descripciones del cierre 
   genera desde `data/`, no del uso: con meses de uso diario, cientos de normas y miles de bloques consultados, es la
   misma. Un tipo o una fila deja de salir cuando sale de `data/` o cambia de paquete, en el siguiente `make skills-sync`.
 - **`references/con_herramientas.md` de `normativa`**: la lee `normativa` una vez por conversación, antes de la primera
-  orden o llamada (cuerpo, línea 16); gana los 176 caracteres de FR-009 (de 2 442 a unos 2 616 bytes, sin la sangría).
+  orden o llamada (cuerpo, línea 16); gana las líneas de FR-009 sin la sangría, 168 caracteres, y una línea en blanco (de 2 442 a 2 611 bytes).
   El modelo que no tiene herramientas MCP y está en PowerShell 5.1 usa la forma movida una vez por bloque leído sin
   fecha. No depende del uso acumulado.
 - **El cuerpo de `normativa`**: lo carga el agente al activar la skill, una vez por conversación; baja de unos 10 927 a

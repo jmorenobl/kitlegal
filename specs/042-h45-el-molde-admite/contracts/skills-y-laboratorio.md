@@ -6,8 +6,8 @@
   «En PowerShell 5.1:», la valla ` ```powershell`, la orden y la valla de cierre. Nada más cambia en el cuerpo (ni la
   orden de Bash de las líneas 35-37, ni «La comprobación, nunca sin argumentos…» de la 42).
 - `skills/normativa/references/con_herramientas.md` acaba, tras una línea en blanco, con esas cuatro líneas sin la
-  sangría (bytes de §C.2 del spec). El fichero pasa de 2 442 bytes a unos 2 616; el cuerpo, de 10 926/10 927 a unos 10 751
-  caracteres.
+  sangría (bytes de §C.2 del spec). El fichero pasa de 2 442 bytes a 2 611 (168 de las cuatro líneas sin la sangría y
+  1 de la línea en blanco); el cuerpo, de 10 926/10 927 a 10 750/10 751 caracteres (176 menos, con la sangría).
 - Quién lo lee: el agente que usa `normativa`, una vez por conversación y antes de la primera orden (el cuerpo lo
   manda en su línea 16); la forma movida la usa quien está en PowerShell 5.1 sin herramientas MCP, una vez por bloque
   leído sin fecha. No crece con el uso.

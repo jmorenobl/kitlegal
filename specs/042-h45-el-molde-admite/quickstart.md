@@ -46,7 +46,7 @@ Esperado: los tres subtests en `PASS`.
 go test -count=1 -v -run '^TestEntregaDelHito$/^h45-paquete-de-mas$' ./internal/app/
 ```
 
-Esperado: `PASS`. Tarda unos segundos más que otro guion: copia el módulo a su `$WORK` (unos 150 MB, que testscript borra
+Esperado: `PASS`. Tarda unos segundos más que otro guion: copia el módulo a su `$WORK` (unos 50 MB, que testscript borra
 al acabar) y corre dos `go test` en la copia.
 
 ## 5. `normativa` hace sitio y el control lo admite (US5 · FR-009 a FR-013 · SC-008)

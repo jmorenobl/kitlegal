@@ -16,7 +16,8 @@ func esDeUnaRaizDeGrabaciones(ruta string) bool           // internal/evals/depe
   `../../evidencias/h36/boe.legislacion-consolidada`, la constante de hoy, que desaparece.
 - `carpetaDeUnHito`: `h36` → (36, 0, sí); `h9-1` → (9, 1, sí); `adr-0036`, `sondeos-20261025` → no. Otros nombres no los
   escribe `grabar-datos.sh` (umbral de materialidad): no se prueban aparte.
-- Error: el de `os.ReadDir` de `evidencias/`, envuelto con la ruta. Los llamadores lo propagan:
+- Error: el de `os.ReadDir` de `evidencias/`, envuelto con la ruta, y el de `os.Stat` al mirar el `manifiesto.json` o la
+  carpeta de la fuente de un hito (que no existan no es error: la carpeta no entra), con su ruta. Los llamadores lo propagan:
   `medida.go:1158` y `:1244`, `sesiones.go:441`, `dependencias.go:819` y los tests (también
   `internal/skills/normas_test.go:534`).
 - `rutaQueMide` no lee el disco: una ruta es de una raíz si empieza por una de las tres fijas, por `GrafosPrevios` o por

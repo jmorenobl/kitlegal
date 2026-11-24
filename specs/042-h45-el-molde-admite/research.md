@@ -291,8 +291,8 @@ nombre), `golang-error-handling` (`errors.Join` para los defectos de una región
   corre, el de v0.1.0 con `ldflags` y sin red.
 - **V9 · Lo grabado de `BOE-A-2015-11722`**: `ls testdata/evals/boe.legislacion-consolidada/` lleva sus `metadatos`,
   `texto_indice` y `texto_bloque_a1`; `grep` de `data/normas.yaml` no la tiene (ejecutado).
-- **V10 · Tamaño del árbol copiado**: `du -sh` sin las carpetas excluidas, unos 150 MB (`specs` 77 MB, `.specify` 33 MB,
-  excluidas también en D3).
+- **V10 · Tamaño del árbol copiado**: `du -sh` sin las carpetas excluidas, 49 MB en el barrido global; `specs` (78 MB) y
+  `.specify` (35 MB) no entran, excluidas también en D3.
 - **V11 · El directorio de trabajo de un guion**: `testscript.go:355-359` lo borra al acabar salvo con `TestWork` o
   `-testwork`, que el arnés de `internal/app` no pone; la copia de D3 no queda en el disco.
 - **V12 · `go env -json`**: `go help env` («usage: go env [-json] [-changed] [-u] [-w] [var ...]»; línea 10, «The -json
