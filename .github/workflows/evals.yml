@@ -250,9 +250,6 @@ jobs:
           - skill: consulta-juridica
             concurrencia: 1
             objetivo_de_duracion: 0
-          - skill: jurisprudencia
-            concurrencia: 3
-            objetivo_de_duracion: 0
           - skill: normativa
             concurrencia: 5
             objetivo_de_duracion: 900
