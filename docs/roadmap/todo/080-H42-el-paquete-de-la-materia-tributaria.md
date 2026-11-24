@@ -84,7 +84,7 @@ depende_de: [H45, H45.1, H46]
   - el cuerpo de `normativa` pasa de 10 750 a 10 820 caracteres y el de `plazos-y-territorio` de 10 686 a 10 756 (el
     guion de H33 le pone un tope de 10 860); las descripciones no cambian. Así, con un paquete de más, `normativa`
     pasa de 11 000 en `h45-paquete-de-mas`; con los cuerpos de H46 (ADR 0063), sobre su prototipo
-    (`cuerpos-con-fiscal`), quedan en 9568 y 9458, y el guion sale en verde;
+    (`cuerpos-con-fiscal`), quedan en 9568 y 9647, y el guion sale en verde;
   - el peor caso de la medida es de 223, 187 y 49 sesiones (459), y el de `plazos-y-territorio`, con 16 evals a tres,
     de 5 h 14 min sobre 352 min;
   - caen cuatro tests de Go que el molde de H45 dejó atados al estado de hoy (los arregla H45.1) y los guiones de H32 y
