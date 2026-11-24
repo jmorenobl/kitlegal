@@ -1,0 +1,12 @@
+# Eval de lo no declarado del paquete tributario (H42): el recurso contra una liquidación del IRPF de la Hacienda Foral
+# de Bizkaia, de una hacienda foral, que ni los dos tipos del paquete ni ninguna fila de lo regulado aparte cubren. La
+# respuesta tiene que dar la línea ⚠ NO CUBIERTO: fuera de lo declarado, sin calcular ningún plazo ni dar la línea
+# ⚠ PLAZO:. Con el formato de hoy cualquier línea ⚠ NO CUBIERTO: lo cumple: mide que no se calcula, no que se elija la
+# línea de lo no declarado y no la de la fila con la LGT (ADR 0062, punto 6; ADR 0058, punto 1).
+pregunta: "Vivo en Bilbao y el 9 de septiembre de 2026 la Hacienda Foral de Bizkaia me notificó una liquidación del IRPF. ¿Hasta cuándo puedo recurrirla?"
+activa: true
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  fuera_de_lo_declarado: true

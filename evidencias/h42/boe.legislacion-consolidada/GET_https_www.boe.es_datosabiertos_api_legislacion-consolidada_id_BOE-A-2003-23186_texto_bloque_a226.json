@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:50Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a226",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "2208"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:50 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a226\" tipo=\"precepto\" titulo=\"Artículo 226\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 226. Ámbito de aplicación de las reclamaciones económico-administrativas.</p>\n        <p class=\"parrafo\">Podrá reclamarse en vía económico-administrativa en relación con las siguientes materias:</p>\n        <p class=\"parrafo\">a) La aplicación de los tributos y la imposición de sanciones tributarias que realicen la Administración General del Estado y las entidades de derecho público vinculadas o dependientes de la misma.</p>\n        <p class=\"parrafo\">b) La aplicación de los tributos cedidos por el Estado a las comunidades autónomas o de los recargos establecidos por éstas sobre tributos del Estado y la imposición de sanciones que se deriven de unos y otros.</p>\n        <p class=\"parrafo\">c) Cualquier otra que se establezca por precepto legal expreso.</p>\n      </version>\n      <version id_norma=\"BOE-A-2009-20375\" fecha_publicacion=\"20091219\" fecha_vigencia=\"20091220\">\n        <p class=\"articulo\">Artículo 226. Ámbito de las reclamaciones económico-administrativas.</p>\n        <p class=\"parrafo\">Podrá reclamarse en vía económico-administrativa en relación con las siguientes materias:</p>\n        <p class=\"parrafo_2\">a) La aplicación de los tributos del Estado o de los recargos establecidos sobre ellos y la imposición de sanciones tributarias que realicen la Administración General del Estado y las entidades de derecho público vinculadas o dependientes de la misma y las Administraciones tributarias de las Comunidades Autónomas y de las Ciudades con Estatuto de Autonomía.</p>\n        <p class=\"parrafo\">b) Cualquier otra que se establezca por precepto legal del Estado expreso.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica por la disposición final 3.2 de la Ley 22/2009, de 18 de diciembre. <a class=\"refPost\">Ref. BOE-A-2009-20375</a></p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

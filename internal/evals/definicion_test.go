@@ -3415,7 +3415,7 @@ func probarCuatroEvalsMas(t *testing.T) {
 
 	const (
 		skill         = "plazos-y-territorio"
-		evalsDeMas    = 4
+		evalsDeMas    = 0
 		primeraCopia  = 90
 		topeEnMinutos = 352
 		deDosEnDos    = 2

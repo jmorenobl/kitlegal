@@ -388,13 +388,13 @@ func TestCoberturaDelRepositorio(t *testing.T) {
 			"gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y " +
 				"desempleo", lpac, "DA 1ª.2.b", "",
 		},
-		{"procedimientos sancionadores en materia tributaria y aduanera", lpac, "DA 1ª.2.c", ""},
+		{"procedimientos sancionadores en materia aduanera", lpac, "DA 1ª.2.c", ""},
 		{"procedimientos sancionadores en el orden social", lpac, "DA 1ª.2.c", ""},
 		{"procedimientos sancionadores en materia de tráfico y seguridad vial", lpac, "DA 1ª.2.c", "BOE-A-2015-11722"},
 		{"procedimientos sancionadores en materia de extranjería", lpac, "DA 1ª.2.c", ""},
 		{"actuaciones y procedimientos en materia de extranjería y asilo", lpac, "DA 1ª.2.d", ""},
 		{"procedimientos de impugnación que una ley establece en sustitución del recurso de alzada", lpac, "112.2", ""},
-		{"reclamaciones económico-administrativas", lpac, "112.4", ""},
+		{"reclamaciones económico-administrativas", lpac, "112.4", "BOE-A-2003-23186"},
 	}), deLaBase(leidas), "%s trae, de las nueve entradas de contracts/datos-de-plazos.md §3, las de %s, en su orden",
 		coberturaDelRepositorio, paqueteDeLaBase)
 }

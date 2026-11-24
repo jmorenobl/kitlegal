@@ -1,0 +1,32 @@
+# Eval de plazo del paquete tributario (H42, la de la aceptación): el recurso de reposición contra una liquidación del
+# IRPF de la Agencia Tributaria, con el interesado en Leganés y el órgano en Madrid. La respuesta tiene que calcular el
+# plazo con plazos calcular reposicion-tributaria, leer el art. 223 de la LGT en la redacción vigente el día de la
+# notificación, dar la fecha en la línea ⚠ PLAZO: con su cita y decir qué redacción cita en la línea
+# ⚠ REDACCIÓN A FECHA:; con esta entrada, plazos no da ningún aviso (ADR 0062, punto 6; ADR 0041).
+pregunta: "Vivo en Leganés y el 9 de septiembre de 2026 me notificaron una liquidación del IRPF de la Delegación de la Agencia Tributaria en Madrid. ¿Hasta cuándo puedo recurrirla en reposición?"
+activa: true
+comandos:
+  - applet: plazos
+    verbo: calcular
+    tipo: reposicion-tributaria
+  - applet: boe
+    norma: BOE-A-2003-23186
+    bloque: a223
+    fecha: "2026-09-09"
+citas:
+  - norma: BOE-A-2003-23186
+    bloque: a223
+redaccion_fechada:
+  norma: BOE-A-2003-23186
+  bloque: a223
+  fecha: "2026-09-09"
+  fecha_vigencia: "20040701"
+plazo:
+  fecha: "2026-10-13"
+  avisos: []
+  razonamiento: >-
+    Un mes (art. 223.1 LGT) contado desde el día siguiente al de la notificación, con el cómputo del art. 30 LPAC, al
+    que lleva el art. 7.2 LGT: vence el mismo día del mes siguiente, el viernes 9 de octubre de 2026, fiesta local de
+    Leganés (BOCM-20251212-34). El último día inhábil se prorroga al primer día hábil siguiente: el 10 y el 11 son
+    sábado y domingo, y el 12 es fiesta nacional (BOE-A-2025-21667), así que el plazo vence el martes 13 de octubre de
+    2026. Los festivos saltados son el 9, local de Leganés, y el 12, nacional.

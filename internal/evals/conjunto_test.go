@@ -2956,7 +2956,7 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 // que un mutante de esa regla no lo arrastre (contracts/tests-sin-listas.md de
 // H45).
 func llevaNoCubierto(eval Eval) bool {
-	return eval.NoCubierto != NoCubiertoEsperado{}
+	return eval.NoCubierto != NoCubiertoEsperado{} && !eval.NoCubierto.FueraDeLoDeclarado
 }
 
 // probarLasSkillsNombradas es el subtest skills-nombradas de
@@ -5312,7 +5312,7 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 
 	sinSuFormaEnLaReferencia := []string{"normativa: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
 		sinSuForma}
-	sinSuFormaEnElSkillMd := []string{"normativa: SKILL.md: línea 36, «" + bashDelPasoDos + "»" + sinSuForma}
+	sinSuFormaEnElSkillMd := []string{"normativa: SKILL.md: línea 37, «" + bashDelPasoDos + "»" + sinSuForma}
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
 	}

@@ -1,0 +1,33 @@
+# Eval de plazo del paquete tributario (H42): la reclamación económico-administrativa contra una liquidación del IVA
+# de la Agencia Tributaria, con el interesado en Leganés y el órgano en Madrid, cuyo vencimiento cae en una fiesta
+# local de Madrid y no de Leganés (art. 30.6 LPAC). La respuesta tiene que calcular el plazo con plazos calcular
+# reclamacion-economico-administrativa, leer el art. 235 de la LGT en la redacción vigente el día de la notificación,
+# dar la fecha en la línea ⚠ PLAZO: con su cita y decir qué redacción cita en la línea ⚠ REDACCIÓN A FECHA:; con esta
+# entrada, plazos no da ningún aviso (ADR 0062, punto 6; ADR 0041).
+pregunta: "Vivo en Leganés y el 15 de abril de 2026 me notificaron una liquidación del IVA de la Delegación de la Agencia Tributaria en Madrid. Quiero reclamar directamente ante el tribunal económico-administrativo: ¿hasta cuándo puedo?"
+activa: true
+comandos:
+  - applet: plazos
+    verbo: calcular
+    tipo: reclamacion-economico-administrativa
+  - applet: boe
+    norma: BOE-A-2003-23186
+    bloque: a235
+    fecha: "2026-04-15"
+citas:
+  - norma: BOE-A-2003-23186
+    bloque: a235
+redaccion_fechada:
+  norma: BOE-A-2003-23186
+  bloque: a235
+  fecha: "2026-04-15"
+  fecha_vigencia: "20151012"
+plazo:
+  fecha: "2026-05-18"
+  avisos: []
+  razonamiento: >-
+    Un mes (art. 235.1 LGT) contado desde el día siguiente al de la notificación, con el cómputo del art. 30 LPAC, al
+    que lleva el art. 7.2 LGT: vence el mismo día del mes siguiente, el viernes 15 de mayo de 2026, fiesta local de
+    Madrid (BOCM-20251212-34), la sede del órgano, e inhábil por el art. 30.6 LPAC aunque no lo sea en Leganés. El 16
+    y el 17 son sábado y domingo, así que el plazo vence el lunes 18 de mayo de 2026. El festivo saltado es el 15,
+    local de Madrid.

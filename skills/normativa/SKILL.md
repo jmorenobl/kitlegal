@@ -23,6 +23,7 @@ Lee [normas](references/normas.md) y toma el `BOE-A-…` de su tabla; si no est�
 [buscar_la_norma](references/buscar_la_norma.md) y búscala como dice.
 
 <!-- paquetes: lo genera make skills-sync -->
+- Si la pregunta es de lo fiscal, lee [fiscal](references/fiscal.md).
 <!-- fin de los paquetes -->
 
 ### 2. Leer

@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:49Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a223",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1856"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:49 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a223\" tipo=\"precepto\" titulo=\"Artículo 223\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 223. Iniciación y tramitación del recurso de reposición.</p>\n        <p class=\"parrafo\">1. El plazo para la interposición de este recurso será de un mes contado a partir del día siguiente al de la notificación del acto recurrible o del siguiente a aquel en que se produzcan los efectos del silencio administrativo.</p>\n        <p class=\"parrafo\">Tratándose de deudas de vencimiento periódico y notificación colectiva, el plazo para la interposición se computará a partir del día siguiente al de finalización del período voluntario de pago.</p>\n        <p class=\"parrafo\">2. Si el recurrente precisase del expediente para formular sus alegaciones, deberá comparecer durante el plazo de interposición del recurso para que se le ponga de manifiesto.</p>\n        <p class=\"parrafo\">3. A los legitimados e interesados en el recurso de reposición les serán aplicables las normas establecidas al efecto para las reclamaciones económico-administrativas.</p>\n        <p class=\"parrafo\">4. La reposición somete a conocimiento del órgano competente para su resolución todas las cuestiones de hecho o de derecho que ofrezca el expediente, hayan sido o no planteadas en el recurso, sin que en ningún caso se pueda empeorar la situación inicial del recurrente.</p>\n        <p class=\"parrafo\">Si el órgano competente estima pertinente examinar y resolver cuestiones no planteadas por los interesados, las expondrá a los mismos para que puedan formular alegaciones.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
