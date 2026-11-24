@@ -55,5 +55,5 @@ documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a 
 
 - Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o
   `resolucion` con `fecha`).
-- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se nombran como las
-  nombra el texto.
+- Las sentencias que el documento menciona no se citan con la forma del paso 4 de `SKILL.md` ni se les pone ECLI:
+  se nombran como las nombra el texto.

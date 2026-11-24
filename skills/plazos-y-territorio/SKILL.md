@@ -68,6 +68,16 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
     la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
     `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
 
+## Cómo se presenta el territorio
+
+La cobertura, con la clave y el valor exactos, una línea por aspecto:
+
+```text
+boletin_autonomico: <valor>
+boletin_provincial: <valor>
+dir3: <valor>
+```
+
 ## Cómo se presenta un plazo
 
 Un precepto se cita con su forma legible y, en la misma línea, entre corchetes, el identificador y el id, nada más:

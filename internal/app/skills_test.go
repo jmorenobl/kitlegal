@@ -826,21 +826,63 @@ func primeraCelda(t *testing.T, referencia referenciaDelRecorrido) string {
 func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
-	return []casoSobreUnaCopia{
+	casos := []casoSobreUnaCopia{
 		{nombre: "cuatrocientas-noventa-y-nueve-lineas", alterar: partirElCuerpo(skill.nombre, 499)},
 		{
 			nombre:  "quinientas-lineas",
 			alterar: partirElCuerpo(skill.nombre, 500),
 			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 500 líneas (máximo 499)"},
 		},
-		{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
-		{
+	}
+
+	// Con las marcas de los paquetes, el cuerpo sin sus líneas tiene su propio
+	// presupuesto (ADR 0063, punto 1): ensanchado fuera de ellas, 9600 caracteres
+	// sin las líneas de los paquetes no son un defecto y 9601 sí, y con 11 001 en
+	// el cuerpo entero salen los dos.
+	skillMd := leerFicheroDelArbol(t, rutaEnLaSkill(raizDelRepositorio, skill.nombre, "SKILL.md"))
+	_, tras, conMarcas := strings.Cut(skillMd, "\n"+marcaDeLosPaquetes+"\n")
+	if !conMarcas {
+		return append(casos,
+			casoSobreUnaCopia{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
+			casoSobreUnaCopia{
+				nombre:  "once-mil-y-un-caracteres",
+				alterar: ensancharElCuerpo(skill.nombre, 11001),
+				fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
+			})
+	}
+
+	lineasDeLosPaquetes, _, _ := strings.Cut(tras, finDeLosPaquetes+"\n")
+	paquetes := utf8.RuneCountInString(lineasDeLosPaquetes)
+
+	return append(casos,
+		casoSobreUnaCopia{
+			nombre:  "nueve-mil-seiscientos-sin-los-paquetes",
+			alterar: ensancharElCuerpo(skill.nombre, 9600+paquetes),
+		},
+		casoSobreUnaCopia{
+			nombre:  "nueve-mil-seiscientos-uno-sin-los-paquetes",
+			alterar: ensancharElCuerpo(skill.nombre, 9601+paquetes),
+			fallos: []string{
+				skill.nombre + ": SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)",
+			},
+		},
+		casoSobreUnaCopia{
 			nombre:  "once-mil-y-un-caracteres",
 			alterar: ensancharElCuerpo(skill.nombre, 11001),
-			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
-		},
-	}
+			fallos: []string{
+				skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)",
+				fmt.Sprintf("%s: SKILL.md: cuerpo sin las líneas de los paquetes de %d caracteres (máximo 9600)",
+					skill.nombre, 11001-paquetes),
+			},
+		})
 }
+
+// marcaDeLosPaquetes es la de inicio de la región de los paquetes de un
+// SKILL.md de capacidad (contracts/paquetes.md §2 de H32).
+const (
+	marcaDeLosPaquetes = "<!-- paquetes: lo genera make skills-sync -->"
+	finDeLosPaquetes   = "<!-- fin de los paquetes -->"
+)
 
 // partirElCuerpo convierte en saltos de línea, de uno en uno y desde el
 // principio, los espacios de las líneas de prosa del cuerpo del SKILL.md de la

@@ -30,6 +30,12 @@ const (
 	maximoDeLineasDelCuerpo     = 499
 	maximoDeCaracteresDelCuerpo = 11000
 
+	// maximoSinLosPaquetes es el presupuesto del cuerpo de un SKILL.md con las
+	// marcas de los paquetes, sin las líneas que la sincronía escribe entre
+	// ellas: lo que queda hasta los 11 000 es el sitio de las materias (ADR
+	// 0063, punto 1).
+	maximoSinLosPaquetes = 9600
+
 	// carpetaDeLosScripts es la entrada que una skill no lleva: la de los
 	// enlaces al binario de la instalación anterior, que se retiró cuando las
 	// skills pasaron a invocar kitlegal desde el PATH (ADR 0019; FR-082 de H19).
@@ -624,6 +630,17 @@ func defectosDelCuerpo(skill string, contenido []byte) []*DefectoDeSkill {
 			Defecto: fmt.Sprintf("%s: cuerpo de %d caracteres (máximo %d)", ficheroDeLaSkill, caracteres,
 				maximoDeCaracteresDelCuerpo),
 		})
+	}
+
+	if region, conRegion, err := regionDeLosPaquetes.buscar(cuerpo); err == nil && conRegion {
+		sinLosPaquetes := utf8.RuneCount(cuerpo) - utf8.RuneCount(cuerpo[region.desde:region.hasta])
+		if sinLosPaquetes > maximoSinLosPaquetes {
+			defectos = append(defectos, &DefectoDeSkill{
+				Skill: skill,
+				Defecto: fmt.Sprintf("%s: cuerpo sin las líneas de los paquetes de %d caracteres (máximo %d)",
+					ficheroDeLaSkill, sinLosPaquetes, maximoSinLosPaquetes),
+			})
+		}
 	}
 
 	return defectos

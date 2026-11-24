@@ -680,9 +680,9 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 					"- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió " +
 					"(`ecli`, `roj`, o\n" +
 					"  `resolucion` con `fecha`).\n" +
-					"- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se " +
-					"nombran como las\n" +
-					"  nombra el texto.\n",
+					"- Las sentencias que el documento menciona no se citan con la forma del paso 4 de `SKILL.md` ni se " +
+					"les pone ECLI:\n" +
+					"  se nombran como las nombra el texto.\n",
 			},
 		},
 	},
@@ -743,18 +743,10 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 					"cobertura.\n",
 			},
 			{
-				antes: "\n" +
-					"## Cómo se presenta el territorio\n" +
-					"\n" +
-					"Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con " +
+				antes: "Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con " +
 					"la clave y el valor\n" +
-					"exactos, una línea por aspecto, y detrás puedes explicarla:\n" +
-					"\n" +
-					"```text\n" +
-					"boletin_autonomico: <valor>\n" +
-					"boletin_provincial: <valor>\n" +
-					"dir3: <valor>\n" +
-					"```\n",
+					"exactos, una línea por aspecto, y detrás puedes explicarla:\n",
+				despues: "La cobertura, con la clave y el valor exactos, una línea por aspecto:\n",
 			},
 			{
 				antes: "Con la herramienta de su fila si entre las tuyas hay una con ese nombre, sola o tras el prefijo de " +
@@ -815,17 +807,11 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 				antes:      "- Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.\n",
 				despues: "- Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.\n" +
 					"\n" +
-					"## Cómo se presenta el territorio\n" +
+					"## Cómo se presenta cada dato\n" +
 					"\n" +
-					"Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con " +
-					"la clave y el valor\n" +
-					"exactos, una línea por aspecto, y detrás puedes explicarla:\n" +
-					"\n" +
-					"```text\n" +
-					"boletin_autonomico: <valor>\n" +
-					"boletin_provincial: <valor>\n" +
-					"dir3: <valor>\n" +
-					"```\n" +
+					"Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos. La cobertura va " +
+					"como dice «Cómo se\n" +
+					"presenta el territorio» de `SKILL.md`, y detrás puedes explicarla.\n" +
 					"\n" +
 					"## Herramienta u orden\n" +
 					"\n" +

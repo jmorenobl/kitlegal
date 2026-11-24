@@ -62,16 +62,10 @@ dir3: <valor>
   3 con un `data.mensaje` que empieza por «el plazo de tipo» no es de un municipio: es el plazo sin calcular del paso 9.
 - Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.
 
-## Cómo se presenta el territorio
+## Cómo se presenta cada dato
 
-Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con la clave y el valor
-exactos, una línea por aspecto, y detrás puedes explicarla:
-
-```text
-boletin_autonomico: <valor>
-boletin_provincial: <valor>
-dir3: <valor>
-```
+Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos. La cobertura va como dice «Cómo se
+presenta el territorio» de `SKILL.md`, y detrás puedes explicarla.
 
 ## Herramienta u orden
 
