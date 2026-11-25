@@ -108,6 +108,10 @@ export const enLlano: Record<string, { titulo: string; frase: string }> = {
     titulo: "Las pruebas del molde, sin el estado de hoy",
     frase: "Las comprobaciones internas dejan de depender de lo que hay hoy en los datos, para que la materia tributaria entre sin tocar el programa.",
   },
+  H46: {
+    titulo: "Sitio para veinte materias",
+    frase: "Las instrucciones que el asistente lee siempre se acortan, y lo que solo pide un tipo de pregunta pasa a la guía que esa pregunta ya lee, para que quepan unas veinte materias sin cambiar las respuestas.",
+  },
   H42: {
     titulo: "Lo tributario, como segunda materia",
     frase: "Los plazos del recurso de reposición y de la reclamación económico-administrativa contra los tributos del Estado. Fuera quedan las sanciones, los tributos locales y autonómicos propios, las aduanas, las haciendas forales, los modelos y los escritos.",
