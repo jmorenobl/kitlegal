@@ -7,8 +7,9 @@ depende_de: [H45.1]
 # H46 · Los cuerpos de las skills de capacidad, con sitio para las materias (ADR 0063)
 
 - **Objetivo**: que una materia nueva quepa en el cuerpo de cada skill de capacidad sin tocar su protocolo. Hoy no
-  caben dos: el prototipo de H42 sobre la cabeza de H45.1 (`4eb02776`, fusionada como `7aaad57f`) deja `make ci` en
-  rojo en el guion `h45-paquete-de-mas`, con el cuerpo de `normativa` en 11 030 caracteres de 11 000 (ADR 0046). El
+  caben dos: el paquete de H42 sin ningún `.go` (`git diff 5153857c^ abfd73ca -- . ':!*.go' ':!.github'`), sobre la
+  cabeza de H45.1 (`4eb02776`, fusionada como `7aaad57f`), deja `make ci` en rojo en el guion `h45-paquete-de-mas`, con
+  el cuerpo de `normativa` en 11 030 caracteres de 11 000 (ADR 0046). El
   hito adelgaza los cuerpos de `normativa`, `plazos-y-territorio` y `jurisprudencia` con progressive disclosure —en el
   cuerpo, solo lo que toda respuesta necesita— y reserva en cada uno 1400 caracteres para las líneas de los paquetes,
   unas veinte materias, comprobados por `make ci`. Las respuestas no cambian: lo deciden las evals.
@@ -31,8 +32,9 @@ depende_de: [H45.1]
 - **La fuente de los textos es el prototipo.** Lo que entrega este hito en `skills/` es, byte a byte, lo que tiene la
   rama `cuerpos-prototipo` en `f89093dd` (`git diff main f89093dd -- skills/`). Con él, `normativa` mide 9498,
   `plazos-y-territorio` 9577 (9483 sin la línea de lo administrativo) y `jurisprudencia` 9473; `make ci` sale en verde,
-  también con el paquete fiscal de H42 encima y sin ningún `.go` suyo (rama `cuerpos-con-fiscal`: 9568 y 9647 en las
-  dos skills que lo reciben). Los cambios de Go y de tests del prototipo son una guía, no la entrega: el plan los
+  también con el paquete fiscal de H42 encima y sin ningún `.go` suyo (rama `cuerpos-con-fiscal`, sobre `26514fae`,
+  que tiene los mismos `skills/` que `f89093dd`: 9568 y 9647 en las dos skills que lo reciben). Los cambios de Go y de
+  tests del prototipo son una guía, no la entrega: el plan los
   rehace con sus requisitos y sus mutantes.
 - **Entrega**:
   1. **La tabla de comandos, sin lo que da la llamada** (ADR 0063, punto 2). `RenderizarTabla`
@@ -75,15 +77,19 @@ depende_de: [H45.1]
      producto de `TestSkillsDelProductoDesdeControl` (`internal/evals/laboratorio_familias_test.go`, un cambio por
      texto, en el cuerpo o en una referencia, con los bytes del prototipo); y las remisiones del plan
      (`remisionesDelPlan`, `internal/skills/remisiones_test.go`), con las dos frases nuevas.
-  5. **Los guiones que fijan el texto de hoy, en una tarea `[datos]`** que va justo después de la del punto 3 y no
-     mezcla otro trabajo. Entre las dos, esos dos guiones de `TestEntregaDelHito` salen en rojo por el texto nuevo, y
-     es lo esperado: la tarea del punto 3 se verifica con todo `make ci` salvo ellos, y la `[datos]`, con todo. Son: `internal/app/testdata/script/h41-skills-instaladas.txtar`, que busca la orden de `consulta_preparada.md`
-     con su frase nueva en el cuerpo y la tabla en la referencia; y `h41-1-skills-instaladas.txtar`, con la orden nueva
-     de `municipios.md`, igual en su copia congelada
+  5. **Los guiones que fijan el texto de hoy**: `internal/app/testdata/script/h41-skills-instaladas.txtar`, que busca
+     la orden de `consulta_preparada.md` con su frase nueva en el cuerpo y la tabla en la referencia; y
+     `h41-1-skills-instaladas.txtar`, con la orden nueva de `municipios.md`, igual en su copia congelada
      (`specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar`).
   6. **La guía y el registro**: `docs/SKILLS.md` §1 (qué lleva la tabla de comandos, con sus tres columnas, como texto
-     nuevo; y, en «La vertical de ensayo», sin el sitio para otra línea de su misma longitud), §3 (el sitio de las materias, con su porqué y las cifras al cerrar) y §5 (el defecto nuevo en su tabla y
+     nuevo; y, en «La vertical de ensayo», sin el sitio para otra línea de su misma longitud), §3 (el sitio de las
+     materias, con su porqué y las cifras al cerrar) y §5 (el defecto nuevo en su tabla y
      los 9600 en «En los límites, en verde»); `CHANGELOG.md`, con la versión de cada skill que cambia.
+- **Tareas y orden.** Los puntos 3, 4 y 5 van en una sola tarea `[datos]`, como T002 de H41.1
+  (`specs/035-h41-1-plazos-y-territorio/tasks.md`): con los textos nuevos, cada parte que falte deja `make ci` en rojo,
+  y la verificación de cada tarea corre `make ci` entero (`scripts/workflow/verificar.sh`). El orden es el punto 1, esa
+  tarea y, después, el punto 2: con la regla antes que los textos, `plazos-y-territorio` y `jurisprudencia` quedan por
+  encima de 9600 sin las líneas de los paquetes y `make ci` sale en rojo. El punto 6 va con lo que describe o al final.
 - **La suite de aceptación** (la primera tarea) comprueba, sobre las skills instaladas con `kitlegal skills install`,
   que la tabla de cada skill de capacidad tiene tres columnas y ni la línea del sobre ni la de las banderas, que las
   tres líneas de la cobertura siguen en el cuerpo de `plazos-y-territorio`, y que lo movido está en su referencia y no

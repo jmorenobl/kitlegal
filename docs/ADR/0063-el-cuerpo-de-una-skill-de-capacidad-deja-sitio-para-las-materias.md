@@ -13,8 +13,9 @@
 
 El ADR 0062 (punto 3) dejó la línea por paquete en el cuerpo de cada skill de capacidad, con unos 70 caracteres por
 paquete, y previó que «cuando el siguiente no quepa, un hito de la base cambia la forma». Ha pasado con el primero. El
-prototipo de H42 sobre la cabeza de H45.1 (`4eb02776`, fusionada como `7aaad57f`), sin sus tests parcheados, deja `make ci` en rojo en un solo punto: el
-guion `h45-paquete-de-mas` corre `TestVerticalDeEnsayo` con un paquete de más, y el cuerpo de `normativa` llega a
+paquete de H42 sin ningún `.go` (`git diff 5153857c^ abfd73ca -- . ':!*.go' ':!.github'`), aplicado sobre la
+cabeza de H45.1 (`4eb02776`, fusionada como `7aaad57f`), deja `make ci` en rojo en un solo punto: el guion
+`h45-paquete-de-mas` corre `TestVerticalDeEnsayo` con un paquete de más, y el cuerpo de `normativa` llega a
 11 030 caracteres. Con H42, `normativa` mide 10 820 y `plazos-y-territorio` 10 756; cada línea de paquete cuesta
 52 + 3n caracteres, con n la longitud del nombre (`internal/skills/paquetes.go`, `lineas`): 70 para `fiscal`, 94 para
 `administrativo`. Con el cuerpo como está, cabe uno más y no dos.
@@ -79,8 +80,9 @@ pregunta que ya lee una referencia:
    menos con nombres largos. Es una regla de `skills-check`, con su defecto
    (`normativa: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)`), su mutante en rojo y
    su límite en verde en `TestSkillsDelRepositorio`. Un `SKILL.md` sin esas marcas no la lleva. Sustituye la
-   comprobación de `TestVerticalDeEnsayo` de que cabe «otra línea de paquete de su misma longitud», que se quita. El tope de 11 000 sigue
-   siendo el del cuerpo entero, con los paquetes. Una regla nueva del protocolo cabe en ese presupuesto o saca a una
+   comprobación de `TestVerticalDeEnsayo` de que cabe «otra línea de paquete de su misma longitud», que se quita.
+   El tope de 11 000 sigue siendo el del cuerpo entero, con los paquetes. Una regla nueva del protocolo cabe en ese
+   presupuesto o saca a una
    referencia lo que solo pide una clase de pregunta (`docs/SKILLS.md` §3); no toma el sitio de las materias.
 2. **La tabla de comandos lleva la orden, la herramienta y lo que hace**, una fila por verbo, y nada más: sin la
    columna «Qué devuelve en `data`», sin la línea del sobre y sin la de las banderas comunes. La genera `make
@@ -110,7 +112,8 @@ pregunta que ya lee una referencia:
 4. **Lo deciden las evals, con una medida previa.** Antes de fusionar la entrada, un despacho del job de evals sobre un
    prototipo con estos cuerpos, con un criterio fijado antes de mirar: ninguna clase que decide por debajo de su
    umbral frente al cierre de H45.1 (`specs/043-h45-1-los-tests-del/gates/informe-final.md`, sección 3), una muestra
-   de respuestas leída, y decide solo `claude-sonnet-5-5` (ADR 0031). Como mucho un segundo despacho por pregunta.
+   de respuestas leída, y decide solo `claude-sonnet-5-5` (ADR 0031). Como mucho un segundo despacho por pregunta. Un
+   retoque de los textos posterior al despacho que no cambia lo que se mide no pide otro: lo mide el cierre del hito.
 
 ## Consecuencias
 
