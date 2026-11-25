@@ -27,8 +27,13 @@ const (
 	// maximoDeLineasDelCuerpo y maximoDeCaracteresDelCuerpo son los
 	// presupuestos del cuerpo de SKILL.md (data-model §1; FR-004 de H31): con 500
 	// líneas o más, o con más de 11 000 caracteres, es un defecto.
+	// maximoSinLosPaquetes es el del cuerpo sin las líneas de los paquetes, en una
+	// skill con sus marcas (data-model §1; FR-005 de H46): con más de 9600
+	// caracteres, es un defecto, y los 1400 que quedan hasta los 11 000 son el
+	// sitio de las líneas de los paquetes de materia.
 	maximoDeLineasDelCuerpo     = 499
 	maximoDeCaracteresDelCuerpo = 11000
+	maximoSinLosPaquetes        = 9600
 
 	// carpetaDeLosScripts es la entrada que una skill no lleva: la de los
 	// enlaces al binario de la instalación anterior, que se retiró cuando las
@@ -183,7 +188,9 @@ func (d *Deriva) Error() string {
 //     que cubre la base una línea por fila de lo cubierto de data/cobertura.yaml
 //     (regenerarLoCubierto; contracts/datos-y-regiones.md §3 de H33);
 //   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
-//     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
+//     líneas y como mucho 11 000 caracteres y, con las marcas de los paquetes en
+//     pareja, como mucho 9600 sin lo que hay entre ellas (defectosDelCuerpo;
+//     contracts/sitio-de-las-materias.md §1 de H46);
 //   - con el frontmatter sin defectos, un SKILL.md con la plantilla ⚠ NO
 //     CUBIERTO: dice en su prosa el motivo de lo no declarado de
 //     data/cobertura.yaml entre comillas angulares (comprobarElMotivo;
@@ -598,11 +605,16 @@ func sinRepetir(defectos, otros []*DefectoDeSkill) []*DefectoDeSkill {
 }
 
 // defectosDelCuerpo son los del cuerpo del SKILL.md de la skill, de contenido
-// regenerado (data-model §1; research D12; FR-004 y FR-010 de H31): uno si tiene
-// 500 líneas o más, contadas con ContarLineas, y otro si tiene más de 11 000
-// caracteres, contados como runas y no como bytes, en ese orden. Sin la línea que
-// cierra el frontmatter no hay cuerpo que medir: el defecto es el del
-// frontmatter, que ya da declaracionDeLaSkill.
+// regenerado (data-model §1; research D12; FR-004 y FR-010 de H31;
+// contracts/sitio-de-las-materias.md §1 y research D2 de H46; FR-005 y FR-006 de
+// H46): uno si tiene 500 líneas o más, contadas con ContarLineas; otro si tiene
+// más de 11 000 caracteres, contados como runas y no como bytes; y, si lleva las
+// marcas de los paquetes en pareja, otro si sin lo que hay entre sus dos líneas
+// tiene más de 9600, en ese orden. Las marcas, la tabla de comandos y todo lo
+// demás del cuerpo cuentan. Sin esas marcas, o con unas que no van en pareja, no
+// hay sitio de los paquetes que medir: el defecto de las marcas ya lo da
+// paquetes.regenerar. Sin la línea que cierra el frontmatter no hay cuerpo que
+// medir: el defecto es el del frontmatter, que ya da declaracionDeLaSkill.
 func defectosDelCuerpo(skill string, contenido []byte) []*DefectoDeSkill {
 	cuerpo, conCuerpo := cuerpoDeLaSkill(contenido)
 	if !conCuerpo {
@@ -623,6 +635,20 @@ func defectosDelCuerpo(skill string, contenido []byte) []*DefectoDeSkill {
 			Skill: skill,
 			Defecto: fmt.Sprintf("%s: cuerpo de %d caracteres (máximo %d)", ficheroDeLaSkill, caracteres,
 				maximoDeCaracteresDelCuerpo),
+		})
+	}
+
+	region, conLasMarcas, err := regionDeLosPaquetes.buscar(cuerpo)
+	if err != nil || !conLasMarcas {
+		return defectos
+	}
+
+	sinLosPaquetes := utf8.RuneCount(cuerpo) - utf8.RuneCount(cuerpo[region.desde:region.hasta])
+	if sinLosPaquetes > maximoSinLosPaquetes {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill: skill,
+			Defecto: fmt.Sprintf("%s: cuerpo sin las líneas de los paquetes de %d caracteres (máximo %d)",
+				ficheroDeLaSkill, sinLosPaquetes, maximoSinLosPaquetes),
 		})
 	}
 

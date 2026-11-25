@@ -53,6 +53,13 @@ const (
 	inicioDeLaTablaDeComandos = "<!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, " +
 		"no editar -->"
 	finDeLaTablaDeComandos = "<!-- fin de la tabla de comandos -->"
+
+	// inicioDeLosPaquetes y finDeLosPaquetes son las dos líneas que delimitan la
+	// región de los paquetes de materia de SKILL.md, la de una línea por paquete
+	// con referencia en la skill (data-model §1 de H46; contracts/paquetes.md §2
+	// de H32).
+	inicioDeLosPaquetes = "<!-- paquetes: lo genera make skills-sync -->"
+	finDeLosPaquetes    = "<!-- fin de los paquetes -->"
 )
 
 // skillsExigidas son las skills que skills/ tiene que tener: sin una de ellas,
@@ -817,29 +824,100 @@ func primeraCelda(t *testing.T, referencia referenciaDelRecorrido) string {
 
 // casosDePresupuestos son los presupuestos del cuerpo de SKILL.md de la skill
 // (contracts/gates-de-skills-check.md §2.2; FR-004, FR-010, FR-011 y SC-002 de
-// H31): 499 líneas y 11 000 caracteres, con más de 11 000 bytes, no son un
-// defecto, y 500 líneas y 11 001 caracteres sí. Cada mutante cambia una sola de
-// las dos medidas y nada de lo regenerado: las líneas, sin cambiar el número de
-// caracteres o, en un cuerpo corto como el de la skill de entrada, lejos de los
-// 11 000 (partirElCuerpo); los caracteres, con una línea más
+// H31; contracts/sitio-de-las-materias.md §2 y data-model §3 de H46; FR-005,
+// FR-006 y FR-008 de H46): 499 líneas no son un defecto, y 500 sí. En una skill
+// sin las marcas de los paquetes, 11 000 caracteres, con más de 11 000 bytes, no
+// son un defecto, y 11 001 sí. En una con ellas, de p caracteres entre sus dos
+// líneas en el SKILL.md del árbol, el cuerpo sin esas líneas tiene sitio para
+// 9600: con 9600 + p caracteres no hay defecto; con 9601 + p, solo el del cuerpo
+// sin las líneas de los paquetes, de 9601; y con 11 001, el de los 11 000 y,
+// detrás, ese, de 11 001 − p. Cada mutante cambia una sola de las medidas y nada
+// de lo regenerado: las líneas, sin cambiar el número de caracteres o, en un
+// cuerpo corto como el de la skill de entrada, lejos de los 11 000
+// (partirElCuerpo); los caracteres, con una línea más fuera de las marcas
 // (ensancharElCuerpo), lejos de las 499.
 func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
-	return []casoSobreUnaCopia{
+	presupuestos := []casoSobreUnaCopia{
 		{nombre: "cuatrocientas-noventa-y-nueve-lineas", alterar: partirElCuerpo(skill.nombre, 499)},
 		{
 			nombre:  "quinientas-lineas",
 			alterar: partirElCuerpo(skill.nombre, 500),
 			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 500 líneas (máximo 499)"},
 		},
-		{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
-		{
+	}
+
+	deLosOnceMil := skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"
+
+	entreLasMarcas, conLasMarcas := caracteresDeLosPaquetes(t,
+		leerFicheroDelArbol(t, rutaEnLaSkill(raizDelRepositorio, skill.nombre, "SKILL.md")))
+	if !conLasMarcas {
+		return append(presupuestos,
+			casoSobreUnaCopia{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
+			casoSobreUnaCopia{
+				nombre:  "once-mil-y-un-caracteres",
+				alterar: ensancharElCuerpo(skill.nombre, 11001),
+				fallos:  []string{deLosOnceMil},
+			},
+		)
+	}
+
+	sinLosPaquetes := func(caracteres int) string {
+		return fmt.Sprintf("%s: SKILL.md: cuerpo sin las líneas de los paquetes de %d caracteres (máximo 9600)",
+			skill.nombre, caracteres)
+	}
+
+	return append(presupuestos,
+		casoSobreUnaCopia{
+			nombre:  "nueve-mil-seiscientos-sin-los-paquetes",
+			alterar: ensancharElCuerpo(skill.nombre, 9600+entreLasMarcas),
+		},
+		casoSobreUnaCopia{
+			nombre:  "nueve-mil-seiscientos-uno-sin-los-paquetes",
+			alterar: ensancharElCuerpo(skill.nombre, 9601+entreLasMarcas),
+			fallos:  []string{sinLosPaquetes(9601)},
+		},
+		casoSobreUnaCopia{
 			nombre:  "once-mil-y-un-caracteres",
 			alterar: ensancharElCuerpo(skill.nombre, 11001),
-			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
+			fallos:  []string{deLosOnceMil, sinLosPaquetes(11001 - entreLasMarcas)},
 		},
+	)
+}
+
+// caracteresDeLosPaquetes son las runas del SKILL.md entre la línea de la marca
+// de inicio de los paquetes y la de fin, sin ellas, y si las lleva: sin ninguna
+// de las dos no las lleva. Una línea es una marca solo si es exactamente la
+// marca; con una sola, con alguna más de una vez o con la de fin delante, el
+// árbol ya tiene el defecto de sus marcas, y el caso no se construye.
+func caracteresDeLosPaquetes(t *testing.T, skillMd string) (int, bool) {
+	t.Helper()
+
+	caracteres, inicios, fines := 0, 0, 0
+
+	for linea := range strings.Lines(skillMd) {
+		switch strings.TrimSuffix(linea, "\n") {
+		case inicioDeLosPaquetes:
+			inicios++
+		case finDeLosPaquetes:
+			require.Equal(t, fines+1, inicios, "la marca de fin de los paquetes va detrás de la de inicio")
+
+			fines++
+		default:
+			if inicios > fines {
+				caracteres += utf8.RuneCountInString(linea)
+			}
+		}
 	}
+
+	if inicios == 0 && fines == 0 {
+		return 0, false
+	}
+
+	require.Equal(t, []int{1, 1}, []int{inicios, fines}, "las marcas de los paquetes, una vez cada una")
+
+	return caracteres, true
 }
 
 // partirElCuerpo convierte en saltos de línea, de uno en uno y desde el
