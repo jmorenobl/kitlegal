@@ -1,6 +1,6 @@
 # 0063 · El cuerpo de una skill de capacidad deja sitio para las materias: la tabla de comandos, sin lo que da la llamada, y el detalle de un caso, en la referencia que se lee en él
 
-- **Estado**: propuesta (2026-11-24); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+- **Estado**: aceptada (2026-11-25)
 - **Fecha**: 2026-11-24
 - **Hito**: H46. Se escribe con su entrada, antes del run y fuera de él, en una sesión interactiva. Sustituye el punto 3
   del ADR 0062 y la frase de sus «Consecuencias» que lo preveía («cuando el siguiente no quepa, un hito de la base
