@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strings"
 	"testing"
-	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,8 +91,8 @@ const (
 // fuera de las marcas que genera la sincronía; las huellas de lo copiado del
 // repositorio —skills/ y data/ entre ello— no cambian. Su tipo y su fila con
 // norma salen solo en su referencia de plazos-y-territorio (FR-002, FR-005,
-// SC-002), y cada cuerpo de skill de capacidad, con su línea, tiene sitio para la
-// de otro paquete (FR-020). Su mutante, la línea del enlace a ensayo.md escrita a
+// SC-002); el sitio de los demás paquetes lo comprueba el presupuesto del cuerpo
+// sin sus líneas (ADR 0063, punto 1). Su mutante, la línea del enlace a ensayo.md escrita a
 // mano en el cuerpo de normativa, como la escribiría un paquete sin sincronía,
 // pone en rojo la comparación fuera de las marcas; y sin-la-region, la referencia
 // de la vertical sin la región de la cobertura, da el defecto de su fila con
@@ -138,8 +137,6 @@ func TestVerticalDeEnsayo(t *testing.T) {
 		"ningún SKILL.md cambia fuera de las marcas de los paquetes y de lo cubierto")
 	assert.Equal(t, delRepositorio, huellasDe(t, arbolDelRepositorio),
 		"skills/, data/ y evals/normativa/ del repositorio no cambian")
-
-	comprobarElSitioDeOtroPaquete(t, raiz, descripciones)
 
 	t.Run("mutante", func(t *testing.T) {
 		t.Parallel()
@@ -249,29 +246,6 @@ func comprobarElReparto(t *testing.T, raiz string) {
 
 	assert.Equal(t, []string{referenciaDeLosPlazosDelEnsayo}, referenciasQueContienen(t, raiz, procedimientoConNorma),
 		"la fila con norma sale en la referencia de la vertical y en ninguna otra, tampoco en administrativo.md")
-}
-
-// comprobarElSitioDeOtroPaquete comprueba que el cuerpo de cada skill de
-// capacidad con la referencia de la vertical tiene, con la línea de su enlace,
-// sitio para la de otro paquete de su misma longitud (FR-020, SC-002; research
-// D11 de H45): con una línea de 69 caracteres y su salto añadida al final de cada
-// cuerpo de la copia sincronizada de raíz, la sincronía no da ningún defecto, ni
-// el de un cuerpo de más de 11 000 caracteres. Cambia la copia fuera de las
-// marcas: va detrás de todo lo que la compara con el repositorio.
-func comprobarElSitioDeOtroPaquete(t *testing.T, raiz string, descripciones []skills.DescripcionDeVerbo) {
-	t.Helper()
-
-	deOtroPaquete := strings.Repeat("x", utf8.RuneCountInString(strings.TrimSuffix(lineaDelEnsayo, "\n"))) + "\n"
-
-	for _, skill := range skillsConLaVertical {
-		ruta := rutaDeSkill(raiz, skill, "SKILL.md")
-		escribirFicheroDePrueba(t, ruta, leerFicheroDePrueba(t, ruta)+deOtroPaquete)
-	}
-
-	regenerado, err := skills.Regenerar(raiz, descripciones)
-	require.NoError(t, err)
-	assert.Empty(t, textosDeLosFallos(regenerado.Defectos()),
-		"cada cuerpo con la línea de la vertical tiene sitio para otra de su misma longitud")
 }
 
 // entreLasMarcas es lo que hay en el contenido entre la línea de la marca de
