@@ -1,0 +1,27 @@
+# tabla-de-tres-columnas.txtar
+# Lo que instala `kitlegal skills install` de las tres skills de capacidad: la
+# tabla de comandos de cada una, entre sus marcas, con la cabecera de tres
+# columnas «Orden», «Herramienta» y «Qué hace» y su separador, y sin una cabecera
+# de más columnas, sin un separador de cuatro, sin una fila con una cuarta celda,
+# sin «Qué devuelve en», sin la línea del sobre y sin la de las banderas comunes
+# (contracts/aceptacion.md §1 de H46). Cada negativa busca solo entre las dos
+# marcas de la tabla, la región que nombra el spec: `(?s)` deja que `.*?` cruce
+# líneas, y `[^\n]` no lo hace.
+#
+# Cubre: US1.1 · FR-001, FR-021 · SC-006
+#
+# Que los bytes sean los de RenderizarTabla y que los mismos errores sigan
+# saliendo lo comprueban TestRenderizarTabla, TestRegenerarYComparar,
+# TestCuerpoDeLaSkill y la deriva de TestSkillsDelRepositorio (FR-002 a FR-004).
+
+exec kitlegal skills install --dir destino --json
+
+# --- La cabecera de tres columnas, con su separador y una fila detrás (US1.1) ---
+grep '^\| Orden \| Herramienta \| Qué hace \|\n\|---\|---\|---\|\n\| `kitlegal ' destino/normativa/SKILL.md
+grep '^\| Orden \| Herramienta \| Qué hace \|\n\|---\|---\|---\|\n\| `kitlegal ' destino/plazos-y-territorio/SKILL.md
+grep '^\| Orden \| Herramienta \| Qué hace \|\n\|---\|---\|---\|\n\| `kitlegal ' destino/jurisprudencia/SKILL.md
+
+# --- Nada de cuatro columnas, ni el sobre, ni las banderas, en la región (US1.1) ---
+! grep '(?s)<!-- inicio de la tabla de comandos: [^\n]*\n.*?(?:^\| Orden \| Herramienta \| Qué hace \|[^\n]|^\|---\|---\|---\|-|^\| `[^\n]*` \| `[a-z_]+` \| (?:[^|\n]|\\\|)* \| |Qué devuelve en|^La orden y la herramienta de cada fila devuelven el mismo sobre|^Banderas comunes:).*?<!-- fin de la tabla de comandos -->' destino/normativa/SKILL.md
+! grep '(?s)<!-- inicio de la tabla de comandos: [^\n]*\n.*?(?:^\| Orden \| Herramienta \| Qué hace \|[^\n]|^\|---\|---\|---\|-|^\| `[^\n]*` \| `[a-z_]+` \| (?:[^|\n]|\\\|)* \| |Qué devuelve en|^La orden y la herramienta de cada fila devuelven el mismo sobre|^Banderas comunes:).*?<!-- fin de la tabla de comandos -->' destino/plazos-y-territorio/SKILL.md
+! grep '(?s)<!-- inicio de la tabla de comandos: [^\n]*\n.*?(?:^\| Orden \| Herramienta \| Qué hace \|[^\n]|^\|---\|---\|---\|-|^\| `[^\n]*` \| `[a-z_]+` \| (?:[^|\n]|\\\|)* \| |Qué devuelve en|^La orden y la herramienta de cada fila devuelven el mismo sobre|^Banderas comunes:).*?<!-- fin de la tabla de comandos -->' destino/jurisprudencia/SKILL.md

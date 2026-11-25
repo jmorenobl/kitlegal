@@ -1,0 +1,76 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-25 11:45:01.384167297 +0100
++++ ahora/checklists/requirements.md	2026-11-25 11:46:17.888619734 +0100
+@@ -19,12 +19,15 @@
+ 
+ - [x] No clarification markers remain — ninguno; lo que el hito deja a elegir está en «Assumptions».
+ - [x] Requirements are testable and unambiguous — cada FR nombra su comprobación (p. ej. FR-005 con su mensaje y el
+-  límite 9600/9601; FR-010 con `git diff f89093dd -- skills/` vacío).
++  límite 9600/9601; FR-010 con `git diff f89093dd -- skills/` vacío); FR-019 y SC-007 acotan «ningún applet devuelve
++  otra cosa» a `--describe`, esquema, sobre, códigos y forma de `data`, y nombran como excepción los tests y guiones
++  que fijan el texto de las skills (FR-003, FR-008, FR-009, FR-014 a FR-016), sin choque con ellos.
+ - [x] Success criteria are measurable — SC-001 a SC-008, cada uno con su control que sale en rojo.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden `make ci`, `skills-check`, la suite
+   y el job de evals, las superficies del proyecto, no un diseño.
+ - [x] All acceptance scenarios are defined — US1 a US5 en forma Dado/Cuando/Entonces.
+-- [x] Edge cases are identified — límite exacto, skill sin marcas, región vacía, marcas sin pareja (regla genérica).
++- [x] Edge cases are identified — límite exacto, skill sin marcas, región vacía, marcas sin pareja (el defecto de la sincronía de hoy;
++  un `SKILL.md` editado a mano pasa por `skills-check` como cualquier otro, FR-005 y US2).
+ - [x] Scope is clearly bounded — «Fuera de alcance» con la lista cerrada del hito y lo que hace la persona.
+ - [x] Dependencies and assumptions identified — «Dependencias» (H45.1; H42 depende de este) y «Assumptions».
+ 
+@@ -46,7 +49,9 @@
+   un applet (FR-013, FR-019).
+ - [x] f. checklist veraz — cada marca cita su FR, SC o sección.
+ - [x] g. sin implementación — ver «Content Quality».
+-- [x] h. derivable — 9600 en verde, 9601 en rojo; con y sin marcas; orden de los defectos (Assumptions).
++- [x] h. derivable — 9600 en verde, 9601 en rojo; con y sin marcas; orden de los defectos (Assumptions); las marcas
++  sin pareja, con el defecto de la sincronía (Edge Cases); FR-019 y SC-007, con lo que fijan y sus excepciones
++  nombradas.
+ - [x] i. uso — «Quién consume cada salida, cuánto y hasta cuándo»: cuerpo una vez por activación, ≤ 9600 + 1400, no
+   crece con el uso; las tres referencias, una vez por su orden de leer; el defecto, una línea por skill y `make ci`.
+ - [x] j. umbral con control — 9600 (SC-002, SC-003: `skills-check` y `casosDePresupuestos` en `make ci`); 11 000
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-25 11:45:01.384188416 +0100
++++ ahora/spec.md	2026-11-25 11:46:02.224676533 +0100
+@@ -218,9 +218,7 @@
+ - **Exactamente en el límite**: 9600 sin las líneas de los paquetes está en verde; 9601, en rojo (FR-005).
+ - **Una skill sin el par de marcas de los paquetes** (`consulta-juridica`, o una skill nueva sin ellas): no tiene el
+   defecto nuevo, ni con 11 000 caracteres (FR-006).
+-- **Las marcas sin pareja**: dan el defecto que ya da la sincronía hoy; el defecto nuevo no añade casos. Un `SKILL.md`
+-  dejado a medias o cambiado a mano por algo que no es el binario lo cubre la regla genérica: defecto `inesperado`,
+-  código 1 (ADR 0023).
++- **Las marcas sin pareja**: dan el defecto que ya da la sincronía hoy; el defecto nuevo no añade casos.
+ - **Una región de paquetes vacía** (`normativa` y `jurisprudencia` hoy): el cuerpo sin las líneas de los paquetes es
+   el cuerpo entero.
+ 
+@@ -320,9 +318,13 @@
+ 
+ **Lo que no cambia**
+ 
+-- **FR-019**: Ningún applet devuelve otra cosa: `--describe`, el esquema de salida de las herramientas, el sobre, los
+-  códigos de salida y `data` de cada orden son los de `main`; los tests de cada applet no se tocan. Comprobable: esos
+-  tests, sin cambiar, en verde en `make ci` (SC-007).
++- **FR-019**: Ningún applet devuelve otra cosa: el `--describe` de cada applet, el esquema de salida de sus
++  herramientas, el sobre, los códigos de salida y la forma de `data` de cada orden son los de `main`, y los tests que
++  los fijan no cambian. Lo que instala `kitlegal skills install`, y con ello sus huellas, es el contenido de `skills/`
++  de FR-010; el applet `skills` lo instala como hoy. No fijan lo que devuelve un applet, sino el texto de las skills, y
++  por eso cambian, los tests que nombran FR-003, FR-008, FR-009, FR-014 y FR-015, los guiones
++  `internal/app/testdata/script/h41-skills-instaladas.txtar` y `h41-1-skills-instaladas.txtar` y su copia congelada
++  (FR-016), y se añade la suite de FR-021. Comprobable: SC-007.
+ 
+ **Orden de las tareas** (del hito)
+ 
+@@ -390,9 +392,9 @@
+   de las dos. Control: el test, en `make ci`, y el registro de mutantes.
+ - **SC-006**: La suite de aceptación de FR-021 en verde sobre las skills instaladas, y en rojo sobre las de `main`.
+   Control: la suite, dentro de `make ci`.
+-- **SC-007**: Ningún `kitlegal` que devuelva otra cosa: los tests de cada applet, los de `main` sin tocar (el diff de
+-  la rama contra `main` no los cambia), en verde. Control: esos tests en `make ci`, que salen en rojo si un applet
+-  devuelve otra cosa.
++- **SC-007**: Ningún `kitlegal` que devuelva otra cosa: el diff de la rama contra `main` no cambia ningún test ni
++  guion fuera de los que FR-019 nombra como excepción, y todos salen en verde. Control: esos tests en `make ci`, que
++  salen en rojo si cambia el `--describe`, el sobre, un código de salida o la forma de `data` de un applet.
+ - **SC-008**: El cierre de evals de todas las skills, sin reutilizar nada de `main`: cero clases que deciden por debajo
+   de su umbral y cero series de `claude-sonnet-5-5` por debajo de 2 de 3 en una eval que decide. Control: el job de
+   evals del cierre, que sale en rojo si una clase que decide queda por debajo de su umbral o una serie que decide, por

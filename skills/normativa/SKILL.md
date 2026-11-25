@@ -14,8 +14,8 @@ metadata:
 ## Protocolo
 
 Antes de la primera orden o llamada, lee [con_herramientas](references/con_herramientas.md): cómo se pide cada
-una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la
-tienes, con su herramienta.
+una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o con
+su herramienta.
 
 ### 1. Identificar la norma
 
@@ -124,24 +124,20 @@ sola:
 
 ### `kitlegal boe`
 
-| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
-|---|---|---|---|
-| `kitlegal boe buscar <texto>...` | `boe_buscar` | Busca normas consolidadas por las palabras de su título o con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, `vigencia_agotada`, `estado_consolidacion`, `url` |
-| `kitlegal boe indice <norma>` | `boe_indice` | Devuelve los bloques de una norma consolidada, en el orden de la fuente. | objeto con `norma`, `url`, `bloques` |
-| `kitlegal boe articulo <norma> <bloque> [--fecha <fecha>]` | `boe_articulo` | Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia; con --fecha AAAA-MM-DD, la redacción vigente ese día. | objeto con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli`, `fecha_pedida`, `redaccion_posterior` |
-| `kitlegal boe articulos <norma> <bloques>...` | `boe_articulos` | Devuelve el texto vigente de varios bloques de una norma, en el orden pedido. | lista de objetos con `norma`, `bloque`, `titulo`, `tipo`, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, `url_eli` |
-| `kitlegal boe metadatos <norma>` | `boe_metadatos` | Devuelve los datos de una norma y los avisos de su vigencia. | objeto con `norma`, `titulo`, `rango`, `numero_oficial`, `fecha_disposicion`, `fecha_publicacion`, `fecha_vigencia`, `estatus_derogacion`, `vigencia_agotada`, `estado_consolidacion`, `url_eli`, `avisos` |
-| `kitlegal boe analisis <norma>` | `boe_analisis` | Devuelve las materias, las notas y las referencias de una norma. | objeto con `norma`, `materias`, `notas`, `referencias` |
+| Orden | Herramienta | Qué hace |
+|---|---|---|
+| `kitlegal boe buscar <texto>...` | `boe_buscar` | Busca normas consolidadas por las palabras de su título o con una consulta de la fuente. |
+| `kitlegal boe indice <norma>` | `boe_indice` | Devuelve los bloques de una norma consolidada, en el orden de la fuente. |
+| `kitlegal boe articulo <norma> <bloque> [--fecha <fecha>]` | `boe_articulo` | Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia; con --fecha AAAA-MM-DD, la redacción vigente ese día. |
+| `kitlegal boe articulos <norma> <bloques>...` | `boe_articulos` | Devuelve el texto vigente de varios bloques de una norma, en el orden pedido. |
+| `kitlegal boe metadatos <norma>` | `boe_metadatos` | Devuelve los datos de una norma y los avisos de su vigencia. |
+| `kitlegal boe analisis <norma>` | `boe_analisis` | Devuelve las materias, las notas y las referencias de una norma. |
 
 ### `kitlegal graph`
 
-| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
-|---|---|---|---|
-| `kitlegal graph check [<norma> [<bloques>...]]` | `graph_check` | Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior y consultas caducadas. | objeto con `norma`, `bloques`, `version-obsoleta`, `fuente-caducada`, `omitidos`, `hallazgos` |
-
-La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
-
-Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.
+| Orden | Herramienta | Qué hace |
+|---|---|---|
+| `kitlegal graph check [<norma> [<bloques>...]]` | `graph_check` | Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior y consultas caducadas. |
 
 <!-- fin de la tabla de comandos -->
 

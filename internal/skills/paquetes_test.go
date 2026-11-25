@@ -1,6 +1,7 @@
 package skills_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -491,4 +492,65 @@ func contenidosRegenerados(regenerado skills.Regenerado) map[string]string {
 	}
 
 	return contenidos
+}
+
+// TestSitioDeLasMaterias fija, en internal/skills y sobre arbolDePaquetes, el
+// defecto del cuerpo sin las líneas de los paquetes (contracts/sitio-de-las-materias.md
+// §1; FR-005 y FR-006 de H46): plazos-y-territorio lleva entre sus marcas la línea
+// de lo administrativo, que no cuenta, y normativa, las marcas vacías. Cada caso
+// ensancha el cuerpo del árbol, que aún no tiene esa línea, hasta los caracteres
+// sin los paquetes dados; el regenerado tiene los de la línea de más. Con 9600, en
+// verde aunque el cuerpo entero pase de 9600; con 9601, el defecto; y con 11 001,
+// el del cuerpo entero antes que el nuevo.
+func TestSitioDeLasMaterias(t *testing.T) {
+	t.Parallel()
+
+	lineaDelPaquete := utf8.RuneCountInString(enlaceDeLoAdministrativo)
+
+	casos := []struct {
+		nombre         string
+		skill          string
+		sinLosPaquetes int
+		defectos       []string
+	}{
+		{nombre: "con-una-linea-en-el-limite", skill: "plazos-y-territorio", sinLosPaquetes: 9600},
+		{
+			nombre:         "con-una-linea-pasado-el-limite",
+			skill:          "plazos-y-territorio",
+			sinLosPaquetes: 9601,
+			defectos: []string{
+				"plazos-y-territorio: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)",
+			},
+		},
+		{
+			nombre:         "con-una-linea-pasado-el-tope",
+			skill:          "plazos-y-territorio",
+			sinLosPaquetes: 11001,
+			defectos: []string{
+				fmt.Sprintf("plazos-y-territorio: SKILL.md: cuerpo de %d caracteres (máximo 11000)", 11001+lineaDelPaquete),
+				"plazos-y-territorio: SKILL.md: cuerpo sin las líneas de los paquetes de 11001 caracteres (máximo 9600)",
+			},
+		},
+		{nombre: "marcas-vacias-en-el-limite", skill: "normativa", sinLosPaquetes: 9600},
+		{
+			nombre:         "marcas-vacias-pasado-el-limite",
+			skill:          "normativa",
+			sinLosPaquetes: 9601,
+			defectos: []string{
+				"normativa: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)",
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolDePaquetes(t)
+			ensancharElCuerpo(t, rutaDeSkill(raiz, caso.skill, "SKILL.md"), caso.sinLosPaquetes)
+
+			regenerado := regenerar(t, raiz, nil)
+			assert.Equal(t, caso.defectos, presentarDefectos(regenerado.Defectos()))
+		})
+	}
 }

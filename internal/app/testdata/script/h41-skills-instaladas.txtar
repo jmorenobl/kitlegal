@@ -44,7 +44,8 @@ grep '\n- \*\*Nada de otra conversación\*\*, ni para afirmar, confirmar o desme
 grep '^Si una lectura falla, di qué bloques faltan y por qué\.$' destino/normativa/references/lecturas_que_fallan.md
 
 # --- jurisprudencia: sus dos órdenes de leer, cada una en su sitio (US2) ---
-grep '(?s)Antes de pedir una u otra, lee\s+\[references/consulta_preparada\.md\]\(references/consulta_preparada\.md\).*\| Cómo se dio \| Qué se pide \|' destino/jurisprudencia/SKILL.md
+grep 'Antes de pedir una u otra, lee\s+\[references/consulta_preparada\.md\]\(references/consulta_preparada\.md\): qué se pide\s+según cómo se dio la referencia' destino/jurisprudencia/SKILL.md
+grep '^\| Cómo se dio \| Qué se pide \|$' destino/jurisprudencia/references/consulta_preparada.md
 grep '### 3\. Con el documento delante: cotejar su ficha\s+Con cada documento, antes del cotejo, lee \[references/documento_aportado\.md\]' destino/jurisprudencia/SKILL.md
 ! grep 'Antes de dar la consulta' destino/jurisprudencia/SKILL.md
 

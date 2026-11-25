@@ -60,6 +60,29 @@ sustituyen a este fichero.
   cada sesión para elegir skill, y es la que instala `kitlegal skills install`. La variante
   `producto-descripciones-cortas` del laboratorio lleva el mismo texto, y la suma de sus cuatro descripciones pasa de
   1 690 a 1 692 caracteres, con el tope de 1 700. `kitlegal plazos` no cambia.
+- **El cuerpo de `normativa`, `plazos-y-territorio` y `jurisprudencia` deja sitio para las materias** (H46; ADR 0063).
+  En las tres, la tabla de comandos que escribe `make skills-sync` tiene tres columnas, `| Orden | Herramienta | Qué
+  hace |`: sin la de lo que devuelve en `data`, ni la línea del sobre, ni la de las banderas comunes, que la
+  sincronía sigue exigiendo iguales en todas las filas de una tabla, con el mismo error que hoy. En `normativa`, cada
+  operación se hace «desde el `PATH` o con su herramienta», sin «si la tienes», y nada más cambia fuera de la tabla.
+  En `plazos-y-territorio`, cómo se presenta cada dato pasa al apartado «Cómo se presenta cada dato» de
+  `municipios.md`, y la herramienta u orden y sus códigos, al apartado «Herramienta u orden» de la misma referencia;
+  en el cuerpo quedan las tres líneas de la cobertura y «`kitlegal` se invoca desde el `PATH`, y cada herramienta, por
+  el nombre de su fila.», y la orden de leer `municipios.md` dice que trae cómo se pide cada operación. En
+  `jurisprudencia`, lo que se pide según cómo se dio la referencia pasa al apartado «Lo que se pide» de
+  `consulta_preparada.md`, y en el cuerpo queda que un número sin fecha no se prepara de ninguna forma, tampoco como
+  ROJ; la referencia en la forma pedida y las sentencias que menciona el documento pasan al apartado «La referencia
+  pedida y las sentencias que menciona» de `documento_aportado.md`, y que la comprobación sale con 0 con un documento
+  que no es el pedido, a su apartado «Lo que devuelve». Ninguna línea `⚠`, forma fija, regla invariante ni orden de
+  leer sale de un cuerpo, ninguna descripción cambia y no hay ninguna referencia nueva. Sin las líneas de los
+  paquetes, los cuerpos tienen ahora 9498 caracteres en `normativa`, 9483 en `plazos-y-territorio` (9577 con la línea
+  de lo administrativo) y 9473 en `jurisprudencia`. `make ci` y `make skills-check` dan un defecto más en un cuerpo
+  con las marcas de los paquetes que, sin sus líneas, pasa de 9600 caracteres: `<skill>: SKILL.md: cuerpo sin las
+  líneas de los paquetes de <n> caracteres (máximo 9600)`, detrás del de 11 000 si se dan los dos; los 1400 que quedan
+  hasta el tope son el sitio de las líneas de las materias, unas veinte de nombre corto. `consulta-juridica`, sin esas
+  marcas, sigue con los topes de hoy. Ningún applet devuelve otra cosa: el `--describe`, el esquema de salida de las
+  herramientas, el sobre, los códigos de salida y `data` no cambian, y `kitlegal skills install` instala los textos
+  nuevos como hoy.
 
 ### Corregido
 

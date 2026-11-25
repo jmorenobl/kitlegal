@@ -54,18 +54,10 @@ principio de una línea —`⚠`, la etiqueta `SENTENCIA NO COMPROBADA`, dos pun
 ```
 
 Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Antes de pedir una u otra, lee
-[references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada forma, cómo se dan las casillas
-y qué hacer con el equivalente que devuelva la operación. Lo que se pide depende de cómo se dio la referencia:
+[references/consulta_preparada.md](references/consulta_preparada.md): qué se pide según cómo se dio la referencia, la
+orden de cada forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación. Un número sin
+fecha no se prepara de ninguna forma, tampoco como ROJ: lleva la línea y se pide la fecha.
 
-| Cómo se dio | Qué se pide |
-|---|---|
-| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` |
-| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` |
-| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` |
-| Número sin fecha («la STS 1088/2023») | nada: **sin fecha no se prepara de ninguna forma**, tampoco como ROJ; lleva la línea y se pide la fecha |
-
-- Una cita escrita como «STS 1088/2023, de 4 de julio» lleva el **número de resolución**, no el ROJ: se prepara con
-  `resolucion` y con `fecha` en la forma `AAAA-MM-DD`. El año de la fecha es el del número, salvo que la cita diga otro.
 - La respuesta da la consulta con lo que devuelve la operación, sin escribir nada de memoria: la **dirección** del
   buscador y **cada casilla con su valor**. Dile a la persona qué hacer: abrir la dirección, escribir cada valor en su
   casilla, buscar, descargar el documento y traerlo —pegado o adjunto—.
@@ -83,8 +75,6 @@ ficha.
 - **Nada del documento antes del cotejo**: ni que es la sentencia pedida, ni que coincide con ella, ni de qué trata.
 - **Si es o no la pedida lo dice `es_la_pedida`**, lo que devuelve la operación, y nunca una comparación hecha a ojo
   entre el documento y la referencia.
-- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o
-  `resolucion` con `fecha`).
 - **Si el documento no es el pedido, no lo cites como si fuera el pedido.** La sentencia pedida sigue sin estar
   delante: va por el paso 2, con su línea y su consulta, preparada en la forma en que se pidió.
 
@@ -102,8 +92,6 @@ STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]
 - La respuesta dice que la cita **sale del documento aportado**: kitlegal no ha consultado el buscador.
 - **No escribas ningún ECLI que no venga de una de estas operaciones o de la persona**, ni dentro de una cita ni
   suelto. Un ECLI que recuerdas no es un dato.
-- Las sentencias que el documento menciona no se citan con esta forma ni se les pone ECLI: se nombran como las
-  nombra el texto.
 
 ### 5. Qué se dice de una sentencia
 
@@ -130,23 +118,19 @@ paso 2 —esa línea anuncia una consulta en el CENDOJ— y no pidas `cita_prepa
 ## Comandos
 
 `kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila. Códigos de salida de la orden, y
-entre paréntesis la `data.clase` del resultado que la herramienta marca como error: 0 correcto —también cuando el
-documento no es el pedido, que es un hallazgo y no un fallo— y 2 (`argumentos`) con una referencia mal formada, más de
-una forma de referencia, un número de resolución sin su fecha, un texto de búsqueda vacío o un documento sin ficha
-reconocible. Ante un error de argumentos, corrige la llamada o pide a la persona lo que falta, y no cites.
+entre paréntesis la `data.clase` del resultado que la herramienta marca como error: 0 correcto y 2 (`argumentos`) con
+una referencia mal formada, más de una forma de referencia, un número de resolución sin su fecha, un texto de búsqueda
+vacío o un documento sin ficha reconocible. Ante un error de argumentos, corrige la llamada o pide a la persona lo que
+falta, y no cites.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
 ### `kitlegal cita`
 
-| Orden | Herramienta | Qué hace | Qué devuelve en `data` |
-|---|---|---|---|
-| `kitlegal cita preparar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] [--fecha <fecha>] [--texto <texto>]` | `cita_preparar` | Dice qué tiene que hacer la persona para encontrar una sentencia en el buscador del CENDOJ: la dirección y cada casilla con su valor, o la dirección de una búsqueda por texto. No consulta nada. | objeto con `referencia`, `texto`, `equivalente`, `cobertura`, `direccion`, `casillas` |
-| `kitlegal cita cotejar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] [--fecha <fecha>] [--documento <documento>]` | `cita_cotejar` | Lee la ficha del documento del CENDOJ que trae la persona y dice si es la sentencia que se pidió. No consulta nada. | objeto con `ficha`, `correspondencia`, `pedida`, `es_la_pedida`, `hallazgos` |
-
-La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
-
-Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.
+| Orden | Herramienta | Qué hace |
+|---|---|---|
+| `kitlegal cita preparar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] [--fecha <fecha>] [--texto <texto>]` | `cita_preparar` | Dice qué tiene que hacer la persona para encontrar una sentencia en el buscador del CENDOJ: la dirección y cada casilla con su valor, o la dirección de una búsqueda por texto. No consulta nada. |
+| `kitlegal cita cotejar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] [--fecha <fecha>] [--documento <documento>]` | `cita_cotejar` | Lee la ficha del documento del CENDOJ que trae la persona y dice si es la sentencia que se pidió. No consulta nada. |
 
 <!-- fin de la tabla de comandos -->
 

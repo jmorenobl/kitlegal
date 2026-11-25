@@ -1,8 +1,8 @@
 # La consulta preparada
 
 La consulta que prepara `cita_preparar`, o su orden, para la sentencia que no está delante (paso 2 de `SKILL.md`) y
-para una pregunta por materia (paso 6). La línea que va encima de la consulta, lo que se pide en cada caso y lo que se
-le dice a la persona que haga son los del paso 2; aquí está el detalle.
+para una pregunta por materia (paso 6). La línea que va encima de la consulta y lo que se le dice a la persona que
+haga son los del paso 2; aquí está el detalle, y lo que se pide según cómo se dio la referencia.
 
 ## La orden de cada forma
 
@@ -39,3 +39,17 @@ kitlegal cita preparar --texto "cláusula suelo" --json
 
 La dirección que devuelve abre el buscador con esa búsqueda ya hecha. Dásela a la persona, dile que descargue las
 sentencias que le interesen y las adjunte, y sigue con lo que traiga (pasos 3 a 5).
+
+## Lo que se pide
+
+Lo que se pide depende de cómo se dio la referencia:
+
+| Cómo se dio | Qué se pide |
+|---|---|
+| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` |
+| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` |
+| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` |
+| Número sin fecha («la STS 1088/2023») | nada: **sin fecha no se prepara de ninguna forma**, tampoco como ROJ; lleva la línea y se pide la fecha |
+
+- Una cita escrita como «STS 1088/2023, de 4 de julio» lleva el **número de resolución**, no el ROJ: se prepara con
+  `resolucion` y con `fecha` en la forma `AAAA-MM-DD`. El año de la fecha es el del número, salvo que la cita diga otro.

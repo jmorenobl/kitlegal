@@ -1,0 +1,10 @@
+{
+  "tarea": "T001",
+  "commit": "287ab346fb3d0f001612bfb1948a21dde1a5af38",
+  "ficheros": {
+    "specs/044-h46-los-cuerpos-de/aceptacion/tabla-de-tres-columnas.txtar": "78e5c963f97fc72278c0223a735fa1ac276b7de8046b8a8594d75b49e9b0093a",
+    "specs/044-h46-los-cuerpos-de/aceptacion/textos-en-su-referencia.txtar": "793846428d23c99613d1d148e6714ee78224325d9c58854a5564c95a68fd395b",
+    "internal/app/testdata/script/h46-tabla-de-tres-columnas.txtar": "78e5c963f97fc72278c0223a735fa1ac276b7de8046b8a8594d75b49e9b0093a",
+    "internal/app/testdata/script/h46-textos-en-su-referencia.txtar": "793846428d23c99613d1d148e6714ee78224325d9c58854a5564c95a68fd395b"
+  }
+}

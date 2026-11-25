@@ -76,6 +76,8 @@ el método— queda en una skill de capacidad o en la de entrada; lo de una mate
   cada una tal cual, en un bloque `text`, y las marcas que la acompañan aunque ninguna eval las compruebe
   (`⚠ NO VERIFICADO:`, abajo, «La plantilla de lo no cubierto»);
 - la tabla de comandos, que `make skills-sync` genera entre sus marcas desde `--describe` del binario y no se edita;
+  lleva tres columnas —la orden, la herramienta y qué hace—, y lo que cada orden devuelve en `data`, el sobre y las
+  banderas comunes los trae cada llamada, con el esquema de salida de su herramienta y su `--describe` (ADR 0063);
   `kitlegal-sin-fila`, en `metadata`, deja fuera de ella los verbos que la skill no deja usar, nombrados por su
   herramienta (`graph_show graph_stats`): el nombre que no quita nada es un defecto;
 - y, por cada referencia, cuándo leerla, con su enlace (§4).
@@ -367,9 +369,9 @@ una de `cubierto` (`capacidad: plazos`, `materia: ensayo`) y una eval de `normat
 comprueba que no queda ningún defecto ni deriva, que la eval se carga, que no hay ningún `.go`, que ningún `SKILL.md`
 cambia fuera de las marcas y que la región de lo cubierto de `consulta-juridica` termina con la línea de su fila; que
 el tipo de ensayo y la fila con norma salen en `plazos-y-territorio/references/ensayo.md` y en ninguna otra referencia,
-tampoco en `administrativo.md` (H45); que el cuerpo de cada skill de capacidad, con la línea de la vertical, tiene sitio
-para otra línea de paquete de su misma longitud bajo el tope de 11 000 caracteres; y que `skills/` y `data/` del
-repositorio no cambian. Su mutante, un enlace escrito a mano en el cuerpo de `normativa`, lo pone en rojo, y sin la
+tampoco en `administrativo.md` (H45); y que `skills/` y `data/` del repositorio no cambian. El sitio de los demás
+paquetes en cada cuerpo no lo comprueba este test, sino el presupuesto del cuerpo sin las líneas de los paquetes (§3;
+H46, ADR 0063). Su mutante, un enlace escrito a mano en el cuerpo de `normativa`, lo pone en rojo, y sin la
 región de la cobertura en `ensayo.md` la fila con norma da su defecto de fila sin región.
 
 ### Lo medido: los tres defectos que el reparto arregla
@@ -462,11 +464,19 @@ job con la etiqueta `evals`.
 |---|---|---|
 | Líneas del cuerpo | Menos de 500 (499 como mucho) | Las de la especificación |
 | Caracteres del cuerpo | Como mucho 11 000 | Con 2,26 caracteres por token, unos 4870 tokens, por debajo de los 5000 de la especificación |
+| Caracteres del cuerpo sin las líneas de los paquetes, en una skill con sus marcas | Como mucho 9600 | Los 1400 que quedan hasta los 11 000 son el sitio de las líneas de los paquetes: a 52 + 3n caracteres cada una, con n los del nombre de la materia, unas veinte materias de nombre corto, como `fiscal` (70), y menos con nombres largos (ADR 0063) |
 | Caracteres de la descripción | Como mucho 900 | El 88 % de los 1024 de la especificación, que la de `boe-legislacion` rozaba con 1023 |
 
 **El cuerpo** es el `SKILL.md` desde el byte que sigue a la línea `---` que cierra el frontmatter hasta el final, con
 la tabla de comandos como la deja `make skills-sync`: la tabla generada cuenta. Un `SKILL.md` sin frontmatter cerrado
 no tiene cuerpo que medir, y su defecto es el del frontmatter.
+
+**El cuerpo sin las líneas de los paquetes** (H46, ADR 0063) es ese mismo cuerpo, contado igual, menos lo que hay entre
+la línea `<!-- paquetes: lo genera make skills-sync -->` y la línea `<!-- fin de los paquetes -->`: las dos marcas, la
+tabla de comandos y todo lo demás cuentan, y solo no cuentan las líneas de los paquetes que escribe la sincronía. Se
+mide en las skills que llevan esas dos marcas en pareja, hoy las tres de capacidad; sin ellas, como
+`consulta-juridica`, que lleva las de los paquetes de la base, solo cuentan los 11 000, y unas marcas que no van en
+pareja dan su propio defecto (§5). El tope de 11 000 sigue siendo el del cuerpo entero, con las líneas de los paquetes.
 
 **Los caracteres se cuentan como runas, no como bytes**: «á», «—» y «⚠» cuentan uno. Un cuerpo de 11 000 caracteres
 con más de 11 000 bytes está en el límite, y uno de 11 001 caracteres, fuera. Las líneas se cuentan como las contaba
@@ -497,10 +507,19 @@ Al cerrar H32, con el reparto del ADR 0048 (medido con la orden de §6):
 | `jurisprudencia` | `jurisprudencia` | 161 líneas, 10 842 caracteres | 842 caracteres |
 | `plazos-y-territorio` | `legal-core` | 169 líneas, 10 896 caracteres, con la línea de lo administrativo | 879 caracteres |
 
-Sin margen en el cuerpo, una regla nueva cabe sacando a una referencia el detalle que solo pide una clase de pregunta
-(§1), nunca una forma fija ni una regla que toda respuesta necesita. Una materia nueva (ADR 0044) entra como paquete
-(§1): su prosa y sus tablas van a su referencia, y al cuerpo de cada skill que la recibe solo llega la línea de su
-enlace, que cuenta.
+Al cerrar H46, con la tabla de comandos de tres columnas y los textos de `f89093dd` (ADR 0063), medido como el gate:
+el cuerpo, con la orden de §6, y sin las líneas de los paquetes, con la misma orden sin lo que hay entre sus marcas.
+
+| Skill | Cuerpo | Sin las líneas de los paquetes |
+|---|---|---|
+| `normativa` | 9498 caracteres | 9498 caracteres |
+| `plazos-y-territorio` | 9577 caracteres, con la línea de lo administrativo | 9483 caracteres |
+| `jurisprudencia` | 9473 caracteres | 9473 caracteres |
+
+Con poco margen bajo los 9600, una regla nueva cabe sacando a una referencia el detalle que solo pide una clase de
+pregunta (§1), nunca una forma fija ni una regla que toda respuesta necesita. Una materia nueva (ADR 0044) entra como
+paquete (§1): su prosa y sus tablas van a su referencia, y al cuerpo de cada skill que la recibe solo llega la línea de
+su enlace, que cuenta para los 11 000 y no para los 9600.
 
 ## 4. La regla de `references/`
 
@@ -580,6 +599,7 @@ lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `normat
 | `description` de más de 900 caracteres | `normativa: SKILL.md: description de 901 caracteres (máximo 900)` |
 | Cuerpo de 500 líneas o más | `normativa: SKILL.md: cuerpo de 500 líneas (máximo 499)` |
 | Cuerpo de más de 11 000 caracteres | `normativa: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)` |
+| Cuerpo de más de 9600 caracteres sin las líneas de los paquetes, en una skill con sus marcas en pareja (§3), detrás del de 11 000 si se dan los dos | `normativa: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)` |
 | Entrada de `references/` que no es un fichero `.md` | `normativa: references/notas.txt: no es un fichero .md` |
 | Referencia sin enlace desde `SKILL.md` | `normativa: references/como_se_cita.md: SKILL.md no la enlaza con [](references/como_se_cita.md)` |
 | Referencia que enlaza otra | `normativa: references/como_se_cita.md: enlaza otra referencia, references/varios_bloques.md` |
@@ -617,8 +637,8 @@ letra (`</?\p{L}[^<>]*>`): lo son `<ejemplo>`, `</b>`, `<br/>` y `<descripcion s
 «a < b > c», `<>` ni `<1>`. El defecto cita la primera. Sustituyen a las reglas anteriores el límite de 900 al de 1024,
 que ya no puede darse, y la etiqueta XML a la de «description con < o >», que daba como defecto «< 5000».
 
-En los límites, en verde: 499 líneas, 11 000 caracteres de cuerpo, 900 de descripción y 100 líneas de referencia sin
-índice o sin ningún `## `.
+En los límites, en verde: 499 líneas, 11 000 caracteres de cuerpo, 9600 sin las líneas de los paquetes en una skill
+con sus marcas, 900 de descripción y 100 líneas de referencia sin índice o sin ningún `## `.
 
 ## 6. Antes de proponer el cambio
 
