@@ -1,0 +1,62 @@
+# textos-en-su-referencia.txtar
+# Lo que instala `kitlegal skills install` de lo que el hito mueve del cuerpo a una
+# referencia que su clase de pregunta lee sin condición (contracts/aceptacion.md
+# §2 de H46): en plazos-y-territorio, la herramienta o la orden y los códigos, a
+# `## Herramienta u orden` de municipios.md, y cómo se escribe cada dato, a
+# `## Cómo se presenta cada dato`, los dos al final y en ese orden, con las tres
+# líneas de la cobertura en el cuerpo; en jurisprudencia, la tabla «Cómo se dio /
+# Qué se pide» y la viñeta del número de resolución, a `## Lo que se pide` de
+# consulta_preparada.md, y las dos viñetas de la referencia pedida y de las
+# sentencias que menciona, a su apartado de documento_aportado.md, con el inciso
+# de la salida 0 en «Lo que devuelve»; y en normativa, «o con su herramienta».
+# Cada frase citada lleva `\s+` entre sus palabras: el texto se parte en líneas de
+# 120 columnas, y dónde no lo fija el spec. Un apartado va de su `## ` al
+# siguiente `#` (`[^#]*`; ninguno de estos lleva otro), y «al final», hasta `\z`.
+#
+# Cubre: US3.1-US3.6 · FR-010, FR-011, FR-012, FR-021 · SC-006
+#
+# Que los ficheros sean, byte a byte, los del prototipo lo comprueban
+# TestSkillsDelProductoDesdeControl y TestRemisionesDelRepositorio (FR-014,
+# FR-015).
+
+exec kitlegal skills install --dir destino --json
+
+# --- plazos-y-territorio: la herramienta o la orden (US3.1) ---
+grep '`kitlegal`\s+se\s+invoca\s+desde\s+el\s+`PATH`,\s+y\s+cada\s+herramienta,\s+por\s+el\s+nombre\s+de\s+su\s+fila\.' destino/plazos-y-territorio/SKILL.md
+! grep 'Con\s+la\s+herramienta\s+de\s+su\s+fila\s+si\s+entre\s+las\s+tuyas\s+hay\s+una\s+con\s+ese\s+nombre' destino/plazos-y-territorio/SKILL.md
+grep '\n## Cómo se presenta cada dato\n[^#]*\n## Herramienta u orden\n[^#]*\z' destino/plazos-y-territorio/references/municipios.md
+grep '\n## Herramienta u orden\n[^#]*Con\s+la\s+herramienta\s+de\s+su\s+fila' destino/plazos-y-territorio/references/municipios.md
+grep '\n## Herramienta u orden\n[^#]*2\s+\(`argumentos`\)' destino/plazos-y-territorio/references/municipios.md
+grep '\n## Herramienta u orden\n[^#]*3\s+\(`no-encontrado`\)' destino/plazos-y-territorio/references/municipios.md
+
+# --- plazos-y-territorio: las tres líneas de la cobertura siguen en el cuerpo, y
+# cómo se escribe cada dato va a la referencia (US3.2) ---
+grep '\n## Cómo se presenta el territorio\n[^#]*```text\nboletin_autonomico: <valor>\nboletin_provincial: <valor>\ndir3: <valor>\n```\n' destino/plazos-y-territorio/SKILL.md
+! grep 'un\s+boletín,\s+por\s+su\s+`codigo`\s+y\s+su\s+`nombre`\s+exactos' destino/plazos-y-territorio/SKILL.md
+grep '\n## Cómo se presenta cada dato\n[^#]*un\s+boletín,\s+por\s+su\s+`codigo`\s+y\s+su\s+`nombre`\s+exactos' destino/plazos-y-territorio/references/municipios.md
+
+# --- plazos-y-territorio: la orden de leer municipios.md y su primer párrafo (US3.3) ---
+grep 'lee\s+\[municipios\.md\]\(references/municipios\.md\):\s+cómo\s+se\s+pide\s+cada\s+operación' destino/plazos-y-territorio/SKILL.md
+! grep '\A# [^\n]*\n\n(?:[^\n]|\n[^\n])*Cómo\s+se\s+presenta\s+el\s+territorio' destino/plazos-y-territorio/references/municipios.md
+
+# --- jurisprudencia: lo que se pide, en consulta_preparada.md (US3.4) ---
+! grep '\| Cómo se dio \| Qué se pide \|' destino/jurisprudencia/SKILL.md
+! grep 'lleva\s+el\s+\*\*número\s+de\s+resolución\*\*,\s+no\s+el\s+ROJ' destino/jurisprudencia/SKILL.md
+grep 'lee\s+\[references/consulta_preparada\.md\]\(references/consulta_preparada\.md\):\s+qué\s+se\s+pide\s+según\s+cómo\s+se\s+dio\s+la\s+referencia[^.]*\.\s+Un\s+número\s+sin\s+fecha\s+no\s+se\s+prepara\s+de\s+ninguna\s+forma,\s+tampoco\s+como\s+ROJ:\s+lleva\s+la\s+línea\s+y\s+se\s+pide\s+la\s+fecha\.' destino/jurisprudencia/SKILL.md
+grep '\n## Lo que se pide\n[^#]*\z' destino/jurisprudencia/references/consulta_preparada.md
+grep '\n## Lo que se pide\n[^#]*\n\| Cómo se dio \| Qué se pide \|\n' destino/jurisprudencia/references/consulta_preparada.md
+grep '\n## Lo que se pide\n[^#]*\n- [^#]*lleva\s+el\s+\*\*número\s+de\s+resolución\*\*,\s+no\s+el\s+ROJ' destino/jurisprudencia/references/consulta_preparada.md
+
+# --- jurisprudencia: la referencia pedida y las sentencias que menciona, en
+# documento_aportado.md (US3.5) ---
+! grep 'da\s+además\s+la\s+referencia\s+en\s+la\s+forma\s+en\s+que\s+se\s+pidió' destino/jurisprudencia/SKILL.md
+! grep 'Las\s+sentencias\s+que\s+el\s+documento\s+menciona\s+no\s+se\s+citan' destino/jurisprudencia/SKILL.md
+! grep 'también\s+cuando\s+el\s+documento\s+no\s+es\s+el\s+pedido' destino/jurisprudencia/SKILL.md
+grep '\n## La referencia pedida y las sentencias que menciona\n[^#]*\z' destino/jurisprudencia/references/documento_aportado.md
+grep '\n## La referencia pedida y las sentencias que menciona\n[^#]*\n- Si\s+se\s+había\s+pedido\s+una\s+sentencia\s+concreta,\s+da\s+además\s+la\s+referencia\s+en\s+la\s+forma\s+en\s+que\s+se\s+pidió' destino/jurisprudencia/references/documento_aportado.md
+grep '\n## La referencia pedida y las sentencias que menciona\n[^#]*\n- Las\s+sentencias\s+que\s+el\s+documento\s+menciona\s+no\s+se\s+citan' destino/jurisprudencia/references/documento_aportado.md
+grep '\n## Lo que devuelve\n[^#]*La\s+orden\s+sale\s+con\s+0\s+también\s+cuando\s+el\s+documento\s+no\s+es\s+el\s+pedido' destino/jurisprudencia/references/documento_aportado.md
+
+# --- normativa: «o con su herramienta» (US3.6) ---
+grep 'desde\s+el\s+`PATH`\s+o\s+con\s+su\s+herramienta' destino/normativa/SKILL.md
+! grep 'si\s+la\s+tienes,\s+con\s+su\s+herramienta' destino/normativa/SKILL.md
