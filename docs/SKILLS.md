@@ -76,6 +76,8 @@ el método— queda en una skill de capacidad o en la de entrada; lo de una mate
   cada una tal cual, en un bloque `text`, y las marcas que la acompañan aunque ninguna eval las compruebe
   (`⚠ NO VERIFICADO:`, abajo, «La plantilla de lo no cubierto»);
 - la tabla de comandos, que `make skills-sync` genera entre sus marcas desde `--describe` del binario y no se edita;
+  lleva tres columnas —la orden, la herramienta y qué hace—, y lo que cada orden devuelve en `data`, el sobre y las
+  banderas comunes los trae cada llamada, con el esquema de salida de su herramienta y su `--describe` (ADR 0063);
   `kitlegal-sin-fila`, en `metadata`, deja fuera de ella los verbos que la skill no deja usar, nombrados por su
   herramienta (`graph_show graph_stats`): el nombre que no quita nada es un defecto;
 - y, por cada referencia, cuándo leerla, con su enlace (§4).

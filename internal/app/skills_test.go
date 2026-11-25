@@ -394,19 +394,19 @@ func TestOrdenesDeLasSkillsEmpotradas(t *testing.T) {
 	t.Run("control", func(t *testing.T) {
 		t.Parallel()
 
-		skillMd := "| `kitlegal boe inventado` | `boe_inventado` | Fuera de la región: no cuenta. | nada |\n" +
+		skillMd := "| `kitlegal boe inventado` | `boe_inventado` | Fuera de la región: no cuenta. |\n" +
 			inicioDeLaTablaDeComandos + "\n" +
 			"\n### `kitlegal boe`\n\n" +
-			"| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|\n" +
-			"| `kitlegal boe articulo <norma> <bloque>` | `boe_articulo` | Registrada y anunciada. | objeto |\n" +
+			"| Orden | Herramienta | Qué hace |\n|---|---|---|\n" +
+			"| `kitlegal boe articulo <norma> <bloque>` | `boe_articulo` | Registrada y anunciada. |\n" +
 			"| `scripts/boe articulo <norma> <bloque>` | `boe_articulo` | Por el enlace de la instalación " +
-			"anterior. | objeto |\n" +
-			"| `kitlegal boe` | `boe_articulo` | Sin verbo. | objeto |\n" +
-			"| `kitlegal inventado leer <bloque>` | `inventado_leer` | Applet sin registrar. | objeto |\n" +
-			"| `kitlegal boe inventado <norma>` | `boe_inventado` | Verbo sin registrar. | objeto |\n" +
-			"| `kitlegal boe indice <norma>` | `boe_inventada` | Herramienta inventada. | objeto |\n" +
-			"| `kitlegal skills list` | `skills_list` | Registrada, y el servidor no la anuncia. | objeto |\n" +
-			"| `kitlegal boe indice <norma>` | Sin herramienta. | objeto |\n" +
+			"anterior. |\n" +
+			"| `kitlegal boe` | `boe_articulo` | Sin verbo. |\n" +
+			"| `kitlegal inventado leer <bloque>` | `inventado_leer` | Applet sin registrar. |\n" +
+			"| `kitlegal boe inventado <norma>` | `boe_inventado` | Verbo sin registrar. |\n" +
+			"| `kitlegal boe indice <norma>` | `boe_inventada` | Herramienta inventada. |\n" +
+			"| `kitlegal skills list` | `skills_list` | Registrada, y el servidor no la anuncia. |\n" +
+			"| `kitlegal boe indice <norma>` | Sin herramienta. |\n" +
 			finDeLaTablaDeComandos + "\n"
 
 		filas := filasDeLaRegion(t, skillMd)

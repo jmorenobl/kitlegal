@@ -797,29 +797,19 @@ func probarDefectosDeLaDescripcion(t *testing.T) {
 // Los bytes de la tabla que se repiten en los casos de TestRenderizarTabla
 // (contrato sincronizacion-y-comprobacion §3; contracts/skills.md §4 de H21).
 const (
-	columnasDeLaTabla = "| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|\n"
+	columnasDeLaTabla = "| Orden | Herramienta | Qué hace |\n|---|---|---|\n"
 
 	filaDeBuscar = "| `kitlegal boe buscar <texto>...` | `boe_buscar` | Busca normas consolidadas por las palabras " +
-		"de su título o con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, " +
-		"`vigencia_agotada`, `estado_consolidacion`, `url` |\n"
+		"de su título o con una consulta de la fuente. |\n"
 
 	filaDeArticulo = "| `kitlegal boe articulo <norma> <bloque>` | `boe_articulo` | Devuelve el texto vigente de " +
-		"un bloque de una norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, " +
-		"`fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, " +
-		"`url_eli` |\n"
+		"un bloque de una norma, con los avisos de su vigencia. |\n"
 
-	filaDeVacio = "| `kitlegal ejemplo vacio` | `ejemplo_vacio` | No declara la forma de sus datos. | " +
-		"sin forma declarada |\n"
+	filaDeVacio = "| `kitlegal ejemplo vacio` | `ejemplo_vacio` | No declara la forma de sus datos. |\n"
 
-	lineaDeLasBanderasDePrueba = "Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, " +
-		"`--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.\n"
-
-	pieDeLaTabla = "\n" +
-		"La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, " +
-		"`fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.\n" +
-		"\n" +
-		lineaDeLasBanderasDePrueba +
-		"\n"
+	// pieDeLaTabla es lo que cierra la tabla: una línea en blanco, sin la del
+	// sobre ni la de las banderas comunes, que trae cada llamada (ADR 0063).
+	pieDeLaTabla = "\n"
 )
 
 // describirDocumentos lee la descripción de cada documento, en su orden, con las
@@ -851,11 +841,12 @@ func describirDocumentos(t *testing.T, documentos ...describeDePrueba) []skills.
 // nombre de la herramienta; las banderas propias detrás de los argumentos de
 // posición, cada una entre corchetes, con -- delante de su nombre y el de su
 // valor detrás, o sola si es booleana (research.md D14 de H23;
-// contracts/applet-cita.md §8); la barra de la ayuda y de una clave escrita \|; data
-// sin $ref y una lista de objetos sin claves; la línea del sobre, que dice que la
-// orden y la herramienta de cada fila devuelven el mismo; la misma salida en dos
-// llamadas; y cada conjunto de descripciones que no permite escribir la tabla,
-// con su defecto.
+// contracts/applet-cita.md §8); la barra de la ayuda escrita \|; cada fila con la
+// orden, la herramienta y lo que hace, sin lo que devuelve en data, y el cierre en
+// una línea en blanco, sin la del sobre ni la de las banderas comunes, también con
+// una sola clave de fallo, data sin $ref o una lista de objetos sin claves (H46
+// FR-001; ADR 0063); la misma salida en dos llamadas; y cada conjunto de
+// descripciones que no permite escribir la tabla, con su defecto.
 func TestRenderizarTabla(t *testing.T) {
 	t.Parallel()
 
@@ -876,13 +867,7 @@ func TestRenderizarTabla(t *testing.T) {
 			nombre:     "una-sola-clave-de-fallo",
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{unaClaveDeFallo},
-			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla + filaDeVacio +
-				"\n" +
-				"La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, " +
-				"`fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `mensaje`.\n" +
-				"\n" +
-				lineaDeLasBanderasDePrueba +
-				"\n",
+			esperada:   "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla + filaDeVacio + pieDeLaTabla,
 		},
 		{
 			nombre:     "filas-del-contrato",
@@ -904,11 +889,9 @@ func TestRenderizarTabla(t *testing.T) {
 			documentos: []describeDePrueba{consultarDePrueba(), vacio, nadaDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
 				"| `kitlegal ejemplo consultar <norma> <bloques>... [<desde> [<materias>...]]` | " +
-				"`ejemplo_consultar` | Consulta los bloques de una norma \\| o de varias. | objeto con `norma`, " +
-				"`con\\|barra` |\n" +
+				"`ejemplo_consultar` | Consulta los bloques de una norma \\| o de varias. |\n" +
 				filaDeVacio +
-				"| `kitlegal ejemplo nada` | `ejemplo_nada` | Devuelve una lista de objetos sin claves. | " +
-				"lista de objetos |\n" +
+				"| `kitlegal ejemplo nada` | `ejemplo_nada` | Devuelve una lista de objetos sin claves. |\n" +
 				pieDeLaTabla,
 		},
 		{
@@ -916,10 +899,9 @@ func TestRenderizarTabla(t *testing.T) {
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{leerDePrueba(), comprobarDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo leer [<norma>]` | `ejemplo_leer` | Lee una norma, o todas sin ella. | " +
-				"sin forma declarada |\n" +
+				"| `kitlegal ejemplo leer [<norma>]` | `ejemplo_leer` | Lee una norma, o todas sin ella. |\n" +
 				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | `ejemplo_comprobar` | Comprueba una " +
-				"norma y sus bloques, o todo sin ellos. | sin forma declarada |\n" +
+				"norma y sus bloques, o todo sin ellos. |\n" +
 				pieDeLaTabla,
 		},
 		{
@@ -928,11 +910,11 @@ func TestRenderizarTabla(t *testing.T) {
 			documentos: []describeDePrueba{prepararDePrueba(), variarDePrueba(), diagnosticarDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
 				"| `kitlegal ejemplo preparar [<ecli>] [--roj <roj>] [--completa] [--materias <materias>]` | " +
-				"`ejemplo_preparar` | Prepara la consulta de una resolución. | sin forma declarada |\n" +
+				"`ejemplo_preparar` | Prepara la consulta de una resolución. |\n" +
 				"| `kitlegal ejemplo variar <norma> [<desde> [<bloques>...]] [--etiqueta <etiqueta>] [--forzar]` | " +
-				"`ejemplo_variar` | Ejerce cada forma de argumento. | sin forma declarada |\n" +
+				"`ejemplo_variar` | Ejerce cada forma de argumento. |\n" +
 				"| `kitlegal ejemplo diagnosticar [--global] [--dir <dir>]` | `ejemplo_diagnosticar` | Comprueba " +
-				"lo instalado en el ámbito. | sin forma declarada |\n" +
+				"lo instalado en el ámbito. |\n" +
 				pieDeLaTabla,
 		},
 	}
