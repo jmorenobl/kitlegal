@@ -24,13 +24,19 @@ cubierto:
     materia: administrativo
   - capacidad: territorio
     alcance: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
+  - capacidad: plazos
+    alcance: solo el recurso de reposición y la reclamación económico-administrativa en única o primera instancia contra un acto de aplicación de los tributos del Estado, los aplique la Administración del Estado o la de una comunidad autónoma, desde su notificación.
+    materia: fiscal
 regulados_aparte:
-  - procedimiento: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa
+  - procedimiento: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa, salvo el recurso de reposición y la reclamación económico-administrativa en única o primera instancia contra un acto de aplicación de los tributos del Estado
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.a"}
     norma: {identificador: BOE-A-2003-23186, nombre: "Ley 58/2003, General Tributaria", aplicable: {bloque: a97, apartado: "97"}}
   - procedimiento: gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.b"}
-  - procedimiento: procedimientos sancionadores en materia tributaria y aduanera
+  - procedimiento: procedimientos sancionadores en materia tributaria
+    precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.c"}
+    norma: {identificador: BOE-A-2003-23186, nombre: "Ley 58/2003, General Tributaria", aplicable: {bloque: a207, apartado: "207"}}
+  - procedimiento: procedimientos sancionadores en materia aduanera
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.c"}
   - procedimiento: procedimientos sancionadores en el orden social
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.c"}
@@ -43,5 +49,6 @@ regulados_aparte:
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.d"}
   - procedimiento: procedimientos de impugnación que una ley establece en sustitución del recurso de alzada
     precepto: {norma: BOE-A-2015-10565, bloque: a112, apartado: "112.2"}
-  - procedimiento: reclamaciones económico-administrativas
+  - procedimiento: reclamaciones económico-administrativas, salvo la reclamación en única o primera instancia contra un acto de aplicación de los tributos del Estado
     precepto: {norma: BOE-A-2015-10565, bloque: a112, apartado: "112.4"}
+    norma: {identificador: BOE-A-2003-23186, nombre: "Ley 58/2003, General Tributaria", aplicable: {bloque: a234, apartado: "234.1"}}

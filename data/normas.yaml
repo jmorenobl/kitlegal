@@ -4,8 +4,9 @@
 # vertebral: true marca las quince leyes de la tabla de leyes vertebrales de refs/mapa-sistema-legal-skills.md §1.4, y
 # ninguna más (TestNormasDelRepositorio/vertebrales).
 # vertical: <nombre> marca las normas del paquete de materia <nombre> (ADR 0044, punto 5): vertical: administrativo, las
-# diez de lo administrativo, y ninguna más (TestNormasDelRepositorio/paquete-de-lo-administrativo). No la llevan las de la
-# base ni las de una materia sin paquete.
+# diez de lo administrativo, y ninguna más (TestNormasDelRepositorio/paquete-de-lo-administrativo); vertical: fiscal, la
+# Ley General Tributaria y la Ley del IRPF, las del paquete tributario (ADR 0062, punto 6). No la llevan las de la base ni
+# las de una materia sin paquete.
 normas:
   BOE-A-2015-10565:
     titulo: "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas."
@@ -38,6 +39,7 @@ normas:
     materias:
       - tributos
     vertebral: true
+    vertical: fiscal
   BOE-A-2004-4214:
     titulo: "Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales."
     rango: Real Decreto Legislativo
@@ -54,6 +56,7 @@ normas:
     materias:
       - tributos
       - impuesto sobre la renta de las personas físicas
+    vertical: fiscal
   BOE-A-2015-10566:
     titulo: "Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público."
     rango: Ley

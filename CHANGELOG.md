@@ -12,8 +12,23 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **El paquete tributario: el recurso de reposición y la reclamación económico-administrativa contra un acto de
+  aplicación de los tributos del Estado** (H42; ADR 0062, punto 6). `kitlegal plazos calcular` gana los tipos
+  `reposicion-tributaria` (art. 223.1 LGT) y `reclamacion-economico-administrativa` en única o primera instancia
+  (art. 235.1 LGT), de un mes, desde la notificación y con el cómputo del art. 30 LPAC al que lleva el art. 7.2 LGT, con
+  los municipios del interesado y de la sede del órgano. La Ley General Tributaria y la Ley del IRPF pasan a ser del
+  paquete `fiscal`, con su referencia en `normativa` y en `plazos-y-territorio`; lo tributario que la ley regula aparte
+  —la aplicación de los tributos fuera de los dos recursos, el sancionador tributario y las demás reclamaciones— pasa
+  a `fiscal.md` con la LGT como norma que lo rige, y lo aduanero sancionador sigue en `administrativo.md`. Lo local, lo
+  foral y los tributos propios de las comunidades quedan fuera. `plazos-y-territorio` gana las evals 13 a 16.
+
 ### Cambiado
 
+- **La eval 07 de `plazos-y-territorio` pregunta por un tributo local** (H42): la liquidación de la plusvalía del
+  Ayuntamiento de Leganés, que sigue declarándose con la línea de lo regulado aparte y la LGT, sin fecha, ahora que la
+  liquidación de la Agencia Tributaria de antes está cubierta.
 - **Lo que kitlegal no cubre se declara con una sola plantilla en todas las materias, y lo que cubre lo dice
   `data/cobertura.yaml` por capacidad y materia** (H33; ADR 0058). La línea es `⚠ NO CUBIERTO: <asunto>: <motivo>.
   kitlegal no da sus plazos, órganos, vías ni escritos.`, la misma byte a byte en `consulta-juridica` y en

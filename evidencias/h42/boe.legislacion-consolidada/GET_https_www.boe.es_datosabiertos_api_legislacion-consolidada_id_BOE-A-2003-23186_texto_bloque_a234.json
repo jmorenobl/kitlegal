@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:51Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a234",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:51 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a234\" tipo=\"precepto\" titulo=\"Artículo 234\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 234. Normas generales.</p>\n        <p class=\"parrafo\">1. Las reclamaciones económico-administrativas se tramitarán en única o primera instancia con los recursos que esta ley establece.</p>\n        <p class=\"parrafo\">2. El procedimiento se impulsará de oficio con sujeción a los plazos establecidos, que no serán susceptibles de prórroga ni precisarán que se declare su finalización.</p>\n        <p class=\"parrafo\">3. Todos los actos y resoluciones que afecten a los interesados o pongan término en cualquier instancia a una reclamación económico-administrativa serán notificados a aquéllos en el domicilio señalado o, en su defecto, en la secretaría del tribunal correspondiente, mediante entrega o depósito de la copia íntegra de su texto.</p>\n        <p class=\"parrafo\">La notificación deberá expresar si el acto o resolución es o no definitivo en vía económico-administrativa y, en su caso, los recursos que procedan, órgano ante el que hubieran de presentarse y plazo para interponerlos, sin que ello impida que los interesados puedan ejercitar cualquier otro recurso que estimen pertinente.</p>\n        <p class=\"parrafo\">4. El procedimiento económico-administrativo será gratuito. No obstante, si la reclamación o el recurso resulta desestimado y el órgano económico-administrativo aprecia temeridad o mala fe, podrá exigirse al reclamante que sufrague las costas del procedimiento, según los criterios que se fijen reglamentariamente.</p>\n        <p class=\"parrafo\">5. El procedimiento económico-administrativo se regulará de acuerdo con las disposiciones previstas en este capítulo y en las disposiciones reglamentarias que se dicten en su desarrollo.</p>\n      </version>\n      <version id_norma=\"BOE-A-2015-10143\" fecha_publicacion=\"20150922\" fecha_vigencia=\"20151012\">\n        <p class=\"articulo\">Artículo 234. Normas generales.</p>\n        <p class=\"parrafo\">1. Las reclamaciones económico-administrativas se tramitarán en única o primera instancia con los recursos que esta Ley establece.</p>\n        <p class=\"parrafo\">2. Se tendrá por acreditada la representación voluntaria, sin necesidad de aportar uno de los medios establecidos en el artículo 46.2 de esta Ley, cuando la representación hubiera sido admitida por la Administración Tributaria en el procedimiento en el que se dictó el acto impugnado.</p>\n        <p class=\"parrafo\">3. El procedimiento se impulsará de oficio con sujeción a los plazos establecidos, que no serán susceptibles de prórroga ni precisarán que se declare su finalización.</p>\n        <p class=\"parrafo\">4. Todos los actos y resoluciones que afecten a los interesados o pongan término en cualquier instancia a una reclamación económico-administrativa serán notificados a aquéllos, bien por medios electrónicos, bien en el domicilio señalado o, en su defecto, de acuerdo con el artículo 112 de esta Ley.</p>\n        <p class=\"parrafo\">La notificación se hará de forma electrónica obligatoriamente para los interesados, y en los términos que reglamentariamente se establezcan, en los supuestos en que, de acuerdo con el artículo 235.5 de esta Ley, sea obligatoria la interposición de la reclamación por esta vía.</p>\n        <p class=\"parrafo\">La notificación deberá expresar si el acto o resolución es o no definitivo en vía económico-administrativa y, en su caso, los recursos que procedan, órgano ante el que hubieran de presentarse y plazo para interponerlos, sin que ello impida que los interesados puedan ejercitar cualquier otro recurso que estimen pertinente.</p>\n        <p class=\"parrafo\">5. El procedimiento económico-administrativo será gratuito. No obstante, si la reclamación o el recurso resulta desestimado o inadmitido y el órgano económico-administrativo aprecia temeridad o mala fe, podrá exigirse a la persona a la que resulte imputable dicha temeridad o mala fe que sufrague las costas del procedimiento, según los criterios que se fijen reglamentariamente.</p>\n        <p class=\"parrafo\">La condena en costas se impondrá en la resolución que se dicte, con mención expresa de los motivos por los que el órgano económico-administrativo ha apreciado la concurrencia de mala fe o temeridad, así como la cuantificación de la misma.</p>\n        <p class=\"parrafo\">Cuando se hubiera interpuesto recurso de alzada ordinario, la eficacia de la condena en costas dictada en primera instancia quedara supeditada a la confirmación de la misma en la resolución que se dicte en dicho recurso de alzada ordinario.</p>\n        <p class=\"parrafo\">6. El procedimiento económico-administrativo se regulará de acuerdo con las disposiciones previstas en este capítulo y en las disposiciones reglamentarias que se dicten en su desarrollo.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica por el art. único.43 de la Ley 34/2015, de 21 de septiembre. <a class=\"refPost\">Ref. BOE-A-2015-10143#aunico</a>.</p>\n          <p class=\"nota_pie_2\">Téngase en cuenta para su aplicación la disposición transitoria única.7.a) de la citada Ley.</p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

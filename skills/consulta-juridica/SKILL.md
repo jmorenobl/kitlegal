@@ -42,11 +42,13 @@ sus formas y sus citas son las de la respuesta.
 - **Jurisprudencia**: preparar la consulta exacta de una sentencia, que la persona busca con su navegador, y cotejar el documento que trae. No consulta ningún buscador ni dice si una sentencia existe.
 - **Plazos**: solo los del procedimiento administrativo común, los del acceso a la información pública y la interposición del recurso contencioso-administrativo, con los festivos de los municipios que cuentan. Lo que la ley regula aparte de ese procedimiento lo declara `plazos-y-territorio` con su línea.
 - **Territorio**: la provincia, la comunidad, el régimen, el DIR3 del ayuntamiento y los boletines de un municipio.
+- **Plazos**: solo el recurso de reposición y la reclamación económico-administrativa en única o primera instancia contra un acto de aplicación de los tributos del Estado, los aplique la Administración del Estado o la de una comunidad autónoma, desde su notificación.
 <!-- fin de lo que cubre la base -->
 - **Paquetes de materia**: lo que una materia trae a las skills de capacidad —sus normas, una referencia en cada skill
   que la necesita y lo que la ley regula aparte—. Los de hoy, con las skills que los llevan:
 <!-- paquetes de la base: lo genera make skills-sync -->
 - lo administrativo: `plazos-y-territorio`.
+- lo fiscal: `normativa`, `plazos-y-territorio`.
 <!-- fin de los paquetes de la base -->
 - **Sin herramienta, no cubiertos**: los documentos —escritos, recursos, reclamaciones, solicitudes— y los
   destinatarios —a quién se reclama, qué órgano resuelve, ante quién se presenta—.

@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:49Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a222",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1401"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:49 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a222\" tipo=\"precepto\" titulo=\"Artículo 222\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 222. Objeto y naturaleza del recurso de reposición.</p>\n        <p class=\"parrafo\">1. Los actos dictados por la Administración tributaria susceptibles de reclamación económico-administrativa podrán ser objeto de recurso potestativo de reposición, con arreglo a lo dispuesto en este capítulo.</p>\n        <p class=\"parrafo\">2. El recurso de reposición deberá interponerse, en su caso, con carácter previo a la reclamación económico-administrativa.</p>\n        <p class=\"parrafo\">Si el interesado interpusiera el recurso de reposición no podrá promover la reclamación económico-administrativa hasta que el recurso se haya resuelto de forma expresa o hasta que pueda considerarlo desestimado por silencio administrativo.</p>\n        <p class=\"parrafo\">Cuando en el plazo establecido para recurrir se hubieran interpuesto recurso de reposición y reclamación económico-administrativa que tuvieran como objeto el mismo acto, se tramitará el presentado en primer lugar y se declarará inadmisible el segundo.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

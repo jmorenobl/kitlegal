@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-11-24T09:42:52Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a235",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 24 Nov 2026 09:42:52 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a235\" tipo=\"precepto\" titulo=\"Artículo 235\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 235. Iniciación.</p>\n        <p class=\"parrafo\">1. La reclamación económico-administrativa en única o primera instancia se interpondrá en el plazo de un mes a contar desde el día siguiente al de la notificación del acto impugnado, desde el día siguiente a aquél en que se produzcan los efectos del silencio administrativo o desde el día siguiente a aquél en que quede constancia de la realización u omisión de la retención o ingreso a cuenta, de la repercusión motivo de la reclamación o de la sustitución derivada de las relaciones entre el sustituto y el contribuyente.</p>\n        <p class=\"parrafo\">Tratándose de reclamaciones relativas a la obligación de expedir y entregar factura que incumbe a empresarios y profesionales, el plazo al que se refiere el párrafo anterior empezará a contarse transcurrido un mes desde que se haya requerido formalmente el cumplimiento de dicha obligación.</p>\n        <p class=\"parrafo\">En el supuesto de deudas de vencimiento periódico y notificación colectiva, el plazo para la interposición se computará a partir del día siguiente al de finalización del período voluntario de pago.</p>\n        <p class=\"parrafo\">2. El procedimiento deberá iniciarse mediante escrito que podrá limitarse a solicitar que se tenga por interpuesta, identificando al reclamante, el acto o actuación contra el que se reclama, el domicilio para notificaciones y el tribunal ante el que se interpone. Asimismo, el reclamante podrá acompañar las alegaciones en que base su derecho.</p>\n        <p class=\"parrafo\">En los casos de reclamaciones relativas a retenciones, ingresos a cuenta, repercusiones, obligación de expedir y entregar factura y a las relaciones entre el sustituto y el contribuyente, el escrito deberá identificar también a la persona recurrida y su domicilio y adjuntar todos los antecedentes que obren a disposición del reclamante o en registros públicos.</p>\n        <p class=\"parrafo\">3. El escrito de interposición se dirigirá al órgano administrativo que haya dictado el acto reclamable que lo remitirá al tribunal competente en el plazo de un mes junto con el expediente correspondiente, al que se podrá incorporar un informe si se considera conveniente.</p>\n        <p class=\"parrafo\">No obstante, cuando el escrito de interposición incluyese alegaciones, el órgano administrativo que dictó el acto podrá anular total o parcialmente el acto impugnado antes de la remisión del expediente al tribunal dentro del plazo señalado en el párrafo anterior, siempre que no se hubiera presentado previamente recurso de reposición. En este caso, se remitirá al tribunal el nuevo acto dictado junto con el escrito de interposición.</p>\n        <p class=\"parrafo\">Si el órgano administrativo no hubiese remitido al tribunal el escrito de interposición de la reclamación, bastará que el reclamante presente ante el tribunal la copia sellada de dicho escrito para que la reclamación se pueda tramitar y resolver.</p>\n        <p class=\"parrafo\">4. En los casos de reclamaciones relativas a retenciones, ingresos a cuenta, repercusiones, a la obligación de expedir y entregar factura y relaciones entre el sustituto y el contribuyente, el escrito de interposición se dirigirá al tribunal competente para resolver la reclamación.</p>\n      </version>\n      <version id_norma=\"BOE-A-2015-10143\" fecha_publicacion=\"20150922\" fecha_vigencia=\"20151012\">\n        <p class=\"articulo\">Artículo 235. Iniciación.</p>\n        <p class=\"parrafo\">1. La reclamación económico-administrativa en única o primera instancia se interpondrá en el plazo de un mes a contar desde el día siguiente al de la notificación del acto impugnado, o desde el día siguiente a aquél en que quede constancia de la realización u omisión de la retención o ingreso a cuenta, de la repercusión motivo de la reclamación o de la sustitución derivada de las relaciones entre el sustituto y el contribuyente.</p>\n        <p class=\"parrafo\">En los supuestos de silencio administrativo, podrá interponerse la reclamación desde el día siguiente a aquél en que produzcan sus efectos. Si con posterioridad a la interposición de la reclamación, y antes de su resolución, se dictara resolución expresa, se remitirá al Tribunal, una vez notificada al interesado.</p>\n        <p class=\"parrafo\">En la notificación se advertirá que la resolución expresa, según su contenido, se considerará impugnada en vía económico administrativa, o causará la terminación del procedimiento por satisfacción extraprocesal que será declarada por el órgano económico administrativo que esté conociendo el procedimiento.</p>\n        <p class=\"parrafo\">En todo caso, se concederá el plazo de un mes, a contar desde el día siguiente a la notificación, para que el interesado pueda formular ante el Tribunal las alegaciones que tenga por convenientes. En dichas alegaciones el interesado podrá pronunciarse sobre las consecuencias señaladas en el párrafo anterior. De no hacerlo se entenderá su conformidad con dichas consecuencias.</p>\n        <p class=\"parrafo\">Tratándose de reclamaciones relativas a la obligación de expedir y entregar factura que incumbe a empresarios y profesionales, el plazo al que se refiere el primer párrafo empezará a contarse transcurrido un mes desde que se haya requerido formalmente el cumplimiento de dicha obligación.</p>\n        <p class=\"parrafo\">En el supuesto de deudas de vencimiento periódico y notificación colectiva, el plazo para la interposición se computará a partir del día siguiente al de finalización del período voluntario de pago.</p>\n        <p class=\"parrafo\">2. El procedimiento deberá iniciarse mediante escrito que podrá limitarse a solicitar que se tenga por interpuesta, identificando al reclamante, el acto o actuación contra el que se reclama, el domicilio para notificaciones y el tribunal ante el que se interpone. Asimismo, el reclamante podrá acompañar las alegaciones en que base su derecho.</p>\n        <p class=\"parrafo\">En los casos de reclamaciones relativas a retenciones, ingresos a cuenta, repercusiones, obligación de expedir y entregar factura y a las relaciones entre el sustituto y el contribuyente, el escrito deberá identificar también a la persona recurrida y su domicilio y adjuntar todos los antecedentes que obren a disposición del reclamante o en registros públicos.</p>\n        <p class=\"parrafo\">3. El escrito de interposición se dirigirá al órgano administrativo que haya dictado el acto reclamable, que lo remitirá al tribunal competente en el plazo de un mes junto con el expediente, en su caso electrónico, correspondiente al acto, al que se podrá incorporar un informe si se considera conveniente. En el supuesto previsto en el artículo 229.6 de esta Ley, el escrito de interposición se remitirá al Tribunal Económico-Administrativo a quien corresponda la tramitación de la reclamación.</p>\n        <p class=\"parrafo\">No obstante, cuando el escrito de interposición incluyese alegaciones, el órgano administrativo que dictó el acto podrá anular total o parcialmente el acto impugnado antes de la remisión del expediente al tribunal dentro del plazo señalado en el párrafo anterior, siempre que no se hubiera presentado previamente recurso de reposición. En este caso, se remitirá al tribunal el nuevo acto dictado junto con el escrito de interposición.</p>\n        <p class=\"parrafo\">Si el órgano administrativo no hubiese remitido al tribunal el escrito de interposición de la reclamación, bastará que el reclamante presente ante el tribunal la copia sellada de dicho escrito para que la reclamación se pueda tramitar y resolver.</p>\n        <p class=\"parrafo\">4. En los casos de reclamaciones relativas a retenciones, ingresos a cuenta, repercusiones, a la obligación de expedir y entregar factura y relaciones entre el sustituto y el contribuyente, el escrito de interposición se dirigirá al tribunal competente para resolver la reclamación.</p>\n        <p class=\"parrafo\">5. La interposición de la reclamación se realizará obligatoriamente a través de la sede electrónica del órgano que haya dictado el acto reclamable cuando los reclamantes estén obligados a recibir por medios electrónicos las comunicaciones y notificaciones.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica por el art. único.44 de la Ley 34/2015, de 21 de septiembre. <a class=\"refPost\">Ref. BOE-A-2015-10143#aunico</a>.</p>\n          <p class=\"nota_pie_2\">Téngase en cuenta para su aplicación la disposición transitoria única.7.a) y c) de la citada Ley.</p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
