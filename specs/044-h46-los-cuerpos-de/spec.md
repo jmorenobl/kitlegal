@@ -6,8 +6,8 @@
 
 **Status**: Draft
 
-**Input**: el fichero del hito, `docs/roadmap/in-progress/H46-los-cuerpos-de-las-skills-con-sitio-para-las-materias.md`,
-que aplica el ADR 0063 entero
+**Input**: el fichero del hito, `docs/roadmap/done/H46-los-cuerpos-de-las-skills-con-sitio-para-las-materias.md` (en
+`docs/roadmap/in-progress/` al lanzarlo), que aplica el ADR 0063 entero
 (`docs/ADR/0063-el-cuerpo-de-una-skill-de-capacidad-deja-sitio-para-las-materias.md`), el que sustituye el punto 3 del
 ADR 0062. El run no cambia ningún ADR ni escribe otro.
 

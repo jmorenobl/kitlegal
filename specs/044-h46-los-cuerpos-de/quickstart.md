@@ -108,10 +108,10 @@ la segunda, `internal/skills/comandos.go` e `internal/skills/sincronia.go`; la t
 git clone -q --no-hardlinks . "$TMPDIR/h46-mut" && cd "$TMPDIR/h46-mut"
 
 # El tope de FR-005, a 9601 y a 9599 (SC-003)
-sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9601/' internal/skills/sincronia.go
+sed -i 's/maximoSinLosPaquetes\( *\)= 9600/maximoSinLosPaquetes\1= 9601/' internal/skills/sincronia.go
 go test -count=1 -run '^TestSkillsDelRepositorio$/^presupuestos$' ./internal/app/ | grep -c -- '--- FAIL: .*presupuestos/[a-z-]*/'
 git checkout -q -- internal/skills/sincronia.go
-sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9599/' internal/skills/sincronia.go
+sed -i 's/maximoSinLosPaquetes\( *\)= 9600/maximoSinLosPaquetes\1= 9599/' internal/skills/sincronia.go
 go test -count=1 -run '^TestSkillsDelRepositorio$/^presupuestos$' ./internal/app/ | grep -c -- '--- FAIL: .*presupuestos/[a-z-]*/'
 git checkout -q -- internal/skills/sincronia.go
 

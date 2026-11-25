@@ -548,9 +548,11 @@ datos o sus evals.
 abren con `<!-- generado desde data/<fichero>, no editar -->`— y la tabla de comandos de `SKILL.md` —entre sus
 marcas— se derivan de `data/*.yaml` y de `--describe` del binario. La orden de cada fila de la tabla lleva los
 argumentos de posición del verbo y, detrás, sus banderas propias, que son las que nombra la anotación `x-banderas` de
-su `entrada` (`kitlegal cita preparar [<ecli>] [--roj <roj>] …`). Tras cambiar `data/`, añadir un verbo o cambiar su
-entrada o su salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio: `make skills-check`, dentro
-de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero que difieren.
+su `entrada` (`kitlegal cita preparar [<ecli>] [--roj <roj>] …`); la tabla lleva la orden, la herramienta y lo que
+hace, y no lo que devuelve en `data`, el sobre ni las banderas comunes, que trae cada llamada (ADR 0063). Tras cambiar
+`data/`, añadir un verbo o cambiar su entrada o su descripción, se ejecuta `make skills-sync` y lo regenerado va en el
+mismo cambio: `make skills-check`, dentro de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero
+que difieren.
 
 **Las referencias a mano se escriben a mano.** El protocolo de detalle de una skill va en referencias escritas a mano:
 un `.md` de `references/` que `kitlegal-referencias` no declara y que no abre con la cabecera «generado desde». Ni
@@ -564,7 +566,9 @@ viaja en el binario con su skill, y cuenta en el conjunto de dependencias de cad
 la [guía](docs/SKILLS.md)): el frontmatter de cada `SKILL.md`, con un `name` sin `anthropic` ni `claude`, ni `name`
 ni `description` con una etiqueta XML y la descripción de como mucho 900 caracteres; el cuerpo de `SKILL.md` —sin el
 frontmatter y con la tabla de comandos generada— en menos de 500 líneas y como mucho 11 000 caracteres, contados como
-caracteres y no como bytes, que sustituyen al límite de menos de 300 líneas del fichero entero; `references/` solo con
+caracteres y no como bytes, que sustituyen al límite de menos de 300 líneas del fichero entero; en una skill con las
+marcas de los paquetes en pareja, el mismo cuerpo sin las líneas que hay entre ellas, como mucho 9600 caracteres, que
+dejan 1400 para las líneas de los paquetes (H46, ADR 0063); `references/` solo con
 ficheros regulares `.md`; cada referencia, generada o a mano, enlazada desde `SKILL.md` con
 `[…](references/<fichero>.md)` fuera de los bloques de código; ninguna que enlace otra de su skill; y la de más de
 100 líneas, con un índice de sus apartados `## ` antes del primero. Cada defecto nombra la skill, el fichero y la

@@ -44,11 +44,12 @@ En todos, la orden que mide es la de Q9: `go -C <clon> test -count=1 -run '^Test
 
 ### M1 · `maximoSinLosPaquetes = 9601` (FR-005, SC-003)
 
-- Orden de Q9, tal cual: `sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9601/'
+- Orden que daba Q9 en T006, tal cual: `sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9601/'
   internal/skills/sincronia.go`.
 - Visto con ella: `git diff -U0` sin salida y `0` casos en rojo, `ok …/internal/app 0.739s`. El `sed` no cambia nada: en
   `sincronia.go:36` la constante va alineada por gofmt con las otras dos del bloque, `maximoSinLosPaquetes        =
-  9600`, y el patrón de Q9 lleva un solo espacio. El mutante no llega a existir con esa orden.
+  9600`, y el patrón que daba Q9 llevaba un solo espacio (Q9 lleva ya la orden que lo aplica). El mutante no llega a
+  existir con esa orden.
 - Orden que lo aplica: `sed -i 's/maximoSinLosPaquetes\( *\)= 9600/maximoSinLosPaquetes\1= 9601/'
   internal/skills/sincronia.go` (el `git diff -U0`: `-	maximoSinLosPaquetes        = 9600`, `+	maximoSinLosPaquetes
   = 9601`).
@@ -58,7 +59,7 @@ En todos, la orden que mide es la de Q9: `go -C <clon> test -count=1 -run '^Test
 
 ### M2 · `maximoSinLosPaquetes = 9599` (FR-005, SC-003)
 
-- Orden de Q9, tal cual: `sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9599/'
+- Orden que daba Q9 en T006, tal cual: `sed -i 's/maximoSinLosPaquetes = 9600/maximoSinLosPaquetes = 9599/'
   internal/skills/sincronia.go`.
 - Visto con ella: `git diff --numstat` sin ninguna línea y `0` casos en rojo, por lo mismo que en M1.
 - Orden que lo aplica: `sed -i 's/maximoSinLosPaquetes\( *\)= 9600/maximoSinLosPaquetes\1= 9599/'

@@ -77,7 +77,7 @@ evals, que solo corre el cierre. Lo corre cada tarea del run (`scripts/workflow/
   verbo, con los mismos errores (FR-002), y `LeerDescripcionDeVerbo` y los campos `Devuelve`, `Sobre` y `Banderas` de
   `DescripcionDeVerbo` no cambian. Lo que queda sin uso se retira: el método `Devuelve.texto`, `lineaDelSobre`,
   `lineaDeLasBanderas`, `comoCodigo` y las constantes `textoDeObjeto`, `textoDeListaDeObjetos`, `textoSinFormaDeclarada`
-  y `valorDeUnaBandera`. Se quedan `enumerar` (`paquetes.go:121`, `comandos.go:885`) y `Bandera.escrita`, que usa
+  y `valorDeUnaBandera`. Se quedan `enumerar` (`paquetes.go:121`, `comandos.go:824`) y `Bandera.escrita`, que usa
   `sintaxisDeLaOrden`. El comentario de `RenderizarTabla` dice que lo que devuelve en `data`, el sobre y las banderas
   comunes los da el esquema de salida de la herramienta y `--describe` de la orden (ADR 0063).
 - **Alternativas**: (a) dejar de leer `Devuelve` del documento: rechazada, una descripción con la salida mal formada
@@ -97,7 +97,7 @@ evals, que solo corre el cierre. Lo corre cada tarea del run (`scripts/workflow/
   que mide lo que deja `make skills-sync`. Sus comentarios, y el de `Regenerar` (`sincronia.go:186`), dicen la regla.
 - **Alternativas**: (a) contarlo en `paquetes.regenerar`, que ya busca la región: rechazada, mezcla la sincronía de la
   región con los presupuestos y cambia dónde va el defecto (los del cuerpo van antes que los de las regiones,
-  `sincronia.go:364`); (b) restar también las dos marcas: rechazada, el ADR 0063 (punto 1) y el supuesto del spec las
+  `sincronia.go:371`); (b) restar también las dos marcas: rechazada, el ADR 0063 (punto 1) y el supuesto del spec las
   cuentan; (c) aplicarla también a la región de la base de `consulta-juridica`, o a toda skill: rechazada, FR-006 y
   «Fuera de alcance».
 - **Por qué**: FR-005 la pone en «la comprobación del cuerpo», detrás del defecto de 11 000; los mutantes de P1 la
@@ -192,10 +192,10 @@ evals, que solo corre el cierre. Lo corre cada tarea del run (`scripts/workflow/
 
 ### D11 · El fixture del subtest «control» (FR-003)
 
-- **Decisión**: en `TestOrdenesDeLasSkillsEmpotradas/control` (`internal/app/skills_test.go:394-429`), la cabecera pasa a
+- **Decisión**: en `TestOrdenesDeLasSkillsEmpotradas/control` (`internal/app/skills_test.go:401-434`), la cabecera pasa a
   la de tres columnas y cada fila pierde su cuarta celda (`| objeto |`, `| nada |`), para que el fixture copie una tabla
   como la de hoy; lo que espera no cambia. Ese subtest lee la orden y la herramienta de cada fila (`filasDeLaTabla`,
-  `:2408-2428`) y no mira la cabecera, así que no sale en rojo con la de cuatro: el rojo de la tabla de cuatro columnas
+  `:2486-2506`) y no mira la cabecera, así que no sale en rojo con la de cuatro: el rojo de la tabla de cuatro columnas
   es el de los tres tests que fijan sus bytes (FR-003), que el registro de mutantes deja.
 - **Alternativa**: una aserción nueva sobre la cabecera del fixture: rechazada, no la pide el spec y no la produce el
   binario.
@@ -209,7 +209,7 @@ evals, que solo corre el cierre. Lo corre cada tarea del run (`scripts/workflow/
   fila del defecto con su mensaje y los 9600 en «En los límites, en verde» (línea 620). `CHANGELOG.md`, bajo
   *Unreleased* → *Cambiado*, una entrada del hito (H46; ADR 0063) que nombra `normativa`, `plazos-y-territorio` y
   `jurisprudencia` y lo que cambia en cada una, y la regla nueva de `skills-check`, como la de H41.1
-  (`CHANGELOG.md:246`).
+  (`CHANGELOG.md:269`).
 
 ### D13 · Las evals: ninguna cambia, y el cierre las mide todas (US5, SC-008)
 
@@ -240,7 +240,7 @@ paquete, tipo exportado ni dependencia nuevos: `golang-project-layout` no aplica
 | V5 | `testdata/` solo con `[datos]`; cada tarea pasa el guardián y `make ci` | `scripts/workflow/guardian-diff.sh:7-11`, `:75` y `:95`; `scripts/workflow/verificar.sh:2` y `:47` |
 | V6 | `make skills-check` solo compara y `make ci` lo corre; `make skills-sync` corre `TestSkillsDelRepositorio` con `-regenerar-skills` | `Makefile:136-137`, `:193-194` y `:314`; `scripts/skills-sync.sh:7` |
 | V7 | `regionDeMarcas.buscar` da lo que hay entre las dos líneas de las marcas, sin ellas; sin ninguna, ni región ni error; unas que no van en pareja, error, cuyo defecto ya da `paquetes.regenerar` | `internal/skills/paquetes.go:62-91` y `:258-263` |
-| V8 | `defectosDelCuerpo` mide el contenido regenerado | `internal/skills/sincronia.go:364` |
+| V8 | `defectosDelCuerpo` mide el contenido regenerado | `internal/skills/sincronia.go:371` |
 | V9 | El paso de sincronía de `h45-paquete-de-mas` corre `TestSkillsDelRepositorio` con `-regenerar-skills` en la copia, cuya raíz es `raizDelRepositorio` (`../..`) | `internal/app/testdata/script/h45-paquete-de-mas.txtar:175`; `internal/app/skills_test.go:44` y `:91-97` |
 | V10 | El conjunto de una eval lleva su skill y, por cierre, cada skill que nombra un `SKILL.md` o una referencia a mano del conjunto; el cierre pone la etiqueta `evals`, que mide lo elegido y reutiliza solo lo que tiene la misma huella; `consulta-juridica` nombra las tres skills de capacidad | `internal/evals/dependencias.go:917-921`; `scripts/workflow/cierre.sh:170`; `.github/workflows/evals.yml:20-26`; `grep -o` en `skills/consulta-juridica/SKILL.md` (`normativa` 1, `jurisprudencia` 1, `plazos-y-territorio` 4) |
 | V11 | El veredicto del job falla por una serie que no pasa y por un umbral que decide y no se cumple | `scripts/evals.sh:183-186`; `internal/evals/doc.go:156-161` |

@@ -7,7 +7,7 @@ que cambia son tres textos que lee el agente, una regla de `skills-check` y los 
 
 - **Cuerpo**: los bytes que siguen a la línea `---` que cierra el frontmatter, hasta el final, como los deja
   `make skills-sync` (con la tabla de comandos generada y las líneas de los paquetes); se mide en runas
-  (`utf8.RuneCount`), no en bytes (`docs/SKILLS.md` §3; `cuerpoDeLaSkill`, `internal/skills/sincronia.go:635`).
+  (`utf8.RuneCount`), no en bytes (`docs/SKILLS.md` §3; `cuerpoDeLaSkill`, `internal/skills/sincronia.go:661`).
 - **Región de los paquetes**: lo que hay entre la línea `<!-- paquetes: lo genera make skills-sync -->` y la línea
   `<!-- fin de los paquetes -->`, sin ellas: `entreMarcas{desde, hasta}` de `regionDeLosPaquetes.buscar`
   (`internal/skills/paquetes.go:58-91`). Una línea por paquete con referencia en la skill, `- Si la pregunta es de lo
@@ -70,5 +70,5 @@ Hoy: `consulta-juridica` sin marcas; `normativa` y `jurisprudencia` con marcas y
 | `h41-skills-instaladas.txtar` | la orden de `consulta_preparada.md` y la tabla «Cómo se dio / Qué se pide» | la orden con su frase nueva en el `SKILL.md`; la tabla, en la referencia |
 | `h41-1-skills-instaladas.txtar` y su copia congelada | la orden de `municipios.md` al principio del «Protocolo» | la orden nueva; los dos ficheros iguales |
 | `regionDeAlfa` (`internal/skills/sincronia_test.go:118`) | la tabla generada de `alfa` | tres columnas, sin las dos líneas |
-| `columnasDeLaTabla`, `filaDe*`, `pieDeLaTabla` (`internal/skills/comandos_test.go:799-823`) | los bytes de `RenderizarTabla` | tres columnas; el pie, una línea en blanco |
-| fixture de `TestOrdenesDeLasSkillsEmpotradas/control` (`internal/app/skills_test.go:397-410`) | filas de la región | cabecera de tres columnas, filas sin su cuarta celda |
+| `columnasDeLaTabla`, `filaDe*`, `pieDeLaTabla` (`internal/skills/comandos_test.go:798-813`) | los bytes de `RenderizarTabla` | tres columnas; el pie, una línea en blanco |
+| fixture de `TestOrdenesDeLasSkillsEmpotradas/control` (`internal/app/skills_test.go:404-417`) | filas de la región | cabecera de tres columnas, filas sin su cuarta celda |

@@ -47,7 +47,7 @@ marcas):
   `probarDefectosDeLaDescripcion`, sin cambiar lo que esperan).
 - `RenderizarTabla` sigue dando, sin tabla, «`<applet> <verbo>` no declara las mismas banderas globales que `<…>`» y
   «`<applet> <verbo>` no declara el mismo sobre que `<…>`» cuando dos verbos de la tabla difieren
-  (`TestRenderizarTabla`, casos `banderas-distintas` y `sobre-distinto`, `comandos_test.go:975-990`, sin cambios), y los
+  (`TestRenderizarTabla`, casos `banderas-distintas` y `sobre-distinto`, `comandos_test.go:957-972`, sin cambios), y los
   de hoy sin ningún applet o con uno sin verbos.
 
 ## 3. Lo que se retira de `comandos.go`
@@ -71,7 +71,7 @@ Sin uso tras §1, y `unused` lo daría (research D1, V3): `Devuelve.texto`, `lin
 
 Una tabla por pregunta en que se activa la skill, dentro del cuerpo, sin ninguna invocación: la `SKILL.md` no pide
 `--describe`. Con los applets de hoy: `normativa` 1436 caracteres (2673 en `main`), `plazos-y-territorio` 929 (1498),
-`jurisprudencia` 796 (1302) (research P1). Crece con los verbos de sus applets, de 150 a 400 caracteres por fila (las de hoy), no
+`jurisprudencia` 796 (1302) (research P1). Crece con los verbos de sus applets, de 117 a 436 caracteres por fila (las de hoy), no
 con el uso: con meses de uso diario, cientos de normas y miles de bloques consultados, es la misma. Lo que deja de dar —las
 claves de `data`, el sobre y las banderas— lo trae cada llamada en su resultado y, en el modo herramienta, el esquema de
 salida que anuncia el servidor con cada herramienta (research V18); `--describe` de cada orden, para quien lo pida.
