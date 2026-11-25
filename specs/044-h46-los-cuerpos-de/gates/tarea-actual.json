@@ -1,0 +1,24 @@
+{
+  "id": "T001",
+  "texto": "T001 [aceptacion] Escribir, a partir del spec y de [contracts/aceptacion.md](contracts/aceptacion.md), sin código de producto y sin evals (spec, «Fuera de alcance»: «Las evals, sus umbrales y el job»; research D13), los dos guiones testscript specs/044-h46-los-cuerpos-de/aceptacion/tabla-de-tres-columnas.txtar y specs/044-h46-los-cuerpos-de/aceptacion/textos-en-su-referencia.txtar, cada uno byte a byte el bloque `text` de su apartado: §1 (US1.1; la línea «# Cubre: US1.1 · FR-001, FR-021 · SC-006»; `exec kitlegal skills install --dir destino --json` y, sobre `destino/<skill>/SKILL.md` de `normativa`, `plazos-y-territorio` y `jurisprudencia`, la cabecera `| Orden | Herramienta | Qué hace |` con su separador `|---|---|---|` y una fila detrás, y las negativas acotadas entre las marcas de la tabla: ninguna cabecera de más columnas, ningún separador de cuatro, ninguna fila con cuarta celda, ni «Qué devuelve en», ni la línea del sobre, ni la de las banderas comunes) y §2 (US3.1 a US3.6; la línea «# Cubre: US3.1-US3.6 · FR-010, FR-011, FR-012, FR-021 · SC-006»; los `grep` y `! grep` de §2 en su orden sobre `SKILL.md`, `references/municipios.md`, `references/consulta_preparada.md` y `references/documento_aportado.md` instalados), con `\\s+` entre las palabras de cada frase citada, `[^#]*` por apartado y `\\z` para «al final» (research D8). Ninguna aserción sobre lo que el spec no fija: ni el número de tablas o filas, ni los bytes de las skills fuera de lo que nombran US1.1 y US3.1-US3.6 (US3.7 es de `TestSkillsDelProductoDesdeControl` y de quickstart Q4). **Rojo primero**: sobre los `skills/` de hoy, cada guion cae por una aserción (`tabla-de-tres-columnas.txtar:20` y `textos-en-su-referencia.txtar:25`, `no match for …`; research P1), lo que comprueba el workflow antes de congelarlos; el workflow los activa al terminar el bucle como los guiones `h46-tabla-de-tres-columnas` y `h46-textos-en-su-referencia` de `TestEntregaDelHito`, y desde entonces ninguna tarea los toca — FR-021; SC-006; US1 (escenario 1) y US3 (escenarios 1 a 6).",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": true,
+  "base": "a9b7724b2a3eb3566d7e95f3729aa87f3805dc8f",
+  "rutas": [
+    "SKILL.md",
+    "contracts/aceptacion.md",
+    "destino/",
+    "references/consulta_preparada.md",
+    "references/documento_aportado.md",
+    "references/municipios.md",
+    "skills/",
+    "specs/044-h46-los-cuerpos-de/aceptacion/tabla-de-tres-columnas.txtar",
+    "specs/044-h46-los-cuerpos-de/aceptacion/textos-en-su-referencia.txtar",
+    "tabla-de-tres-columnas.txtar",
+    "textos-en-su-referencia.txtar"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
