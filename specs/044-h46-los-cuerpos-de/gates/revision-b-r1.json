@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza (guardián de diff con 13 ficheros, los del commit 1dd843f0) y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (ci.log:102-104), con lint en 0 issues (ci.log:5). Reproducido en un clon de la cabeza en $TMPDIR: `go build ./...`, `go vet` y `go test -count=1` de ./internal/skills/, ./internal/app/ e ./internal/ (1759 tests, todos en verde) y golangci-lint sobre internal/skills, internal/app e internal/evals (0 issues). Árbol limpio: `git status` solo da gates/modelos.jsonl, gates/revision-cambios.md y gates/revision-ciclo.json, que son de esta revisión; los ficheros sin seguimiento de la raíz (.bashrc, .gitconfig, .idea…) son marcadores de 0 bytes y solo lectura del sandbox de la sesión, no del hito."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo offline. La suite congelada está intacta y activada: las huellas de specs/044-h46-los-cuerpos-de/aceptacion/*.txtar y de internal/app/testdata/script/h46-*.txtar son las de gates/aceptacion-congelada.json (78e5c963… y 79384642…), y en el clon pasan h46-tabla-de-tres-columnas, h46-textos-en-su-referencia, h41-skills-instaladas, h41-1-skills-instaladas y h45-paquete-de-mas. Mutantes propios en el clon, todos en rojo donde toca: tope a 9601 (6 casos de presupuestos); `>` por `>=` en internal/skills/sincronia.go:647 (3 casos de 9600); sin restar la región (3 casos de plazos-y-territorio); comandos.go de main (TestRenderizarTabla, TestRegenerarYComparar, TestCuerpoDeLaSkill); `mismoSobreYBanderas(comun, comun)` en comandos.go:548 (banderas-distintas y sobre-distinto); remisiones_test.go de main (TestRemisionesDelRepositorio); una frase de más en municipios.md y una celda cambiada en consulta_preparada.md (TestSkillsDelProductoDesdeControl); skills/ de main (los dos guiones h46-, en su primera aserción); y las negativas de la suite no son vacías: una línea «Banderas comunes:» en la región o una fila con cuarta celda ponen en rojo h46-tabla-de-tres-columnas.txtar:25. Solo sobrevive restar bytes en vez de runas de la región, que es equivalente con datos válidos (ver observaciones)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El Go de producción que cambia es internal/skills/comandos.go (+14 −75) e internal/skills/sincronia.go (+32 −6): ningún import nuevo, ni net/http, ni os.Exit, ni fmt.Print*; solo fmt.Sprintf en sincronia.go:650. go.mod, go.sum, tools/, Makefile y la configuración de lint no cambian (`git diff --stat main HEAD` vacío en esas rutas), y TestArquitectura pasa en el clon dentro de ./internal/."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet cambia: el diff no toca cmd/, schemas/, internal/cli, internal/app (salvo skills_test.go) ni ninguna fuente. TestEsquemasPublicados sigue en `make ci` (ci.log:76-77) y valida la salida real contra el esquema que emite el binario; la suite del hito lee lo que instala `kitlegal skills install --dir destino --json`."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni error tipado nuevo. El defecto nuevo es un DefectoDeSkill más de `defectosDelCuerpo` (sincronia.go:641-653), sin panic: con las marcas sin pareja o sin marcas vuelve antes de indexar la región (sincronia.go:641-644). Los errores de RenderizarTabla son los de main, y sus casos de error no cambian (comandos_test.go:945-972)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:63-85, bajo Unreleased → Cambiado, nombra las tres skills, lo que cambia en cada una y la regla nueva. docs/SKILLS.md lleva §1 (tres columnas), §3 (fila de 9600, definición y cifras), §5 (fila del defecto y el límite) y «La vertical de ensayo» sin la línea de más; CONTRIBUTING.md:548-571 queda al día. Las cifras se sostienen medidas en el clon con la orden de quickstart Q3: normativa 9498/9498, plazos-y-territorio 9577/9483, jurisprudencia 9473/9473; y la línea de un paquete mide 52 + 3n (94 la de lo administrativo). Ningún ADR cambia (el 0063 ya está en main) y no hay fuente nueva para docs/SOURCES.md. Sin restos de la tabla de cuatro columnas fuera de laboratorio/, que el spec deja fuera, y de las entradas antiguas del CHANGELOG."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El hito no hace ni toca ninguna petición HTTP, no añade secretos ni datos personales y no graba nada: no hay grabaciones.json ni cambios en testdata/<fuente>/, data/ ni evidencias/. Los textos de skills/ salen de un objeto del repositorio: `git diff --quiet f89093dd -- skills/` da igual."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de *.go y *.txtar no hay nolint, t.Skip, TODO, panic ni errores descartados con `_ =`. gates/cuarentena.json está vacío y cada tarea salió al primer intento (gates/tareas-intentos.json). Los guiones de H41 y H41.1 y la copia congelada de H41.1 cambian porque lo pide el fichero del hito (líneas 80-83) y FR-016, con su fila en «Complexity Tracking» de plan.md:283; la copia es igual byte a byte a su guion (cmp) y la de H41 no se toca."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada commit toca solo las rutas de su tarea (`git log --name-only main..HEAD`): T002 la tabla y sus tests, T003 los textos y lo que los fija, T004 la regla, T005 el CHANGELOG; el barrido, CONTRIBUTING.md y docs/ROADMAP.md. Los tests y guiones que cambian son exactamente los trece de quickstart Q8 (SC-007). Ni evals/, ni data/, ni schemas/, ni laboratorio/, ni .github/ cambian. Las órdenes de leer, las líneas ⚠ y los bloques `text` de cada cuerpo son los mismos que en main (7, 24 y 19 coincidencias antes y después en jurisprudencia, plazos-y-territorio y normativa). Los dos supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en el clon con `wc -m` en UTF-8. Ninguna salida del binario cambia. Lo que carga el agente por pregunta: normativa 9498 caracteres de cuerpo (10 750 en main); plazos-y-territorio 9577 + municipios.md 4666 = 14 243 (10 686 + 3873 = 14 559 en main); jurisprudencia 9473 + consulta_preparada.md 2698 + documento_aportado.md 3208 por cotejo (10 842 + 1997 + 2756 en main): 216 menos con un documento y 452 más por cada documento siguiente, acotado por los que la persona trae a esa pregunta. Nada depende de la caché ni del grafo, así que meses de uso no lo cambian; solo crece con los paquetes, una línea de 52 + 3n que el tope acota a 1400. Ninguna SKILL.md pide una invocación más: `--describe` solo aparece en la marca de la tabla. El defecto nuevo es una línea de 98 bytes por skill que se pasa y deja de darse al volver a 9600."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Sin paquetes, tipos ni símbolos exportados nuevos. La regla son una constante (sincronia.go:36) y trece líneas en la función que ya llevaba los otros dos presupuestos (sincronia.go:641-653; FR-005, FR-006). comandos.go solo pierde código: ocho símbolos sin uso, y conserva `mismoSobreYBanderas` y la lectura de `Devuelve`, `Sobre` y `Banderas`, que FR-002 y el punto 2 del ADR 0063 piden mantener aunque la tabla ya no los escriba. En tests, las dos constantes de las marcas y `caracteresDeLosPaquetes` (skills_test.go:894-921) se trazan a FR-008, y se retira `comprobarElSitioDeOtroPaquete` con su import (FR-009). Lo que sobra es menor y va a observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md:248-264 que se mide en `make ci` tiene su control y sale en rojo pasado el umbral, comprobado en el clon. SC-002: con jurisprudencia subida a 9601 en el árbol, TestSkillsDelRepositorio/skills falla con «jurisprudencia: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)», y ese test lo corre `make skills-check` dentro de `make ci` (Makefile:136-137). SC-003: los mutantes del tope y de la comparación de (b). FR-001 a FR-003, SC-004, SC-005 y SC-006: los mutantes de (b). SC-008 es del job de evals del cierre, que el hito no toca y que corre después de esta revisión: no hay gates/cierre.json ni gates/evals/ todavía, así que no lo he medido."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Con un cuerpo real en exactamente 9600 caracteres sin las líneas de los paquetes, `make skills-check` sale en rojo aunque la regla no da defecto: en el clon, normativa llevada a 9600 falla en presupuestos/normativa/nueve-mil-seiscientos-sin-los-paquetes con «\"9600\" is not less than \"9600\"» (internal/app/skills_test.go:1002, `require.Less` de ensancharElCuerpo). El tope efectivo del árbol es 9599, como ya pasaba con 11 000 en main; no llega a motivo porque ningún emisor de hoy deja un cuerpo en ese valor (los del hito tienen 102, 117 y 127 de margen). Se arregla aceptando la igualdad en ensancharElCuerpo.",
+    "Cuando las líneas de los paquetes de una skill pasen de 1400 caracteres (21 materias de nombre corto), los casos de presupuestos de 9600 + p y 9601 + p superan los 11 000 y el de 11 001 − p baja de 9601: el subtest saldrá en rojo aunque el cuerpo tenga holgura y la regla no dé defecto. Hoy hay un paquete (p = 94) y H42 trae el segundo.",
+    "Restar bytes en vez de runas de la región de los paquetes (sincronia.go:646) no pone ningún test en rojo: las líneas que escribe la sincronía son ASCII, porque el nombre de una materia tiene la forma ^[a-z][a-z0-9-]*$ (docs/SKILLS.md:248). Es un mutante equivalente con datos válidos.",
+    "El caso `una-sola-clave-de-fallo` de TestRenderizarTabla (internal/skills/comandos_test.go:856-870) existía para la línea del sobre con una sola clave de fallo; sin esa línea espera lo mismo que cualquier fila y ya no distingue nada propio. El contrato pide actualizar «las filas de cada caso», así que se queda.",
+    "`Devuelve` (forma y claves de `data`) se sigue leyendo en LeerDescripcionDeVerbo y ya no lo consume ningún código de producción, solo sus tests. Lo fija el punto 2 del ADR 0063 y FR-002; no se reabre aquí.",
+    "Las dos guardas de `caracteresDeLosPaquetes` para unas marcas mal puestas en el árbol (skills_test.go:904 y :918) cubren un estado que ya pone en rojo el subtest `skills` con el defecto de las marcas; solo cambian el mensaje.",
+    "gates/supuestos.md dice que T006 no toca quickstart.md, y el barrido posterior sí corrigió las dos órdenes `sed` de Q9 (commit 1dd843f0); mutantes.md lo recoge («Q9 lleva ya la orden que lo aplica»), el supuesto no.",
+    "docs/SKILLS.md:79-80 y CONTRIBUTING.md:552 dicen que las banderas comunes «las trae cada llamada»; el resultado de una llamada trae el sobre y `data`, y las banderas solo las da `--describe`. Es la redacción del ADR 0063 (líneas 45-49)."
+  ]
+}
