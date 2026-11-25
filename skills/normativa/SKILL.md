@@ -14,8 +14,8 @@ metadata:
 ## Protocolo
 
 Antes de la primera orden o llamada, lee [con_herramientas](references/con_herramientas.md): cómo se pide cada
-una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la
-tienes, con su herramienta.
+una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o con
+su herramienta.
 
 ### 1. Identificar la norma
 

@@ -28,8 +28,9 @@ Cuándo leer cada una:
 
 ## Protocolo
 
-Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): qué hacer si falta el municipio o
-no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su cobertura.
+Antes de la primera orden o llamada, lee [municipios.md](references/municipios.md): cómo se pide cada
+operación, qué hacer si falta el municipio o no sale con 0, qué trae `data`, la plantilla del territorio y qué dice su
+cobertura.
 
 Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 y, solo si hay plazo, del 8 al 11.
 
@@ -69,8 +70,7 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
 
 ## Cómo se presenta el territorio
 
-Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con la clave y el valor
-exactos, una línea por aspecto, y detrás puedes explicarla:
+La cobertura, con la clave y el valor exactos, una línea por aspecto:
 
 ```text
 boletin_autonomico: <valor>
@@ -122,11 +122,7 @@ y con su forma; detrás puedes explicarla.
 
 ## Comandos
 
-Con la herramienta de su fila si entre las tuyas hay una con ese nombre, sola o tras el prefijo de tu agente, como
-`mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si no, con la orden `kitlegal … --json`, desde el
-`PATH`. Donde la orden sale con un código, la herramienta da un error con la `data.clase` entre paréntesis: 0
-correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3 (`no-encontrado`) un
-municipio fuera de la relación o un plazo con preceptos que no regían el día de inicio.
+`kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
