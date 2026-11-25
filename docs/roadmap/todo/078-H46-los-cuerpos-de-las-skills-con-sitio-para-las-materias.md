@@ -29,7 +29,7 @@ depende_de: [H45.1]
   | Reglas | 1298 | 2168 | 1480 |
 
 - **La fuente de los textos es el prototipo.** Lo que entrega este hito en `skills/` es, byte a byte, lo que tiene la
-  rama `cuerpos-prototipo` en `26514fae` (`git diff main 26514fae -- skills/`). Con él, `normativa` mide 9498,
+  rama `cuerpos-prototipo` en `f89093dd` (`git diff main f89093dd -- skills/`). Con él, `normativa` mide 9498,
   `plazos-y-territorio` 9577 (9483 sin la línea de lo administrativo) y `jurisprudencia` 9473; `make ci` sale en verde,
   también con el paquete fiscal de H42 encima y sin ningún `.go` suyo (rama `cuerpos-con-fiscal`: 9568 y 9647 en las
   dos skills que lo reciben). Los cambios de Go y de tests del prototipo son una guía, no la entrega: el plan los
@@ -51,7 +51,9 @@ depende_de: [H45.1]
      `TestSkillsDelRepositorio`), que hoy ensancha cada skill a 11 000 fuera de las marcas y espera cero defectos,
      cambia para las skills con marcas: ensanchado fuera de ellas, 9600 sin las líneas de los paquetes en verde, 9601
      con el defecto nuevo, y 11 001 con los dos; sin marcas, como hoy. Sin ese cambio, el subtest y el guion
-     `h45-paquete-de-mas`, que lo corre en su paso de sincronía, salen en rojo. `TestVerticalDeEnsayo` no cambia.
+     `h45-paquete-de-mas`, que lo corre en su paso de sincronía, salen en rojo. `TestVerticalDeEnsayo` deja de
+     comprobar que cabe «otra línea de paquete de su misma longitud» (`comprobarElSitioDeOtroPaquete`), que añadía
+     esa línea fuera de las marcas y bajaría el tope real a unos 9530; lo demás de ese test no cambia.
   3. **Los textos de `skills/`**, los del prototipo (arriba), que hacen esto (ADR 0063, punto 3):
      - `plazos-y-territorio`: el párrafo de «Comandos» sobre la herramienta o la orden y los códigos va a un apartado
        «Herramienta u orden» al final de `references/municipios.md`, y en «Comandos» queda «`kitlegal` se invoca desde
@@ -73,18 +75,20 @@ depende_de: [H45.1]
      producto de `TestSkillsDelProductoDesdeControl` (`internal/evals/laboratorio_familias_test.go`, un cambio por
      texto, en el cuerpo o en una referencia, con los bytes del prototipo); y las remisiones del plan
      (`remisionesDelPlan`, `internal/skills/remisiones_test.go`), con las dos frases nuevas.
-  5. **Los guiones que fijan el texto de hoy, en una tarea `[datos]`** que va después de la del punto 3 y no mezcla otro
-     trabajo: `internal/app/testdata/script/h41-skills-instaladas.txtar`, que busca la orden de `consulta_preparada.md`
+  5. **Los guiones que fijan el texto de hoy, en una tarea `[datos]`** que va justo después de la del punto 3 y no
+     mezcla otro trabajo. Entre las dos, esos dos guiones de `TestEntregaDelHito` salen en rojo por el texto nuevo, y
+     es lo esperado: la tarea del punto 3 se verifica con todo `make ci` salvo ellos, y la `[datos]`, con todo. Son: `internal/app/testdata/script/h41-skills-instaladas.txtar`, que busca la orden de `consulta_preparada.md`
      con su frase nueva en el cuerpo y la tabla en la referencia; y `h41-1-skills-instaladas.txtar`, con la orden nueva
      de `municipios.md`, igual en su copia congelada
      (`specs/035-h41-1-plazos-y-territorio/aceptacion/skills-instaladas.txtar`).
   6. **La guía y el registro**: `docs/SKILLS.md` §1 (qué lleva la tabla de comandos, con sus tres columnas, como texto
-     nuevo), §3 (el sitio de las materias, con su porqué y las cifras al cerrar) y §5 (el defecto nuevo en su tabla y
+     nuevo; y, en «La vertical de ensayo», sin el sitio para otra línea de su misma longitud), §3 (el sitio de las materias, con su porqué y las cifras al cerrar) y §5 (el defecto nuevo en su tabla y
      los 9600 en «En los límites, en verde»); `CHANGELOG.md`, con la versión de cada skill que cambia.
 - **La suite de aceptación** (la primera tarea) comprueba, sobre las skills instaladas con `kitlegal skills install`,
   que la tabla de cada skill de capacidad tiene tres columnas y ni la línea del sobre ni la de las banderas, que las
   tres líneas de la cobertura siguen en el cuerpo de `plazos-y-territorio`, y que lo movido está en su referencia y no
-  en el cuerpo; y, sobre una copia, el defecto nuevo con 9601 y ninguno con 9600.
+  en el cuerpo. El defecto nuevo no lo da ninguna orden de `kitlegal`: lo fijan `casosDePresupuestos` y sus mutantes,
+  no la suite.
 - **Alcance**: solo lo de «Entrega». Fuera, en una lista cerrada: la forma de la línea de un paquete y de las marcas;
   una referencia índice o cualquier referencia nueva; mover una línea `⚠`, una forma fija, una regla invariante o una
   orden de leer; cambiar una descripción; el tope de 11 000, el de 900 y el de 500 líneas; `--describe`, el esquema de

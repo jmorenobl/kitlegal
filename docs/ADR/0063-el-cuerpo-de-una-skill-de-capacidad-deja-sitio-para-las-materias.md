@@ -78,7 +78,8 @@ pregunta que ya lee una referencia:
    marcas). Quedan 1400 para las líneas de los paquetes: veinte materias de nombre como `fiscal`, a 52 + 3n cada una, y
    menos con nombres largos. Es una regla de `skills-check`, con su defecto
    (`normativa: SKILL.md: cuerpo sin las líneas de los paquetes de 9601 caracteres (máximo 9600)`), su mutante en rojo y
-   su límite en verde en `TestSkillsDelRepositorio`. Un `SKILL.md` sin esas marcas no la lleva. El tope de 11 000 sigue
+   su límite en verde en `TestSkillsDelRepositorio`. Un `SKILL.md` sin esas marcas no la lleva. Sustituye la
+   comprobación de `TestVerticalDeEnsayo` de que cabe «otra línea de paquete de su misma longitud», que se quita. El tope de 11 000 sigue
    siendo el del cuerpo entero, con los paquetes. Una regla nueva del protocolo cabe en ese presupuesto o saca a una
    referencia lo que solo pide una clase de pregunta (`docs/SKILLS.md` §3); no toma el sitio de las materias.
 2. **La tabla de comandos lleva la orden, la herramienta y lo que hace**, una fila por verbo, y nada más: sin la
@@ -86,8 +87,10 @@ pregunta que ya lee una referencia:
    skills-sync` desde `--describe`, como hoy; `kitlegal-sin-fila` no cambia. `--describe` y el esquema de salida de
    cada herramienta siguen declarando lo mismo, y `LeerDescripcionDeVerbo` sigue leyéndolo y dando sus defectos.
 3. **El detalle de una clase de pregunta va a la referencia que esa clase lee sin condición**, con la regla de §1 de
-   `docs/SKILLS.md`: lo movido va entero al final de su referencia, y la orden de leerla dice que lo trae. Lo que se
-   mueve, y la eval que llega a su caso (ADR 0052, punto 4):
+   `docs/SKILLS.md`: lo movido va entero a su referencia, y la orden de leerla dice que lo trae. Va al final, salvo
+   cuando encaja en un apartado que ya tiene, y con lo mínimo cambiado para leerse fuera del cuerpo: lo que nombraba
+   el cuerpo («esta forma», «de su fila») nombra `SKILL.md`. Lo que se mueve, y la eval que llega a su caso (ADR 0052,
+   punto 4):
    - `plazos-y-territorio`: el párrafo de «Comandos» —la herramienta o la orden, y los códigos— a `municipios.md`, que
      se lee antes de la primera orden o llamada (todas las evals que llaman a `kitlegal`); y, de «Cómo se presenta el
      territorio», cómo se escribe cada dato y que la cobertura se puede explicar detrás, a la misma, para las evals 01
