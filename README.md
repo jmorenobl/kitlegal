@@ -372,6 +372,13 @@ skills.
 - **Las propias administraciones**: la misma herramienta con la que se les pregunta, para responder con la norma en
   la mano.
 
+## Proyectos que usan kitlegal
+
+[Ventanilla Legal](https://ventanillalegal.es/) es un proyecto hermano construido sobre kitlegal: guías con citas
+verificables del BOE para la ciudadanía y, en su
+[sección para profesionales](https://ventanillalegal.es/profesionales/), documentación práctica para despachos y
+gestorías (instalación, criterios de evaluación y casos de uso).
+
 ## Para desarrolladores
 
 Todo lo técnico —cómo se construye desde el clon, cómo se prueban las skills, cómo se añade una fuente o un
